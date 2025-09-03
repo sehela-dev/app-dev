@@ -1,38 +1,46 @@
-"use client";
+import { Instagram, Mail, Phone } from "lucide-react";
+import { LogoComponent } from "../asset/logo";
+import Image from "next/image";
 
-import Link from "next/link";
-import { Home, Calendar, ShoppingBag, User } from "lucide-react";
-import { usePathname } from "next/navigation";
-
-const NAV_ITEMS = [
-  { href: "/", label: "Home", icon: Home },
-  { href: "/book", label: "Book Class", icon: Calendar },
-  { href: "/shop", label: "Shop", icon: ShoppingBag },
-  { href: "/profile", label: "Profile", icon: User },
-];
-
-export function MainBottomNav() {
-  const pathname = usePathname();
-
+export const MainFooterComponent = () => {
   return (
-    <nav className="min-h-16 shrink-0  bg-gray-50 backdrop-blur shadow-subtle ">
-      <ul className="grid grid-cols-4 h-full py-4">
-        {NAV_ITEMS.map(({ href, label, icon: Icon }) => {
-          const active = pathname === href;
-          return (
-            <li key={href} className="flex items-center justify-center ">
-              <Link
-                href={href}
-                className={`flex flex-col items-center justify-center gap-1 rounded-md px-3 py-2 text-xs font-medium transition-colors w-[90px]
-                  ${active ? "bg-brand-50 text-brand-500" : "text-brand-400 hover:bg-brand-50"}`}
-              >
-                <Icon className="size-5" />
-                {label}
-              </Link>
-            </li>
-          );
-        })}
-      </ul>
-    </nav>
+    <div className="bg-brand-500 flex w-full text-gray-50 font-serif">
+      <div className="px-4 py-10.5 flex flex-col gap-9.5 w-full">
+        <div className="flex flex-col gap-6">
+          <p className="text-xl font-bold">Contacts</p>
+          <div className="flex flex-col gap-4 font-normal">
+            <p className="flex items-center gap-2.5 text-sm">
+              <Phone />
+              +628111469688
+            </p>
+            <p className="flex items-center gap-2.5 text-sm">
+              <Mail />
+              sehelaspace@gmail.com
+            </p>
+          </div>
+        </div>
+        <div className="flex flex-col gap-6">
+          <p className="text-xl font-bold">Socials</p>
+          <div className="flex flex-col gap-4 font-normal">
+            <p className="flex items-center gap-2.5 text-sm">
+              <Instagram />
+              @sehelaspace
+            </p>
+            <p className="flex items-center gap-2.5 text-sm">
+              <Instagram />
+              @denisepayneyoga
+            </p>
+          </div>
+        </div>
+        <div className="flex  justify-center items-center mx-auto">
+          <div className="flex items-center w-full justify-center mt-4 gap-2.5">
+            <LogoComponent className="w-[99px] h-[32px]" src="sehela-light.png" />
+            <div>
+              <Image src={"/assets/one-song.png"} alt="one-song" width={48} height={48} />
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
   );
-}
+};
