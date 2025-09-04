@@ -1,13 +1,22 @@
+"use client";
+
 import { MainFooterComponent } from "@/components/layout";
 import Image from "next/image";
+import { useRouter } from "next/navigation";
 
 export const BookClassView = () => {
+  const router = useRouter();
   return (
     <div className="flex flex-col w-full gap-8 font-serif mx-auto py-8 h-dvh">
-      <div className="flex w-full px-4 flex-col gap-8 h-full">
+      <div className="flex w-full px-4 sm:px-8 flex-col gap-8 h-full">
         <h2 className="text-brand-500 font-extrabold text-[32px]">Book Class</h2>
         <div className="flex flex-col gap-2.5 leading-[130%]">
-          <div className="flex items-center gap-2.5  cursor-pointer">
+          <div
+            className="flex items-center gap-2.5  cursor-pointer"
+            onClick={() => {
+              router.push("/book/yoga");
+            }}
+          >
             <div className="relative w-full max-w-[138px] h-[97px]">
               <Image src="/assets/book-page/yoga-class.png" alt="yoga-class" width={138} height={97} className="w-full h-full" objectFit="fill" />
             </div>
@@ -17,7 +26,12 @@ export const BookClassView = () => {
             </div>
           </div>
           {/*  */}
-          <div className="flex items-center gap-2.5   ">
+          <div
+            className="flex items-center gap-2.5  cursor-pointer "
+            onClick={() => {
+              router.push("/book/ballet");
+            }}
+          >
             <div className="relative w-full max-w-[138px] h-[97px]">
               <Image src="/assets/book-page/ballet-class.png" alt="ballet-class" width={138} height={97} className="w-full h-full" objectFit="fill" />
             </div>
@@ -27,7 +41,12 @@ export const BookClassView = () => {
             </div>
           </div>
           {/*  */}
-          <div className="flex items-center gap-2.5  cursor-pointer">
+          <div
+            className="flex items-center gap-2.5  cursor-pointer "
+            onClick={() => {
+              router.push("/book/pilates");
+            }}
+          >
             <div className="relative w-full max-w-[138px] h-[97px]">
               <Image
                 src="/assets/book-page/pilates-class.png"

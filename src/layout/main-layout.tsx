@@ -12,7 +12,7 @@ export default function MainLayout({ children }: Readonly<{ children: React.Reac
         <MainHeaderComponent />
 
         {/* Content (only this scrolls) */}
-        <main className="flex-1 min-h-0 overflow-y-auto pb-6">{children}</main>
+        <main className="flex-1 min-h-0 overflow-y-auto">{children}</main>
 
         {/* Footer / mobile menu (fixed height, non-scrolling) */}
         {showNav && <MainBottomNav />}
