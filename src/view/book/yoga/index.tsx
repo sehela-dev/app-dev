@@ -1,17 +1,18 @@
 import { MainFooterComponent } from "@/components/layout";
-import { SessionCardComponent } from "@/components/session/card";
+import { SessionCardComponent } from "@/components/general/session-card";
 
 import { Button } from "@/components/ui/button";
 
 import { SearchInput } from "@/components/ui/search-input";
 import { ListFilter } from "lucide-react";
 import Image from "next/image";
+import { DialogSessionFilter } from "@/components/general/filter-dialog";
 
 export const BookYogaClassView = () => {
   return (
     <div className="flex flex-col w-full gap-8 font-serif mx-auto pt-8 min-h-dvh text-brand-500">
       <div className="flex w-full px-4 sm:px-8 flex-col gap-8 h-full min-h-dvh">
-        <div className="relative w-full max-w-[95%] h-full mx-auto">
+        <div className="relative w-full  h-full mx-auto">
           <Image src="/assets/book-page/yoga-class.png" alt="yoga-class" width={361} height={225} className="w-full h-full" objectFit="fill" />
         </div>
         <h2 className="font-serif font-extrabold text-[32px]">Yoga Class</h2>
@@ -28,9 +29,7 @@ export const BookYogaClassView = () => {
           <div className="flex items-center w-full gap-2.5">
             <SearchInput className="min-h-[40px]" />
 
-            <Button size={"icon"} variant={"outline"} className="min-h-[40px] min-w-[40px] bg-transparent ">
-              <ListFilter />
-            </Button>
+            <DialogSessionFilter />
           </div>
           <div className="flex flex-col gap-4">
             {/* replace later */}

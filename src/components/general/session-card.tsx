@@ -23,13 +23,13 @@ export const SessionCardComponent = ({ time, duration, title, location, slot, is
   return (
     <div className="relative w-full">
       <Card className="bg-brand-500 text-gray-50 rounded-xl p-2 min-h-[148px] cursor-pointer hover:shadow-md border-none" onClick={onClick}>
-        <div className="flex flex-row items-start gap-2.5 min-h-[138px]">
-          <div className="bg-brand-400 min-w-[90px] sm:min-w-[100px] min-h-[132px] rounded-md flex flex-col justify-center items-center ">
+        <div className="flex flex-row items-start gap-2.5 min-h-[138px] max-h-[138px]">
+          <div className="bg-brand-400 min-w-[90px] sm:min-w-[100px] min-h-[138px] h-full rounded-md flex flex-col justify-center items-center ">
             <p className="text-sm">{time} WIB</p>
             <p className="text-sm">{duration} Min</p>
           </div>
           {/* class info */}
-          <div className="flex flex-col gap-2.5 p-2">
+          <div className="flex flex-col gap-2.5 px-2 min-h-[138px] justify-between">
             {/* title */}
             <p className="font-extrabold">{title}</p>
             <div className="flex flex-col gap-2">
@@ -52,7 +52,7 @@ export const SessionCardComponent = ({ time, duration, title, location, slot, is
       {/* is Special */}
       {isSpecial && (
         <div className="absolute top-0 right-0">
-          <Image src="/assets/component/special.png" width={130} height={24} alt="special" objectFit="contain" className="" />
+          <Image src="/assets/component/special.png" width={80} height={24} alt="special" objectFit="cover" className="" />
         </div>
       )}
     </div>
