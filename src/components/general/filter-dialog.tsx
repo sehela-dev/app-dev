@@ -7,8 +7,8 @@ import { ListFilter } from "lucide-react";
 import { ScrollArea } from "../ui/scroll-area";
 
 import { CustomCheckbox } from "./custom-checkbox";
-import { useSessionFilterState } from "@/hooks";
-import { useState } from "react";
+
+import { useSessionFilter } from "@/context/session-filter.ctx";
 
 const data = {
   classAvailibility: [
@@ -40,28 +40,9 @@ const data = {
     { id: "workshop", name: "Workshop" },
   ],
 };
-interface FilterData {
-  availbility: string | string[];
-  instructors: string | string[];
-  classTypes: string | string[];
-}
 
 export function DialogSessionFilter() {
-  const [filterData, setFilterData] = useState<FilterData | null>(null);
-
-  const { classAvailibility, classTypes, instructors, handleChageCheckBox } = useSessionFilterState();
-
-  console.log(classAvailibility, classTypes, instructors);
-
-  const onApply = () => {
-    setFilterData({
-      availbility: classAvailibility,
-      classTypes,
-      instructors,
-    });
-  };
-
-  console.log(filterData);
+  const { classAvailibility, classTypes, instructors, handleChageCheckBox, onApply } = useSessionFilter();
 
   return (
     <Dialog>
@@ -81,9 +62,9 @@ export function DialogSessionFilter() {
               <CustomCheckbox
                 id="all"
                 label="All Class"
-                checked={classAvailibility.includes("all")}
+                checked={classAvailibility?.includes("all")}
                 onChange={() => {
-                  handleChageCheckBox("availbility", "all");
+                  handleChageCheckBox?.("availbility", "all");
                 }}
               />
               {data?.classAvailibility?.map((item) => (
@@ -91,9 +72,9 @@ export function DialogSessionFilter() {
                   key={item.id}
                   id={item.id}
                   label={item.name}
-                  checked={classAvailibility.includes(item.id)}
+                  checked={classAvailibility?.includes(item.id)}
                   onChange={() => {
-                    handleChageCheckBox("availbility", item.id);
+                    handleChageCheckBox?.("availbility", item.id);
                   }}
                 />
               ))}
@@ -103,9 +84,9 @@ export function DialogSessionFilter() {
               <CustomCheckbox
                 id="all-instructor"
                 label="All Instructor"
-                checked={instructors.includes("all")}
+                checked={instructors?.includes("all")}
                 onChange={() => {
-                  handleChageCheckBox("instructor", "all");
+                  handleChageCheckBox?.("instructor", "all");
                 }}
               />
               {data?.instructors.map((instructor) => (
@@ -113,9 +94,9 @@ export function DialogSessionFilter() {
                   id={instructor.id}
                   key={instructor.id}
                   label={instructor.name}
-                  checked={instructors.includes(instructor.id)}
+                  checked={instructors?.includes(instructor.id)}
                   onChange={() => {
-                    handleChageCheckBox("instructor", instructor.id);
+                    handleChageCheckBox?.("instructor", instructor.id);
                   }}
                 />
               ))}
@@ -125,9 +106,9 @@ export function DialogSessionFilter() {
               <CustomCheckbox
                 id="all-type"
                 label="All Type"
-                checked={instructors.includes("all")}
+                checked={classTypes?.includes("all")}
                 onChange={() => {
-                  handleChageCheckBox("classType", "all");
+                  handleChageCheckBox?.("classType", "all");
                 }}
               />
               {data?.classTypes.map((type) => (
@@ -135,9 +116,9 @@ export function DialogSessionFilter() {
                   id={type.id}
                   key={type.id}
                   label={type.name}
-                  checked={classTypes.includes(type.id)}
+                  checked={classTypes?.includes(type.id)}
                   onChange={() => {
-                    handleChageCheckBox("classType", type.id);
+                    handleChageCheckBox?.("classType", type.id);
                   }}
                 />
               ))}

@@ -2,6 +2,7 @@ import type React from "react";
 
 import MainLayout from "@/layout/main-layout";
 import { NavigationProvider } from "@/context/nav-context";
+import { SessionFilterCtxProvider } from "@/context/session-filter.ctx";
 
 export default function RootLayout({
   children,
@@ -10,7 +11,9 @@ export default function RootLayout({
 }>) {
   return (
     <NavigationProvider showNav={false}>
-      <MainLayout>{children}</MainLayout>
+      <SessionFilterCtxProvider>
+        <MainLayout>{children}</MainLayout>
+      </SessionFilterCtxProvider>
     </NavigationProvider>
   );
 }

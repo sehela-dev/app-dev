@@ -1,14 +1,17 @@
+"use client";
 import { MainFooterComponent } from "@/components/layout";
 import { SessionCardComponent } from "@/components/general/session-card";
 
-import { Button } from "@/components/ui/button";
-
 import { SearchInput } from "@/components/ui/search-input";
-import { ListFilter } from "lucide-react";
+
 import Image from "next/image";
 import { DialogSessionFilter } from "@/components/general/filter-dialog";
+// import { useSessionFilterState } from "@/hooks";
+import { useSessionFilter } from "@/context/session-filter.ctx";
 
 export const BookYogaClassView = () => {
+  const { filterData } = useSessionFilter();
+  console.log("parent", filterData);
   return (
     <div className="flex flex-col w-full gap-8 font-serif mx-auto pt-8 min-h-dvh text-brand-500">
       <div className="flex w-full px-4 sm:px-8 flex-col gap-8 h-full min-h-dvh">
