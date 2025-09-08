@@ -14,6 +14,7 @@ interface ISessionCardProps {
   credit: string;
   price: string;
   url: string;
+  isCheckout?: boolean;
 }
 
 export const SessionCardComponent = ({ time, duration, title, location, slot, isSpecial, credit, price, url }: ISessionCardProps) => {
@@ -39,6 +40,7 @@ export const SessionCardComponent = ({ time, duration, title, location, slot, is
               </p>
               <Badge className="bg-brand-400 rounded-full text-sm">{slot} seats left</Badge>
             </div>
+
             <div className="flex flex-row items-center gap-2">
               <p className="text-gray-50 font-bold flex flex-row items-center gap-2">
                 <Gem size={18} /> {credit} Credit

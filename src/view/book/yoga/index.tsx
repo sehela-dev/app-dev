@@ -11,7 +11,7 @@ import { useSessionFilter } from "@/context/session-filter.ctx";
 
 export const BookYogaClassView = () => {
   const { filterData } = useSessionFilter();
-  console.log("parent", filterData);
+
   return (
     <div className="flex flex-col w-full gap-8 font-serif mx-auto pt-8 min-h-dvh text-brand-500">
       <div className="flex w-full px-4 sm:px-8 flex-col gap-8 h-full min-h-dvh">
