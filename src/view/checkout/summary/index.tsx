@@ -1,13 +1,10 @@
-import { CircleCheckSvg } from "@/components/asset/svg/CircleCheckSvg";
 import { CheckoutSessionCardComponent } from "@/components/general/checkout-session-card";
 
 import { StickyContainerComponent } from "@/components/layout";
 import { NavHeaderComponent } from "@/components/layout/header-checkout";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { X } from "lucide-react";
 
-export const CheckoutSummarySessionView = () => {
+export const CheckoutCashSummarySessionView = () => {
   return (
     <>
       <div className="flex flex-col w-full font-serif h-full text-brand-500">

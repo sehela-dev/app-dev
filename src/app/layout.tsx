@@ -2,7 +2,8 @@ import type { Metadata } from "next";
 
 import "./globals.css";
 import { Toaster } from "sonner";
-import { NavigationProvider } from "@/context/nav-context";
+
+import { PaymentMethodProvider } from "@/context/payment-method.ctx";
 
 export const metadata: Metadata = {
   title: "Sehela App",
@@ -17,8 +18,10 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className={`antialiased`}>
-        {children}
-        <Toaster />
+        <PaymentMethodProvider>
+          {children}
+          <Toaster />
+        </PaymentMethodProvider>
       </body>
     </html>
   );

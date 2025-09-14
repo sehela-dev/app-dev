@@ -1,9 +1,22 @@
+"use client";
+
 import { StickyContainerComponent } from "@/components/layout";
 import { Button } from "@/components/ui/button";
 import { CalendarMinus2, Clock4, MapPin, Gem } from "lucide-react";
 import Image from "next/image";
+import { usePaymentMethodCtx } from "@/context/payment-method.ctx";
+import { useParams, useRouter } from "next/navigation";
 
 export const SessionDetailView = () => {
+  const router = useRouter();
+  const { id } = useParams();
+  const { onChangePaymentMethod } = usePaymentMethodCtx();
+
+  const onCheckoutSession = (data: "credit" | "cash") => {
+    onChangePaymentMethod(data);
+    router.push(`/checkout/${id}`);
+  };
+
   return (
     <>
       <div className="relative flex flex-col w-full gap-8 font-serif mx-auto pt-8 min-h-dvh text-brand-500">
@@ -52,13 +65,26 @@ export const SessionDetailView = () => {
           </Button>
           <div className="flex flex-row items-center justify-between gap-4">
             <div className="w-full">
-              <Button className="font-extrabold h-12 w-full !bg-brand-50" variant={"secondary"}>
+              <Button
+                className="font-extrabold h-12 w-full !bg-brand-50"
+                variant={"secondary"}
+                onClick={() => {
+                  onCheckoutSession("credit");
+                }}
+              >
                 <Gem /> 1 Credit
               </Button>
             </div>
             <p className="font-normal text-xs">Or</p>
             <div className="w-full">
-              <Button className="font-extrabold !text-gray-50 h-12 w-full">Rp. 200.000</Button>
+              <Button
+                className="font-extrabold !text-gray-50 h-12 w-full"
+                onClick={() => {
+                  onCheckoutSession("cash");
+                }}
+              >
+                Rp. 200.000
+              </Button>
             </div>
           </div>
           {/* is waiting */}
