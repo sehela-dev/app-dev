@@ -1,3 +1,5 @@
+import { BookYogaClassView } from "@/view/book/yoga";
+
 export default function Home() {
-  return <p>pilates</p>;
+  return <BookYogaClassView />;
 }
