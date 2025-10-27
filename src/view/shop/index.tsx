@@ -1,10 +1,22 @@
+"use client";
+
 import { ShopCardItem } from "@/components/general/shop-card";
+import { ProductCategorySection } from "@/components/shop/product-section";
 import { Button } from "@/components/ui/button";
 import { SearchInput } from "@/components/ui/search-input";
 import { ListFilter } from "lucide-react";
-import Image from "next/image";
+import { useRouter, useSearchParams } from "next/navigation";
 
 export const ShopPageView = () => {
+  const router = useRouter();
+  const query = useSearchParams();
+  const q = query.get("category") ?? "";
+  console.log(q);
+
+  const onViewAll = (category: string) => {
+    router.push(`/shop?category=${category}`);
+  };
+
   return (
     <div className="flex flex-col w-full gap-[37px]">
       <div className="font-serif flex-col mx-auto p-4 w-full ">
@@ -14,20 +26,10 @@ export const ShopPageView = () => {
             <ListFilter color="var(--color-brand-500)" strokeWidth={2} />
           </Button>
         </div>
-        <div className="flex flex-col gap-5">
-          <div className="flex flex-row items-center w-full justify-between text-brand-500 mt-2">
-            <h3 className="text-xl font-bold leading-[130%]">Sports Wear & Equipment</h3>
-            <Button variant={"ghost"} className="text-xs w-fit">
-              View All
-            </Button>
-          </div>
-        </div>
-        <div className="grid grid-cols-2 gap-3.25">
-          <ShopCardItem />
-          <ShopCardItem />
-          <ShopCardItem />
-          <ShopCardItem />
-        </div>
+
+        <ProductCategorySection title="Sports Wear & Equipment" onClickViewAll={() => onViewAll("sport-wear")} />
+        <ProductCategorySection title="Merch" onClickViewAll={() => onViewAll("sport-wear")} />
+        <ProductCategorySection title="Other" onClickViewAll={() => onViewAll("sport-wear")} />
       </div>
     </div>
   );
