@@ -14,7 +14,8 @@ export const ShopPageView = () => {
   console.log(q);
 
   const onViewAll = (category: string) => {
-    router.push(`/shop?category=${category}`);
+    console.log("ss", category);
+    // router.push(`/shop?category=${category}`);
   };
 
   return (

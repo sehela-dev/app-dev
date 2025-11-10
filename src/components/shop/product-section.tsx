@@ -12,6 +12,7 @@ export const ProductCategorySection = ({ title, onClickViewAll, category }: IPro
   const router = useRouter();
 
   const onCLickItem = (id: string) => {
+    // console.log(id);
     router.push(`/shop/${id}`);
   };
   return (
@@ -26,7 +27,7 @@ export const ProductCategorySection = ({ title, onClickViewAll, category }: IPro
       </div>
       <div className="grid grid-cols-2 gap-3.25">
         {[1, 2].map((item) => (
-          <ShopCardItem price={"1234555"} key={item} onClick={onCLickItem} />
+          <ShopCardItem price={"1234555"} key={item} onClick={onCLickItem} id={item.toString()} />
         ))}
       </div>
     </>

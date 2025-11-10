@@ -9,8 +9,8 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <NavigationProvider>
-      <MainLayout>{children}</MainLayout>
-    </NavigationProvider>
+    // <NavigationProvider>
+    <MainLayout>{children}</MainLayout>
+    // </NavigationProvider>
   );
 }

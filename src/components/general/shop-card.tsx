@@ -5,6 +5,7 @@ interface IProps {
   image?: string;
   title?: string;
   price: number | string;
+  id: string;
   onClick: (id: string) => void;
 }
 
@@ -12,10 +13,14 @@ export const ShopCardItem = ({
   image = "/assets/shop/example-matt.png",
   title = "Premium Yoga Mat Panjang Banget Pokoknyaa dah pokoknya buset",
   price = 250000,
+  id,
   onClick,
 }: IProps) => {
   return (
-    <div className="max-w-[185px] md:max-w-none w-full min-h-[237px] max-h-[237px] h-full bg-brand-25 rounded-md shadow-md" onClick={onClick}>
+    <div
+      className="max-w-[185px] md:max-w-none w-full min-h-[237px] max-h-[237px] h-full bg-brand-25 rounded-md shadow-md"
+      onClick={() => onClick(id)}
+    >
       <div className="realative w-full min-h-[153px] max-h-[153px] h-full bg-brand-25">
         <Image src={image} alt={title} className="w-full h-full rounded-t-md object-cover" width={173} height={153} />
       </div>
