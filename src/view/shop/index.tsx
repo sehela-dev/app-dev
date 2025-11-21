@@ -1,14 +1,12 @@
 "use client";
 
-import { ShopCardItem } from "@/components/general/shop-card";
 import { ProductCategorySection } from "@/components/shop/product-section";
 import { Button } from "@/components/ui/button";
 import { SearchInput } from "@/components/ui/search-input";
 import { ListFilter } from "lucide-react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useSearchParams } from "next/navigation";
 
 export const ShopPageView = () => {
-  const router = useRouter();
   const query = useSearchParams();
   const q = query.get("category") ?? "";
   console.log(q);
