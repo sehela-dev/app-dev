@@ -7,6 +7,7 @@ import { Sheet, SheetContent, SheetDescription, SheetFooter, SheetHeader, SheetT
 import { cn } from "@/lib/utils";
 import clsx from "clsx";
 import { ShoppingCart } from "lucide-react";
+import { useParams, useRouter } from "next/navigation";
 import { useState } from "react";
 
 const sizeOption = [
@@ -29,6 +30,9 @@ const sizeOption = [
 ];
 export const ShopDetailView = () => {
   const [selectedPict, setSelectedPict] = useState(1);
+  const router = useRouter();
+  const params = useParams();
+  const { id } = params;
 
   const [qty, setQty] = useState(1);
 
@@ -51,6 +55,10 @@ export const ShopDetailView = () => {
     const newQty = type === "+" ? qty + 1 : qty - 1;
     if (newQty < 1) return;
     setQty(newQty);
+  };
+
+  const onBuyItem = () => {
+    router.push(`/shop/checkout/${id}`);
   };
 
   return (
@@ -77,7 +85,7 @@ export const ShopDetailView = () => {
           <p className="text-xl font-bold text-brand-500">Rp 250.000</p>
           <p className="text-md font-medium text-brand-500 line-through">Rp 550.000</p>
         </div>
-        <hr style={{ borderColor: "var(--color-brand-500" }} className="my-4" />
+        <hr style={{ borderColor: "var(--color-brand-200" }} className="my-4" />
 
         <div className="flex flex-col gap-2">
           <p className="text-xl font-bold text-brand-500">Description</p>
@@ -163,7 +171,9 @@ export const ShopDetailView = () => {
             <ShoppingCart color="var(--color-brand-500)" />
           </Button>
           <div className="flex w-full">
-            <Button className="w-full">Buy</Button>
+            <Button className="w-full" onClick={() => onBuyItem()}>
+              Buy
+            </Button>
           </div>
         </div>
       </StickyContainerComponent>
