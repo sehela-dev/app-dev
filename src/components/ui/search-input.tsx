@@ -8,10 +8,11 @@ import { forwardRef } from "react";
 
 export interface SearchInputProps extends React.InputHTMLAttributes<HTMLInputElement> {
   onSearch?: (value: string) => void;
+  search?: string;
 }
 
 const SearchInput = forwardRef<HTMLInputElement, SearchInputProps>(
-  ({ className, onSearch, onKeyDown, placeholder = "Search here...", ...props }, ref) => {
+  ({ className, onSearch, search, onKeyDown, placeholder = "Search here...", ...props }, ref) => {
     const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
       if (e.key === "Enter" && onSearch) {
         onSearch(e.currentTarget.value);
@@ -31,6 +32,7 @@ const SearchInput = forwardRef<HTMLInputElement, SearchInputProps>(
           )}
           onKeyDown={handleKeyDown}
           placeholder={placeholder}
+          value={search}
           {...props}
         />
         <button

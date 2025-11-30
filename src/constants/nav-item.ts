@@ -1,4 +1,4 @@
-import { Store, Users, ShoppingCart, BarChart2, Receipt, Gem, CalendarCheck, PackageSearch, Tag, UserSquare2, Command, Grid } from "lucide-react";
+import { Store, Users, ShoppingCart, BarChart2, Receipt, Gem, CalendarCheck, PackageSearch, Tag, UserSquare2 } from "lucide-react";
 
 export const dataNavMain = [
   { title: "Commerce", url: "#", icon: Store }, // 🛍️ icon visual → Store sudah mewakili group
