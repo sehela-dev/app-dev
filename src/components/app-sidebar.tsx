@@ -4,8 +4,7 @@ import * as React from "react";
 import { Store, Users, ShoppingCart, BarChart2, Receipt, Gem, CalendarCheck, PackageSearch, Tag, UserSquare2, Command, Grid } from "lucide-react";
 
 import { NavMain } from "@/components/nav-main";
-import { NavProjects } from "@/components/nav-projects";
-import { NavSecondary } from "@/components/nav-secondary";
+
 import { NavUser } from "@/components/nav-user";
 import { Sidebar, SidebarContent, SidebarFooter, SidebarHeader, SidebarMenu, SidebarMenuButton, SidebarMenuItem } from "@/components/ui/sidebar";
 import { dataNavMain, dataNavMarketPlace } from "@/constants/nav-item";

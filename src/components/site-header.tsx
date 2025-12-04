@@ -1,116 +1,168 @@
 "use client";
 
-import { SidebarIcon, HomeIcon } from "lucide-react";
 import React from "react";
+import { SidebarIcon, HomeIcon } from "lucide-react";
 import { Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbList, BreadcrumbPage, BreadcrumbSeparator } from "@/components/ui/breadcrumb";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
-import { SearchForm } from "@/components/search-form";
+
 import { useSidebar } from "@/components/ui/sidebar";
 import { usePathname } from "next/navigation";
-
-// IMPORT SEMUA NAV
 import { dataNavMain, dataNavMarketPlace } from "@/constants/nav-item";
 
 type NavItem = {
   title: string;
   url: string;
-
+  icon?: React.ComponentType<unknown>;
   items?: NavItem[];
 };
 
-/* ---------- FUNGSI MENCARI RUTE BREADCRUMB ---------- */
-function findTrail(nav: NavItem[], pathname: string): NavItem[] {
-  for (const item of nav) {
+type DetailRule = {
+  pattern: RegExp;
+  getLabel: (ctx: { pathname: string }) => string;
+};
+
+// 🧩 1. RULE KHUSUS UNTUK HALAMAN DETAIL (GAMPANG DIEDIT DI SINI AJA)
+const breadcrumbDetailRules: DetailRule[] = [
+  {
+    pattern: /^\/admin\/orders\/add-transactions$/,
+    getLabel: () => "Add Transaction",
+  },
+  {
+    pattern: /^\/admin\/orders\/[^/]+$/,
+    getLabel: () => "Receipt",
+  },
+  {
+    pattern: /^\/admin\/products\/[^/]+$/,
+    getLabel: () => "Product Detail",
+  },
+  {
+    pattern: /^\/admin\/class\/[^/]+$/,
+    getLabel: () => "Class Detail",
+  },
+];
+
+// 🧠 2. CARI JEJAK MENU (PARENT → CHILD) BERDASARKAN URL
+function findTrail(items: NavItem[], pathname: string): NavItem[] {
+  for (const item of items) {
     const isRealUrl = item.url && item.url !== "#" && pathname.startsWith(item.url);
+
     if (isRealUrl) {
-      if (item.items) {
-        const child = findTrail(item.items, pathname);
-        if (child.length) return [item, ...child];
+      if (item.items && item.items.length > 0) {
+        const childTrail = findTrail(item.items, pathname);
+        if (childTrail.length > 0) {
+          return [item, ...childTrail];
+        }
       }
       return [item];
     }
 
-    if (item.items) {
-      const child = findTrail(item.items, pathname);
-      if (child.length) return [item, ...child];
+    if (item.items && item.items.length > 0) {
+      const childTrail = findTrail(item.items, pathname);
+      if (childTrail.length > 0) {
+        return [item, ...childTrail];
+      }
     }
   }
+
   return [];
 }
 
-/* ---------- FUNGSI FALLBACK BILA RUTE TIDAK DITEMUKAN ---------- */
-function fallbackLabel(pathname: string) {
-  const last = pathname.split("/").filter(Boolean).at(-1) ?? "";
+// 🧠 3. LABEL FALLBACK KALAU URL GA ADA DI MENU
+function getFallbackLabel(pathname: string): string {
+  const segments = pathname.split("/").filter(Boolean);
+  const last = segments[segments.length - 1] ?? "";
+  if (!last) return "Dashboard";
   return last.replace(/-/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
 }
 
+// 🧠 4. BANGUN BREADCRUMB SIAP PAKAI (DARI MENU + RULE DETAIL)
+function buildBreadcrumb(pathname: string) {
+  const mergedNav: NavItem[] = [...(dataNavMain as NavItem[]), ...(dataNavMarketPlace as NavItem[])];
+
+  const baseTrail = findTrail(mergedNav, pathname);
+  const detailRule = breadcrumbDetailRules.find((rule) => rule.pattern.test(pathname));
+
+  return {
+    baseTrail,
+    detailLabel: detailRule ? detailRule.getLabel({ pathname }) : null,
+  };
+}
+
 /* ============================================================= */
+
 export function SiteHeader() {
   const { toggleSidebar } = useSidebar();
   const pathname = usePathname() || "";
 
-  // gabungkan semua menu menjadi 1 struktur navigasi
-  const mergedNav = [...dataNavMain, ...dataNavMarketPlace];
-
-  // generate breadcrumb route
-  const trail = findTrail(mergedNav, pathname);
-  const hasTrail = trail.length > 0;
+  const { baseTrail, detailLabel } = buildBreadcrumb(pathname);
+  const hasTrail = baseTrail.length > 0;
 
   return (
     <header className="bg-brand-25 sticky top-0 z-50 flex w-full items-center border-b border-brand-100">
       <div className="flex h-(--header-height) w-full items-center gap-2 px-4">
-        {/* SIDEBAR BUTTON */}
+        {/* Sidebar toggle */}
         <Button className="h-8 w-8" variant="ghost" size="icon" onClick={toggleSidebar}>
           <SidebarIcon />
         </Button>
 
         <Separator orientation="vertical" className="mr-2 h-4" />
 
-        {/* 🔥 BREADCRUMB AUTO */}
+        {/* 🔗 Breadcrumb */}
         <Breadcrumb className="hidden sm:block">
           <BreadcrumbList>
-            {/* Home */}
+            {/* HOME */}
             <BreadcrumbItem>
               <BreadcrumbLink href="/admin/dashboard">
-                <HomeIcon className="w-4 h-4" />
+                <HomeIcon className="h-4 w-4" />
               </BreadcrumbLink>
             </BreadcrumbItem>
 
-            {/* Dynamic */}
+            {/* DARI MENU */}
             {hasTrail ? (
-              trail.map((item, i) => {
-                const isLast = i === trail.length - 1;
+              <>
+                {baseTrail.map((item, index) => {
+                  const isLast = index === baseTrail.length - 1 && !detailLabel; // kalau ada detailLabel, last-nya nanti
 
-                return (
-                  <React.Fragment key={item.title + i}>
+                  return (
+                    <React.Fragment key={item.title + index}>
+                      <BreadcrumbSeparator />
+                      <BreadcrumbItem>
+                        {isLast ? (
+                          <BreadcrumbPage className="flex items-center gap-1">{item.title}</BreadcrumbPage>
+                        ) : (
+                          <BreadcrumbLink href={item.url && item.url !== "#" ? item.url : "#"} className="flex items-center gap-1">
+                            {item.title}
+                          </BreadcrumbLink>
+                        )}
+                      </BreadcrumbItem>
+                    </React.Fragment>
+                  );
+                })}
+
+                {/* LEVEL TAMBAHAN KHUSUS HALAMAN DETAIL */}
+                {detailLabel && (
+                  <>
                     <BreadcrumbSeparator />
-
                     <BreadcrumbItem>
-                      {isLast ? (
-                        <BreadcrumbPage className="flex items-center gap-1">{item.title}</BreadcrumbPage>
-                      ) : (
-                        <BreadcrumbLink href={item.url !== "#" ? item.url : "#"} className="flex items-center gap-1">
-                          {item.title}
-                        </BreadcrumbLink>
-                      )}
+                      <BreadcrumbPage>{detailLabel}</BreadcrumbPage>
                     </BreadcrumbItem>
-                  </React.Fragment>
-                );
-              })
+                  </>
+                )}
+              </>
             ) : (
+              // FALLBACK KALAU URL GA KETEMU DI MENU
               <>
                 <BreadcrumbSeparator />
                 <BreadcrumbItem>
-                  <BreadcrumbPage>{fallbackLabel(pathname)}</BreadcrumbPage>
+                  <BreadcrumbPage>{getFallbackLabel(pathname)}</BreadcrumbPage>
                 </BreadcrumbItem>
               </>
             )}
           </BreadcrumbList>
         </Breadcrumb>
 
-        {/* SEARCH BAR */}
-        <SearchForm className="w-full sm:ml-auto sm:w-auto" />
+        {/* <SearchForm className="w-full sm:ml-auto sm:w-auto" /> */}
       </div>
     </header>
   );

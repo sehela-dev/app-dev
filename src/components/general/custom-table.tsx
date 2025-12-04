@@ -71,7 +71,7 @@ export const CustomTable = (props: TableContentProps) => {
             )}
 
             {/* Number column */}
-            {numberOptions && <TableHead className="w-2">{numberOptions?.text}</TableHead>}
+            {numberOptions?.show && <TableHead className="w-2">{numberOptions?.text}</TableHead>}
 
             {/* Table headers */}
             {headers?.map((head) => (
@@ -123,7 +123,7 @@ export const CustomTable = (props: TableContentProps) => {
                     )}
 
                     {/* Number column */}
-                    {numberOptions && (
+                    {numberOptions?.show && (
                       <TableCell className={`w-2 ${isRowSelected(row) ? "!text-sobat-primary font-semibold" : "text-dashboard-200"}`}>
                         {numberOptions?.render(row, rowNumber)}
                       </TableCell>

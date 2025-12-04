@@ -17,35 +17,39 @@ import {
 import { Badge } from "./ui/badge";
 import { cn } from "@/lib/utils";
 
-export function NavMain({
-  items,
-  groupLabel = "Navigation",
-}: {
-  items: {
+type NavItem = {
+  title: string;
+  url: string;
+  icon?: LucideIcon;
+  isActive?: boolean;
+  items?: {
     title: string;
     url: string;
-    icon?: LucideIcon;
-    isActive?: boolean;
-    items?: {
-      title: string;
-      url: string;
-      count?: number;
-    }[];
+    count?: number;
   }[];
-  groupLabel?: string;
-}) {
+};
+
+export function NavMain({ items, groupLabel = "Navigation" }: { items: NavItem[]; groupLabel?: string }) {
   const pathname = usePathname();
 
+  // Helper: cocokkan path termasuk child (prefix-based)
+  const matchesPath = (current: string, target: string | undefined) => {
+    if (!target || target === "#") return false;
+    if (current === target) return true;
+    // /admin/orders/123 tetap match /admin/orders
+    return current.startsWith(`${target}/`);
+  };
+
   // Function to check if a menu item is active
-  const isItemActive = (item: (typeof items)[0]) => {
-    // Check if current path matches the item URL
-    if (pathname === item.url) {
+  const isItemActive = (item: NavItem) => {
+    // 1. Cek diri sendiri
+    if (matchesPath(pathname, item.url)) {
       return true;
     }
 
-    // Check if any sub-item URL matches the current path
-    if (item.items) {
-      return item.items.some((subItem) => pathname === subItem.url);
+    // 2. Cek semua sub item (kalau ada)
+    if (item.items && item.items.length > 0) {
+      return item.items.some((subItem) => matchesPath(pathname, subItem.url));
     }
 
     return false;
@@ -62,7 +66,7 @@ export function NavMain({
             <Collapsible key={item.title} asChild defaultOpen={isActive} className="group/collapsible">
               <SidebarMenuItem>
                 {item.items ? (
-                  // Collapsible item with sub-items
+                  // Item dengan submenu (collapsible)
                   <CollapsibleTrigger asChild>
                     <SidebarMenuButton
                       tooltip={item.title}
@@ -75,7 +79,7 @@ export function NavMain({
                     </SidebarMenuButton>
                   </CollapsibleTrigger>
                 ) : (
-                  // Simple navigation item
+                  // Item simple (tanpa submenu)
                   <SidebarMenuButton
                     asChild
                     data-active={isActive}
@@ -87,11 +91,12 @@ export function NavMain({
                     </a>
                   </SidebarMenuButton>
                 )}
+
                 {item.items && (
                   <CollapsibleContent>
                     <SidebarMenuSub>
                       {item.items.map((subItem) => {
-                        const isSubItemActive = pathname === subItem.url;
+                        const isSubItemActive = matchesPath(pathname, subItem.url);
 
                         return (
                           <SidebarMenuSubItem key={subItem.title}>

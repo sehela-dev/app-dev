@@ -1,0 +1,117 @@
+"use client";
+import { GeneralTabComponent } from "@/components/general/tabs-component";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader } from "@/components/ui/card";
+import { FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+import { Input } from "@/components/ui/input";
+import { useState } from "react";
+import { FormProvider, useForm } from "react-hook-form";
+const customerSectionTab = [
+  {
+    value: "new",
+    name: "New Customer",
+  },
+  {
+    value: "search",
+    name: "Find Member",
+  },
+];
+export const OrderCustomerSectionComponent = () => {
+  const methods = useForm();
+  const { control } = methods;
+  const [tabCustomer, setTabCustomer] = useState("new");
+
+  return (
+    <Card className="p-6  border-brand-100 w-full">
+      <CardHeader className="p-0">
+        <h3 className="text-3xl font-semibold">Customer Infromation</h3>
+        <p className="text-sm text-gray-500">Enter Customer Information</p>
+      </CardHeader>
+      <CardContent className="p-0">
+        <div className="flex flex-col gap-1">
+          <GeneralTabComponent selecetedTab={tabCustomer} setTab={setTabCustomer} tabs={customerSectionTab} />
+          <div className="flex w-full pt-4">
+            <FormProvider {...methods}>
+              <form onSubmit={() => {}} className="w-full">
+                <div className="grid grid-cols-12 gap-4 ">
+                  <div className="col-span-4">
+                    <FormField
+                      control={control}
+                      name="name"
+                      render={({ field }) => (
+                        <FormItem className="flex flex-col">
+                          <FormLabel className=" text-brand-999 font-medium text-sm" required>
+                            Name
+                          </FormLabel>
+                          <FormControl>
+                            <Input
+                              className="w-full px-4 py-4 border-2 border-gray-200 rounded-lg text-gray-600 placeholder-gray-400 focus:outline-none focus:border-teal-500 transition-colors h-[42px]"
+                              placeholder="Type here.."
+                              {...field}
+                              // className="w-auto min-w-[388px]"
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </div>
+                  <div className="col-span-4">
+                    <FormField
+                      control={control}
+                      name="phone"
+                      render={({ field }) => (
+                        <FormItem className="flex flex-col">
+                          <FormLabel className=" text-brand-999 font-medium text-sm" required>
+                            WhatsApp
+                          </FormLabel>
+                          <FormControl>
+                            <Input
+                              className="w-full px-4 py-4 border-2 border-gray-200 rounded-lg text-gray-600 placeholder-gray-400 focus:outline-none focus:border-teal-500 transition-colors h-[42px]"
+                              placeholder="Type here.."
+                              {...field}
+                              // className="w-auto min-w-[388px]"
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </div>
+                  <div className="col-span-4">
+                    <FormField
+                      control={control}
+                      name="email"
+                      render={({ field }) => (
+                        <FormItem className="flex flex-col">
+                          <FormLabel className=" text-brand-999 font-medium text-sm">Email (optional)</FormLabel>
+                          <FormControl>
+                            <Input
+                              className="w-full px-4 py-4 border-2 border-gray-200 rounded-lg text-gray-600 placeholder-gray-400 focus:outline-none focus:border-teal-500 transition-colors h-[42px]"
+                              placeholder="Type here.."
+                              {...field}
+                              // className="w-auto min-w-[388px]"
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </div>
+                </div>
+                <div className="flex justify-end pt-4 gap-2">
+                  <div>
+                    <Button variant={"secondary"}>Clear</Button>
+                  </div>
+                  <div>
+                    <Button>Create Customer</Button>
+                  </div>
+                </div>
+              </form>
+            </FormProvider>
+          </div>
+        </div>
+      </CardContent>
+    </Card>
+  );
+};

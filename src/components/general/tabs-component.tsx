@@ -29,7 +29,7 @@ export const GeneralTabComponent = ({ tabs, selecetedTab, setTab }: ITabs) => {
               key={item.value}
               onClick={() => {
                 setTab(item.value);
-                router.push(`?tabs=${item.value}`);
+                // router.push(`?tabs=${item.value}`);
               }}
             >
               {item.name}
