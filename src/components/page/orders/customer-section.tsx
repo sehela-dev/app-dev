@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
+import { useAdminManualTransaction } from "@/context/admin/add-transaction.ctx";
 import { useState } from "react";
 import { FormProvider, useForm } from "react-hook-form";
 const customerSectionTab = [
@@ -16,10 +17,30 @@ const customerSectionTab = [
     name: "Find Member",
   },
 ];
+
+const defaultValues = {
+  name: "",
+  phone: "",
+  email: "",
+};
 export const OrderCustomerSectionComponent = () => {
-  const methods = useForm();
-  const { control } = methods;
+  const { addCustomer } = useAdminManualTransaction();
+  const methods = useForm({ defaultValues });
+  const { control, handleSubmit } = methods;
   const [tabCustomer, setTabCustomer] = useState("new");
+
+  const onSubmit = handleSubmit(async (data) => {
+    try {
+      const payload = {
+        ...data,
+        id: Date.now(),
+      };
+      addCustomer(payload);
+      methods.reset();
+    } catch (error) {
+      console.log(error);
+    }
+  });
 
   return (
     <Card className="p-6  border-brand-100 w-full">
@@ -32,7 +53,7 @@ export const OrderCustomerSectionComponent = () => {
           <GeneralTabComponent selecetedTab={tabCustomer} setTab={setTabCustomer} tabs={customerSectionTab} />
           <div className="flex w-full pt-4">
             <FormProvider {...methods}>
-              <form onSubmit={() => {}} className="w-full">
+              <form onSubmit={onSubmit} className="w-full">
                 <div className="grid grid-cols-12 gap-4 ">
                   <div className="col-span-4">
                     <FormField
@@ -45,7 +66,7 @@ export const OrderCustomerSectionComponent = () => {
                           </FormLabel>
                           <FormControl>
                             <Input
-                              className="w-full px-4 py-4 border-2 border-gray-200 rounded-lg text-gray-600 placeholder-gray-400 focus:outline-none focus:border-teal-500 transition-colors h-[42px]"
+                              className="w-full px-4 py-4 border-2 border-gray-200 rounded-lg text-gray-999  placeholder-gray-400 focus:outline-none focus:border-brand-500 transition-colors h-[42px]"
                               placeholder="Type here.."
                               {...field}
                               // className="w-auto min-w-[388px]"
@@ -67,7 +88,7 @@ export const OrderCustomerSectionComponent = () => {
                           </FormLabel>
                           <FormControl>
                             <Input
-                              className="w-full px-4 py-4 border-2 border-gray-200 rounded-lg text-gray-600 placeholder-gray-400 focus:outline-none focus:border-teal-500 transition-colors h-[42px]"
+                              className="w-full px-4 py-4 border-2 border-gray-200 rounded-lg text-brand-999 placeholder-gray-400 focus:outline-none focus:border-teal-500 transition-colors h-[42px]"
                               placeholder="Type here.."
                               {...field}
                               // className="w-auto min-w-[388px]"
@@ -87,8 +108,9 @@ export const OrderCustomerSectionComponent = () => {
                           <FormLabel className=" text-brand-999 font-medium text-sm">Email (optional)</FormLabel>
                           <FormControl>
                             <Input
-                              className="w-full px-4 py-4 border-2 border-gray-200 rounded-lg text-gray-600 placeholder-gray-400 focus:outline-none focus:border-teal-500 transition-colors h-[42px]"
+                              className="w-full px-4 py-4 border-2 border-gray-200 rounded-lg text-brand-999 placeholder-gray-400 focus:outline-none focus:border-teal-500 transition-colors h-[42px]"
                               placeholder="Type here.."
+                              type="email"
                               {...field}
                               // className="w-auto min-w-[388px]"
                             />
