@@ -9,3 +9,13 @@ export interface IPagination {
   previousPage?: number | null;
   showTotal?: boolean;
 }
+
+export interface ICommonParams {
+  page?: number;
+  limit?: number;
+  search?: string;
+  payment_method?: string;
+  status?: string;
+  startDate?: string;
+  endDate?: string;
+}

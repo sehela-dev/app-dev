@@ -1,4 +1,5 @@
 "use client";
+import { DateRangePickerComponent } from "@/components/base/date-range-picker";
 import { buildNumber, CustomTable } from "@/components/general/custom-table";
 import { CustomPagination } from "@/components/general/pagination-component";
 import { GeneralTabComponent } from "@/components/general/tabs-component";
@@ -7,30 +8,45 @@ import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card"
 
 import { SearchInput } from "@/components/ui/search-input";
 import { sampleOrders } from "@/constants/sample-data";
+import { useGetOrders } from "@/hooks/api/queries/admin/orders";
+
+import { defaultDate, formatCurrency, formatDateHelper } from "@/lib/helper";
 import { IOrderItem } from "@/types/orders.interface";
 import { CirclePlus, File, ListFilter, ReceiptText } from "lucide-react";
+import { useRouter } from "next/navigation";
 import { useState } from "react";
 
-const tabOptions = [
-  {
-    value: "week",
-    name: "Week",
-  },
-  {
-    value: "month",
-    name: "Month",
-  },
-  {
-    value: "Year",
-    name: "Year",
-  },
-];
+// const tabOptions = [
+//   {
+//     value: "week",
+//     name: "Week",
+//   },
+//   {
+//     value: "month",
+//     name: "Month",
+//   },
+//   {
+//     value: "Year",
+//     name: "Year",
+//   },
+// ];
 
 export const OrdersPageView = () => {
-  const [selecetedTab, setSelectedTab] = useState("week");
-  const [limit, setLimit] = useState(10);
+  const router = useRouter();
+  // const [selecetedTab, setSelectedTab] = useState("week");
+  const [limit] = useState(1);
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState("");
+
+  const [selectedRange, setSelectedRange] = useState({
+    from: defaultDate().formattedOneMonthAgo,
+    to: defaultDate().formattedToday,
+  });
+
+  const handleDateRangeChangeDual = (start: string, end: string) => {
+    setSelectedRange((prev) => ({ ...prev, from: start, to: end }));
+  };
+  const { data, isLoading, refetch } = useGetOrders({ page, limit, search, startDate: selectedRange.from, endDate: selectedRange.to });
 
   const numberOptions = {
     text: "No",
@@ -38,43 +54,47 @@ export const OrdersPageView = () => {
     render: (_: unknown, idx: number) => buildNumber(idx, limit, page),
   };
 
+  const handleSearch = (query: string) => {
+    setSearch(query);
+  };
+
   const headers = [
     {
-      id: "orderId",
+      id: "order_id",
       text: "Order ID",
-      value: "orderId",
+      value: "order_id",
     },
     {
-      id: "customer",
+      id: "customer_name",
       text: "Customer",
-      value: "customer",
+      value: "customer_name",
     },
     {
-      id: "date",
+      id: "date_purchased",
       text: "Date",
-      value: "date",
+      value: (row: IOrderItem) => formatDateHelper(row?.date_purchased as string, "dd MMM yyyy"),
     },
     {
-      id: "paymentMethod",
+      id: "payment_method",
       text: "Payment Method",
-      value: "paymentMethod",
+      value: (row: IOrderItem) => <p className="capitalize">{row?.payment_method}</p>,
     },
     {
-      id: "amountReceived",
+      id: "price_idr",
       text: "Amount Received",
-      value: "amountReceived",
+      value: (row: IOrderItem) => formatCurrency(row?.price_idr),
     },
     {
       id: "status",
       text: "Status",
-      value: (row: IOrderItem) => <p className={row?.status === "Success" ? "text-green-400" : "text-red-500"}>{row.status}</p>,
+      value: (row: IOrderItem) => <p className={row?.status === "paid" ? "text-green-400 uppercase" : "text-red-500 uppercasex"}>{row.status}</p>,
     },
   ];
   const actionOptions = {
     text: "Action",
     show: true,
     render: (row: IOrderItem) => (
-      <Button variant={"outline"} onClick={() => alert(row?.orderId)}>
+      <Button variant={"outline"} onClick={() => router.push(`orders/${row?.id}`)}>
         <ReceiptText />
       </Button>
     ),
@@ -82,9 +102,7 @@ export const OrdersPageView = () => {
   return (
     <div className="flex flex-col w-full h-full gap-2">
       <div className="flex  w-full flex-row justify-between items-center">
-        <div>
-          <GeneralTabComponent tabs={tabOptions} selecetedTab={selecetedTab} setTab={setSelectedTab} />
-        </div>
+        <div>{/* <GeneralTabComponent tabs={tabOptions} selecetedTab={selecetedTab} setTab={setSelectedTab} /> */}</div>
         <div className="flex flex-row items-center gap-2">
           <div className="flex w-full">
             <Button variant={"outline"} className="text-brand-999 text-sm font-medium">
@@ -109,16 +127,19 @@ export const OrdersPageView = () => {
             <h3 className="text-brand-999 text-2xl font-semibold">Orders</h3>
             <p className="text-sm text-gray-500 font-normal">Recent orders from your store.</p>
           </div>
-          <div className="flex">
-            <SearchInput className="border-brand-100" />
+          <div className="flex flex-row  gap-2">
+            <div>
+              <DateRangePickerComponent onDateRangeChange={handleDateRangeChangeDual} startDate={selectedRange.from} endDate={selectedRange.to} />
+            </div>
+            <SearchInput className="border-brand-100" search={search} onSearch={handleSearch} />
           </div>
         </CardHeader>
         <CardContent>
           <CustomTable
-            data={sampleOrders.data}
+            data={data?.data ?? []}
             headers={headers}
             numberOptions={numberOptions}
-            isLoading={false}
+            isLoading={isLoading}
             // setSelectedData={setSelectedData}
             // selectedData={selectedData}
 
@@ -127,16 +148,17 @@ export const OrdersPageView = () => {
         </CardContent>
         <CardFooter className="flex w-full">
           <CustomPagination
-            onPageChange={(e) => setPage(e)}
+            onPageChange={(e) => {
+              setPage(e);
+              console.log(e);
+            }}
             currentPage={page}
             showTotal
-            nextPage={sampleOrders?.pagination?.nextPage}
-            hasNextPage={sampleOrders?.pagination?.hasNextPage}
-            hasPrevPage={sampleOrders?.pagination?.hasPrevPage}
-            previousPage={sampleOrders?.pagination?.previousPage}
-            totalItems={sampleOrders?.pagination?.totalItems as number}
-            totalPages={sampleOrders?.pagination?.totalPages as number}
-            limit={10}
+            hasPrevPage={data?.pagination?.has_prev}
+            hasNextPage={data?.pagination?.has_next}
+            totalItems={data?.pagination?.total_items as number}
+            totalPages={data?.pagination?.total_pages as number}
+            limit={limit}
           />
         </CardFooter>
       </Card>

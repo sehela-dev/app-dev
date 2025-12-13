@@ -1,23 +1,18 @@
 "use client";
 
 import * as React from "react";
-import { Store, Users, ShoppingCart, BarChart2, Receipt, Gem, CalendarCheck, PackageSearch, Tag, UserSquare2, Command, Grid } from "lucide-react";
+import { Command } from "lucide-react";
 
 import { NavMain } from "@/components/nav-main";
 
 import { NavUser } from "@/components/nav-user";
 import { Sidebar, SidebarContent, SidebarFooter, SidebarHeader, SidebarMenu, SidebarMenuButton, SidebarMenuItem } from "@/components/ui/sidebar";
 import { dataNavMain, dataNavMarketPlace } from "@/constants/nav-item";
-
-const data = {
-  user: {
-    name: "shadcn",
-    email: "m@example.com",
-    avatar: "/avatars/shadcn.jpg",
-  },
-};
+import { useAuthAdmin } from "@/context/admin/admin-context";
 
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
+  const { user } = useAuthAdmin();
+  console.log(user);
   return (
     <Sidebar className="top-(--header-height) h-[calc(100svh-var(--header-height))]! bg-brand-25" {...props}>
       <SidebarHeader>
@@ -42,7 +37,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         <NavMain items={dataNavMarketPlace} groupLabel="Marketplace" />
       </SidebarContent>
       <SidebarFooter>
-        <NavUser user={data.user} />
+        <NavUser user={user} />
       </SidebarFooter>
     </Sidebar>
   );

@@ -1,17 +1,16 @@
-import { IPagination } from "./general.interface";
+import { IResponseData } from "@/lib/config";
+import { ICommonParams } from "./general.interface";
 
 export interface IOrderItem {
-  orderId: string;
-  customer: string;
-  date: string;
-  paymentMethod: string;
-  amountReceived: number;
+  order_id: string;
+  customer_name: string;
+  date_purchased: string;
+  payment_method: string;
+  type: string;
+  price_idr: number;
+  price_formatted: string;
   status: string;
-}
-
-interface OrdersResponse {
-  data: IOrderItem[];
-  pagination: IPagination;
+  id: string;
 }
 
 export interface ICustomerData {
@@ -46,3 +45,27 @@ export interface IClassData {
   price: string;
   qty: number;
 }
+
+export interface IDetailOrder {
+  order_id: string;
+  payment_method: string;
+  status: string;
+  date: string;
+  time: string;
+  customer_name: string;
+  customer_phone: string;
+  customer_email: string;
+  ordered_items: IOrderedItem[];
+  total_price: number;
+  total_price_formatted: string;
+}
+
+export interface IOrderedItem {
+  item_name: string;
+  item_detail: string;
+  item_qty: number;
+  item_total_price: number;
+}
+
+export type TOrderList = (param: ICommonParams) => Promise<IResponseData<IOrderItem[]>>;
+export type TOrderDetail = (id: string) => Promise<IResponseData<IDetailOrder>>;

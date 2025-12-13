@@ -4,6 +4,7 @@ import "./globals.css";
 import { Toaster } from "sonner";
 
 import { PaymentMethodProvider } from "@/context/payment-method.ctx";
+import { QueryProvider } from "@/layout/query-provide";
 
 export const metadata: Metadata = {
   title: "Sehela App",
@@ -18,10 +19,12 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className={`antialiased`}>
-        <PaymentMethodProvider>
-          {children}
-          <Toaster />
-        </PaymentMethodProvider>
+        <QueryProvider>
+          <PaymentMethodProvider>
+            {children}
+            <Toaster />
+          </PaymentMethodProvider>
+        </QueryProvider>
       </body>
     </html>
   );

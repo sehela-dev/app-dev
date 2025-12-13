@@ -1,7 +1,9 @@
 export const ENV = (process.env.ENV as string) ?? "dev";
 
 export const MAIN_API_URL = ENV === "dev" ? process.env.DEV_API_URL : (process.env.MAIN_API_URL as string);
-export const SECRET_KEY = ENV === "dev" ? process.env.DEV_SECRET_KEY : (process.env.SECRET_KEY as string);
+export const MAIN_AUTH_API_URL = ENV === "dev" ? process.env.DEV_AUTH_API_URL : (process.env.MAIN_AUTH_API_URL as string);
+export const SECRET_KEY = ENV === "dev" ? process.env.DEV_SECRET_KEY : (process.env.MAIN_SECRET_KEY as string);
+export const AUTH_KEY = ENV === "dev" ? process.env.DEV_SECRET_AUTH_KEY : (process.env.MAIN_SECRET_AUTH_KEY as string);
 
 if (!MAIN_API_URL) {
   throw new Error("API_URL is not defined in environment variables");
@@ -35,15 +37,14 @@ export interface IResponseData<T> {
   statusCode: number;
   message: string;
   data: T;
+  pagination?: IPagiantion;
 }
 
 export interface IPagiantion {
-  currentPage: number;
-  totalPages: number;
-  totalItems: number;
-  limit: number;
-  hasNextPage?: boolean;
-  hasPrevPage?: boolean;
-  nextPage?: null;
-  previousPage?: null;
+  page: number;
+  page_size: number;
+  total_pages: number;
+  total_items: number;
+  has_next: boolean;
+  has_prev: boolean;
 }

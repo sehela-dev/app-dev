@@ -1,11 +1,11 @@
 import type React from "react";
 
-import { AuthProviderAdmin } from "@/context/admin/admin-context";
+import DashboardLayouut from "@/layout/admin/dashboard-layout";
 
 export default function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  return <AuthProviderAdmin>{children}</AuthProviderAdmin>;
+  return <DashboardLayouut>{children}</DashboardLayouut>;
 }

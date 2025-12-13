@@ -55,7 +55,7 @@ export function CustomPagination(props: CustomPaginationProps) {
                 tabIndex={!hasPrevPage ? -1 : 0}
                 onClick={(e) => {
                   e.preventDefault();
-                  if (hasPrevPage && previousPage) onPageChange(previousPage);
+                  if (hasPrevPage) onPageChange(currentPage - 1);
                 }}
               />
             </PaginationItem>
@@ -64,10 +64,10 @@ export function CustomPagination(props: CustomPaginationProps) {
                 <PaginationLink
                   onClick={(e) => {
                     e.preventDefault();
-                    onPageChange(previousPage as number);
+                    onPageChange((currentPage - 1) as number);
                   }}
                 >
-                  {previousPage}
+                  {currentPage - 1}
                 </PaginationLink>
               </PaginationItem>
             )}
@@ -88,10 +88,10 @@ export function CustomPagination(props: CustomPaginationProps) {
                 <PaginationLink
                   onClick={(e) => {
                     e.preventDefault();
-                    onPageChange(nextPage as number);
+                    onPageChange((currentPage + 1) as number);
                   }}
                 >
-                  {nextPage}
+                  {currentPage + 1}
                 </PaginationLink>
               </PaginationItem>
             )}
@@ -103,7 +103,7 @@ export function CustomPagination(props: CustomPaginationProps) {
                 onClick={(e) => {
                   e.preventDefault();
 
-                  if (hasNextPage && nextPage) onPageChange(nextPage);
+                  if (hasNextPage) onPageChange(currentPage + 1);
                 }}
               />
             </PaginationItem>

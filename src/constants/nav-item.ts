@@ -14,9 +14,9 @@ export const dataNavMarketPlace = [
     url: "#",
     icon: CalendarCheck,
     items: [
-      { title: "Class", url: "#", icon: CalendarCheck },
-      { title: "Sessions", url: "#", icon: CalendarCheck },
-      { title: "Instructor", url: "#", icon: Users },
+      { title: "Classes", url: "/admin/class", icon: CalendarCheck },
+      { title: "Sessions", url: "/admin/session", icon: CalendarCheck },
+      { title: "Instructor", url: "/admin/instructor", icon: Users },
     ],
   },
   {

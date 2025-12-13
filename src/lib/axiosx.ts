@@ -1,9 +1,9 @@
 import axios from "axios";
 import { toast } from "sonner";
-import { SECRET_KEY, validationStatus } from "./config";
+import { SECRET_KEY, validationStatus, AUTH_KEY } from "./config";
 
 const jwtPrefix = "Bearer";
-export const axiosx = (auth?: boolean, params?: string) => {
+export const axiosx = (auth?: boolean, params?: string, type?: string) => {
   const instance = axios.create();
 
   instance.interceptors.request.use(
@@ -13,8 +13,11 @@ export const axiosx = (auth?: boolean, params?: string) => {
         if (!token) return config;
         config.headers.Authorization = `${jwtPrefix} ${token}`;
       }
-
-      config.headers["x-api-key"] = SECRET_KEY;
+      if (type === "auth") {
+        config.headers["apikey"] = AUTH_KEY;
+      } else {
+        config.headers["x-api-key"] = SECRET_KEY;
+      }
 
       return config;
     },
@@ -24,7 +27,7 @@ export const axiosx = (auth?: boolean, params?: string) => {
   instance.interceptors.response?.use(
     (response) => response,
     async (error) => {
-      if (error?.response && error.response.status === 401) {
+      if (error?.response && error.response.status === 401 && auth) {
         clearToken();
       }
       if (error?.response && error.response.status >= 500) {
