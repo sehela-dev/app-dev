@@ -1,5 +1,6 @@
 import { axiosx } from "@/lib/axiosx";
 import { MAIN_API_URL } from "@/lib/config";
+import { ICommonParams } from "@/types/general.interface";
 import { TCreateManualOrder, TOrderDetail, TOrderList } from "@/types/orders.interface";
 import { TAddNewGuest } from "@/types/user.type";
 
@@ -34,7 +35,7 @@ export const createNewManualOrder: TCreateManualOrder = async (data) => {
   return res.data;
 };
 
-export const getProductOrder = async ({ page, limit, search }) => {
+export const getProductOrder = async ({ page, limit, search }: ICommonParams) => {
   const res = await axiosx(true).get(`${MAIN_API_URL}/admin/products`, {
     params: {
       page,
