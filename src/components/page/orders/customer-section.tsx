@@ -5,6 +5,7 @@ import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { useAdminManualTransaction } from "@/context/admin/add-transaction.ctx";
+import { useCreateNewGuest } from "@/hooks/api/mutations/admin";
 import { useState } from "react";
 import { FormProvider, useForm } from "react-hook-form";
 const customerSectionTab = [
@@ -25,6 +26,7 @@ const defaultValues = {
 };
 export const OrderCustomerSectionComponent = () => {
   const { addCustomer } = useAdminManualTransaction();
+  // const { mutateAsync } = useCreateNewGuest();
   const methods = useForm({ defaultValues });
   const { control, handleSubmit } = methods;
   const [tabCustomer, setTabCustomer] = useState("new");
@@ -32,9 +34,15 @@ export const OrderCustomerSectionComponent = () => {
   const onSubmit = handleSubmit(async (data) => {
     try {
       const payload = {
-        ...data,
-        id: Date.now(),
+        email: data.email,
+        name: data.name,
+        phone: data.phone,
+        // role: "guest",
       };
+      // const res = await mutateAsync(payload);
+      // if (res) {
+      //   console.log(res);
+      // }
       addCustomer(payload);
       methods.reset();
     } catch (error) {
@@ -45,7 +53,7 @@ export const OrderCustomerSectionComponent = () => {
   return (
     <Card className="p-6  border-brand-100 w-full">
       <CardHeader className="p-0">
-        <h3 className="text-3xl font-semibold">Customer Infromation</h3>
+        <h3 className="text-3xl font-semibold">Customer Information</h3>
         <p className="text-sm text-gray-500">Enter Customer Information</p>
       </CardHeader>
       <CardContent className="p-0">
@@ -123,10 +131,12 @@ export const OrderCustomerSectionComponent = () => {
                 </div>
                 <div className="flex justify-end pt-4 gap-2">
                   <div>
-                    <Button variant={"secondary"}>Clear</Button>
+                    <Button type="button" variant={"secondary"} onClick={() => methods.reset()}>
+                      Clear
+                    </Button>
                   </div>
                   <div>
-                    <Button>Create Customer</Button>
+                    <Button type="submit">Create Customer/Guest</Button>
                   </div>
                 </div>
               </form>

@@ -2,12 +2,12 @@
 import { DateRangePickerComponent } from "@/components/base/date-range-picker";
 import { buildNumber, CustomTable } from "@/components/general/custom-table";
 import { CustomPagination } from "@/components/general/pagination-component";
-import { GeneralTabComponent } from "@/components/general/tabs-component";
+
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card";
 
 import { SearchInput } from "@/components/ui/search-input";
-import { sampleOrders } from "@/constants/sample-data";
+
 import { useGetOrders } from "@/hooks/api/queries/admin/orders";
 
 import { defaultDate, formatCurrency, formatDateHelper } from "@/lib/helper";
@@ -34,7 +34,7 @@ import { useState } from "react";
 export const OrdersPageView = () => {
   const router = useRouter();
   // const [selecetedTab, setSelectedTab] = useState("week");
-  const [limit] = useState(1);
+  const [limit] = useState(10);
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState("");
 
@@ -57,7 +57,7 @@ export const OrdersPageView = () => {
   const handleSearch = (query: string) => {
     setSearch(query);
   };
-
+  // DateRangePickerComponent
   const headers = [
     {
       id: "order_id",
@@ -115,7 +115,7 @@ export const OrdersPageView = () => {
             </Button>
           </div>{" "}
           <div className="flex w-full">
-            <Button className=" text-sm font-medium">
+            <Button className=" text-sm font-medium" onClick={() => router.push("orders/add-transaction")}>
               <CirclePlus /> Add Transaction
             </Button>
           </div>
@@ -150,7 +150,6 @@ export const OrdersPageView = () => {
           <CustomPagination
             onPageChange={(e) => {
               setPage(e);
-              console.log(e);
             }}
             currentPage={page}
             showTotal

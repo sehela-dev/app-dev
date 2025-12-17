@@ -15,9 +15,10 @@ export interface IOrderItem {
 
 export interface ICustomerData {
   name: string;
-  id: string | number;
+  id?: string | number;
   phone: string;
   email: string;
+  role?: string;
 }
 
 export interface IAdminCartItemData {
@@ -29,6 +30,7 @@ export interface IAdminCartItemData {
   price: number;
   quantity: number;
   subtotal: number;
+  type?: string;
 }
 export interface IAdminCartData {
   customer?: ICustomerData;
@@ -67,5 +69,68 @@ export interface IOrderedItem {
   item_total_price: number;
 }
 
+export interface IAddTransactionPayload {
+  customer_name: string;
+  customer_phone: string;
+  customer_email: string;
+  user_id?: string;
+  sessions?: ISession[] | [];
+  products?: IProduct[] | [];
+  notes: string;
+  status: string;
+}
+
+export interface ISession {
+  class_session_id: string;
+}
+
+export interface IProduct {
+  variant_id: string;
+  quantity: number;
+}
+
+// creatae new manual trx
+export interface ICreatManualTrxResponse {
+  payment_id: string;
+  order_code: string;
+  total_price_idr: number;
+  status: string;
+  bookings: IBooking[];
+  order: IOrder;
+}
+
+export interface IBooking {
+  id: string;
+  price_idr: number;
+  booking_status: string;
+  class_session: IClassSession;
+}
+
+export interface IClassSession {
+  id: string;
+  type: string;
+  level: string;
+  place: string;
+  session_name: string;
+  start_datetime: string;
+}
+
+export interface IOrder {
+  id: string;
+  total_price_idr: number;
+  fulfillment_status: string;
+  items: Item[];
+}
+
+export interface Item {
+  id: string;
+  quantity: number;
+  product_name: string;
+  variant_name: string;
+  unit_price_idr: number;
+  total_price_idr: number;
+}
+
 export type TOrderList = (param: ICommonParams) => Promise<IResponseData<IOrderItem[]>>;
 export type TOrderDetail = (id: string) => Promise<IResponseData<IDetailOrder>>;
+export type TCreateManualOrder = (payload: IAddTransactionPayload) => Promise<IResponseData<ICreatManualTrxResponse>>;

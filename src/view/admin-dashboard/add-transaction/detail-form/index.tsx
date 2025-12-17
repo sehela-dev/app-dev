@@ -12,10 +12,13 @@ import { ScrollArea } from "@radix-ui/react-scroll-area";
 import { useAdminManualTransaction } from "@/context/admin/add-transaction.ctx";
 import { formatCurrency } from "@/lib/helper";
 import { BaseDialogConfirmation } from "@/components/general/dialog-confirnation";
+import { useCreateNewManualTrx } from "@/hooks/api/mutations/admin/use-create-manual-order";
+import { IProduct, ISession } from "@/types/orders.interface";
 export const DetailFormAddTransaction = () => {
   const { cartItems, updateStepper, customerData, removeItem, updateQuantity, clearCart, addCustomer } = useAdminManualTransaction();
   const [open, setOpen] = useState(false);
 
+  const { mutateAsync } = useCreateNewManualTrx();
   const onModifyQty = (id: number | string, type: "+" | "-") => {
     const item = cartItems?.find((item) => item.id === id);
     const currentQty = item?.quantity || 0;
@@ -38,11 +41,56 @@ export const DetailFormAddTransaction = () => {
   const onCancel = () => {
     setOpen(false);
   };
-  const onConfirm = () => {
-    updateStepper();
+  const onConfirm = async () => {
+    const sessions: ISession[] = [];
+    const products: IProduct[] = [];
+
+    cartItems?.forEach((item) => {
+      if (item.type === "class") {
+        sessions.push({
+          class_session_id: item.id as string,
+        });
+      } else if (item.type === "buy_product" || item.type === "rent_product") {
+        products.push({
+          variant_id: item.id as string,
+          quantity: item.quantity,
+        });
+      }
+    });
+
+    const payload = {
+      customer_name: customerData?.name as string,
+      customer_email: customerData?.email as string,
+      customer_phone: customerData?.phone as string,
+      sessions: sessions ?? [],
+      products: products ?? [],
+      notes: "Combined purchase",
+      status: "paid",
+    };
+    console.log(payload);
+
+    try {
+      const res = await mutateAsync(payload);
+      if (res) {
+        setOpen(true);
+        clearCart();
+        addCustomer(undefined);
+      }
+    } catch (error) {
+      console.log(error);
+    }
+
+    // updateStepper();
+    // clearCart();
+    // addCustomer(undefined);
+    // setOpen(false);
+  };
+
+  const onSuccessDialog = () => {
+    setOpen(false);
     clearCart();
     addCustomer(undefined);
-    setOpen(false);
+    updateStepper();
   };
 
   return (
@@ -176,7 +224,7 @@ export const DetailFormAddTransaction = () => {
           </Button>
         </div>
         <div className="flex w-full">
-          <Button className="w-full" onClick={() => setOpen(true)}>
+          <Button className="w-full" onClick={() => onConfirm()}>
             Save
           </Button>
         </div>
@@ -188,7 +236,7 @@ export const DetailFormAddTransaction = () => {
           onCancel={onCancel}
           subtitle="Manual transaction added to your records."
           title="Transaction Added Successfully"
-          onConfirm={onConfirm}
+          onConfirm={onSuccessDialog}
           open={open}
           cancelText="Order List"
           confirmText="Create More"

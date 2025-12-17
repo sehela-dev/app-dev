@@ -1,6 +1,7 @@
 import { axiosx } from "@/lib/axiosx";
 import { MAIN_API_URL } from "@/lib/config";
-import { TOrderDetail, TOrderList } from "@/types/orders.interface";
+import { TCreateManualOrder, TOrderDetail, TOrderList } from "@/types/orders.interface";
+import { TAddNewGuest } from "@/types/user.type";
 
 export const getOrders: TOrderList = async ({ page, limit, search, payment_method, status, startDate, endDate }) => {
   const res = await axiosx(true).get(`${MAIN_API_URL}/admin/transactions`, {
@@ -20,5 +21,27 @@ export const getOrders: TOrderList = async ({ page, limit, search, payment_metho
 
 export const getDetailOrder: TOrderDetail = async (id) => {
   const res = await axiosx(true).get(`${MAIN_API_URL}/admin/transactions/${id}`);
+  return res.data;
+};
+
+export const createNewGuest: TAddNewGuest = async (data) => {
+  const res = await axiosx(true).post(`${MAIN_API_URL}/admin/create-student`, data);
+  return res.data;
+};
+
+export const createNewManualOrder: TCreateManualOrder = async (data) => {
+  const res = await axiosx(true).post(`${MAIN_API_URL}/admin/transactions`, data);
+  return res.data;
+};
+
+export const getProductOrder = async ({ page, limit, search }) => {
+  const res = await axiosx(true).get(`${MAIN_API_URL}/admin/products`, {
+    params: {
+      page,
+      page_size: limit,
+      q: search,
+    },
+  });
+
   return res.data;
 };

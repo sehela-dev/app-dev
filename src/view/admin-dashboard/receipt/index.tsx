@@ -104,7 +104,7 @@ export const OrderReceiptPage = () => {
           </div>
         </CardContent>
       </Card>
-      <div className="flex flex-row gap-2 pt-4">
+      {/* <div className="flex flex-row gap-2 pt-4">
         <div className="flex">
           <Button variant="outline" className="w-full">
             <Share2 className="w-4 h-4" />
@@ -118,7 +118,7 @@ export const OrderReceiptPage = () => {
         <div className="flex w-full">
           <Button className="w-full">Print</Button>
         </div>
-      </div>
+      </div> */}
     </div>
   );
 };

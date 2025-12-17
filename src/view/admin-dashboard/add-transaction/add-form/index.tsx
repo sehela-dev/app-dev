@@ -3,33 +3,21 @@ import { buildNumber, CustomTable } from "@/components/general/custom-table";
 import { GeneralTabComponent } from "@/components/general/tabs-component";
 
 import { OrderCustomerSectionComponent } from "@/components/page/orders";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 
-import { Card, CardContent, CardHeader } from "@/components/ui/card";
+import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card";
 
 import { SearchInput } from "@/components/ui/search-input";
-import { detailSampleOrder, sampleClassData } from "@/constants/sample-data";
 import { useAdminManualTransaction } from "@/context/admin/add-transaction.ctx";
-import { formatCurrency, formatDateHelper } from "@/lib/helper";
+import { defaultDate, formatCurrency, formatDateHelper } from "@/lib/helper";
 import { cn } from "@/lib/utils";
-import { IClassData } from "@/types/orders.interface";
 
-import { ScrollArea } from "@radix-ui/react-scroll-area";
-
-import { format, subMonths } from "date-fns";
-import { ListFilter, ShoppingCart } from "lucide-react";
-import { Fragment, useState } from "react";
+import { ListFilter } from "lucide-react";
+import { useState } from "react";
 import { OrdersCartComponent } from "../order-card";
-
-const today = new Date();
-
-// Get date from one month ago
-const oneMonthAgo = subMonths(today, 1);
-
-// Format the dates (you can customize the format string)
-const formattedToday = format(today, "yyyy-MM-dd");
-const formattedOneMonthAgo = format(oneMonthAgo, "yyyy-MM-dd");
+import { useGetSessions } from "@/hooks/api/queries/admin/class-session";
+import { ISessionItem } from "@/types/class-sessions.interface";
+import { CustomPagination } from "@/components/general/pagination-component";
 
 const tableTabOption = [
   {
@@ -37,11 +25,11 @@ const tableTabOption = [
     name: "Class",
   },
   {
-    value: "buy",
+    value: "buy_product",
     name: "Buy Product",
   },
   {
-    value: "rent",
+    value: "rent_product",
     name: "Rent Product",
   },
 ];
@@ -49,14 +37,22 @@ const tableTabOption = [
 export const AddTransactionFOrm = () => {
   const { cartItems, addItem, removeItem, updateQuantity, updateItem, clearCart, getTotal, getTotalItems, addCustomer, customerData, updateStepper } =
     useAdminManualTransaction();
-  console.log(cartItems);
+
   const [tableTab, setTableTab] = useState("class");
-  const [limit, setLimit] = useState(10);
+  const [limit] = useState(10);
   const [page, setPage] = useState(1);
+  const [search, setSearch] = useState("");
+
   const [selectedRange, setSelectedRange] = useState({
-    from: formattedOneMonthAgo,
-    to: formattedToday,
+    from: defaultDate().formattedOneMonthAgo,
+    to: defaultDate().formattedToday,
   });
+  const handleSearch = (query: string) => {
+    setSearch(query);
+  };
+
+  const { data, isLoading, refetch } = useGetSessions({ page, limit, startDate: selectedRange.from, endDate: selectedRange.to, search });
+
   const handleDateRangeChangeDual = (start: string, end: string) => {
     setSelectedRange((prev) => ({ ...prev, from: start, to: end }));
   };
@@ -66,28 +62,28 @@ export const AddTransactionFOrm = () => {
     {
       id: "class",
       text: "Class",
-      value: "class",
+      value: (row: ISessionItem) => row.class.class_name,
     },
     {
-      id: "session",
+      id: "session_name",
       text: "Session",
-      value: "session",
+      value: "session_name",
     },
     {
-      id: "instructor",
+      id: "instructor_name",
       text: "Instructor",
-      value: "instructor",
+      value: "instructor_name",
     },
     {
       id: "date",
       text: "Date",
-      value: (row: IClassData) => formatDateHelper(row.date, "dd/MM/yyyy"),
+      value: (row: ISessionItem) => formatDateHelper(row.start_date, "dd/MM/yyyy"),
     },
     {
       id: "slot",
       text: "Slot",
-      value: (row: IClassData) => {
-        const isFull = row.joined === row.capacity;
+      value: (row: ISessionItem) => {
+        const isFull = row.slots_booked === row.slots_total;
 
         return (
           <p
@@ -95,7 +91,7 @@ export const AddTransactionFOrm = () => {
               "text-red-500": isFull,
             })}
           >
-            {row.joined}/{row.capacity}
+            {row.slots_booked}/{row.slots_total}
           </p>
         );
       },
@@ -103,7 +99,7 @@ export const AddTransactionFOrm = () => {
     {
       id: "price",
       text: "Price",
-      value: (row: IClassData) => formatCurrency(row.price),
+      value: (row: ISessionItem) => formatCurrency(row.price_idr),
     },
   ];
 
@@ -116,7 +112,7 @@ export const AddTransactionFOrm = () => {
   const actionOptions = {
     text: "Qty",
     show: true,
-    render: (row: IClassData) => {
+    render: (row: ISessionItem) => {
       const qty = cartItems?.find((item) => item.id === row.id)?.quantity;
 
       //count should taken from cartctx
@@ -128,7 +124,7 @@ export const AddTransactionFOrm = () => {
         const currentQty = item?.quantity || 0;
         const newQty = type === "+" ? currentQty + 1 : currentQty - 1;
 
-        const availableSlots = row.capacity - row.joined;
+        const availableSlots = row.slots_total - row.slots_booked;
         if (type === "+" && newQty > availableSlots) {
           return;
         }
@@ -142,10 +138,11 @@ export const AddTransactionFOrm = () => {
         } else {
           addItem({
             id: row.id,
-            name: `${row.class}`,
-            description: row.session,
-            price: parseInt(row.price),
+            name: row.class.class_name,
+            description: row.session_name,
+            price: row.price_idr,
             quantity: 1,
+            type: tableTab,
           });
         }
       };
@@ -205,16 +202,42 @@ export const AddTransactionFOrm = () => {
               </div>
               <div className="flex flex-row gap-2">
                 <div className="flex  min-w-[60%] w-full">
-                  <DateRangePickerComponent onDateRangeChange={handleDateRangeChangeDual} startDate={selectedRange.from} endDate={selectedRange.to} />
+                  <DateRangePickerComponent
+                    onDateRangeChange={handleDateRangeChangeDual}
+                    startDate={selectedRange.from}
+                    endDate={selectedRange.to}
+                    allowFutureDates
+                    allowPastDates={false}
+                  />
                 </div>
                 <div className="flex w-full">
-                  <SearchInput />
+                  <SearchInput className="border-brand-100" search={search} onSearch={handleSearch} />
                 </div>
               </div>
             </CardHeader>
             <CardContent className="">
-              <CustomTable headers={headers} data={sampleClassData.data} numberOptions={numberOptions} actionOptions={actionOptions} />
+              <CustomTable
+                headers={headers}
+                data={data?.data ?? []}
+                numberOptions={numberOptions}
+                actionOptions={actionOptions}
+                isLoading={isLoading}
+              />
             </CardContent>
+            <CardFooter>
+              <CustomPagination
+                onPageChange={(e) => {
+                  setPage(e);
+                }}
+                currentPage={page}
+                showTotal
+                hasPrevPage={data?.pagination?.has_prev}
+                hasNextPage={data?.pagination?.has_next}
+                totalItems={data?.pagination?.total_items as number}
+                totalPages={data?.pagination?.total_pages as number}
+                limit={limit}
+              />
+            </CardFooter>
           </Card>
         </div>
       </div>

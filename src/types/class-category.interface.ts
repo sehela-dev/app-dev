@@ -1,81 +1,20 @@
-import { IPagination } from "./general.interface";
+import { IResponseData } from "@/lib/config";
+import { ICommonParams } from "./general.interface";
 
-// TypeScript Interface
-export interface IClassCategoryData {
-  id: number;
-  className: string;
-  description: string;
-  creditEligible: boolean;
-  defaultCredits: number | null;
-  status: "Active" | "Inactive";
+export interface IClassSessionCategory {
+  id: string;
+  class_name: string;
+  class_description: string;
+  allow_credit: boolean;
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
 }
-
-export interface IClassCategoryResponse {
-  data: IClassCategoryData[];
-  pagination: IPagination;
+export interface ICreateNewCategoryPayload {
+  class_name: string;
+  class_description: string;
+  allow_credit: boolean;
+  is_active?: boolean;
 }
-
-// JSON Data
-export const classesResponse: IClassCategoryResponse = {
-  data: [
-    {
-      id: 1,
-      className: "Yoga",
-      description: "You can inster the descrip...",
-      creditEligible: true,
-      defaultCredits: 1,
-      status: "Active",
-    },
-    {
-      id: 2,
-      className: "Ballet",
-      description: "You can inster the descrip...",
-      creditEligible: true,
-      defaultCredits: 1,
-      status: "Active",
-    },
-    {
-      id: 3,
-      className: "Pillates",
-      description: "You can inster the descrip...",
-      creditEligible: true,
-      defaultCredits: 2,
-      status: "Active",
-    },
-    {
-      id: 4,
-      className: "Prenatal Yoga",
-      description: "You can inster the descrip...",
-      creditEligible: true,
-      defaultCredits: 1,
-      status: "Active",
-    },
-    {
-      id: 5,
-      className: "Other Class",
-      description: "You can inster the descrip...",
-      creditEligible: false,
-      defaultCredits: null,
-      status: "Active",
-    },
-    {
-      id: 6,
-      className: "Other Class",
-      description: "You can inster the descrip...",
-      creditEligible: true,
-      defaultCredits: 1,
-      status: "Inactive",
-    },
-  ],
-  pagination: {
-    currentPage: 1,
-    totalPages: 1,
-    totalItems: 6,
-    limit: 10,
-    hasNextPage: false,
-    hasPrevPage: false,
-    nextPage: null,
-    previousPage: null,
-    showTotal: true,
-  },
-};
+export type TClassSessionCategoryResponse = (params: ICommonParams) => Promise<IResponseData<IClassSessionCategory[]>>;
+export type TCreateNewClassCategory = (data: ICreateNewCategoryPayload) => Promise<IResponseData<IClassSessionCategory>>;

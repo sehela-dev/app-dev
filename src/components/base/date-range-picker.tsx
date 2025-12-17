@@ -15,14 +15,16 @@ import {
   isBefore,
   isAfter,
 } from "date-fns";
-import { Button } from "../ui/button";
+import { Button } from "@/components/ui/button";
 import { ChevronLeft, ChevronRight, Calendar } from "lucide-react";
-import { Popover, PopoverTrigger, PopoverContent } from "../ui/popover";
+import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
 
 interface DateRangePickerDualProps {
   startDate?: string; // yyyy-mm-dd format
   endDate?: string; // yyyy-mm-dd format
   onDateRangeChange?: (startDate: string, endDate: string) => void;
+  allowFutureDates?: boolean;
+  allowPastDates?: boolean;
 }
 
 interface DateRange {
@@ -30,7 +32,13 @@ interface DateRange {
   end: Date | null;
 }
 
-export function DateRangePickerComponent({ startDate, endDate, onDateRangeChange }: DateRangePickerDualProps) {
+export function DateRangePickerComponent({
+  startDate,
+  endDate,
+  onDateRangeChange,
+  allowFutureDates = false,
+  allowPastDates = true,
+}: DateRangePickerDualProps) {
   const defaultStartDate = useMemo(() => {
     if (startDate) {
       return parse(startDate, "yyyy-MM-dd", new Date());
@@ -60,8 +68,18 @@ export function DateRangePickerComponent({ startDate, endDate, onDateRangeChange
     return date;
   }, []);
 
+  const isDateDisabled = (date: Date) => {
+    const isFutureDate = isAfter(date, today);
+    const isPastDate = isBefore(date, today);
+
+    if (!allowFutureDates && isFutureDate) return true;
+    if (!allowPastDates && isPastDate) return true;
+
+    return false;
+  };
+
   const handleDateClick = (date: Date) => {
-    if (isAfter(date, today)) {
+    if (isDateDisabled(date)) {
       return;
     }
 
@@ -139,7 +157,7 @@ export function DateRangePickerComponent({ startDate, endDate, onDateRangeChange
           {/* Current month's days */}
           {daysInMonth.map((date) => {
             const isCurrent = isSameMonth(date, month);
-            const isFutureDate = isAfter(date, today);
+            const isDisabled = isDateDisabled(date);
             const isStart = isStartDate(date);
             const isEnd = isEndDate(date);
             const inRange = isDateInRange(date);
@@ -148,9 +166,9 @@ export function DateRangePickerComponent({ startDate, endDate, onDateRangeChange
               <button
                 key={format(date, "yyyy-MM-dd")}
                 onClick={() => handleDateClick(date)}
-                disabled={isFutureDate}
+                disabled={isDisabled}
                 className={`h-8 rounded text-sm font-medium transition-colors ${
-                  isFutureDate
+                  isDisabled
                     ? "text-gray-300 bg-muted/50 cursor-not-allowed"
                     : isStart || isEnd
                     ? "bg-brand-500 text-gray-50"
@@ -176,10 +194,10 @@ export function DateRangePickerComponent({ startDate, endDate, onDateRangeChange
         <Button variant={"outline"} className="flex items-center gap-2 px-4 py-2  rounded-lg  hover:bg-accent/50 transition-colors w-full max-w-sm">
           <Calendar className="h-5 w-5 text-muted-foreground" />
           <span className="text-foreground font-medium">
-            {startDate && endDate
-              ? `${format(startDate, "d MMM yyyy")} - ${format(endDate, "d MMM yyyy")}`
+            {dateRange.start && dateRange.end
+              ? `${format(dateRange.start, "d MMM yyyy")} - ${format(dateRange.end, "d MMM yyyy")}`
               : dateRange.start
-              ? `${format(startDate as string, "d MMM yyyy")} - Select end date`
+              ? `${format(dateRange.start, "d MMM yyyy")} - Select end date`
               : "Select date range"}
           </span>
         </Button>
