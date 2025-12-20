@@ -1,4 +1,3 @@
-import { DateRangePickerComponent } from "@/components/base/date-range-picker";
 import { buildNumber, CustomTable } from "@/components/general/custom-table";
 import { GeneralTabComponent } from "@/components/general/tabs-component";
 
@@ -18,6 +17,7 @@ import { OrdersCartComponent } from "../order-card";
 import { useGetSessions } from "@/hooks/api/queries/admin/class-session";
 import { ISessionItem } from "@/types/class-sessions.interface";
 import { CustomPagination } from "@/components/general/pagination-component";
+import { DateRangePicker } from "@/components/base/date-range-picker";
 
 const tableTabOption = [
   {
@@ -53,8 +53,8 @@ export const AddTransactionFOrm = () => {
 
   const { data, isLoading, refetch } = useGetSessions({ page, limit, startDate: selectedRange.from, endDate: selectedRange.to, search });
 
-  const handleDateRangeChangeDual = (start: string, end: string) => {
-    setSelectedRange((prev) => ({ ...prev, from: start, to: end }));
+  const handleDateRangeChangeDual = (startDate: string, endDate?: string) => {
+    setSelectedRange((prev) => ({ ...prev, from: startDate, to: endDate ?? "" }));
   };
 
   // alwasy match/check cart data and table data for quantity
@@ -202,7 +202,8 @@ export const AddTransactionFOrm = () => {
               </div>
               <div className="flex flex-row gap-2">
                 <div className="flex  min-w-[60%] w-full">
-                  <DateRangePickerComponent
+                  <DateRangePicker
+                    mode="range"
                     onDateRangeChange={handleDateRangeChangeDual}
                     startDate={selectedRange.from}
                     endDate={selectedRange.to}

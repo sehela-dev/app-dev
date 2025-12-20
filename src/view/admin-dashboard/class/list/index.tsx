@@ -1,5 +1,6 @@
 "use client";
 import { buildNumber, CustomTable } from "@/components/general/custom-table";
+import { CustomPagination } from "@/components/general/pagination-component";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
@@ -120,18 +121,18 @@ export const ClassListView = () => {
           />
         </CardContent>
         <CardFooter className="flex w-full">
-          {/* <CustomPagination
+          <CustomPagination
             onPageChange={(e) => setPage(e)}
             currentPage={page}
             showTotal
-            nextPage={sampleOrders?.pagination?.nextPage}
-            hasNextPage={sampleOrders?.pagination?.hasNextPage}
-            hasPrevPage={sampleOrders?.pagination?.hasPrevPage}
-            previousPage={sampleOrders?.pagination?.previousPage}
-            totalItems={sampleOrders?.pagination?.totalItems as number}
-            totalPages={sampleOrders?.pagination?.totalPages as number}
+            // nextPage={data?.pagination?.}
+            hasNextPage={data?.pagination?.has_next}
+            hasPrevPage={data?.pagination?.has_prev}
+            // previousPage={data?.pagination?.previousPage}
+            totalItems={data?.pagination?.total_items as number}
+            totalPages={data?.pagination?.total_pages as number}
             limit={10}
-          /> */}
+          />
         </CardFooter>
       </Card>
     </div>

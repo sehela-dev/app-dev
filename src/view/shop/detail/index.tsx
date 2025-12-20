@@ -2,8 +2,7 @@
 import { StickyContainerComponent } from "@/components/layout";
 import { ProductCategorySection } from "@/components/shop/product-section";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Sheet, SheetContent, SheetDescription, SheetFooter, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
+import { Sheet, SheetContent, SheetFooter, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { cn } from "@/lib/utils";
 import clsx from "clsx";
 import { ShoppingCart } from "lucide-react";

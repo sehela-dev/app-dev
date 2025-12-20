@@ -3,7 +3,6 @@
 import { useState, useMemo } from "react";
 import {
   format,
-  parse,
   startOfMonth,
   endOfMonth,
   eachDayOfInterval,
@@ -19,43 +18,47 @@ import { Button } from "@/components/ui/button";
 import { ChevronLeft, ChevronRight, Calendar } from "lucide-react";
 import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
 
-interface DateRangePickerDualProps {
-  startDate?: string; // yyyy-mm-dd format
-  endDate?: string; // yyyy-mm-dd format
-  onDateRangeChange?: (startDate: string, endDate: string) => void;
-  allowFutureDates?: boolean;
-  allowPastDates?: boolean;
-}
+type DatePickerMode = "single" | "range";
 
 interface DateRange {
   start: Date | null;
   end: Date | null;
 }
 
-export function DateRangePickerComponent({
+interface DateRangePickerProps {
+  mode?: DatePickerMode;
+  startDate?: string; // yyyy-mm-dd format
+  endDate?: string; // yyyy-mm-dd format
+  onDateRangeChange?: (startDate: string, endDate?: string) => void;
+  allowFutureDates?: boolean;
+  allowPastDates?: boolean;
+}
+
+export function DateRangePicker({
+  mode = "range",
   startDate,
   endDate,
   onDateRangeChange,
   allowFutureDates = false,
   allowPastDates = true,
-}: DateRangePickerDualProps) {
+}: DateRangePickerProps) {
   const defaultStartDate = useMemo(() => {
     if (startDate) {
-      return parse(startDate, "yyyy-MM-dd", new Date());
+      return new Date(startDate);
     }
     return subMonths(new Date(), 1);
   }, [startDate]);
 
   const defaultEndDate = useMemo(() => {
     if (endDate) {
-      return parse(endDate, "yyyy-MM-dd", new Date());
+      return new Date(endDate);
     }
     return new Date();
   }, [endDate]);
 
   const [dateRange, setDateRange] = useState<DateRange>({
     start: defaultStartDate,
-    end: defaultEndDate,
+    end: mode === "single" ? null : defaultEndDate,
   });
 
   const [firstMonth, setFirstMonth] = useState(defaultStartDate);
@@ -83,17 +86,24 @@ export function DateRangePickerComponent({
       return;
     }
 
-    if (!dateRange.start || (dateRange.start && dateRange.end)) {
+    if (mode === "single") {
       setDateRange({ start: date, end: null });
-    } else if (isBefore(date, dateRange.start)) {
-      setDateRange({ start: date, end: dateRange.start });
     } else {
-      setDateRange({ start: dateRange.start, end: date });
+      if (!dateRange.start || (dateRange.start && dateRange.end)) {
+        setDateRange({ start: date, end: null });
+      } else if (isBefore(date, dateRange.start)) {
+        setDateRange({ start: date, end: dateRange.start });
+      } else {
+        setDateRange({ start: dateRange.start, end: date });
+      }
     }
   };
 
   const handleApply = () => {
-    if (dateRange.start && dateRange.end) {
+    if (mode === "single" && dateRange.start) {
+      onDateRangeChange?.(format(dateRange.start, "yyyy-MM-dd"));
+      setIsOpen(false);
+    } else if (mode === "range" && dateRange.start && dateRange.end) {
       onDateRangeChange?.(format(dateRange.start, "yyyy-MM-dd"), format(dateRange.end, "yyyy-MM-dd"));
       setIsOpen(false);
     }
@@ -136,7 +146,6 @@ export function DateRangePickerComponent({
 
     return (
       <div className="w-full">
-        {/* Weekday headers */}
         <div className="grid grid-cols-7 gap-2 mb-2">
           {weekDays.map((day) => (
             <div key={day} className="text-center text-sm font-medium text-muted-foreground">
@@ -145,16 +154,13 @@ export function DateRangePickerComponent({
           ))}
         </div>
 
-        {/* Calendar grid */}
         <div className="grid grid-cols-7 gap-2">
-          {/* Previous month's days (disabled) */}
           {previousMonthDays.map((date, i) => (
             <button key={`prev-${i}`} disabled className="h-8 rounded text-sm text-gray-300 bg-muted/50 cursor-not-allowed">
               {format(date, "d")}
             </button>
           ))}
 
-          {/* Current month's days */}
           {daysInMonth.map((date) => {
             const isCurrent = isSameMonth(date, month);
             const isDisabled = isDateDisabled(date);
@@ -190,11 +196,15 @@ export function DateRangePickerComponent({
 
   return (
     <Popover open={isOpen} onOpenChange={setIsOpen}>
-      <PopoverTrigger asChild>
-        <Button variant={"outline"} className="flex items-center gap-2 px-4 py-2  rounded-lg  hover:bg-accent/50 transition-colors w-full max-w-sm">
+      <PopoverTrigger asChild className="justify-start ">
+        <Button variant={"outline"} className="flex items-center gap-2 px-4 py-2  rounded-lg  hover:bg-accent/50 transition-colors w-full ">
           <Calendar className="h-5 w-5 text-muted-foreground" />
           <span className="text-foreground font-medium">
-            {dateRange.start && dateRange.end
+            {mode === "single"
+              ? dateRange.start
+                ? format(dateRange.start, "d MMM yyyy")
+                : "Select date"
+              : dateRange.start && dateRange.end
               ? `${format(dateRange.start, "d MMM yyyy")} - ${format(dateRange.end, "d MMM yyyy")}`
               : dateRange.start
               ? `${format(dateRange.start, "d MMM yyyy")} - Select end date`
@@ -204,29 +214,32 @@ export function DateRangePickerComponent({
       </PopoverTrigger>
       <PopoverContent className="w-auto p-0 bg-gray-50 border-brand-50" align="start">
         <div className="p-4 bg-card">
-          {/* Header with month/year and navigation */}
           <div className="flex items-center justify-between mb-4">
             <Button variant="outline" size="sm" onClick={handlePrevMonth} className="h-8 w-8 p-0 bg-transparent">
               <ChevronLeft className="h-4 w-4" />
             </Button>
             <h2 className="text-lg font-semibold flex-1 text-center">
-              {format(firstMonth, "MMMM yyyy")} - {format(secondMonth, "MMMM yyyy")}
+              {mode === "single" ? format(firstMonth, "MMMM yyyy") : `${format(firstMonth, "MMMM yyyy")} - ${format(secondMonth, "MMMM yyyy")}`}
             </h2>
             <Button variant="outline" size="sm" onClick={handleNextMonth} className="h-8 w-8 p-0 bg-transparent">
               <ChevronRight className="h-4 w-4" />
             </Button>
           </div>
 
-          <div className="flex gap-4">
+          {mode === "single" ? (
             <div>{renderCalendar(firstMonth)}</div>
-            <div>{renderCalendar(secondMonth)}</div>
-          </div>
+          ) : (
+            <div className="flex gap-4">
+              <div>{renderCalendar(firstMonth)}</div>
+              <div>{renderCalendar(secondMonth)}</div>
+            </div>
+          )}
 
           <div className="mt-4 pt-4 border-t border-border flex justify-end gap-2">
             <Button variant="outline" onClick={() => setIsOpen(false)} className="px-4 py-2">
               Cancel
             </Button>
-            <Button onClick={handleApply} disabled={!dateRange.start || !dateRange.end} className="px-4 py-2">
+            <Button onClick={handleApply} disabled={mode === "single" ? !dateRange.start : !dateRange.start || !dateRange.end} className="px-4 py-2">
               Apply
             </Button>
           </div>

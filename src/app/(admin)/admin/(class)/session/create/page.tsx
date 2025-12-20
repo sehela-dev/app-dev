@@ -1,5 +1,5 @@
-import { AddClassPageView } from "@/view/admin-dashboard/class/add-class";
+import { CreateSessionPageView } from "@/view/admin-dashboard/session/add-session";
 
 export default function Page() {
-  return <AddClassPageView />;
+  return <CreateSessionPageView />;
 }

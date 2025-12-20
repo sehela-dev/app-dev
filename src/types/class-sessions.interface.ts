@@ -41,4 +41,33 @@ export interface IClassSession {
   allow_credit: boolean;
 }
 
+export interface ICreateSessionPaylaod {
+  session_name: string;
+  class_id: string;
+  capacity: number;
+  instructor_id: string;
+  session_description: string;
+
+  //DATE AND TIME
+  start_date: string;
+  time_start: string;
+  time_end: string;
+
+  //LOCATION
+  place: string;
+  room_id?: string;
+  location?: string;
+  location_maps_url?: string;
+  meeting_link?: string;
+
+  //PRICING
+  price_idr: number;
+  price_credit_amount: number;
+
+  //OTHER
+  type: string; //regular
+  level: string; // "advanced",
+}
+
 export type TSessionListData = (data: ICommonParams) => Promise<IResponseData<ISessionItem[]>>;
+export type TCreateSessionData = (data: ICreateSessionPaylaod) => Promise<IResponseData<ISessionItem>>;

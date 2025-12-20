@@ -16,5 +16,6 @@ export interface ICreateNewCategoryPayload {
   allow_credit: boolean;
   is_active?: boolean;
 }
+
 export type TClassSessionCategoryResponse = (params: ICommonParams) => Promise<IResponseData<IClassSessionCategory[]>>;
 export type TCreateNewClassCategory = (data: ICreateNewCategoryPayload) => Promise<IResponseData<IClassSessionCategory>>;

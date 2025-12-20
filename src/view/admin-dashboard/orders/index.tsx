@@ -1,5 +1,6 @@
 "use client";
-import { DateRangePickerComponent } from "@/components/base/date-range-picker";
+
+import { DateRangePicker } from "@/components/base/date-range-picker";
 import { buildNumber, CustomTable } from "@/components/general/custom-table";
 import { CustomPagination } from "@/components/general/pagination-component";
 
@@ -43,9 +44,10 @@ export const OrdersPageView = () => {
     to: defaultDate().formattedToday,
   });
 
-  const handleDateRangeChangeDual = (start: string, end: string) => {
-    setSelectedRange((prev) => ({ ...prev, from: start, to: end }));
+  const handleDateRangeChangeDual = (startDate: string, endDate?: string) => {
+    setSelectedRange((prev) => ({ ...prev, from: startDate, to: endDate ?? "" }));
   };
+
   const { data, isLoading, refetch } = useGetOrders({ page, limit, search, startDate: selectedRange.from, endDate: selectedRange.to });
 
   const numberOptions = {
@@ -57,7 +59,7 @@ export const OrdersPageView = () => {
   const handleSearch = (query: string) => {
     setSearch(query);
   };
-  // DateRangePickerComponent
+
   const headers = [
     {
       id: "order_id",
@@ -129,7 +131,7 @@ export const OrdersPageView = () => {
           </div>
           <div className="flex flex-row  gap-2">
             <div>
-              <DateRangePickerComponent onDateRangeChange={handleDateRangeChangeDual} startDate={selectedRange.from} endDate={selectedRange.to} />
+              <DateRangePicker onDateRangeChange={handleDateRangeChangeDual} startDate={selectedRange.from} endDate={selectedRange.to} />
             </div>
             <SearchInput className="border-brand-100" search={search} onSearch={handleSearch} />
           </div>

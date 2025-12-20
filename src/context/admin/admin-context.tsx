@@ -41,9 +41,9 @@ export const AuthProviderAdmin: React.FC<{ children: React.ReactNode }> = ({ chi
 
   useEffect(() => {
     // Check if token is expired on mount and clear if needed
-    if (access_token && isTokenExpired(Number(expires_at))) {
-      resetJwt();
-    }
+    // if (access_token && isTokenExpired(Number(expires_at))) {
+    //   resetJwt();
+    // }
 
     // Simulate checking auth status (you might want to validate token with server)
     const timer = setTimeout(() => {
