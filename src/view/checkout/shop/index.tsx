@@ -1,7 +1,7 @@
 "use client";
 import { CircleCheckSvg } from "@/components/asset/svg/CircleCheckSvg";
-import { CircleInfoSvg } from "@/components/asset/svg/CircleInfoSvg";
-import { CardCreditComponent } from "@/components/general/card-credit";
+// import { CircleInfoSvg } from "@/components/asset/svg/CircleInfoSvg";
+// import { CardCreditComponent } from "@/components/general/card-credit";
 
 import { StickyContainerComponent } from "@/components/layout";
 
@@ -9,30 +9,30 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
+// import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 import { usePaymentMethodCtx } from "@/context/payment-method.ctx";
 import { ItemSelection } from "@/view/shop/detail";
 
 import { X } from "lucide-react";
 import { useState } from "react";
 
-const walletContent = [
-  {
-    id: 1,
-    title: "Yoga & Pillates",
-    value: 12,
-  },
-  {
-    id: 2,
-    title: "Yoga, Pillates & Ballet",
-    value: 3,
-  },
-  {
-    id: 3,
-    title: "Yoga, Pillates & Ballet",
-    value: 5,
-  },
-];
+// const walletContent = [
+//   {
+//     id: 1,
+//     title: "Yoga & Pillates",
+//     value: 12,
+//   },
+//   {
+//     id: 2,
+//     title: "Yoga, Pillates & Ballet",
+//     value: 3,
+//   },
+//   {
+//     id: 3,
+//     title: "Yoga, Pillates & Ballet",
+//     value: 5,
+//   },
+// ];
 
 const sizeOption = [
   {
@@ -54,8 +54,8 @@ const sizeOption = [
 ];
 
 export const CheckoutShopSessionView = () => {
-  const [selectedCredit, setSelectedCredit] = useState<number | null>(null);
-  const { paymentType } = usePaymentMethodCtx();
+  // const [selectedCredit, setSelectedCredit] = useState<number | null>(null);
+  // const { paymentType } = usePaymentMethodCtx();
 
   const [deliveryOption, setDeliveryOption] = useState("pickup");
 
@@ -67,10 +67,10 @@ export const CheckoutShopSessionView = () => {
     setSelectedVariantOne(id);
   };
 
-  const onSelectWalletCredit = (id: number) => {
-    if (selectedCredit === id) setSelectedCredit(null);
-    else setSelectedCredit(id);
-  };
+  // const onSelectWalletCredit = (id: number) => {
+  //   if (selectedCredit === id) setSelectedCredit(null);
+  //   else setSelectedCredit(id);
+  // };
   const onModifyQty = (type: "+" | "-") => {
     const newQty = type === "+" ? qty + 1 : qty - 1;
     if (newQty < 1) return;

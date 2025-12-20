@@ -3,11 +3,9 @@
 import type React from "react";
 
 import { useState } from "react";
-import { Eye, EyeOff } from "lucide-react";
 import { LogoComponent } from "@/components/asset/logo";
 import { Input } from "@/components/ui/input";
 import { PasswordInput } from "@/components/general/password-input";
-import { Label } from "@/components/ui/label";
 import { FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { FormProvider, useForm } from "react-hook-form";
 import { Button } from "@/components/ui/button";

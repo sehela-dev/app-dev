@@ -15,10 +15,10 @@ import { useState } from "react";
 
 export const ClassListView = () => {
   const router = useRouter();
-  const [limit, setLimit] = useState(10);
+  const [limit] = useState(10);
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState("");
-  const { data, isLoading, refetch } = useGetClassSessionsCategory({ page, limit, search });
+  const { data, isLoading } = useGetClassSessionsCategory({ page, limit, search });
 
   const headers = [
     {

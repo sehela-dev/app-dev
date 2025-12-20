@@ -17,7 +17,7 @@ interface CustomPaginationProps extends ApiPagination {
 }
 
 export function CustomPagination(props: CustomPaginationProps) {
-  const { currentPage, totalItems, limit, hasNextPage, hasPrevPage, nextPage, previousPage, showTotal, onPageChange } = props;
+  const { currentPage, totalItems, limit, hasNextPage, hasPrevPage, showTotal, onPageChange } = props;
 
   // --- NEW: compute the "Menampilkan X - Y dari Z data" range ---
   const hasData = totalItems > 0 && limit > 0;

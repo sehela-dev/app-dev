@@ -5,7 +5,6 @@ import { toast } from "sonner";
 import { useCallback } from "react";
 import { useMutation } from "@tanstack/react-query";
 
-import { validationStatus } from "@/lib/config";
 import { createNewGuest } from "@/api-req/admin-orders";
 
 export const useCreateNewGuest = () => {

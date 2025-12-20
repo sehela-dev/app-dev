@@ -1,7 +1,7 @@
 "use client";
 import clsx from "clsx";
 import { Tabs, TabsList, TabsTrigger } from "../ui/tabs";
-import { useRouter } from "next/navigation";
+// import { useRouter } from "next/navigation";
 
 interface ITabs {
   tabs: TabsItem[];
@@ -15,7 +15,7 @@ interface TabsItem {
 }
 
 export const GeneralTabComponent = ({ tabs, selecetedTab, setTab }: ITabs) => {
-  const router = useRouter();
+  // const router = useRouter();
   return (
     <Tabs defaultValue={selecetedTab} className="w-full">
       <div className="flex w-full flex-row items-center justify-between">

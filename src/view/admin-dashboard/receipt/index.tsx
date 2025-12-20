@@ -1,11 +1,8 @@
 "use client";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 
 import { useGetOrderDetail } from "@/hooks/api/queries/admin/orders";
 import { formatCurrency, formatDateHelper } from "@/lib/helper";
-import { Share, Share2 } from "lucide-react";
 import { useParams } from "next/navigation";
 
 import { Fragment } from "react";
@@ -13,8 +10,10 @@ import { Fragment } from "react";
 export const OrderReceiptPage = () => {
   const params = useParams();
   const { id } = params;
-  const { data, refetch, isLoading } = useGetOrderDetail(id as string);
-  console.log(data?.data);
+  const { data, isLoading } = useGetOrderDetail(id as string);
+
+  if (isLoading) return <>Loading...</>;
+
   return (
     <div className="mx-auto max-w-[45vw] w-full">
       <Card className="w-full border-brand-100 p-6">

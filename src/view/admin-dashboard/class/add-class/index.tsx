@@ -7,8 +7,8 @@ import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import { useCreateClassSession } from "@/hooks/api/mutations/admin";
-import { useRouter } from "next/navigation";
-import { useState } from "react";
+// import { useRouter } from "next/navigation";
+// import { useState } from "react";
 import { FormProvider, useForm } from "react-hook-form";
 
 const defaultValues = {
@@ -17,11 +17,11 @@ const defaultValues = {
   allow_credit: true,
 };
 export const AddClassPageView = () => {
-  const router = useRouter();
+  // const router = useRouter();
   const methods = useForm({ defaultValues });
   const { control, handleSubmit } = methods;
   const { mutateAsync } = useCreateClassSession();
-  const [open, setOpen] = useState(false);
+  // const [open, setOpen] = useState(false);
 
   const onSubmit = handleSubmit(async (data) => {
     try {

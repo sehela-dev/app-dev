@@ -9,7 +9,7 @@ import { SearchInput } from "@/components/ui/search-input";
 import { useGetSessions } from "@/hooks/api/queries/admin/class-session";
 import { formatDateHelper } from "@/lib/helper";
 import { cn } from "@/lib/utils";
-import { IClassSessionCategory } from "@/types/class-category.interface";
+// import { IClassSessionCategory } from "@/types/class-category.interface";
 import { ISessionItem } from "@/types/class-sessions.interface";
 
 import { CirclePlus, Ellipsis, ListFilter } from "lucide-react";

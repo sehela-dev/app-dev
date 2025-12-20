@@ -1,6 +1,5 @@
 import type React from "react";
 
-import MainLayout from "@/layout/main-layout";
 import { NavigationProvider } from "@/context/nav-context";
 import CartLayout from "@/layout/cart-layout";
 

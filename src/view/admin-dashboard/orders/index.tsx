@@ -48,7 +48,7 @@ export const OrdersPageView = () => {
     setSelectedRange((prev) => ({ ...prev, from: startDate, to: endDate ?? "" }));
   };
 
-  const { data, isLoading, refetch } = useGetOrders({ page, limit, search, startDate: selectedRange.from, endDate: selectedRange.to });
+  const { data, isLoading } = useGetOrders({ page, limit, search, startDate: selectedRange.from, endDate: selectedRange.to });
 
   const numberOptions = {
     text: "No",

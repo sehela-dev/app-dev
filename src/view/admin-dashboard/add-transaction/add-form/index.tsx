@@ -35,8 +35,7 @@ const tableTabOption = [
 ];
 
 export const AddTransactionFOrm = () => {
-  const { cartItems, addItem, removeItem, updateQuantity, updateItem, clearCart, getTotal, getTotalItems, addCustomer, customerData, updateStepper } =
-    useAdminManualTransaction();
+  const { cartItems, addItem, removeItem, updateQuantity, customerData } = useAdminManualTransaction();
 
   const [tableTab, setTableTab] = useState("class");
   const [limit] = useState(10);
@@ -51,7 +50,7 @@ export const AddTransactionFOrm = () => {
     setSearch(query);
   };
 
-  const { data, isLoading, refetch } = useGetSessions({ page, limit, startDate: selectedRange.from, endDate: selectedRange.to, search });
+  const { data, isLoading } = useGetSessions({ page, limit, startDate: selectedRange.from, endDate: selectedRange.to, search });
 
   const handleDateRangeChangeDual = (startDate: string, endDate?: string) => {
     setSelectedRange((prev) => ({ ...prev, from: startDate, to: endDate ?? "" }));

@@ -1,6 +1,6 @@
 import { LogoComponent } from "@/components/asset/logo";
 import { MainFooterComponent } from "@/components/layout";
-import { ArrowRight, Instagram, Mail, Phone } from "lucide-react";
+import { ArrowRight } from "lucide-react";
 import Image from "next/image";
 
 export const HomeView = () => {
