@@ -8,7 +8,7 @@ export const dataNavMain = [
 export const dataNavMarketPlace = [
   { title: "Reporting and Analytics", url: "/admin/dashboard", icon: BarChart2 },
   { title: "Orders", url: "/admin/orders", isActive: true, icon: Receipt },
-  { title: "Credit Packages", url: "#", icon: Gem },
+  // { title: "Credit Packages", url: "#", icon: Gem },
   {
     title: "Class",
     url: "#",
@@ -16,18 +16,18 @@ export const dataNavMarketPlace = [
     items: [
       { title: "Classes", url: "/admin/class", icon: CalendarCheck },
       { title: "Sessions", url: "/admin/session", icon: CalendarCheck },
-      { title: "Instructor", url: "/admin/instructor", icon: Users },
+      // { title: "Instructor", url: "/admin/instructor", icon: Users },
     ],
   },
-  {
-    title: "Products",
-    url: "#",
-    icon: PackageSearch,
-    items: [
-      { title: "Products", url: "#", icon: PackageSearch },
-      { title: "Categories", url: "#", icon: Tag },
-    ],
-  },
-  { title: "Discounts", url: "#", icon: Tag },
-  { title: "Customers", url: "#", icon: UserSquare2 },
+  // {
+  //   title: "Products",
+  //   url: "#",
+  //   icon: PackageSearch,
+  //   items: [
+  //     { title: "Products", url: "#", icon: PackageSearch },
+  //     { title: "Categories", url: "#", icon: Tag },
+  //   ],
+  // },
+  // { title: "Discounts", url: "#", icon: Tag },
+  // { title: "Customers", url: "#", icon: UserSquare2 },
 ];
