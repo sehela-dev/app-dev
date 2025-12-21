@@ -4,10 +4,13 @@ import { DateRangePicker } from "@/components/base/date-range-picker";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
-import { defaultDate } from "@/lib/helper";
+
 import { FormProvider, useFormContext } from "react-hook-form";
 
-export const SessionDateTimeFormComponent = () => {
+interface IProps {
+  start_date?: string;
+}
+export const SessionDateTimeFormComponent = ({ start_date }: IProps) => {
   const methods = useFormContext();
   const { control } = methods;
 
@@ -31,8 +34,7 @@ export const SessionDateTimeFormComponent = () => {
                       allowPastDates={false}
                       allowFutureDates
                       onDateRangeChange={(e) => field.onChange(e)}
-                      startDate={defaultDate().formattedToday}
-                      {...field}
+                      startDate={start_date ?? field.value}
                     />
                   </FormControl>
                   <FormMessage />

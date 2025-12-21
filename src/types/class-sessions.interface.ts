@@ -69,5 +69,18 @@ export interface ICreateSessionPaylaod {
   level: string; // "advanced",
 }
 
+export interface IParticipantsSession {
+  id: string;
+  user_id: string;
+  customer_name: string;
+  customer_phone: string;
+  customer_email: string;
+  booking_status: string;
+  attendance_status: string;
+  created_at: string;
+}
+
 export type TSessionListData = (data: ICommonParams) => Promise<IResponseData<ISessionItem[]>>;
+export type TSessionDetailData = (id: string) => Promise<IResponseData<ISessionItem>>;
+export type TSessionBookings = ({ id, page, limit }: { id: string; page: number; limit: number }) => Promise<IResponseData<IParticipantsSession[]>>;
 export type TCreateSessionData = (data: ICreateSessionPaylaod) => Promise<IResponseData<ISessionItem>>;

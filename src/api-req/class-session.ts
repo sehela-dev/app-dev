@@ -1,7 +1,7 @@
 import { axiosx } from "@/lib/axiosx";
 import { MAIN_API_URL } from "@/lib/config";
 import { TClassSessionCategoryResponse, TCreateNewClassCategory } from "@/types/class-category.interface";
-import { TCreateSessionData, TSessionListData } from "@/types/class-sessions.interface";
+import { TCreateSessionData, TSessionBookings, TSessionDetailData, TSessionListData } from "@/types/class-sessions.interface";
 import { TInstructorData } from "@/types/instructor.interface";
 
 export const getSessions: TSessionListData = async ({ page, limit, search, payment_method, status, startDate, endDate }) => {
@@ -15,6 +15,20 @@ export const getSessions: TSessionListData = async ({ page, limit, search, payme
       ...(payment_method ? { payment_method } : null),
       ...(status ? { status } : null),
       // ...(status ? { status } : null),
+    },
+  });
+  return res.data;
+};
+export const getSessionDetail: TSessionDetailData = async (id) => {
+  const res = await axiosx(true).get(`${MAIN_API_URL}/classes/sessions/${id}`);
+  return res.data;
+};
+
+export const getSesionDetailBooking: TSessionBookings = async ({ id, page, limit }) => {
+  const res = await axiosx(true).get(`${MAIN_API_URL}/classes/sessions/${id}/bookings`, {
+    params: {
+      page,
+      page_size: limit,
     },
   });
   return res.data;

@@ -235,14 +235,16 @@ export function DateRangePicker({
             </div>
           )}
 
-          <div className="mt-4 pt-4 border-t border-border flex justify-end gap-2">
-            <Button variant="outline" onClick={() => setIsOpen(false)} className="px-4 py-2">
-              Cancel
-            </Button>
-            <Button onClick={handleApply} disabled={mode === "single" ? !dateRange.start : !dateRange.start || !dateRange.end} className="px-4 py-2">
-              Apply
-            </Button>
-          </div>
+          {mode !== "single" && (
+            <div className="mt-4 pt-4 border-t border-border flex justify-end gap-2">
+              <Button variant="outline" onClick={() => setIsOpen(false)} className="px-4 py-2">
+                Cancel
+              </Button>
+              <Button onClick={handleApply} disabled={!dateRange.start || !dateRange.end} className="px-4 py-2">
+                Apply
+              </Button>
+            </div>
+          )}
         </div>
       </PopoverContent>
     </Popover>

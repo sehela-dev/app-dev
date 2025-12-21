@@ -53,10 +53,13 @@ const getToken = () => {
 
 export const clearToken = () => {
   window.localStorage.removeItem("jwt");
+  const jwt = JSON.parse(window.localStorage.getItem("jwt") ?? "{}");
+  const { user } = jwt;
+  const role = user.role;
   toast.error(validationStatus("401" as string), {
     id: "error",
     description: "Session expired! Please login again to continue",
     position: "bottom-center",
   });
-  window.location.href = "/auth/login";
+  window.location.href = role === "authenticated" ? "/admin-login" : "/auth/login";
 };

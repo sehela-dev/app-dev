@@ -1,12 +1,12 @@
 export const ENV = (process.env.ENV as string) ?? "dev";
 
-export const MAIN_API_URL = ENV === "dev" ? process.env.DEV_API_URL : (process.env.MAIN_API_URL as string);
+export const MAIN_API_URL = ENV === "dev" ? process.env.API_URL : (process.env.MAIN_API_URL as string);
 export const MAIN_AUTH_API_URL = ENV === "dev" ? process.env.DEV_AUTH_API_URL : (process.env.MAIN_AUTH_API_URL as string);
 export const SECRET_KEY = ENV === "dev" ? process.env.DEV_SECRET_KEY : (process.env.MAIN_SECRET_KEY as string);
 export const AUTH_KEY = ENV === "dev" ? process.env.DEV_SECRET_AUTH_KEY : (process.env.MAIN_SECRET_AUTH_KEY as string);
 
 if (!MAIN_API_URL) {
-  throw new Error("API_URL is not defined in environment variables");
+  throw new Error("MAIN_API_URL  is not defined in environment variables");
 }
 if (!SECRET_KEY) {
   throw new Error("SECRET_KEY is not defined in environment variables");

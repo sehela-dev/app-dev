@@ -11,7 +11,7 @@ const nextConfig: NextConfig = {
 
     // Development environment
     DEV_AUTH_API_URL: process.env.NEXT_DEV_AUTH_API_URL,
-    DEV_API_URL: process.env.NEXT_DEV_API_URL,
+    API_URL: process.env.NEXT_DEV_API_URL,
     DEV_SECRET_KEY: process.env.NEXT_DEV_SECRET_KEY,
     DEV_SECRET_AUTH_KEY: process.env.NEXT_DEV_AUTH_SECRET_KEY,
     ENV: process.env.ENV,
