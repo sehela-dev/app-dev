@@ -69,7 +69,7 @@ const AdminRequiredFallback: React.FC = () => {
           <CardTitle>Admin Access Required</CardTitle>
           <CardDescription>You need administrator privileges to access this page.</CardDescription>
           <CardContent>
-            <Button onClick={() => router.push("/auth/login")} variant={"outline"} className="mt-2 min-w-[250px]">
+            <Button onClick={() => router.push("/admin-login")} variant={"outline"} className="mt-2 min-w-[250px]">
               Sign in
             </Button>
           </CardContent>
