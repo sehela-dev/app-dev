@@ -57,9 +57,6 @@ export const SessionLocationFormComponent = () => {
                       className="flex flex-row gap-3 items-center"
                       onValueChange={(e) => {
                         field.onChange(e);
-                        methods.resetField("room");
-                        methods.resetField("location_address");
-                        methods.resetField("room");
                       }}
                     >
                       <div className="flex items-center gap-3">
@@ -108,7 +105,9 @@ export const SessionLocationFormComponent = () => {
                           onInputChange={onSearch}
                           onChange={(e) => {
                             field.onChange(e);
-                            methods.setValue("location", e.address);
+                            methods.setValue("location", e.name);
+                            methods.setValue("room", e);
+                            methods.setValue("location_address", e.address);
                             methods.setValue("location_maps_url", e.maps_url);
                           }}
                         />
@@ -120,7 +119,7 @@ export const SessionLocationFormComponent = () => {
                 />
                 <FormField
                   control={control}
-                  name="location"
+                  name="location_address"
                   render={({ field }) => (
                     <FormItem className="flex flex-col">
                       <FormLabel className=" text-brand-999 font-medium text-sm" required>

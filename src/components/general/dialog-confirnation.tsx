@@ -14,6 +14,7 @@ interface IDialogConfimation {
   onConfirm: () => void;
   cancelText?: string;
   confirmText?: string;
+  hideCancel?: boolean;
 }
 
 export const BaseDialogConfirmation = ({
@@ -25,6 +26,7 @@ export const BaseDialogConfirmation = ({
   title,
   cancelText = "Back",
   confirmText = "Exit",
+  hideCancel = false,
 }: IDialogConfimation) => {
   return (
     <AlertDialog open={open}>
@@ -41,11 +43,13 @@ export const BaseDialogConfirmation = ({
         <Divider />
         <AlertDialogFooter>
           <div className="flex w-full gap-2">
-            <div className="flex w-full">
-              <Button variant="secondary" className="flex w-full text-brand-999" onClick={onCancel}>
-                {cancelText}
-              </Button>
-            </div>
+            {!hideCancel && (
+              <div className="flex w-full">
+                <Button variant="secondary" className="flex w-full text-brand-999" onClick={onCancel}>
+                  {cancelText}
+                </Button>
+              </div>
+            )}
             <div className="flex w-full">
               <Button className="flex w-full" onClick={onConfirm}>
                 {confirmText}

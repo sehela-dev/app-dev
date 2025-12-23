@@ -1,13 +1,16 @@
 "use client";
+import { DateRangePicker } from "@/components/base/date-range-picker";
 import { buildNumber, CustomTable } from "@/components/general/custom-table";
+import { BaseDialogConfirmation } from "@/components/general/dialog-confirnation";
 import { CustomPagination } from "@/components/general/pagination-component";
 import { GeneralTabComponent } from "@/components/general/tabs-component";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { SearchInput } from "@/components/ui/search-input";
+import { useDeleteSession } from "@/hooks/api/mutations/admin";
 import { useGetSessions } from "@/hooks/api/queries/admin/class-session";
-import { formatDateHelper } from "@/lib/helper";
+import { defaultDate, formatDateHelper } from "@/lib/helper";
 import { cn } from "@/lib/utils";
 // import { IClassSessionCategory } from "@/types/class-category.interface";
 import { ISessionItem } from "@/types/class-sessions.interface";
@@ -45,8 +48,25 @@ export const SessionListPage = () => {
   const [limit, setLimit] = useState(10);
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState("");
-  const [tabCustomer, setTabCustomer] = useState("all");
-  const { data, isLoading, refetch } = useGetSessions({ page, limit, search, status: tabCustomer !== "all" ? tabCustomer : "" });
+  const [tabs, setTabs] = useState("all");
+  const [openDialogConfirm, setOpenDialogConfirm] = useState(false);
+  const [selectedId, setSelectedId] = useState("");
+  const [openNotif, setOpenNotif] = useState(false);
+
+  const [selectedRange, setSelectedRange] = useState({
+    from: defaultDate().formattedOneMonthAgo,
+    to: defaultDate().formattedToday,
+  });
+  const { data, isLoading, refetch } = useGetSessions({
+    page,
+    limit,
+    search,
+    status: tabs !== "all" ? tabs : "",
+    // startDate: selectedRange.from,
+    // endDate: selectedRange.to,
+  });
+
+  const { mutateAsync } = useDeleteSession();
 
   const headers = [
     {
@@ -119,11 +139,15 @@ export const SessionListPage = () => {
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="start" className="w-32">
-          <DropdownMenuItem onClick={() => alert(row.id)}>Edit</DropdownMenuItem>
+          <DropdownMenuItem onClick={() => router.push(`session/${row.id}/edit`)}>Edit</DropdownMenuItem>
           <DropdownMenuItem onClick={() => router.push(`session/${row.id}`)}>View Details</DropdownMenuItem>
-          <DropdownMenuItem variant="destructive" className="" onClick={() => alert(row.id)}>
-            Delete
-          </DropdownMenuItem>
+          {row.status === "ended" || row.status === "canceled" ? (
+            <></>
+          ) : (
+            <DropdownMenuItem variant="destructive" className="" onClick={() => onDelete(row.id)}>
+              Delete
+            </DropdownMenuItem>
+          )}
         </DropdownMenuContent>
       </DropdownMenu>
     ),
@@ -133,17 +157,38 @@ export const SessionListPage = () => {
     setSearch(e);
   };
 
+  const handleDateRangeChangeDual = (startDate: string, endDate?: string) => {
+    setSelectedRange((prev) => ({ ...prev, from: startDate, to: endDate ?? "" }));
+  };
+
+  const onDelete = (id: string) => {
+    setOpenDialogConfirm(!openDialogConfirm);
+    setSelectedId(id);
+  };
+
+  const onConfirmDelete = async () => {
+    try {
+      const res = await mutateAsync(selectedId);
+      if (res) {
+        setOpenNotif(true);
+        onDelete("");
+        refetch();
+      }
+    } catch (error) {
+      console.log(error);
+    }
+  };
+
   return (
     <div className="flex w-full  flex-col gap-2">
       <div className="flex flex-row justify-between w-full items-center">
         <div>
           <GeneralTabComponent
-            selecetedTab={tabCustomer}
+            selecetedTab={tabs}
             setTab={(e) => {
-              setTabCustomer(e);
+              setTabs(e);
               setSearch("");
               setPage(1);
-              refetch();
             }}
             tabs={tabFilter}
           />
@@ -168,8 +213,20 @@ export const SessionListPage = () => {
             <h3 className="text-2xl text-brand-999 font-medium">Sessions</h3>
             <p className="text-sm text-gray-500">Manage class schedules and sessions</p>
           </div>
-          <div className="flex">
-            <SearchInput className="border-brand-100" onSearch={handleSearch} search={search} />
+          <div className="flex items-center flex-row gap-2">
+            <div>
+              {/* <DateRangePicker
+                mode="range"
+                onDateRangeChange={handleDateRangeChangeDual}
+                startDate={selectedRange.from}
+                endDate={selectedRange.to}
+                allowFutureDates
+                allowPastDates={false}
+              /> */}
+            </div>
+            <div>
+              <SearchInput className="border-brand-100 min-h-[42px]" onSearch={handleSearch} search={search} />
+            </div>
           </div>
         </CardHeader>
         <CardContent>
@@ -199,6 +256,35 @@ export const SessionListPage = () => {
           />
         </CardFooter>
       </Card>
+
+      {openDialogConfirm && (
+        <BaseDialogConfirmation
+          image="trash-1"
+          onCancel={() => onDelete("")}
+          open={openDialogConfirm}
+          title="Delete Session?"
+          subtitle="Some participants have paid for this session. Deleting it will affect their bookings. Continue?"
+          onConfirm={onConfirmDelete}
+          cancelText="Cancel"
+          confirmText="Delete & Refund"
+        />
+      )}
+      {openNotif && (
+        <BaseDialogConfirmation
+          image="trash-1"
+          onCancel={() => onDelete("")}
+          hideCancel
+          open={openNotif}
+          title="Session Deleted Successfully"
+          subtitle="Your session has been successfully removed from the system"
+          onConfirm={() => {
+            setOpenNotif(false);
+            refetch();
+          }}
+          cancelText="Cancel"
+          confirmText="Ok"
+        />
+      )}
     </div>
   );
 };

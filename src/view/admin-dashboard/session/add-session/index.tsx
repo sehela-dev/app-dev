@@ -1,5 +1,6 @@
 "use client";
 
+import { BaseDialogConfirmation } from "@/components/general/dialog-confirnation";
 import {
   SessionBasicInfoFormComponent,
   SessionDateTimeFormComponent,
@@ -8,7 +9,10 @@ import {
 } from "@/components/page/session/form";
 import { Button } from "@/components/ui/button";
 import { useCreateNewSession } from "@/hooks/api/mutations/admin";
+import { defaultDate } from "@/lib/helper";
 import { ICreateSessionPaylaod } from "@/types/class-sessions.interface";
+import { useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
 
 import { FormProvider, useForm } from "react-hook-form";
 
@@ -27,7 +31,7 @@ const defaultValues = {
   description: "",
 
   //DATE AND TIME
-  start_date: "",
+  start_date: defaultDate().formattedToday,
   time_start: "",
   time_end: "",
 
@@ -38,6 +42,7 @@ const defaultValues = {
     label: "",
   },
   location: "",
+  location_address: "",
   location_maps_url: "",
   meeting_link: "",
 
@@ -51,12 +56,28 @@ const defaultValues = {
 };
 
 export const CreateSessionPageView = () => {
+  const router = useRouter();
   const methods = useForm({ defaultValues });
   const { handleSubmit } = methods;
   const { mutateAsync } = useCreateNewSession();
-  const onSubmit = handleSubmit(async (data) => {
-    console.log(data);
 
+  const [open, setOpen] = useState({
+    ONCANCEL: false,
+    ONSUCCESS: false,
+  });
+
+  useEffect(() => {
+    const handler = (e: BeforeUnloadEvent) => {
+      e.preventDefault();
+      e.returnValue = "";
+      // handleOpenModal("ONCANCEL");
+    };
+
+    window.addEventListener("beforeunload", handler);
+    return () => window.removeEventListener("beforeunload", handler);
+  }, []);
+
+  const onSubmit = handleSubmit(async (data) => {
     try {
       const payload: ICreateSessionPaylaod = {
         session_description: data?.description,
@@ -73,6 +94,7 @@ export const CreateSessionPageView = () => {
               location: data?.location as string,
               location_maps_url: data?.location_maps_url as string,
               room_id: data?.room.value as string,
+              location_address: data?.location_address,
             }
           : {
               meeting_link: data?.meeting_link as string,
@@ -83,14 +105,24 @@ export const CreateSessionPageView = () => {
         time_start: data?.time_start as string,
         time_end: data?.time_end as string,
       };
+      // console.log(payload, "payload");
+      // return;
       const res = await mutateAsync(payload);
       if (res) {
-        console.log(res);
+        handleOpenModal("ONSUCCESS");
       }
     } catch (error) {
       console.log(error);
     }
   });
+
+  const handleOpenModal = (type: "ONCANCEL" | "ONSUCCESS") => {
+    setOpen((prev) => ({
+      ...prev,
+      [type]: !open[type],
+    }));
+  };
+
   return (
     <div className="flex flex-col gap-4 w-full">
       <div className="flex flex-col gap-2">
@@ -109,14 +141,51 @@ export const CreateSessionPageView = () => {
           </div>
           <div className="flex flex-row w-full items-center justify-end gap-4 mt-4">
             <div>
-              <Button variant={"secondary"}>Cancel</Button>
+              <Button
+                variant={"secondary"}
+                type="button"
+                onClick={() => {
+                  handleOpenModal("ONCANCEL");
+                }}
+              >
+                Cancel
+              </Button>
             </div>
             <div>
-              <Button>Create Session</Button>
+              <Button type="submit">Create Session</Button>
             </div>
           </div>
         </form>
       </FormProvider>
+
+      {open.ONCANCEL && (
+        <BaseDialogConfirmation
+          image="warning-1"
+          onCancel={() => handleOpenModal("ONCANCEL")}
+          open={open.ONCANCEL}
+          title="Session Not Saved"
+          subtitle="If you exit now, unsaved changes will be lost and cannot be recovered. Continue?"
+          onConfirm={() => router.push("/admin/session")}
+          cancelText="Cancel"
+          confirmText="Continue"
+        />
+      )}
+
+      {open.ONSUCCESS && (
+        <BaseDialogConfirmation
+          image="success-add"
+          onCancel={() => router.push("/admin/session")}
+          open={open.ONSUCCESS}
+          title="Session Created Successfully"
+          subtitle="Your new session has been successfully added."
+          onConfirm={() => {
+            methods.reset();
+            handleOpenModal("ONSUCCESS");
+          }}
+          cancelText="Session List"
+          confirmText="Create More"
+        />
+      )}
     </div>
   );
 };

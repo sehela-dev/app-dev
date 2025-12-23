@@ -55,7 +55,7 @@ export const clearToken = () => {
   window.localStorage.removeItem("jwt");
   const jwt = JSON.parse(window.localStorage.getItem("jwt") ?? "{}");
   const { user } = jwt;
-  const role = user.role;
+  const role = user?.role ?? "";
   toast.error(validationStatus("401" as string), {
     id: "error",
     description: "Session expired! Please login again to continue",

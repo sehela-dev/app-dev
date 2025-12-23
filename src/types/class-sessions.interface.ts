@@ -17,6 +17,7 @@ export interface ISessionItem {
   place: string;
   room_id: string;
   location: string;
+  location_address: string;
   location_maps_url: string;
   meeting_link: string;
   price_idr: number;
@@ -57,6 +58,7 @@ export interface ICreateSessionPaylaod {
   place: string;
   room_id?: string;
   location?: string;
+  location_address?: string;
   location_maps_url?: string;
   meeting_link?: string;
 
@@ -84,3 +86,4 @@ export type TSessionListData = (data: ICommonParams) => Promise<IResponseData<IS
 export type TSessionDetailData = (id: string) => Promise<IResponseData<ISessionItem>>;
 export type TSessionBookings = ({ id, page, limit }: { id: string; page: number; limit: number }) => Promise<IResponseData<IParticipantsSession[]>>;
 export type TCreateSessionData = (data: ICreateSessionPaylaod) => Promise<IResponseData<ISessionItem>>;
+export type TEditSessionData = ({ id, data }: { id: string; data: ICreateSessionPaylaod }) => Promise<IResponseData<ISessionItem>>;
