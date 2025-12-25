@@ -56,17 +56,6 @@ export const createNewClassCategory: TCreateNewClassCategory = async (data) => {
   return res.data;
 };
 
-export const getInstructor: TInstructorData = async ({ page, limit, search }) => {
-  const res = await axiosx(true).get(`${MAIN_API_URL}/admin/instructors`, {
-    params: {
-      page,
-      page_size: limit,
-      q: search,
-    },
-  });
-  return res.data;
-};
-
 export const createNewSession: TCreateSessionData = async (data) => {
   const res = await axiosx(true).post(`${MAIN_API_URL}/classes/sessions`, data);
   return res.data;

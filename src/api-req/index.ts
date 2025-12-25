@@ -2,3 +2,4 @@ export * from "./user";
 export * from "./admin-orders";
 export * from "./class-room";
 export * from "./class-session";
+export * from "./instructor";

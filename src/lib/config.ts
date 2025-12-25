@@ -12,6 +12,7 @@ if (!SECRET_KEY) {
   throw new Error("SECRET_KEY is not defined in environment variables");
 }
 
+export const DEFAULT_PASSWORD = "SecurePass123!";
 export const AUTH_ACTION = {
   LOGIN: "login",
   REGISTER: "register",

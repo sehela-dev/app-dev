@@ -182,7 +182,7 @@ export const SessionListPage = () => {
   return (
     <div className="flex w-full  flex-col gap-2">
       <div className="flex flex-row justify-between w-full items-center">
-        <div>
+        <div className="max-w-[25%]">
           <GeneralTabComponent
             selecetedTab={tabs}
             setTab={(e) => {

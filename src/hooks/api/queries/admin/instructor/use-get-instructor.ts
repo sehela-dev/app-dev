@@ -1,4 +1,4 @@
-import { getInstructor } from "@/api-req/class-session";
+import { getInstructor } from "@/api-req";
 import { ICommonParams } from "@/types/general.interface";
 
 import { useQuery } from "@tanstack/react-query";

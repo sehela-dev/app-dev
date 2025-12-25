@@ -19,11 +19,11 @@ export const GeneralTabComponent = ({ tabs, selecetedTab, setTab }: ITabs) => {
   return (
     <Tabs defaultValue={selecetedTab} className="w-full">
       <div className="flex w-full flex-row items-center justify-between">
-        <TabsList className="!bg-brand-50 flex w-fit items-center gap-2 p-2 duration-300 min-h-[40px]">
+        <TabsList className="!bg-brand-50 flex w-full items-center gap-2 p-2 duration-300 min-h-[40px] ">
           {tabs?.map((item) => (
             <TabsTrigger
-              className={clsx("min-w-[66px] min-h-[32px] cursor-pointer rounded-md p-2 font-medium text-gray-500 duration-300", {
-                "!bg-brand-00 text-brand-999": selecetedTab === item.value,
+              className={clsx("min-w-[80px] min-h-[32px] cursor-pointer rounded-md p-2 font-medium text-gray-500 duration-300 w-auto", {
+                "!bg-brand-00 text-brand-999 ": selecetedTab === item.value,
               })}
               value={item.value}
               key={item.value}

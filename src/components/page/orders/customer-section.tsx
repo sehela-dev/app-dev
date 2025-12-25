@@ -58,7 +58,9 @@ export const OrderCustomerSectionComponent = () => {
       </CardHeader>
       <CardContent className="p-0">
         <div className="flex flex-col gap-1">
-          <GeneralTabComponent selecetedTab={tabCustomer} setTab={setTabCustomer} tabs={customerSectionTab} />
+          <div className="max-w-[25%]">
+            <GeneralTabComponent selecetedTab={tabCustomer} setTab={setTabCustomer} tabs={customerSectionTab} />
+          </div>
           <div className="flex w-full pt-4">
             <FormProvider {...methods}>
               <form onSubmit={onSubmit} className="w-full">
