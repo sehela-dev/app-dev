@@ -121,6 +121,12 @@ export const InstructorDetailPage = () => {
           </CardContent>
         </Card>
       )}
+      {tabs === "payment" && (
+        <Card>
+          <CardHeader></CardHeader>
+          <CardContent>paymet</CardContent>
+        </Card>
+      )}
     </div>
   );
 };
