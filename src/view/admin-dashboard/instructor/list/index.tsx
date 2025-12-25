@@ -2,6 +2,7 @@
 import { buildNumber, CustomTable } from "@/components/general/custom-table";
 import { BaseDialogConfirmation } from "@/components/general/dialog-confirnation";
 import { CustomPagination } from "@/components/general/pagination-component";
+import { GeneralTabComponent } from "@/components/general/tabs-component";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
@@ -16,15 +17,32 @@ import { CirclePlus, Ellipsis, ListFilter } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 
+const tab = [
+  {
+    name: "All",
+    value: "all",
+  },
+  {
+    name: "Active",
+    value: "active",
+  },
+  {
+    name: "Inactive",
+    value: "inactive",
+  },
+];
+
 export const InstructorListPage = () => {
   const router = useRouter();
   const [limit] = useState(10);
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState("");
-  const { data, isLoading, refetch } = useGetInstructor({ page, limit, search });
   const [selectedData, setSelectedData] = useState("");
   const [openDialogConfirm, setOpenDialogConfirm] = useState(false);
   const [openNotif, setOpenNotif] = useState(false);
+  const [tabs, setTabs] = useState("all");
+
+  const { data, isLoading, refetch } = useGetInstructor({ page, limit, search, ...(tabs !== "all" ? { status: tabs } : null) });
 
   const { mutateAsync } = useDeleteInstructor();
 
@@ -116,14 +134,19 @@ export const InstructorListPage = () => {
     <div className="flex w-full  flex-col gap-2">
       <div className="flex flex-row items-center w-full justify-end gap-2">
         <div>
-          <Button variant={"outline"} className="text-brand-999 text-sm font-medium">
-            <ListFilter /> Filter
-          </Button>
+          <GeneralTabComponent tabs={tab} selecetedTab={tabs} setTab={setTabs} />
         </div>
-        <div>
-          <Button className=" text-sm font-medium" onClick={() => router.push("instructor/create")}>
-            <CirclePlus /> Create New Instructor
-          </Button>
+        <div className="flex flex-row items-center w-full gap-2 justify-end">
+          <div>
+            <Button variant={"outline"} className="text-brand-999 text-sm font-medium">
+              <ListFilter /> Filter
+            </Button>
+          </div>
+          <div>
+            <Button className=" text-sm font-medium" onClick={() => router.push("instructor/create")}>
+              <CirclePlus /> Create New Instructor
+            </Button>
+          </div>
         </div>
       </div>
       <Card className="border-brand-100 w-full">
