@@ -14,12 +14,12 @@ export interface IOrderItem {
 }
 
 export interface ICustomerData {
-  name: string;
+  name?: string;
   id?: string | number;
   phone: string;
   email: string;
   role?: string;
-  is_active: string;
+  is_active?: string;
 }
 
 export interface IAdminCartItemData {
