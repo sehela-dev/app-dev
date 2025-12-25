@@ -1,12 +1,15 @@
 "use client";
 
+import { DateRangePicker } from "@/components/base/date-range-picker";
+import { CustomTable } from "@/components/general/custom-table";
 import { GeneralTabComponent } from "@/components/general/tabs-component";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Divider } from "@/components/ui/divider";
 import { useGetInstructorDetail } from "@/hooks/api/queries/admin/instructor";
-import { formatDateHelper } from "@/lib/helper";
-import { File, Loader2, PenIcon } from "lucide-react";
+import { useGetInstructorPaymentDetails } from "@/hooks/api/queries/admin/instructor/use-get-instructor-payment-details";
+import { defaultDate, formatDateHelper } from "@/lib/helper";
+import { File, ListFilter, Loader2, PenIcon, Receipt } from "lucide-react";
 import { useParams, useRouter } from "next/navigation";
 import { useState } from "react";
 
@@ -30,7 +33,54 @@ export const InstructorDetailPage = () => {
   const params = useParams();
   const { id } = params;
   const { data, isLoading } = useGetInstructorDetail(id as string);
+  const [page, setPage] = useState(1);
   const [tabs, setTabs] = useState("basic");
+  const [selectedRange, setSelectedRange] = useState({
+    from: defaultDate().formattedOneMonthAgo,
+    to: defaultDate().formattedToday,
+  });
+
+  const handleDateRangeChangeDual = (startDate: string, endDate?: string) => {
+    setSelectedRange((prev) => ({ ...prev, from: startDate, to: endDate ?? "" }));
+  };
+
+  const { data: payments, isLoading: loadingPayments } = useGetInstructorPaymentDetails(
+    {
+      id: id as string,
+      startDate: selectedRange.from,
+      endDate: selectedRange.to,
+      page,
+    },
+    tabs,
+  );
+
+  const headers = [
+    {
+      id: "sessions",
+      text: "Sessions",
+      value: "Session Name",
+    },
+    {
+      id: "class",
+      text: "Class",
+      value: "class",
+    },
+    {
+      id: "date_time",
+      text: "Date & Time",
+      value: "date_time",
+    },
+    {
+      id: "payment_models",
+      text: "Payment Models",
+      value: "payment_models",
+    },
+    {
+      id: "payment_amount",
+      text: "Payment Amount",
+      value: "payment_amount",
+    },
+  ];
 
   if (isLoading)
     return (
@@ -123,8 +173,44 @@ export const InstructorDetailPage = () => {
       )}
       {tabs === "payment" && (
         <Card>
-          <CardHeader></CardHeader>
-          <CardContent>paymet</CardContent>
+          <CardHeader className="flex flex-row items-center w-full justify-between">
+            <div className="flex flex-col w-full">
+              <h3 className="text-2xl font-semibold">Class & Paymnet</h3>
+              <p className="text-sm text-gray-500">Track completed classes and related payment details.</p>
+            </div>
+            <div className="flex flex-row items-center gap-2 w-full justify-end">
+              <div className="">
+                <DateRangePicker
+                  mode="range"
+                  onDateRangeChange={handleDateRangeChangeDual}
+                  startDate={selectedRange.from}
+                  endDate={selectedRange.to}
+                  allowFutureDates
+                  allowPastDates={false}
+                />
+              </div>
+              <div className="">
+                <Button variant={"outline"}>
+                  <ListFilter /> Filter
+                </Button>
+              </div>
+              <div className="">
+                <Button variant={"outline"}>
+                  <File /> Export
+                </Button>
+              </div>
+              <div className="">
+                <Button>
+                  <Receipt /> Process Payment
+                </Button>
+              </div>
+            </div>
+          </CardHeader>
+          <CardContent>
+            <div className="flex flex-col gap-4">
+              <CustomTable headers={headers} data={payments?.data ?? []} isLoading={loadingPayments} />
+            </div>
+          </CardContent>
         </Card>
       )}
     </div>

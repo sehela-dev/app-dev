@@ -11,6 +11,7 @@ export interface IPagination {
 }
 
 export interface ICommonParams {
+  id?: string;
   page?: number;
   limit?: number;
   search?: string;

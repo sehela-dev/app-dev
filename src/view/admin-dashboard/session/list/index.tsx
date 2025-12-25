@@ -271,7 +271,7 @@ export const SessionListPage = () => {
       )}
       {openNotif && (
         <BaseDialogConfirmation
-          image="trash-1"
+          image="trash-success"
           onCancel={() => onDelete("")}
           hideCancel
           open={openNotif}

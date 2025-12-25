@@ -1,10 +1,12 @@
 "use client";
 import { buildNumber, CustomTable } from "@/components/general/custom-table";
+import { BaseDialogConfirmation } from "@/components/general/dialog-confirnation";
 import { CustomPagination } from "@/components/general/pagination-component";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { SearchInput } from "@/components/ui/search-input";
+import { useDeleteInstructor } from "@/hooks/api/mutations/admin";
 
 import { useGetInstructor } from "@/hooks/api/queries/admin/instructor";
 
@@ -19,7 +21,12 @@ export const InstructorListPage = () => {
   const [limit] = useState(10);
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState("");
-  const { data, isLoading } = useGetInstructor({ page, limit, search });
+  const { data, isLoading, refetch } = useGetInstructor({ page, limit, search });
+  const [selectedData, setSelectedData] = useState("");
+  const [openDialogConfirm, setOpenDialogConfirm] = useState(false);
+  const [openNotif, setOpenNotif] = useState(false);
+
+  const { mutateAsync } = useDeleteInstructor();
 
   const headers = [
     {
@@ -72,10 +79,10 @@ export const InstructorListPage = () => {
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end" className="w-32">
-          <DropdownMenuItem onClick={() => alert(row.id)}>Edit</DropdownMenuItem>
+          <DropdownMenuItem onClick={() => router.push(`instructor/${row.id}/edit`)}>Edit</DropdownMenuItem>
           <DropdownMenuItem onClick={() => router.push(`instructor/${row.id}`)}>View Details</DropdownMenuItem>
           <DropdownMenuItem>Set as Inactive</DropdownMenuItem>
-          <DropdownMenuItem variant="destructive" className="" onClick={() => alert(row.id)}>
+          <DropdownMenuItem variant="destructive" className="" onClick={() => onDelete(row.id)}>
             Delete
           </DropdownMenuItem>
         </DropdownMenuContent>
@@ -85,6 +92,24 @@ export const InstructorListPage = () => {
 
   const handleSearch = (e: string) => {
     setSearch(e);
+  };
+
+  const onDelete = (id: string) => {
+    setOpenDialogConfirm(!openDialogConfirm);
+    setSelectedData(id);
+  };
+
+  const onConfirmDelete = async () => {
+    try {
+      const res = await mutateAsync(selectedData);
+      if (res) {
+        setOpenNotif(true);
+        onDelete("");
+        refetch();
+      }
+    } catch (error) {
+      console.log(error);
+    }
   };
 
   return (
@@ -138,6 +163,34 @@ export const InstructorListPage = () => {
           />
         </CardFooter>
       </Card>
+      {openDialogConfirm && (
+        <BaseDialogConfirmation
+          image="trash-1"
+          onCancel={() => onDelete("")}
+          open={openDialogConfirm}
+          title="Delete Instructor?"
+          subtitle="This instructor will be permanently deleted from the system and cannot be restored."
+          onConfirm={onConfirmDelete}
+          cancelText="Cancel"
+          confirmText="Delete"
+        />
+      )}
+      {openNotif && (
+        <BaseDialogConfirmation
+          image="trash-success"
+          onCancel={() => onDelete("")}
+          hideCancel
+          open={openNotif}
+          title="Instructor Deleted Successfully"
+          subtitle="Your instructor has been successfully removed from the system."
+          onConfirm={() => {
+            setOpenNotif(false);
+            refetch();
+          }}
+          cancelText="Cancel"
+          confirmText="Ok"
+        />
+      )}
     </div>
   );
 };
