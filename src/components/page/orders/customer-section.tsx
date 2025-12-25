@@ -98,7 +98,7 @@ export const OrderCustomerSectionComponent = () => {
                           </FormLabel>
                           <FormControl>
                             <Input
-                              className="w-full px-4 py-4 border-2 border-gray-200 rounded-lg text-brand-999 placeholder-gray-400 focus:outline-none focus:border-teal-500 transition-colors h-[42px]"
+                              className="w-full px-4 py-4 border-2 border-gray-200 rounded-lg text-brand-999 placeholder-gray-400 focus:outline-none focus:border-brand-500 transition-colors h-[42px]"
                               placeholder="Type here.."
                               {...field}
                               // className="w-auto min-w-[388px]"
@@ -118,7 +118,7 @@ export const OrderCustomerSectionComponent = () => {
                           <FormLabel className=" text-brand-999 font-medium text-sm">Email (optional)</FormLabel>
                           <FormControl>
                             <Input
-                              className="w-full px-4 py-4 border-2 border-gray-200 rounded-lg text-brand-999 placeholder-gray-400 focus:outline-none focus:border-teal-500 transition-colors h-[42px]"
+                              className="w-full px-4 py-4 border-2 border-gray-200 rounded-lg text-brand-999 placeholder-gray-400 focus:outline-none focus:border-brand-500 transition-colors h-[42px]"
                               placeholder="Type here.."
                               type="email"
                               {...field}

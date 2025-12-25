@@ -29,5 +29,5 @@ export const dataNavMarketPlace = [
   //   ],
   // },
   // { title: "Discounts", url: "#", icon: Tag },
-  // { title: "Customers", url: "#", icon: UserSquare2 },
+  { title: "Customers", url: "/admin/member", icon: Users },
 ];

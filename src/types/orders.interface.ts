@@ -19,6 +19,7 @@ export interface ICustomerData {
   phone: string;
   email: string;
   role?: string;
+  is_active: string;
 }
 
 export interface IAdminCartItemData {

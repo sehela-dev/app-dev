@@ -7,3 +7,4 @@ export * from "./use-delete-session";
 export * from "./use-create-instructor";
 export * from "./use-edit-instructor";
 export * from "./use-delete-instructor";
+export * from "./use-create-customer-data";

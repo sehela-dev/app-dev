@@ -53,7 +53,7 @@ export default function LoginPageView() {
                       </FormLabel>
                       <FormControl>
                         <Input
-                          className="w-full px-4 py-4 border-2 border-gray-200 rounded-lg text-gray-600 placeholder-gray-400 focus:outline-none focus:border-teal-500 transition-colors h-[42px]"
+                          className="w-full px-4 py-4 border-2 border-gray-200 rounded-lg text-gray-600 placeholder-gray-400 focus:outline-none focus:border-brand-500 transition-colors h-[42px]"
                           placeholder="example@mail.com"
                           {...field}
                           // className="w-auto min-w-[388px]"
@@ -73,7 +73,7 @@ export default function LoginPageView() {
                       </FormLabel>
                       <FormControl>
                         <PasswordInput
-                          className="w-full px-4 py-4 border-2 border-gray-200 rounded-lg text-gray-600 placeholder-gray-400 focus:outline-none focus:border-teal-500 transition-colors h-[42px]"
+                          className="w-full px-4 py-4 border-2 border-gray-200 rounded-lg text-gray-600 placeholder-gray-400 focus:outline-none focus:border-brand-500 transition-colors h-[42px]"
                           placeholder="password@1234"
                           {...field}
                         />
