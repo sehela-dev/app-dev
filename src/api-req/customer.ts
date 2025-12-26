@@ -7,7 +7,7 @@ export const getCustomers: TCustomerData = async ({ page, limit, status, search 
     params: {
       page,
       page_size: limit,
-      status,
+      is_active: status,
       q: search,
     },
   });

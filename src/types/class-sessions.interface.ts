@@ -65,6 +65,10 @@ export interface ICreateSessionPaylaod {
   //PRICING
   price_idr: number;
   price_credit_amount: number;
+  recurring?: {
+    type: string;
+    count: string | number;
+  };
 
   //OTHER
   type: string; //regular

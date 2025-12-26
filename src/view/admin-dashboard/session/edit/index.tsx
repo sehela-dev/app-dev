@@ -71,16 +71,16 @@ export const EditSessionPage = () => {
 
   // const [values, setValues] = useState({});
 
-  useEffect(() => {
-    const handler = (e: BeforeUnloadEvent) => {
-      e.preventDefault();
-      e.returnValue = "";
-      // handleOpenModal("ONCANCEL");
-    };
+  // useEffect(() => {
+  //   const handler = (e: BeforeUnloadEvent) => {
+  //     e.preventDefault();
+  //     e.returnValue = "";
+  //     // handleOpenModal("ONCANCEL");
+  //   };
 
-    window.addEventListener("beforeunload", handler);
-    return () => window.removeEventListener("beforeunload", handler);
-  }, []);
+  //   window.addEventListener("beforeunload", handler);
+  //   return () => window.removeEventListener("beforeunload", handler);
+  // }, []);
 
   const handleOpenModal = (type: "ONCANCEL" | "ONSUCCESS") => {
     setOpen((prev) => ({
@@ -126,7 +126,7 @@ export const EditSessionPage = () => {
       price_credit_amount: String(data?.data?.price_credit_amount),
 
       //OTHER
-      type: "regular",
+      type: data?.data?.type,
       level: "advanced",
     };
   }, [data?.data]);
@@ -186,7 +186,7 @@ export const EditSessionPage = () => {
           <div className="flex flex-col gap-4">
             <SessionBasicInfoFormComponent />
             <div className="grid grid-cols-2 gap-2">
-              <SessionDateTimeFormComponent start_date={values.start_date} />
+              <SessionDateTimeFormComponent start_date={values.start_date} isEdit />
               <SessionLocationFormComponent />
             </div>
             <SessionPricingFormComponent />

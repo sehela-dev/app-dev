@@ -11,8 +11,25 @@ import { useGetClassSessionsCategory } from "@/hooks/api/queries/admin/class-ses
 import { useMemo, useState } from "react";
 
 import Select from "react-select";
+
 import { useDebounce } from "@/hooks";
 import { useGetInstructor } from "@/hooks/api/queries/admin/instructor";
+import { Select as Selects, SelectItem, SelectGroup, SelectContent, SelectTrigger, SelectValue } from "@/components/ui/select";
+
+export const OPTION_TYPE = [
+  {
+    value: "regular",
+    label: "Regular",
+  },
+  {
+    value: "private",
+    label: "Private",
+  },
+  {
+    value: "special",
+    label: "Special",
+  },
+];
 
 export const SessionBasicInfoFormComponent = () => {
   const methods = useFormContext();
@@ -75,6 +92,7 @@ export const SessionBasicInfoFormComponent = () => {
                 </FormItem>
               )}
             />
+
             <FormField
               control={control}
               name="capacity"
@@ -96,7 +114,40 @@ export const SessionBasicInfoFormComponent = () => {
               )}
             />
           </div>
-          <div className="grid grid-cols-2 space-y-2 gap-2">
+          <div className="grid grid-cols-3 space-y-2 gap-2">
+            <FormField
+              control={control}
+              name="type"
+              render={({ field }) => (
+                <FormItem className="flex flex-col">
+                  <FormLabel className=" text-brand-999 font-medium text-sm" required>
+                    Class Type
+                  </FormLabel>
+                  <FormControl>
+                    <Selects
+                      onValueChange={(e) => {
+                        field.onChange(e);
+                      }}
+                      {...field}
+                    >
+                      <SelectTrigger className="w-full px-4 py-4 border-2 border-gray-200 rounded-lg text-gray-999  placeholder-gray-400 focus:outline-none focus:border-brand-500 transition-colors h-[42px]">
+                        <SelectValue placeholder="Select Class Type" className="!text-gray-400" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectGroup>
+                          {OPTION_TYPE.map((item) => (
+                            <SelectItem value={item.value} key={item.value}>
+                              {item.label}
+                            </SelectItem>
+                          ))}
+                        </SelectGroup>
+                      </SelectContent>
+                    </Selects>
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
             <FormField
               control={control}
               name="class"
@@ -111,7 +162,7 @@ export const SessionBasicInfoFormComponent = () => {
                       defaultValue={""}
                       options={optionsClass as never}
                       isLoading={isLoadingClass}
-                      className="basic-multi-select "
+                      placeholder="Category.."
                       classNames={{
                         control: () =>
                           "w-full !border-2 !border-gray-200 rounded-lg text-gray-999  focus:outline-none focus:border-brand-500 transition-colors h-[42px] !rounded-md !bg-transparent shadow-xs",

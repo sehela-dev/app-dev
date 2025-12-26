@@ -32,8 +32,8 @@ const defaultValues = {
 
   //DATE AND TIME
   start_date: defaultDate().formattedToday,
-  time_start: "",
-  time_end: "",
+  time_start: "10:00",
+  time_end: "13:00",
 
   //LOCATION
   place: "offline",
@@ -49,6 +49,9 @@ const defaultValues = {
   //PRICING
   price_idr: "0",
   price_credit_amount: "1",
+  is_recurring: "no",
+  recurring_type: "",
+  recurring_count: "0",
 
   //OTHER
   type: "regular",
@@ -66,16 +69,16 @@ export const CreateSessionPageView = () => {
     ONSUCCESS: false,
   });
 
-  useEffect(() => {
-    const handler = (e: BeforeUnloadEvent) => {
-      e.preventDefault();
-      e.returnValue = "";
-      // handleOpenModal("ONCANCEL");
-    };
+  // useEffect(() => {
+  //   const handler = (e: BeforeUnloadEvent) => {
+  //     e.preventDefault();
+  //     e.returnValue = "";
+  //     // handleOpenModal("ONCANCEL");
+  //   };
 
-    window.addEventListener("beforeunload", handler);
-    return () => window.removeEventListener("beforeunload", handler);
-  }, []);
+  //   window.addEventListener("beforeunload", handler);
+  //   return () => window.removeEventListener("beforeunload", handler);
+  // }, []);
 
   const onSubmit = handleSubmit(async (data) => {
     try {
@@ -89,6 +92,14 @@ export const CreateSessionPageView = () => {
         level: data?.level as string,
         type: data?.type as string,
         place: data?.place as string,
+        ...(data?.is_recurring === "yes"
+          ? {
+              recurring: {
+                type: data?.recurring_type,
+                count: parseInt(data?.recurring_count),
+              },
+            }
+          : null),
         ...(data?.place === "offline"
           ? {
               location: data?.location as string,

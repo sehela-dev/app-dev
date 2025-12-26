@@ -35,7 +35,7 @@ export const CustomersPage = () => {
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState("");
   const [tab, setTab] = useState("all");
-  const { data, isLoading } = useGetCustomers({ page, limit, search, ...(tab !== "all" ? { status: tab } : null) });
+  const { data, isLoading } = useGetCustomers({ page, limit, search, ...(tab !== "all" ? { status: tab === "active" ? "true" : "false" } : null) });
 
   const headers = [
     {

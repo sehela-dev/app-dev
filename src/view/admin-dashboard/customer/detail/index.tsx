@@ -6,7 +6,7 @@ import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Divider } from "@/components/ui/divider";
 import { useGetCustomerDetail } from "@/hooks/api/queries/admin/customers";
 import { formatDateHelper } from "@/lib/helper";
-import { File, Loader2, PenIcon } from "lucide-react";
+import { Loader2, PenIcon } from "lucide-react";
 import { useParams, useRouter } from "next/navigation";
 import { useState } from "react";
 
