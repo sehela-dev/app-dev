@@ -83,6 +83,8 @@ export interface IParticipantsSession {
   customer_email: string;
   booking_status: string;
   attendance_status: string;
+  medical_notes: string;
+  photo_consent: string;
   created_at: string;
 }
 

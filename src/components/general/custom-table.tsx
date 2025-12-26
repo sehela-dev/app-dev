@@ -61,7 +61,7 @@ export const CustomTable = (props: TableContentProps) => {
   return (
     <div className="w-full overflow-auto">
       <Table className="w-full table-auto">
-        <TableHeader className={`bg- border-brand-100 sticky top-0 z-10 text-gray-500 ${tableHeadClass}`}>
+        <TableHeader className={`bg- border-brand-100 sticky top-0 z-0 text-gray-500 ${tableHeadClass}`}>
           <TableRow>
             {/* Radio button column for single selection */}
             {(showCheckbox || isMultiple) && (

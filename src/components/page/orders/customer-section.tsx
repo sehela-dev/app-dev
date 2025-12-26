@@ -4,10 +4,16 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { useAdminManualTransaction } from "@/context/admin/add-transaction.ctx";
+import { useDebounce } from "@/hooks";
+import { useGetCustomers } from "@/hooks/api/queries/admin/customers";
+import { ICustomerData } from "@/types/customers.interface";
+
 // import { useCreateNewGuest } from "@/hooks/api/mutations/admin";
 import { useState } from "react";
 import { FormProvider, useForm } from "react-hook-form";
+import Select from "react-select";
 const customerSectionTab = [
   {
     value: "new",
@@ -20,6 +26,7 @@ const customerSectionTab = [
 ];
 
 const defaultValues = {
+  id: "",
   name: "",
   phone: "",
   email: "",
@@ -28,8 +35,18 @@ export const OrderCustomerSectionComponent = () => {
   const { addCustomer } = useAdminManualTransaction();
   // const { mutateAsync } = useCreateNewGuest();
   const methods = useForm({ defaultValues });
+  const [search, setSearch] = useState("");
+  const debounceSearch = useDebounce(search, 300);
+  const [selectedUser, setSelectedUser] = useState<ICustomerData | null>();
+
+  const onSearch = (e: string) => {
+    setSearch(e);
+  };
+
   const { control, handleSubmit } = methods;
   const [tabCustomer, setTabCustomer] = useState("new");
+
+  const { data, isLoading, refetch } = useGetCustomers({ search: debounceSearch });
 
   const onSubmit = handleSubmit(async (data) => {
     try {
@@ -37,6 +54,7 @@ export const OrderCustomerSectionComponent = () => {
         email: data.email,
         name: data.name,
         phone: data.phone,
+        ...(tabCustomer === "search" ? { id: data?.id } : null),
         // role: "guest",
       };
       // const res = await mutateAsync(payload);
@@ -58,89 +76,135 @@ export const OrderCustomerSectionComponent = () => {
       </CardHeader>
       <CardContent className="p-0">
         <div className="flex flex-col gap-1">
-          <div className="max-w-[25%]">
-            <GeneralTabComponent selecetedTab={tabCustomer} setTab={setTabCustomer} tabs={customerSectionTab} />
+          <div className="max-w-fit">
+            <GeneralTabComponent
+              selecetedTab={tabCustomer}
+              setTab={(e) => {
+                setTabCustomer(e);
+                methods.reset();
+                addCustomer();
+                if (tabCustomer === "new") {
+                  setSelectedUser(null);
+                }
+              }}
+              tabs={customerSectionTab}
+            />
           </div>
           <div className="flex w-full pt-4">
             <FormProvider {...methods}>
               <form onSubmit={onSubmit} className="w-full">
-                <div className="grid grid-cols-12 gap-4 ">
-                  <div className="col-span-4">
-                    <FormField
-                      control={control}
-                      name="name"
-                      render={({ field }) => (
-                        <FormItem className="flex flex-col">
-                          <FormLabel className=" text-brand-999 font-medium text-sm" required>
-                            Name
-                          </FormLabel>
-                          <FormControl>
-                            <Input
-                              className="w-full px-4 py-4 border-2 border-gray-200 rounded-lg text-gray-999  placeholder-gray-400 focus:outline-none focus:border-brand-500 transition-colors h-[42px]"
-                              placeholder="Type here.."
-                              {...field}
-                              // className="w-auto min-w-[388px]"
-                            />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
+                {tabCustomer === "new" ? (
+                  <>
+                    <div className="grid grid-cols-12 gap-4 ">
+                      <div className="col-span-4">
+                        <FormField
+                          control={control}
+                          name="name"
+                          render={({ field }) => (
+                            <FormItem className="flex flex-col">
+                              <FormLabel className=" text-brand-999 font-medium text-sm" required>
+                                Name
+                              </FormLabel>
+                              <FormControl>
+                                <Input
+                                  className="w-full px-4 py-4 border-2 border-gray-200 rounded-lg text-gray-999  placeholder-gray-400 focus:outline-none focus:border-brand-500 transition-colors h-[42px]"
+                                  placeholder="Type here.."
+                                  {...field}
+                                  // className="w-auto min-w-[388px]"
+                                />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                      </div>
+                      <div className="col-span-4">
+                        <FormField
+                          control={control}
+                          name="phone"
+                          render={({ field }) => (
+                            <FormItem className="flex flex-col">
+                              <FormLabel className=" text-brand-999 font-medium text-sm" required>
+                                WhatsApp
+                              </FormLabel>
+                              <FormControl>
+                                <Input
+                                  className="w-full px-4 py-4 border-2 border-gray-200 rounded-lg text-brand-999 placeholder-gray-400 focus:outline-none focus:border-brand-500 transition-colors h-[42px]"
+                                  placeholder="Type here.."
+                                  {...field}
+                                  // className="w-auto min-w-[388px]"
+                                />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                      </div>
+                      <div className="col-span-4">
+                        <FormField
+                          control={control}
+                          name="email"
+                          render={({ field }) => (
+                            <FormItem className="flex flex-col">
+                              <FormLabel className=" text-brand-999 font-medium text-sm">Email (optional)</FormLabel>
+                              <FormControl>
+                                <Input
+                                  className="w-full px-4 py-4 border-2 border-gray-200 rounded-lg text-brand-999 placeholder-gray-400 focus:outline-none focus:border-brand-500 transition-colors h-[42px]"
+                                  placeholder="Type here.."
+                                  type="email"
+                                  {...field}
+                                  // className="w-auto min-w-[388px]"
+                                />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                      </div>
+                    </div>
+                    <div className="flex justify-end pt-4 gap-2">
+                      <div>
+                        <Button type="button" variant={"secondary"} onClick={() => methods.reset()}>
+                          Clear
+                        </Button>
+                      </div>
+                      <div>
+                        <Button type="submit">Create Customer/Guest</Button>
+                      </div>
+                    </div>
+                  </>
+                ) : (
+                  <div className="flex flex-col gap-2">
+                    <Label className=" text-brand-999 font-medium text-sm">Find Member</Label>
+                    <Select
+                      options={data?.data}
+                      value={selectedUser}
+                      classNames={{
+                        control: () =>
+                          "w-full !border-2 !border-gray-200 rounded-lg text-gray-999  focus:outline-none focus:border-brand-500 transition-colors h-[42px] !rounded-md !bg-transparent shadow-xs",
+                        placeholder: () => "placeholder-gray-400",
+                        singleValue: () => "text-brand-999",
+                        input: () => "text-brand-999 bg-none",
+                      }}
+                      isLoading={isLoading}
+                      getOptionLabel={(option) => option?.full_name}
+                      onInputChange={onSearch}
+                      onChange={(e) => {
+                        setSelectedUser(e);
+                        methods.setValue("name", e?.full_name as string);
+                        methods.setValue("email", e?.email as string);
+                        methods.setValue("phone", e?.phone as string);
+                        methods.setValue("id", e?.id as string);
+                        addCustomer({
+                          name: e?.full_name as string,
+                          email: e?.email as string,
+                          phone: e?.phone as string,
+                          id: e?.id,
+                        });
+                      }}
                     />
                   </div>
-                  <div className="col-span-4">
-                    <FormField
-                      control={control}
-                      name="phone"
-                      render={({ field }) => (
-                        <FormItem className="flex flex-col">
-                          <FormLabel className=" text-brand-999 font-medium text-sm" required>
-                            WhatsApp
-                          </FormLabel>
-                          <FormControl>
-                            <Input
-                              className="w-full px-4 py-4 border-2 border-gray-200 rounded-lg text-brand-999 placeholder-gray-400 focus:outline-none focus:border-brand-500 transition-colors h-[42px]"
-                              placeholder="Type here.."
-                              {...field}
-                              // className="w-auto min-w-[388px]"
-                            />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                  </div>
-                  <div className="col-span-4">
-                    <FormField
-                      control={control}
-                      name="email"
-                      render={({ field }) => (
-                        <FormItem className="flex flex-col">
-                          <FormLabel className=" text-brand-999 font-medium text-sm">Email (optional)</FormLabel>
-                          <FormControl>
-                            <Input
-                              className="w-full px-4 py-4 border-2 border-gray-200 rounded-lg text-brand-999 placeholder-gray-400 focus:outline-none focus:border-brand-500 transition-colors h-[42px]"
-                              placeholder="Type here.."
-                              type="email"
-                              {...field}
-                              // className="w-auto min-w-[388px]"
-                            />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                  </div>
-                </div>
-                <div className="flex justify-end pt-4 gap-2">
-                  <div>
-                    <Button type="button" variant={"secondary"} onClick={() => methods.reset()}>
-                      Clear
-                    </Button>
-                  </div>
-                  <div>
-                    <Button type="submit">Create Customer/Guest</Button>
-                  </div>
-                </div>
+                )}
               </form>
             </FormProvider>
           </div>

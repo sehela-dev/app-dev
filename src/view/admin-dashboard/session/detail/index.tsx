@@ -39,6 +39,17 @@ export const SessionDetailPage = () => {
       value: "customer_email",
     },
     {
+      id: "photo_consent",
+      text: "Photo Concent",
+      value: (row: IParticipantsSession) => <p>{row?.photo_consent ? "Yes" : "No"}</p>,
+    },
+    {
+      id: "medical_notes",
+      text: "Medical Notes",
+      value: (row: IParticipantsSession) => <p>{row?.medical_notes ?? "-"}</p>,
+    },
+
+    {
       id: "attendance_status",
       text: "Attendance",
       value: (row: IParticipantsSession) => (
@@ -113,13 +124,13 @@ export const SessionDetailPage = () => {
                 {data?.data?.time_start} - {data?.data?.time_end}
               </div>
               <div className="grid col-span-3 text-gray-500">Location Type</div>
-              <div className="grid col-span-9">{data?.data?.place}</div>
+              <div className="grid col-span-9 capitalize">{data?.data?.place}</div>
               <div className="grid col-span-3 text-gray-500">Location Details</div>
               <div className="grid col-span-9">{data?.data?.location}</div>
               <div className="grid col-span-3 text-gray-500">Location Maps Url</div>
               <div className="grid col-span-9">
                 <a href={data?.data.location_maps_url} target="_blank" className="text-blue-500 underline">
-                  {data?.data?.location}
+                  {data?.data?.location_address ?? data?.data?.location}
                 </a>
               </div>
             </div>

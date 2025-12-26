@@ -188,7 +188,7 @@ export const AddTransactionFOrm = () => {
         </div>
         <div className="flex flex-col gap-3">
           <div className="flex flex-row justify-between w-full">
-            <div className="max-w-[25%]">
+            <div className="max-w-fit">
               <GeneralTabComponent tabs={tableTabOption} selecetedTab={tableTab} setTab={setTableTab} />
             </div>
             <Button variant={"outline"} className="text-brand-999 text-sm font-medium">

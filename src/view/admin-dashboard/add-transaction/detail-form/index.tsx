@@ -14,7 +14,9 @@ import { formatCurrency } from "@/lib/helper";
 import { BaseDialogConfirmation } from "@/components/general/dialog-confirnation";
 import { useCreateNewManualTrx } from "@/hooks/api/mutations/admin/use-create-manual-order";
 import { IProduct, ISession } from "@/types/orders.interface";
+import { useRouter } from "next/navigation";
 export const DetailFormAddTransaction = () => {
+  const router = useRouter();
   const { cartItems, updateStepper, customerData, removeItem, updateQuantity, clearCart, addCustomer } = useAdminManualTransaction();
   const [open, setOpen] = useState(false);
 
@@ -40,6 +42,7 @@ export const DetailFormAddTransaction = () => {
 
   const onCancel = () => {
     setOpen(false);
+    router.push("/admin/orders");
   };
   const onConfirm = async () => {
     const sessions: ISession[] = [];
@@ -66,8 +69,8 @@ export const DetailFormAddTransaction = () => {
       products: products ?? [],
       notes: "Combined purchase",
       status: "paid",
+      user_id: customerData?.id as string,
     };
-    console.log(payload);
 
     try {
       const res = await mutateAsync(payload);
@@ -98,7 +101,7 @@ export const DetailFormAddTransaction = () => {
       <div className="flex mt-2">
         <Card className="border-brand-100 w-full pb-0">
           <CardHeader>
-            <h3 className=" text-brand-999 text-3xl font-semibold">Detail Order</h3>
+            <h3 className=" text-brand-999 text-2xl font-semibold">Detail Order</h3>
             <p className="text-sm font-normal text-gray-500">Review class and product and choose how to pay</p>
           </CardHeader>
           <CardContent>

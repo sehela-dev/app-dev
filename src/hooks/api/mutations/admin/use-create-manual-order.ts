@@ -35,9 +35,9 @@ const useConfig = () => {
   }, []);
 
   const onSuccess = useCallback((data: any) => {
-    toast.success(data.message, {
+    toast.success("Success!", {
       id: "sucess",
-      description: data.message,
+      description: "New transaction has been added!",
       position: "bottom-center",
     });
   }, []);
