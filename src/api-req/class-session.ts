@@ -40,12 +40,14 @@ export const getSesionDetailBooking: TSessionBookings = async ({ id, page, limit
   return res.data;
 };
 
-export const getClassCategory: TClassSessionCategoryResponse = async ({ page, limit, search }) => {
+export const getClassCategory: TClassSessionCategoryResponse = async ({ page, limit, search, status, sort_by }) => {
   const res = await axiosx(false).get(`${MAIN_API_URL}/classes`, {
     params: {
       page,
       page_size: limit,
       q: search,
+      is_active: status,
+      sort_by,
     },
   });
   return res.data;

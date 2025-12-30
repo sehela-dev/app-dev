@@ -19,4 +19,5 @@ export interface ICommonParams {
   status?: string;
   startDate?: string;
   endDate?: string;
+  sort_by?: string;
 }

@@ -8,3 +8,6 @@ export * from "./use-create-instructor";
 export * from "./use-edit-instructor";
 export * from "./use-delete-instructor";
 export * from "./use-create-customer-data";
+export * from "./use-create-pacakge";
+export * from "./use-edit-credit-package";
+export * from "./use-delete-credit-package";

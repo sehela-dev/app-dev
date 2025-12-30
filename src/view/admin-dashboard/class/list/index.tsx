@@ -1,6 +1,7 @@
 "use client";
 import { buildNumber, CustomTable } from "@/components/general/custom-table";
 import { CustomPagination } from "@/components/general/pagination-component";
+import { DropdownFilter } from "@/components/general/table-filter";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
@@ -9,9 +10,28 @@ import { useGetClassSessionsCategory } from "@/hooks/api/queries/admin/class-ses
 import { formatDateHelper } from "@/lib/helper";
 import { IClassSessionCategory } from "@/types/class-category.interface";
 
-import { CirclePlus, Ellipsis, ListFilter } from "lucide-react";
+import { CirclePlus, Ellipsis } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+
+const filterSections = [
+  {
+    title: "Type",
+    options: [
+      { id: "all", label: "All" },
+      { id: "fix", label: "Fix" },
+      { id: "percentage", label: "Percentage" },
+    ],
+  },
+  {
+    title: "Status",
+    options: [
+      { id: "all", label: "All" },
+      { id: "active", label: "Active" },
+      { id: "inactive", label: "Inactive" },
+    ],
+  },
+];
 
 export const ClassListView = () => {
   const router = useRouter();
@@ -19,6 +39,24 @@ export const ClassListView = () => {
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState("");
   const { data, isLoading } = useGetClassSessionsCategory({ page, limit, search });
+  const [selectedValues, setSelectedValues] = useState({
+    Type: "all",
+    Status: "all",
+  });
+
+  const handleSelectionChange = (section: string, optionId: string) => {
+    setSelectedValues((prev) => ({
+      ...prev,
+      [section]: optionId,
+    }));
+  };
+
+  const handleReset = () => {
+    setSelectedValues({
+      Type: "all",
+      Status: "all",
+    });
+  };
 
   const headers = [
     {
@@ -88,9 +126,7 @@ export const ClassListView = () => {
     <div className="flex w-full  flex-col gap-2">
       <div className="flex flex-row items-center w-full justify-end gap-2">
         <div>
-          <Button variant={"outline"} className="text-brand-999 text-sm font-medium">
-            <ListFilter /> Filter
-          </Button>
+          <DropdownFilter sections={filterSections} selectedValues={selectedValues} onSelectionChange={handleSelectionChange} onReset={handleReset} />
         </div>
         <div>
           <Button className=" text-sm font-medium" onClick={() => router.push("class/create")}>

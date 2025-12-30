@@ -8,7 +8,7 @@ export const dataNavMain = [
 export const dataNavMarketPlace = [
   { title: "Reporting and Analytics", url: "/admin/dashboard", icon: BarChart2 },
   { title: "Orders", url: "/admin/orders", isActive: true, icon: Receipt },
-  // { title: "Credit Packages", url: "#", icon: Gem },
+  { title: "Credit Packages", url: "/admin/credit-packages", icon: Gem },
   {
     title: "Class",
     url: "#",

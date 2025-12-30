@@ -84,7 +84,7 @@ export interface IActivePackageCredit {
   credits_remaining: number;
   credits_used: number;
   expires_at: string;
-  class_type_restriction: string;
+  class_ids_restriction: string;
   place_restriction: unknown;
 }
 
