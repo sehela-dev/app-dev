@@ -61,5 +61,5 @@ export const clearToken = () => {
     description: "Session expired! Please login again to continue",
     position: "bottom-center",
   });
-  window.location.href = role === "authenticated" ? "/admin-login" : "/auth/login";
+  window.location.href = role !== "user" ? "/admin-login" : "/auth/login";
 };

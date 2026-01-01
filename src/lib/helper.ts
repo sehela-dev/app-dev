@@ -1,4 +1,4 @@
-import { format, parseISO, subMonths } from "date-fns";
+import { addMonths, format, parseISO, subMonths } from "date-fns";
 import { id } from "date-fns/locale";
 
 export function formatCurrency(amount?: string | number, currencyCode = "IDR", locale = "id-ID") {
@@ -254,10 +254,23 @@ export const defaultDate = () => {
 
   // Get date from one month ago
   const oneMonthAgo = subMonths(today, 1);
+  const oneMonthForward = addMonths(today, 1);
 
   // Format the dates (you can customize the format string)
   const formattedToday = format(today, "yyyy-MM-dd");
   const formattedOneMonthAgo = format(oneMonthAgo, "yyyy-MM-dd");
+  const formattedOneMonthLater = format(oneMonthForward, "yyyy-MM-dd");
 
-  return { formattedToday, formattedOneMonthAgo };
+  return { formattedToday, formattedOneMonthAgo, formattedOneMonthLater };
 };
+
+export function combineToISOString(date: string, time: string): string {
+  // Combine date and time strings
+  const dateTimeString = `${date}T${time}:00`;
+
+  // Create a Date object
+  const dateTime = new Date(dateTimeString);
+
+  // Convert to ISO string and remove milliseconds
+  return dateTime.toISOString().replace(/\.\d{3}Z$/, "Z");
+}

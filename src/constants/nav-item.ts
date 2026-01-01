@@ -19,15 +19,15 @@ export const dataNavMarketPlace = [
       { title: "Instructor", url: "/admin/instructor", icon: Users },
     ],
   },
-  // {
-  //   title: "Products",
-  //   url: "#",
-  //   icon: PackageSearch,
-  //   items: [
-  //     { title: "Products", url: "#", icon: PackageSearch },
-  //     { title: "Categories", url: "#", icon: Tag },
-  //   ],
-  // },
+  {
+    title: "Products",
+    url: "#",
+    icon: PackageSearch,
+    items: [
+      { title: "Products", url: "#", icon: PackageSearch },
+      { title: "Discount Voucher", url: "/admin/discount-voucher", icon: Tag },
+    ],
+  },
   // { title: "Discounts", url: "#", icon: Tag },
   { title: "Customers", url: "/admin/member", icon: Users },
 ];
