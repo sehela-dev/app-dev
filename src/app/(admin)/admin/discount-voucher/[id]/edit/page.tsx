@@ -1,3 +1,5 @@
+import { EditDiscountVoucherPage } from "@/view/admin-dashboard/discount-voucer/edit";
+
 export default function Page() {
-  return <p>Edit Discount Voucher</p>;
+  return <EditDiscountVoucherPage />;
 }

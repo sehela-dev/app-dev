@@ -8,7 +8,6 @@ import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card"
 
 import { SearchInput } from "@/components/ui/search-input";
 import { useDebounce } from "@/hooks";
-import { useGetCreditPackage } from "@/hooks/api/queries/admin/credit-package";
 
 import { formatCurrency, formatDateHelper } from "@/lib/helper";
 
@@ -17,12 +16,12 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { CirclePlus, Ellipsis } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
-import { useDeleteCreditPackage } from "@/hooks/api/mutations/admin";
 import { BaseDialogConfirmation } from "@/components/general/dialog-confirnation";
 import { DropdownFilter } from "@/components/general/table-filter";
 import { useGetClassSessionsCategory } from "@/hooks/api/queries/admin/class-session";
 import { useGetDiscountVouchers } from "@/hooks/api/queries/admin/discount-voucher/use-get-discount-vouchers";
 import { IVouchersListItem } from "@/types/discount-voucher.interface";
+import { useDeleteDiscountVoucher } from "@/hooks/api/mutations/admin/use-delete-discount-voucher";
 
 export const DiscountVoucherListPageView = () => {
   const router = useRouter();
@@ -34,7 +33,7 @@ export const DiscountVoucherListPageView = () => {
   const [openDialogConfirm, setOpenDialogConfirm] = useState(false);
   const [selectedData, setSelectedData] = useState("");
   const [openNotif, setOpenNotif] = useState(false);
-  const { mutateAsync } = useDeleteCreditPackage();
+  const { mutateAsync } = useDeleteDiscountVoucher();
   const [selectedValues, setSelectedValues] = useState({
     Class: "all",
   });
@@ -149,7 +148,7 @@ export const DiscountVoucherListPageView = () => {
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end" className="w-32">
-          <DropdownMenuItem onClick={() => router.push(`credit-packages/${row.id}/edit`)}>Edit</DropdownMenuItem>
+          <DropdownMenuItem onClick={() => router.push(`discount-voucher/${row.id}/edit`)}>Edit</DropdownMenuItem>
           <DropdownMenuItem variant="destructive" className="" onClick={() => onDelete(row.id)}>
             Delete
           </DropdownMenuItem>

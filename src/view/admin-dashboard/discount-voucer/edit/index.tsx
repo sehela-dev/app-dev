@@ -9,11 +9,13 @@ import { FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessa
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { useCreateDiscountVoucher } from "@/hooks/api/mutations/admin";
+import { useEditDiscountVoucher } from "@/hooks/api/mutations/admin/use-edit-duscount-voucher";
+import { useGetDiscountVoucherDetail } from "@/hooks/api/queries/admin/discount-voucher";
 import { defaultDate, formatCurrency, formatDateHelper } from "@/lib/helper";
 import { TCategoryVoucher, TDiscountType } from "@/types/discount-voucher.interface";
-import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { Loader2 } from "lucide-react";
+import { useParams, useRouter } from "next/navigation";
+import { useMemo, useState } from "react";
 import { FormProvider, useForm } from "react-hook-form";
 import Select from "react-select";
 
@@ -35,6 +37,12 @@ const CATEGORY_OPTIONS = [
     value: "universal",
   },
 ];
+const categoryLabel = {
+  booking: "Class",
+  "package-purchase": "Credit Package",
+  order: "Order",
+  universal: "Universal",
+};
 
 const defaultValues = {
   name: "",
@@ -50,23 +58,51 @@ const defaultValues = {
   usage_limit: "1",
   one_per_user: false,
   valid_from: defaultDate().formattedToday,
-  valid_time_from: "00:00",
-  valid_time_until: "23:59",
+  valid_time_from: "",
+  valid_time_until: "",
   valid_until: defaultDate().formattedOneMonthLater,
 };
 
-export const CreateDiscountVoucherPage = () => {
+export const EditDiscountVoucherPage = () => {
   const router = useRouter();
-  const methods = useForm({ defaultValues });
-  const { control, handleSubmit } = methods;
+  const params = useParams();
+  const { id } = params;
+
+  const { data: detail, isLoading } = useGetDiscountVoucherDetail(id as string);
+
   const [open, setOpen] = useState({
     SUCCESS: false,
     CANCEL: false,
   });
 
+  const values = useMemo(() => {
+    if (!detail?.data) return defaultValues;
+    return {
+      name: detail?.data?.name,
+      code: detail?.data?.code,
+      category: {
+        label: (categoryLabel as never)[detail?.data?.category],
+        value: detail?.data?.category,
+      },
+      discount_type: detail?.data?.discount_type,
+      discount_value: detail?.data?.discount_value,
+      min_purchase_idr: detail?.data?.min_purchase_idr,
+      max_discount_idr: detail?.data?.max_discount_idr,
+      usage_limit: detail?.data?.usage_limit,
+      one_per_user: detail?.data?.one_per_user,
+      valid_from: detail?.data?.valid_from,
+      valid_until: detail?.data?.valid_until,
+      valid_time_from: detail?.data?.valid_time_from,
+      valid_time_until: detail?.data?.valid_time_until,
+    };
+  }, [detail?.data]);
+
+  const methods = useForm({ defaultValues, values });
+  const { control, handleSubmit } = methods;
+
   const isFixed = methods.watch("discount_type") === "fixed";
 
-  const { mutateAsync } = useCreateDiscountVoucher();
+  const { mutateAsync } = useEditDiscountVoucher();
 
   const onSubmit = handleSubmit(async (data) => {
     try {
@@ -75,17 +111,17 @@ export const CreateDiscountVoucherPage = () => {
         code: data?.code,
         category: data?.category.value as TCategoryVoucher,
         discount_type: data?.discount_type as TDiscountType,
-        discount_value: parseInt(data?.discount_value) as number,
-        min_purchase_idr: parseInt(data?.min_purchase_idr) as number,
-        usage_limit: parseInt(data?.usage_limit),
+        discount_value: parseInt(data?.discount_value as string),
+        min_purchase_idr: parseInt(data?.min_purchase_idr as string),
+        usage_limit: parseInt(data?.usage_limit as string),
         one_per_user: data?.one_per_user,
         valid_from: formatDateHelper(data?.valid_from, "yyyy-MM-dd"),
         valid_until: formatDateHelper(data?.valid_until, "yyyy-MM-dd"),
         valid_time_from: data?.valid_time_from,
         valid_time_until: data?.valid_time_until,
-        ...(data?.discount_type === "percentage" ? { max_discount_idr: parseInt(data?.max_discount_idr) as number } : null),
+        ...(data?.discount_type === "percentage" ? { max_discount_idr: parseInt(data?.max_discount_idr as string) } : null),
       };
-      const res = await mutateAsync(payload);
+      const res = await mutateAsync({ data: payload, id: id as string });
       if (res) {
         handleOpenModal("SUCCESS");
       }
@@ -98,11 +134,18 @@ export const CreateDiscountVoucherPage = () => {
     setOpen((prev) => ({ ...prev, [type]: !open[type] }));
   };
 
+  if (isLoading)
+    return (
+      <div className="flex items-center justify-center py-6">
+        <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+      </div>
+    );
+
   return (
     <div className="flex flex-col gap-4">
       <div className="flex flex-col">
-        <h3 className="text-2xl font-semibold">Create Discount</h3>
-        <p className="text-sm text-gray-500">Set up a new discount for transactions</p>
+        <h3 className="text-2xl font-semibold">Edit Discount</h3>
+        <p className="text-sm text-gray-500">Modify existing discount for transactions</p>
       </div>
       <FormProvider {...methods}>
         <form onSubmit={onSubmit} className="flex flex-col gap-4">
@@ -198,7 +241,7 @@ export const CreateDiscountVoucherPage = () => {
                     </FormLabel>
                     <FormControl>
                       <RadioGroup
-                        defaultValue="fixed "
+                        defaultValue="fixed"
                         value={field.value}
                         className="flex flex-row gap-3 items-center"
                         onValueChange={(e) => {
@@ -412,9 +455,8 @@ export const CreateDiscountVoucherPage = () => {
                           allowFutureDates
                           onDateRangeChange={(e) => {
                             field.onChange(e);
-                            console.log(e, field);
                           }}
-                          startDate={field.value}
+                          startDate={field.value ?? detail?.data?.valid_from}
                         />
                       </FormControl>
                       <FormMessage />
@@ -458,7 +500,7 @@ export const CreateDiscountVoucherPage = () => {
                             field.onChange(e);
                             console.log(e, field);
                           }}
-                          startDate={field.value}
+                          startDate={field.value ?? detail?.data?.valid_until}
                         />
                       </FormControl>
                       <FormMessage />
@@ -495,7 +537,7 @@ export const CreateDiscountVoucherPage = () => {
             </div>
             <div className="">
               <Button type="submit" disabled={!methods.formState.isValid}>
-                Create Discount Voucher
+                Update Discount Voucher
               </Button>
             </div>
           </div>
@@ -503,17 +545,19 @@ export const CreateDiscountVoucherPage = () => {
       </FormProvider>
       {open.SUCCESS && (
         <BaseDialogConfirmation
-          image="success-2"
+          image="success-edit"
           onCancel={() => router.push("/admin/discount-voucher")}
           open={open.SUCCESS}
-          title="Discount Code Created Successfully"
-          subtitle="Your new discount code has been successfully created."
+          hideCancel
+          title="Discount Code Updated Successfully"
+          subtitle="Your new discount code has been successfully updated."
           onConfirm={() => {
             methods.reset();
             handleOpenModal("SUCCESS");
+            router.push("/admin/discount-voucher");
           }}
           cancelText="Discount List"
-          confirmText="Create More"
+          confirmText="Ok"
         />
       )}
       {open.CANCEL && (
