@@ -1,4 +1,4 @@
-import { addMonths, format, parseISO, subMonths } from "date-fns";
+import { addMonths, format, parseISO, subDays, subMonths } from "date-fns";
 import { id } from "date-fns/locale";
 
 export function formatCurrency(amount?: string | number, currencyCode = "IDR", locale = "id-ID") {
@@ -253,7 +253,7 @@ export const defaultDate = () => {
   const today = new Date();
 
   // Get date from one month ago
-  const oneMonthAgo = subMonths(today, 1);
+  const oneMonthAgo = subDays(today, 30);
   const oneMonthForward = addMonths(today, 1);
 
   // Format the dates (you can customize the format string)

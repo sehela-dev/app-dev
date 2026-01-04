@@ -9,7 +9,6 @@ import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { useAdminManualTransaction } from "@/context/admin/add-transaction.ctx";
 import { formatCurrency } from "@/lib/helper";
 import { IAdminCartItemData, ICustomerData } from "@/types/orders.interface";
-import { DialogTitle } from "@radix-ui/react-dialog";
 
 import { ScrollArea } from "@radix-ui/react-scroll-area";
 
@@ -123,7 +122,7 @@ export const OrdersCartComponent = ({ customerData, cartItems }: IOrderCartProps
                 </Button>
               </div>
               <div className="fle w-full">
-                <Button className="flex w-full" onClick={onContinue}>
+                <Button className="flex w-full" onClick={onContinue} disabled={!customerData}>
                   Continue
                 </Button>
               </div>
@@ -133,14 +132,17 @@ export const OrdersCartComponent = ({ customerData, cartItems }: IOrderCartProps
           )}
         </CardContent>
       </Card>
-      <BaseDialogConfirmation
-        image="warning-1"
-        onCancel={onCancel}
-        subtitle="Any unsaved changes will be lost if you exit now."
-        title="Unsaved Changes"
-        onConfirm={onConfirm}
-        open={open}
-      />
+      {open && (
+        <BaseDialogConfirmation
+          image="warning-1"
+          onCancel={onCancel}
+          confirmText="Discard"
+          subtitle="Any unsaved changes will be lost if you exit now."
+          title="Unsaved Changes"
+          onConfirm={onConfirm}
+          open={open}
+        />
+      )}
     </div>
   );
 };

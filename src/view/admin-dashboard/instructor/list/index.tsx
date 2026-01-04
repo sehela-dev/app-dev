@@ -62,16 +62,16 @@ export const InstructorListPage = () => {
       text: "Email",
       value: "email",
     },
-    {
-      id: "payment_method",
-      text: "Payment Method",
-      value: "payment_method",
-    },
-    {
-      id: "shared_revenue",
-      text: "Shared Revenue",
-      value: "shared_revenue",
-    },
+    // {
+    //   id: "payment_method",
+    //   text: "Payment Method",
+    //   value: "payment_method",
+    // },
+    // {
+    //   id: "shared_revenue",
+    //   text: "Shared Revenue",
+    //   value: "shared_revenue",
+    // },
 
     {
       id: "status",

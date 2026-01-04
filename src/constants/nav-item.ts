@@ -23,11 +23,9 @@ export const dataNavMarketPlace = [
     title: "Products",
     url: "#",
     icon: PackageSearch,
-    items: [
-      { title: "Products", url: "#", icon: PackageSearch },
-      { title: "Discount Voucher", url: "/admin/discount-voucher", icon: Tag },
-    ],
+    items: [{ title: "Products", url: "/admin/products", icon: PackageSearch }],
   },
+  { title: "Discount Voucher", url: "/admin/discount-voucher", icon: Tag },
   // { title: "Discounts", url: "#", icon: Tag },
   { title: "Customers", url: "/admin/member", icon: Users },
 ];

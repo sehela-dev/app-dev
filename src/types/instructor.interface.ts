@@ -16,6 +16,7 @@ export interface ICreateIntructorPayload {
   full_name: string;
   phone?: string;
   status?: string;
+  description: string;
   bank_name?: string;
   bank_account_number?: string;
 }
@@ -29,6 +30,7 @@ export interface IInstructorDetails {
   payment_models: unknown;
   bank_name: string;
   bank_account_number: string;
+  description: string;
   created_at: string;
   updated_at: string;
 }

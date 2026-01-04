@@ -89,8 +89,8 @@ export const InstructorDetailPage = () => {
       </div>
     );
   return (
-    <div className="flex flex-col gap-4">
-      <div className="max-w-[25%]">
+    <div className="flex flex-col gap-4 w-full">
+      <div className="max-w-fit">
         <GeneralTabComponent selecetedTab={tabs} setTab={setTabs} tabs={instructorTabs} />
       </div>
       {tabs === "basic" && (
@@ -127,6 +127,8 @@ export const InstructorDetailPage = () => {
                   <div className="grid col-span-9">{data?.data?.phone}</div>
                   <div className="grid col-span-3 text-gray-500">Email</div>
                   <div className="grid col-span-9">{data?.data?.email}</div>
+                  <div className="grid col-span-3 text-gray-500">Skill Set</div>
+                  <div className="grid col-span-9">{data?.data?.description}</div>
                   <div className="grid col-span-3 text-gray-500">Created At</div>
                   <div className="grid col-span-9">{formatDateHelper(data?.data?.created_at as string)}</div>
                   <div className="grid col-span-3 text-gray-500">Status</div>

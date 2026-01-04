@@ -2,7 +2,6 @@ import { axiosx } from "@/lib/axiosx";
 import { MAIN_API_URL } from "@/lib/config";
 import { TClassSessionCategoryResponse, TCreateNewClassCategory } from "@/types/class-category.interface";
 import { TCreateSessionData, TEditSessionData, TSessionBookings, TSessionDetailData, TSessionListData } from "@/types/class-sessions.interface";
-import { TInstructorData } from "@/types/instructor.interface";
 
 export const getSessions: TSessionListData = async ({ page, limit, search, payment_method, status, startDate, endDate }) => {
   const res = await axiosx(true).get(`${MAIN_API_URL}/classes/sessions`, {

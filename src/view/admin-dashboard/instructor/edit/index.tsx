@@ -5,10 +5,12 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { BANK_LIST } from "@/constants/sample-data";
 import { useEditInstructor } from "@/hooks/api/mutations/admin";
 import { useGetInstructorDetail } from "@/hooks/api/queries/admin/instructor";
 import { DEFAULT_PASSWORD } from "@/lib/config";
+import { Loader2 } from "lucide-react";
 import { useParams, useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
 import { FormProvider, useForm } from "react-hook-form";
@@ -23,6 +25,7 @@ const defaultValues = {
     label: "",
     value: "",
   },
+  description: "",
   bank_account_number: "",
   password: DEFAULT_PASSWORD,
 };
@@ -45,6 +48,7 @@ export const EditInstructorPage = () => {
       full_name: data?.data?.full_name,
       email: data?.data?.email,
       phone: data?.data?.phone,
+      description: data?.data?.description,
       bank_name: {
         label: data?.data?.bank_name,
         value: "",
@@ -74,11 +78,18 @@ export const EditInstructorPage = () => {
     setOpen((prev) => ({ ...prev, [type]: !open[type] }));
   };
 
+  if (isLoading)
+    return (
+      <div className="flex items-center justify-center py-6">
+        <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+      </div>
+    );
+
   return (
     <div className="flex flex-col gap-4">
       <div className="flex flex-col">
-        <h3 className="text-2xl font-semibold">Create Instructor</h3>
-        <p className="text-sm text-gray-500">Fill in the instructor’s details to add them to your schedule.</p>
+        <h3 className="text-2xl font-semibold">Edit Instructor</h3>
+        <p className="text-sm text-gray-500">Modify instructor’s details.</p>
       </div>
       <FormProvider {...methods}>
         <form onSubmit={onSubmit} className="flex flex-col gap-4">
@@ -146,6 +157,25 @@ export const EditInstructorPage = () => {
                   )}
                 />
               </div>
+              <FormField
+                control={control}
+                name="description"
+                render={({ field }) => (
+                  <FormItem className="flex flex-col pt-4">
+                    <FormLabel className=" text-brand-999 font-medium text-sm" required>
+                      Description
+                    </FormLabel>
+                    <FormControl>
+                      <Textarea
+                        className="w-full px-4 py-4 border-2 border-gray-200 rounded-lg text-gray-999  placeholder-gray-400 focus:outline-none focus:border-brand-500 transition-colors h-[42px]"
+                        placeholder="Type here.."
+                        {...field}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
             </CardContent>
           </Card>
           <Card>

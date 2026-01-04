@@ -36,7 +36,7 @@ export const AuthProviderAdmin: React.FC<{ children: React.ReactNode }> = ({ chi
 
   const logout = () => {
     resetJwt();
-    router.push("/auth/login");
+    router.push("/admin-login");
   };
 
   useEffect(() => {

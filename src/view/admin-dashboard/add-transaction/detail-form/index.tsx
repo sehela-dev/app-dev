@@ -4,8 +4,8 @@ import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card"
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { useMemo, useState } from "react";
-import { Input } from "@/components/ui/input";
+import { useCallback, useMemo, useState } from "react";
+
 import { Divider } from "@/components/ui/divider";
 
 import { ScrollArea } from "@radix-ui/react-scroll-area";
@@ -15,9 +15,16 @@ import { BaseDialogConfirmation } from "@/components/general/dialog-confirnation
 import { useCreateNewManualTrx } from "@/hooks/api/mutations/admin/use-create-manual-order";
 import { IProduct, ISession } from "@/types/orders.interface";
 import { useRouter } from "next/navigation";
+import { useApplyDiscountVoucher } from "@/hooks/api/mutations/admin";
+import { IApplyDiscountResponse, IVouchersListItem, TCategoryVoucher } from "@/types/discount-voucher.interface";
+import { DiscountSelectComponent } from "@/components/page/orders/discount-code-select";
+import { XIcon } from "lucide-react";
 export const DetailFormAddTransaction = () => {
   const router = useRouter();
+
   const { cartItems, updateStepper, customerData, removeItem, updateQuantity, clearCart, addCustomer } = useAdminManualTransaction();
+  const [selectedVoucher, setSelectedVoucher] = useState<IVouchersListItem | null>(null);
+  const [discountData, setDiscountData] = useState<IApplyDiscountResponse | null>(null);
   const [open, setOpen] = useState(false);
 
   const { mutateAsync } = useCreateNewManualTrx();
@@ -34,6 +41,8 @@ export const DetailFormAddTransaction = () => {
       updateQuantity(id, newQty);
     }
   };
+
+  const { mutateAsync: applyDiscountCode } = useApplyDiscountVoucher();
   const totalPrice = useMemo(() => {
     let tempTp = 0;
     cartItems?.map((item) => (tempTp = tempTp + item.subtotal));
@@ -70,6 +79,7 @@ export const DetailFormAddTransaction = () => {
       notes: "Combined purchase",
       status: "paid",
       user_id: customerData?.id as string,
+      ...(discountData ? { voucher_code: selectedVoucher?.code } : null),
     };
 
     try {
@@ -94,6 +104,47 @@ export const DetailFormAddTransaction = () => {
     clearCart();
     addCustomer(undefined);
     updateStepper();
+  };
+
+  const getCategoryFromItems = useCallback(() => {
+    // Get unique types from the array
+    const uniqueTypes = new Set(cartItems?.map((item) => item.type));
+
+    // If more than one type, return universal
+    if (uniqueTypes.size > 1) {
+      return "universal";
+    }
+
+    // If only one type, determine the category
+    const type = Array.from(uniqueTypes)[0];
+
+    switch (type) {
+      case "class":
+        return "booking";
+      case "package":
+        return "package_purchase";
+      case "product":
+        return "order";
+      default:
+        return "universal";
+    }
+  }, []);
+
+  const onApplyDiscount = async () => {
+    try {
+      const payload = {
+        code: selectedVoucher?.code as string,
+        transaction_type: selectedVoucher?.category as TCategoryVoucher,
+        cart_total_idr: totalPrice,
+        ...(customerData?.id ? { user_id: customerData.id as string } : null),
+      };
+      const res = await applyDiscountCode(payload);
+      if (res) {
+        setDiscountData(res?.data);
+      }
+    } catch (error) {
+      console.log(error);
+    }
   };
 
   return (
@@ -188,16 +239,50 @@ export const DetailFormAddTransaction = () => {
                   <div className="grid grid-cols-2">
                     <p className="text-brand-999 font-semibold text-sm">Discount Code</p>
                   </div>
-                  <div className="flex flex-row w-full gap-2">
-                    <div className="flex w-full">
-                      <Input className="w-full border-brand-100" placeholder="Input discount code here..." />
+
+                  {!selectedVoucher ? (
+                    <div className="flex flex-row w-full gap-2 items-center">
+                      <div className="flex w-full">
+                        <DiscountSelectComponent
+                          status={getCategoryFromItems()}
+                          selecteValue={selectedVoucher}
+                          setSelectedVoucher={setSelectedVoucher}
+                        />
+                        {/* <Input className="w-full border-brand-100" placeholder="Input discount code here..." /> */}
+                      </div>
+                      <div className="col-span-2">
+                        <Button className="text-brand-999" variant={"secondary"} onClick={onApplyDiscount}>
+                          Apply
+                        </Button>
+                      </div>
                     </div>
-                    <div className="col-span-2">
-                      <Button className="text-brand-999" variant={"secondary"}>
-                        Apply
-                      </Button>
+                  ) : (
+                    <div className="flex flex-row w-full gap-2 items-center">
+                      <div className="flex w-full">
+                        <Badge className="border bg-brand-500  text-[10px] border-brand-400 !px-4 rounded-[999px] text-gray-50 ">
+                          <p className="font-semibold text-lg">
+                            {selectedVoucher?.code}{" "}
+                            {selectedVoucher?.discount_type === "percentage"
+                              ? `(${selectedVoucher?.discount_value}%)`
+                              : formatCurrency(selectedVoucher?.discount_value)}
+                          </p>
+                        </Badge>
+                      </div>
+                      <div className="col-span-2">
+                        <Button
+                          className="text-brand-999"
+                          variant={"ghost"}
+                          onClick={() => {
+                            setSelectedVoucher(null);
+                            setDiscountData(null);
+                          }}
+                        >
+                          <XIcon />
+                        </Button>
+                      </div>
                     </div>
-                  </div>
+                  )}
+
                   <Divider className="!my-4" />
                   <div className="grid grid-cols-9">
                     <p className="text-brand-999  text-sm col-span-8">Sub Total</p>
@@ -206,7 +291,14 @@ export const DetailFormAddTransaction = () => {
                   <Divider />
                   <div className="grid grid-cols-9">
                     <p className="text-brand-999  text-sm col-span-8">Discount</p>
-                    <p className="text-brand-999  text-sm text-right col-span-1">-{formatCurrency(0)}</p>
+                    <p className="text-brand-999  text-sm text-right col-span-1">
+                      -
+                      {!discountData
+                        ? formatCurrency(0)
+                        : discountData?.discount_type === "percentage"
+                        ? `${formatCurrency(discountData?.calculated_discount)} (${discountData?.discount_value}%)`
+                        : formatCurrency(discountData?.discount_value)}
+                    </p>
                   </div>
                 </div>
               </div>
@@ -215,7 +307,9 @@ export const DetailFormAddTransaction = () => {
           <CardFooter className="bg-brand-25 rounded-b-xl min-h-[56px] w-full">
             <div className="flex flex-row w-full font-bold text-xl">
               <p className="text-brand-999  text-sm w-[80%]">Total Payment</p>
-              <p className="text-brand-999  text-sm text-right w-full">{formatCurrency(totalPrice)}</p>
+              <p className="text-brand-999  text-sm text-right w-full">
+                {!discountData ? formatCurrency(totalPrice) : formatCurrency(discountData?.final_amount)}
+              </p>
             </div>
           </CardFooter>
         </Card>

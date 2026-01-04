@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { BANK_LIST } from "@/constants/sample-data";
 import { useCreateInstructor } from "@/hooks/api/mutations/admin";
 import { DEFAULT_PASSWORD } from "@/lib/config";
@@ -22,6 +23,7 @@ const defaultValues = {
     label: "",
     value: "",
   },
+  description: "",
   bank_account_number: "",
   password: DEFAULT_PASSWORD,
 };
@@ -65,7 +67,7 @@ export const CreateInstructorPage = () => {
       <FormProvider {...methods}>
         <form onSubmit={onSubmit} className="flex flex-col gap-4">
           <Card>
-            <CardHeader>Basic Information</CardHeader>
+            <CardHeader className="font-medium">Basic Information</CardHeader>
             <CardContent>
               <div className="grid grid-cols-3 gap-2">
                 <FormField
@@ -128,10 +130,29 @@ export const CreateInstructorPage = () => {
                   )}
                 />
               </div>
+              <FormField
+                control={control}
+                name="description"
+                render={({ field }) => (
+                  <FormItem className="flex flex-col pt-4">
+                    <FormLabel className=" text-brand-999 font-medium text-sm" required>
+                      Description
+                    </FormLabel>
+                    <FormControl>
+                      <Textarea
+                        className="w-full px-4 py-4 border-2 border-gray-200 rounded-lg text-gray-999  placeholder-gray-400 focus:outline-none focus:border-brand-500 transition-colors h-[42px]"
+                        placeholder="Type here.."
+                        {...field}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
             </CardContent>
           </Card>
           <Card>
-            <CardHeader>Payment Information</CardHeader>
+            <CardHeader className="font-medium">Payment Information</CardHeader>
             <CardContent>
               <div className="grid grid-cols-2 gap-4">
                 <FormField
