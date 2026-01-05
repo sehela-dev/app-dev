@@ -240,7 +240,7 @@ export const DetailFormAddTransaction = () => {
                     <p className="text-brand-999 font-semibold text-sm">Discount Code</p>
                   </div>
 
-                  {!selectedVoucher ? (
+                  {!discountData ? (
                     <div className="flex flex-row w-full gap-2 items-center">
                       <div className="flex w-full">
                         <DiscountSelectComponent

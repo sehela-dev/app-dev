@@ -17,7 +17,7 @@ export const DiscountSelectComponent = ({ status, selecteValue, setSelectedVouch
   const [search, setSearch] = useState("");
   const debounceSearch = useDebounce(search, 300);
 
-  const { data, isLoading } = useGetDiscountVouchers({ page: 1, limit: 10, search: debounceSearch, status });
+  const { data, isLoading } = useGetDiscountVouchers({ page: 1, limit: 10, search: debounceSearch, status, is_active: "true" });
 
   const onSearch = (e: string) => {
     setSearch(e);
@@ -36,13 +36,13 @@ export const DiscountSelectComponent = ({ status, selecteValue, setSelectedVouch
         }}
         isLoading={isLoading}
         getOptionLabel={(option) =>
-          `${option?.code} - ${option?.name}  (${
+          `${option?.code} - ${option?.name} (${option.usage_count}/${option.usage_limit})  (${
             option.discount_type === "percentage" ? `${option.discount_value}%` : formatCurrency(option.discount_value)
           })`
         }
+        getOptionValue={(opt) => opt.id}
         onInputChange={onSearch}
         onChange={(e) => {
-          console.log(e);
           setSelectedVoucher(e);
         }}
       />

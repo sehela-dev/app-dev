@@ -5,3 +5,4 @@ export * from "./class-session";
 export * from "./instructor";
 export * from "./credit-package";
 export * from "./discounts";
+export * from "./products";

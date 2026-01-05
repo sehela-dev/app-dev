@@ -2,13 +2,14 @@ import { axiosx } from "@/lib/axiosx";
 import { MAIN_API_URL } from "@/lib/config";
 import { TApplyDiscount, TCreateVouchers, TEditVouchers, TGetDiscountDetail, TGetVouchers } from "@/types/discount-voucher.interface";
 
-export const getDiscounts: TGetVouchers = async ({ page, limit, status, search }) => {
+export const getDiscounts: TGetVouchers = async ({ page, limit, status, search, is_active }) => {
   const res = await axiosx(true).get(`${MAIN_API_URL}/admin/vouchers`, {
     params: {
       page,
       page_size: limit,
       ...(search ? { q: search } : null),
       ...(status ? { type: status } : null),
+      ...(is_active ? { is_active: is_active } : null),
     },
   });
   return res.data;

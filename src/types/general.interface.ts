@@ -20,4 +20,5 @@ export interface ICommonParams {
   startDate?: string;
   endDate?: string;
   sort_by?: string;
+  is_active?: string | boolean;
 }
