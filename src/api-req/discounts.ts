@@ -8,7 +8,7 @@ export const getDiscounts: TGetVouchers = async ({ page, limit, status, search, 
       page,
       page_size: limit,
       ...(search ? { q: search } : null),
-      ...(status ? { type: status } : null),
+      ...(status ? { category: status } : null),
       ...(is_active ? { is_active: is_active } : null),
     },
   });
