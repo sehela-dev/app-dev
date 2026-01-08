@@ -34,7 +34,7 @@ export const axiosx = (auth?: boolean, params?: string, type?: string) => {
         toast.error(validationStatus(error.response.status), {
           id: "error",
           description: error.response.message,
-          position: "bottom-center",
+          position: "top-center",
         });
       }
 
@@ -59,7 +59,7 @@ export const clearToken = () => {
   toast.error(validationStatus("401" as string), {
     id: "error",
     description: "Session expired! Please login again to continue",
-    position: "bottom-center",
+    position: "top-center",
   });
   window.location.href = role !== "user" ? "/admin-login" : "/auth/login";
 };

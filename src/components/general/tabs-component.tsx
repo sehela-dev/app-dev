@@ -22,7 +22,7 @@ export const GeneralTabComponent = ({ tabs, selecetedTab, setTab }: ITabs) => {
         <TabsList className="!bg-brand-50 flex w-full items-center gap-2 p-2 duration-300 min-h-[40px] ">
           {tabs?.map((item) => (
             <TabsTrigger
-              className={clsx("min-w-[80px] min-h-[32px] cursor-pointer rounded-md p-2 font-medium text-gray-500 duration-300 w-auto", {
+              className={clsx("min-w-[80px] min-h-[32px] cursor-pointer rounded-md p-2 font-medium text-gray-500 duration-300 w-fit px-8", {
                 "!bg-brand-00 text-brand-999 ": selecetedTab === item.value,
               })}
               value={item.value}

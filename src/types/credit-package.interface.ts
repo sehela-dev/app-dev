@@ -19,6 +19,7 @@ export interface ICreditPackageItem {
   created_at: string;
   updated_at: string;
   price_per_credit_idr: number;
+  is_shareable?: boolean;
 }
 
 export interface ICreatePackagePayload {

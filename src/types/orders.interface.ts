@@ -20,6 +20,7 @@ export interface ICustomerData {
   email: string;
   role?: string;
   is_active?: string;
+  type?: string;
 }
 
 export interface IAdminCartItemData {
@@ -83,6 +84,10 @@ export interface IAddTransactionPayload {
 
 export interface ISession {
   class_session_id: string;
+}
+export interface IPackages {
+  package_id: string;
+  share_with_user_id?: string;
 }
 
 export interface IProduct {

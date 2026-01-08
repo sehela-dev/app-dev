@@ -1,7 +1,7 @@
 import { buildNumber, CustomTable } from "@/components/general/custom-table";
 import { GeneralTabComponent } from "@/components/general/tabs-component";
 
-import { OrderCustomerSectionComponent } from "@/components/page/orders";
+import { CreditPackageTabComponent, OrderCustomerSectionComponent } from "@/components/page/orders";
 import { Button } from "@/components/ui/button";
 
 import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card";
@@ -18,6 +18,7 @@ import { useGetSessions } from "@/hooks/api/queries/admin/class-session";
 import { ISessionItem } from "@/types/class-sessions.interface";
 import { CustomPagination } from "@/components/general/pagination-component";
 import { DateRangePicker } from "@/components/base/date-range-picker";
+import { useDebounce } from "@/hooks";
 
 const tableTabOption = [
   {
@@ -25,13 +26,17 @@ const tableTabOption = [
     name: "Class",
   },
   {
-    value: "buy_product",
-    name: "Buy Product",
+    value: "credit_package",
+    name: "Credit Package",
   },
-  {
-    value: "rent_product",
-    name: "Rent Product",
-  },
+  // {
+  //   value: "buy_product",
+  //   name: "Buy Product",
+  // },
+  // {
+  //   value: "rent_product",
+  //   name: "Rent Product",
+  // },
 ];
 
 export const AddTransactionFOrm = () => {
@@ -41,6 +46,7 @@ export const AddTransactionFOrm = () => {
   const [limit] = useState(10);
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState("");
+  const debounceClass = useDebounce(search, 300);
 
   const [selectedRange, setSelectedRange] = useState({
     from: defaultDate().formattedOneMonthAgo,
@@ -50,7 +56,7 @@ export const AddTransactionFOrm = () => {
     setSearch(query);
   };
 
-  const { data, isLoading } = useGetSessions({ page, limit, startDate: selectedRange.from, endDate: selectedRange.to, search });
+  const { data, isLoading } = useGetSessions({ page, limit, startDate: selectedRange.from, endDate: selectedRange.to, search: debounceClass });
 
   const handleDateRangeChangeDual = (startDate: string, endDate?: string) => {
     setSelectedRange((prev) => ({ ...prev, from: startDate, to: endDate ?? "" }));
@@ -188,59 +194,62 @@ export const AddTransactionFOrm = () => {
         </div>
         <div className="flex flex-col gap-3">
           <div className="flex flex-row justify-between w-full">
-            <div className="max-w-fit">
+            <div className="max-w-fit w-auto">
               <GeneralTabComponent tabs={tableTabOption} selecetedTab={tableTab} setTab={setTableTab} />
             </div>
             <Button variant={"outline"} className="text-brand-999 text-sm font-medium">
               <ListFilter /> Filter
             </Button>
           </div>
-          <Card className="border-brand-100 w-full">
-            <CardHeader className="flex flex-row justify-between w-ful items-center">
-              <div className="flex flex-col gap-1">
-                <h3 className="text-2xl text-brand-999 font-medium">Classes</h3>
-                <p className="text-sm text-gray-500">Enter customer information to book a class</p>
-              </div>
-              <div className="flex flex-row gap-2">
-                <div className="flex  min-w-[60%] w-full">
-                  <DateRangePicker
-                    mode="range"
-                    onDateRangeChange={handleDateRangeChangeDual}
-                    startDate={selectedRange.from}
-                    endDate={selectedRange.to}
-                    allowFutureDates
-                    allowPastDates={false}
-                  />
+          {tableTab === "class" && (
+            <Card className="border-brand-100 w-full">
+              <CardHeader className="flex flex-row justify-between w-ful items-center">
+                <div className="flex flex-col gap-1">
+                  <h3 className="text-2xl text-brand-999 font-medium">Classes</h3>
+                  <p className="text-sm text-gray-500">Enter customer information to book a class</p>
                 </div>
-                <div className="flex w-full">
-                  <SearchInput className="border-brand-100" search={search} onSearch={handleSearch} />
+                <div className="flex flex-row gap-2">
+                  <div className="flex  min-w-[60%] w-full">
+                    <DateRangePicker
+                      mode="range"
+                      onDateRangeChange={handleDateRangeChangeDual}
+                      startDate={selectedRange.from}
+                      endDate={selectedRange.to}
+                      allowFutureDates
+                      allowPastDates={false}
+                    />
+                  </div>
+                  <div className="flex w-full">
+                    <SearchInput className="border-brand-100" search={search} onSearch={handleSearch} />
+                  </div>
                 </div>
-              </div>
-            </CardHeader>
-            <CardContent className="">
-              <CustomTable
-                headers={headers}
-                data={data?.data ?? []}
-                numberOptions={numberOptions}
-                actionOptions={actionOptions}
-                isLoading={isLoading}
-              />
-            </CardContent>
-            <CardFooter>
-              <CustomPagination
-                onPageChange={(e) => {
-                  setPage(e);
-                }}
-                currentPage={page}
-                showTotal
-                hasPrevPage={data?.pagination?.has_prev}
-                hasNextPage={data?.pagination?.has_next}
-                totalItems={data?.pagination?.total_items as number}
-                totalPages={data?.pagination?.total_pages as number}
-                limit={limit}
-              />
-            </CardFooter>
-          </Card>
+              </CardHeader>
+              <CardContent className="">
+                <CustomTable
+                  headers={headers}
+                  data={data?.data ?? []}
+                  numberOptions={numberOptions}
+                  actionOptions={actionOptions}
+                  isLoading={isLoading}
+                />
+              </CardContent>
+              <CardFooter>
+                <CustomPagination
+                  onPageChange={(e) => {
+                    setPage(e);
+                  }}
+                  currentPage={page}
+                  showTotal
+                  hasPrevPage={data?.pagination?.has_prev}
+                  hasNextPage={data?.pagination?.has_next}
+                  totalItems={data?.pagination?.total_items as number}
+                  totalPages={data?.pagination?.total_pages as number}
+                  limit={limit}
+                />
+              </CardFooter>
+            </Card>
+          )}
+          {tableTab === "credit_package" && <CreditPackageTabComponent />}
         </div>
       </div>
       <OrdersCartComponent customerData={customerData} cartItems={cartItems} />

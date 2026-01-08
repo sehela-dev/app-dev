@@ -8,7 +8,7 @@ import { useState } from "react";
 import Select from "react-select";
 
 interface IProps {
-  status: TCategoryVoucher;
+  status?: string[];
   setSelectedVoucher: (data: any) => void;
   selecteValue: any;
 }
@@ -17,7 +17,7 @@ export const DiscountSelectComponent = ({ status, selecteValue, setSelectedVouch
   const [search, setSearch] = useState("");
   const debounceSearch = useDebounce(search, 300);
 
-  const { data, isLoading } = useGetDiscountVouchers({ page: 1, limit: 10, search: debounceSearch, status: "universal", is_active: "true" });
+  const { data, isLoading } = useGetDiscountVouchers({ page: 1, limit: 10, search: debounceSearch, status: String(status), is_active: "true" });
 
   const onSearch = (e: string) => {
     setSearch(e);

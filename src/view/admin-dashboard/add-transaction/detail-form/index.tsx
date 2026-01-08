@@ -13,10 +13,10 @@ import { useAdminManualTransaction } from "@/context/admin/add-transaction.ctx";
 import { formatCurrency } from "@/lib/helper";
 import { BaseDialogConfirmation } from "@/components/general/dialog-confirnation";
 import { useCreateNewManualTrx } from "@/hooks/api/mutations/admin/use-create-manual-order";
-import { IProduct, ISession } from "@/types/orders.interface";
+import { IPackages, IProduct, ISession } from "@/types/orders.interface";
 import { useRouter } from "next/navigation";
 import { useApplyDiscountVoucher } from "@/hooks/api/mutations/admin";
-import { IApplyDiscountResponse, IVouchersListItem, TCategoryVoucher } from "@/types/discount-voucher.interface";
+import { IApplyDiscountResponse, IVouchersListItem } from "@/types/discount-voucher.interface";
 import { DiscountSelectComponent } from "@/components/page/orders/discount-code-select";
 import { XIcon } from "lucide-react";
 export const DetailFormAddTransaction = () => {
@@ -56,6 +56,7 @@ export const DetailFormAddTransaction = () => {
   const onConfirm = async () => {
     const sessions: ISession[] = [];
     const products: IProduct[] = [];
+    const packages: IPackages[] = [];
 
     cartItems?.forEach((item) => {
       if (item.type === "class") {
@@ -67,6 +68,11 @@ export const DetailFormAddTransaction = () => {
           variant_id: item.id as string,
           quantity: item.quantity,
         });
+      } else if (item.type === "packages") {
+        packages.push({
+          package_id: item.id as string,
+          // share_with_user_id: item.quantity,
+        });
       }
     });
 
@@ -76,6 +82,7 @@ export const DetailFormAddTransaction = () => {
       customer_phone: customerData?.phone as string,
       sessions: sessions ?? [],
       products: products ?? [],
+      packages: packages ?? [],
       notes: "Combined purchase",
       status: "paid",
       user_id: customerData?.id as string,
@@ -110,25 +117,25 @@ export const DetailFormAddTransaction = () => {
     // Get unique types from the array
     const uniqueTypes = new Set(cartItems?.map((item) => item.type));
 
-    // If more than one type, return universal
-    if (uniqueTypes.size > 1) {
-      return "universal";
-    }
+    // Map each unique type to its corresponding category
+    const categories = Array.from(uniqueTypes)
+      .map((type) => {
+        switch (type) {
+          case "class":
+            return "booking";
+          case "package":
+            return "package_purchase";
+          case "product":
+            return "order";
+          default:
+            return "booking";
+        }
+      })
+      .filter(Boolean); // Remove null/undefined values
 
-    // If only one type, determine the category
-    const type = Array.from(uniqueTypes)[0];
-
-    switch (type) {
-      case "class":
-        return "booking";
-      case "package":
-        return "package_purchase";
-      case "product":
-        return "order";
-      default:
-        return "universal";
-    }
-  }, []);
+    // Return unique categories
+    return [...new Set(categories)];
+  }, [cartItems]);
 
   const onApplyDiscount = async () => {
     try {
@@ -136,6 +143,7 @@ export const DetailFormAddTransaction = () => {
         code: selectedVoucher?.code as string,
         transaction_type: selectedVoucher?.category as string,
         cart_total_idr: totalPrice,
+        categories: getCategoryFromItems(),
         ...(customerData?.id ? { user_id: customerData.id as string } : null),
       };
       const res = await applyDiscountCode(payload);
@@ -244,9 +252,9 @@ export const DetailFormAddTransaction = () => {
                     <div className="flex flex-row w-full gap-2 items-center">
                       <div className="flex w-full">
                         <DiscountSelectComponent
-                          status={getCategoryFromItems()}
                           selecteValue={selectedVoucher}
                           setSelectedVoucher={setSelectedVoucher}
+                          status={getCategoryFromItems()}
                         />
                         {/* <Input className="w-full border-brand-100" placeholder="Input discount code here..." /> */}
                       </div>

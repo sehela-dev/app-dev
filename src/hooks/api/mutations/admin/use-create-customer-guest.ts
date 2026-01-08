@@ -23,13 +23,13 @@ const useConfig = () => {
       return toast.error(error.response?.data.error.code, {
         id: "error",
         description: error?.response?.data.error.message,
-        position: "bottom-center",
+        position: "top-center",
       });
     }
     return toast.error("Something Wrong!", {
       id: "error",
       description: "Please try again later!",
-      position: "bottom-center",
+      position: "top-center",
     });
   }, []);
 
@@ -37,7 +37,7 @@ const useConfig = () => {
     toast.success(data.message, {
       id: "sucess",
       description: data.message,
-      position: "bottom-center",
+      position: "top-center",
     });
   }, []);
 

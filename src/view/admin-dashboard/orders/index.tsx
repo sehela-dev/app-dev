@@ -74,7 +74,7 @@ export const OrdersPageView = () => {
     {
       id: "date_purchased",
       text: "Date",
-      value: (row: IOrderItem) => formatDateHelper(row?.date_purchased as string, "dd MMM yyyy"),
+      value: (row: IOrderItem) => formatDateHelper(row?.date_purchased as string, "EEEE, dd MMM yyyy, H:mm"),
     },
     {
       id: "payment_method",
@@ -85,6 +85,11 @@ export const OrdersPageView = () => {
       id: "price_idr",
       text: "Amount Received",
       value: (row: IOrderItem) => formatCurrency(row?.price_idr),
+    },
+    {
+      id: "type",
+      text: "Order Type",
+      value: (row: IOrderItem) => <p className="capitalize">{row?.type}</p>,
     },
     {
       id: "status",

@@ -24,13 +24,13 @@ const useConfig = () => {
       return toast.error(validationStatus(error?.response?.status), {
         id: "error",
         description: error?.response?.data.error.message,
-        position: "bottom-center",
+        position: "top-center",
       });
     }
     return toast.error("Something Wrong!", {
       id: "error",
       description: "Please try again later!",
-      position: "bottom-center",
+      position: "top-center",
     });
   }, []);
 
@@ -38,7 +38,7 @@ const useConfig = () => {
     toast.success("Success!", {
       id: "sucess",
       description: "Discount Voucher has been updataed!",
-      position: "bottom-center",
+      position: "top-center",
     });
   }, []);
 
