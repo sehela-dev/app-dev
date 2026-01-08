@@ -10,6 +10,7 @@ export interface IVouchersListItem {
   code: string;
   description: string;
   categories: string[];
+  category?: string;
   discount_type: TDiscountType;
   discount_value: number;
   min_purchase_idr: number;
@@ -44,7 +45,7 @@ export interface ICreateVoucherPaylaod {
 
 export interface IApplyDiscountPaylaod {
   code: string;
-  transaction_type: TCategoryVoucher;
+  transaction_type: string | TCategoryVoucher;
   cart_total_idr: number;
   user_id?: string | null;
 }

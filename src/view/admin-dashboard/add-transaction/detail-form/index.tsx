@@ -134,7 +134,7 @@ export const DetailFormAddTransaction = () => {
     try {
       const payload = {
         code: selectedVoucher?.code as string,
-        transaction_type: selectedVoucher?.category as TCategoryVoucher,
+        transaction_type: selectedVoucher?.category as string,
         cart_total_idr: totalPrice,
         ...(customerData?.id ? { user_id: customerData.id as string } : null),
       };

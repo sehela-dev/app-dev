@@ -65,7 +65,7 @@ export const CreateDiscountVoucherPage = () => {
       const payload = {
         name: data?.name,
         code: data?.code,
-        category: data?.category,
+        categories: data?.category,
         discount_type: data?.discount_type as TDiscountType,
         discount_value: parseInt(data?.discount_value) as number,
         min_purchase_idr: parseInt(data?.min_purchase_idr) as number,
