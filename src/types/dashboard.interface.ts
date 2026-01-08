@@ -37,7 +37,8 @@ export interface IOverviewDashboard {
 
 export interface IOverallResult {
   summary: IOverallResultSummary;
-  by_class: IOverallResultByClass[];
+  by_class?: IOverallResultByClass[];
+  by_category?: IOverallResultByClass[];
 }
 
 export interface IOverallResultSummary {
@@ -56,8 +57,11 @@ export interface IOverallResultSummaryTrendsItem {
 }
 
 export interface IOverallResultByClass {
-  class_id: string;
-  class_name: string;
+  class_id?: string;
+  class_name?: string;
+  category_name?: string;
+  category_id?: string;
+
   all_time_total_idr: number;
   trends: IOverallResultSummaryTrends;
 }

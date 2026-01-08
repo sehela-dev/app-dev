@@ -11,3 +11,8 @@ export const getDashboardSessionPerformance: TSessionPerformance = async () => {
   const res = await axiosx(true).get(`${MAIN_API_URL}/admin/dashboard/session-performance`);
   return res.data;
 };
+
+export const getDashboardProductPerformance: TSessionPerformance = async () => {
+  const res = await axiosx(true).get(`${MAIN_API_URL}/admin/dashboard/product-performance`);
+  return res.data;
+};
