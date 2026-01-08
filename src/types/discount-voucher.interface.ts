@@ -9,7 +9,7 @@ export interface IVouchersListItem {
   name: string;
   code: string;
   description: string;
-  category: string;
+  categories: string[];
   discount_type: TDiscountType;
   discount_value: number;
   min_purchase_idr: number;
@@ -29,7 +29,7 @@ export interface IVouchersListItem {
 export interface ICreateVoucherPaylaod {
   name: string;
   code: string;
-  category: TCategoryVoucher;
+  categories: string[];
   discount_type: TDiscountType;
   discount_value: number;
   min_purchase_idr: number;

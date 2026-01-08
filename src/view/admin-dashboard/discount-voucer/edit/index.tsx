@@ -12,12 +12,11 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { useEditDiscountVoucher } from "@/hooks/api/mutations/admin/use-edit-duscount-voucher";
 import { useGetDiscountVoucherDetail } from "@/hooks/api/queries/admin/discount-voucher";
 import { defaultDate, formatCurrency, formatDateHelper } from "@/lib/helper";
-import { TCategoryVoucher, TDiscountType } from "@/types/discount-voucher.interface";
+import { TDiscountType } from "@/types/discount-voucher.interface";
 import { Loader2 } from "lucide-react";
 import { useParams, useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
 import { FormProvider, useForm } from "react-hook-form";
-import Select from "react-select";
 
 const CATEGORY_OPTIONS = [
   {
@@ -26,31 +25,25 @@ const CATEGORY_OPTIONS = [
   },
   {
     label: "Credit Package",
-    value: "package-purchase",
+    value: "package_purchase",
   },
   {
     label: "Order",
     value: "order",
   },
-  {
-    label: "Universal",
-    value: "universal",
-  },
 ];
-const categoryLabel = {
-  booking: "Class",
-  "package-purchase": "Credit Package",
-  order: "Order",
-  universal: "Universal",
-};
+
+// const categoryLabel = {
+//   booking: "Class",
+//   "package-purchase": "Credit Package",
+//   order: "Order",
+//   universal: "Universal",
+// };
 
 const defaultValues = {
   name: "",
   code: "",
-  category: {
-    label: "Class",
-    value: "booking",
-  },
+  category: [],
   discount_type: "fixed",
   discount_value: "0",
   min_purchase_idr: "0",
@@ -68,7 +61,7 @@ export const EditDiscountVoucherPage = () => {
   const params = useParams();
   const { id } = params;
 
-  const { data: detail, isLoading } = useGetDiscountVoucherDetail(id as string);
+  const { data: detail, isLoading, isFetching } = useGetDiscountVoucherDetail(id as string);
 
   const [open, setOpen] = useState({
     SUCCESS: false,
@@ -80,10 +73,7 @@ export const EditDiscountVoucherPage = () => {
     return {
       name: detail?.data?.name,
       code: detail?.data?.code,
-      category: {
-        label: (categoryLabel as never)[detail?.data?.category],
-        value: detail?.data?.category,
-      },
+      category: detail?.data?.categories,
       discount_type: detail?.data?.discount_type,
       discount_value: detail?.data?.discount_value,
       min_purchase_idr: detail?.data?.min_purchase_idr,
@@ -109,7 +99,7 @@ export const EditDiscountVoucherPage = () => {
       const payload = {
         name: data?.name,
         code: data?.code,
-        category: data?.category.value as TCategoryVoucher,
+        categories: data?.category,
         discount_type: data?.discount_type as TDiscountType,
         discount_value: parseInt(data?.discount_value as string),
         min_purchase_idr: parseInt(data?.min_purchase_idr as string),
@@ -134,7 +124,7 @@ export const EditDiscountVoucherPage = () => {
     setOpen((prev) => ({ ...prev, [type]: !open[type] }));
   };
 
-  if (isLoading)
+  if (isLoading || isFetching)
     return (
       <div className="flex items-center justify-center py-6">
         <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
@@ -205,27 +195,28 @@ export const EditDiscountVoucherPage = () => {
                 control={control}
                 name="category"
                 render={({ field }) => (
-                  <FormItem className="flex flex-col">
-                    <FormLabel className=" text-brand-999 font-medium text-sm">Discount Category</FormLabel>
-                    <FormControl>
-                      <Select
-                        {...field}
-                        options={CATEGORY_OPTIONS as never}
-                        className="basic-multi-select "
-                        isSearchable={false}
-                        classNames={{
-                          control: () =>
-                            "w-full !border-2 !border-gray-200 rounded-lg text-gray-999  focus:outline-none focus:border-brand-500 transition-colors h-[42px] !rounded-md !bg-transparent shadow-xs",
-                          placeholder: () => "placeholder-gray-400",
-                          singleValue: () => "text-brand-999",
-                          input: () => "text-brand-999 bg-none",
-                        }}
-                        onChange={(e) => {
-                          field.onChange(e);
-                        }}
-                      />
-                    </FormControl>
+                  <FormItem className="col-span-2">
+                    <FormLabel className=" text-brand-999 font-medium text-sm">Select Category</FormLabel>
+                    <div className="grid  grid-cols-8 gap-2 spac border border-gray-400 rounded-md p-2">
+                      {CATEGORY_OPTIONS?.map((option) => (
+                        <FormItem key={option.value} className="flex items-center space-x-2 col-span-4">
+                          <FormControl>
+                            <Checkbox
+                              checked={(field.value || []).includes(option?.value as never)}
+                              onCheckedChange={(checked) => {
+                                const currentValue = field.value || [];
+                                return checked
+                                  ? field.onChange([...currentValue, option.value])
+                                  : field.onChange(currentValue.filter((value) => value !== option.value));
+                              }}
+                            />
+                          </FormControl>
+                          <FormLabel className=" text-brand-999 font-medium">{option.label}</FormLabel>
+                        </FormItem>
+                      ))}
+                    </div>
                     <FormMessage />
+                    <FormDescription className="text-brand-500 font-medium mt-2">*) You can select multiple category</FormDescription>
                   </FormItem>
                 )}
               />

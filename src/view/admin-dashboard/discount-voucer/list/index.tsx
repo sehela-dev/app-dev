@@ -108,7 +108,7 @@ export const DiscountVoucherListPageView = () => {
     {
       id: "category",
       text: "Discount Category",
-      value: (row: IVouchersListItem) => <p className="capitalize">{row.category}</p>,
+      value: (row: IVouchersListItem) => <p className="capitalize">{row?.categories.length === 3 ? "Universal" : row.categories?.join(", ")}</p>,
     },
     {
       id: "usage",

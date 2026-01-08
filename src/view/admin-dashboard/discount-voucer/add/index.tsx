@@ -11,11 +11,10 @@ import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { useCreateDiscountVoucher } from "@/hooks/api/mutations/admin";
 import { defaultDate, formatCurrency, formatDateHelper } from "@/lib/helper";
-import { TCategoryVoucher, TDiscountType } from "@/types/discount-voucher.interface";
+import { TDiscountType } from "@/types/discount-voucher.interface";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { FormProvider, useForm } from "react-hook-form";
-import Select from "react-select";
 
 const CATEGORY_OPTIONS = [
   {
@@ -24,25 +23,18 @@ const CATEGORY_OPTIONS = [
   },
   {
     label: "Credit Package",
-    value: "package-purchase",
+    value: "package_purchase",
   },
   {
     label: "Order",
     value: "order",
-  },
-  {
-    label: "Universal",
-    value: "universal",
   },
 ];
 
 const defaultValues = {
   name: "",
   code: "",
-  category: {
-    label: "Class",
-    value: "booking",
-  },
+  category: [""],
   discount_type: "fixed",
   discount_value: "0",
   min_purchase_idr: "0",
@@ -73,7 +65,7 @@ export const CreateDiscountVoucherPage = () => {
       const payload = {
         name: data?.name,
         code: data?.code,
-        category: data?.category.value as TCategoryVoucher,
+        category: data?.category,
         discount_type: data?.discount_type as TDiscountType,
         discount_value: parseInt(data?.discount_value) as number,
         min_purchase_idr: parseInt(data?.min_purchase_idr) as number,
@@ -162,27 +154,28 @@ export const CreateDiscountVoucherPage = () => {
                 control={control}
                 name="category"
                 render={({ field }) => (
-                  <FormItem className="flex flex-col">
-                    <FormLabel className=" text-brand-999 font-medium text-sm">Discount Category</FormLabel>
-                    <FormControl>
-                      <Select
-                        {...field}
-                        options={CATEGORY_OPTIONS as never}
-                        className="basic-multi-select "
-                        isSearchable={false}
-                        classNames={{
-                          control: () =>
-                            "w-full !border-2 !border-gray-200 rounded-lg text-gray-999  focus:outline-none focus:border-brand-500 transition-colors h-[42px] !rounded-md !bg-transparent shadow-xs",
-                          placeholder: () => "placeholder-gray-400",
-                          singleValue: () => "text-brand-999",
-                          input: () => "text-brand-999 bg-none",
-                        }}
-                        onChange={(e) => {
-                          field.onChange(e);
-                        }}
-                      />
-                    </FormControl>
+                  <FormItem className="col-span-2">
+                    <FormLabel className=" text-brand-999 font-medium text-sm">Select Category</FormLabel>
+                    <div className="grid  grid-cols-8 gap-2 spac border border-gray-400 rounded-md p-2">
+                      {CATEGORY_OPTIONS?.map((option) => (
+                        <FormItem key={option.value} className="flex items-center space-x-2 col-span-4">
+                          <FormControl>
+                            <Checkbox
+                              checked={(field.value || []).includes(option?.value as string)}
+                              onCheckedChange={(checked) => {
+                                const currentValue = field.value || [];
+                                return checked
+                                  ? field.onChange([...currentValue, option.value])
+                                  : field.onChange(currentValue.filter((value) => value !== option.value));
+                              }}
+                            />
+                          </FormControl>
+                          <FormLabel className=" text-brand-999 font-medium">{option.label}</FormLabel>
+                        </FormItem>
+                      ))}
+                    </div>
                     <FormMessage />
+                    <FormDescription className="text-brand-500 font-medium mt-2">*) You can select multiple category</FormDescription>
                   </FormItem>
                 )}
               />

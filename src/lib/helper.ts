@@ -1,3 +1,4 @@
+import { IOverallResultByClass } from "@/types/dashboard.interface";
 import { addMonths, format, parseISO, subDays, subMonths } from "date-fns";
 import { id } from "date-fns/locale";
 
@@ -273,4 +274,12 @@ export function combineToISOString(date: string, time: string): string {
 
   // Convert to ISO string and remove milliseconds
   return dateTime.toISOString().replace(/\.\d{3}Z$/, "Z");
+}
+
+export function splitArray(array: any, chunkSize: number) {
+  const chunks = [];
+  for (let i = 0; i < array?.length; i += chunkSize) {
+    chunks.push(array.slice(i, i + chunkSize));
+  }
+  return chunks;
 }
