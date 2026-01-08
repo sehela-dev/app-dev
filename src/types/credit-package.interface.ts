@@ -33,6 +33,7 @@ export interface ICreatePackagePayload {
   session_type_restriction?: string;
   package_type: string;
   is_active: boolean;
+  is_shareable: boolean;
 }
 
 export interface ICreditPackageDetail {
@@ -56,6 +57,7 @@ export interface ICreditPackageDetail {
     name: string;
     id: string;
   }[];
+  is_shareable: boolean;
 }
 
 export interface IPackageFormValues {
@@ -69,6 +71,7 @@ export interface IPackageFormValues {
   class_ids_restriction: string[];
   package_type: string;
   is_active: boolean;
+  is_shareable: boolean;
 }
 export type TCreatePackage = (data: ICreatePackagePayload) => Promise<IResponseData<ICreditPackageItem>>;
 export type TEditPackage = ({ id, data }: { id: string; data: ICreatePackagePayload }) => Promise<IResponseData<ICreditPackageItem>>;

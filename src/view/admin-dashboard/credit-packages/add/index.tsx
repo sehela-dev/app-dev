@@ -20,6 +20,7 @@ import { Loader2 } from "lucide-react";
 import { ICreatePackagePayload, IPackageFormValues } from "@/types/credit-package.interface";
 import { BaseDialogConfirmation } from "@/components/general/dialog-confirnation";
 import { useRouter } from "next/navigation";
+import { Switch } from "@/components/ui/switch";
 
 const sessionType = [
   {
@@ -47,6 +48,7 @@ const defaultValues: IPackageFormValues = {
   class_ids_restriction: [], //specific class UUID or null
   package_type: "purchase",
   is_active: true,
+  is_shareable: false,
 };
 export const AddCreditPacakgesPage = () => {
   const router = useRouter();
@@ -80,6 +82,7 @@ export const AddCreditPacakgesPage = () => {
         class_ids_restriction: data?.class_ids_restriction,
         place_restriction: data?.place_restriction,
         session_type_restriction: data?.session_type_restriction,
+        is_shareable: data?.is_shareable,
       };
 
       const res = await mutateAsync(payload);
@@ -237,6 +240,21 @@ export const AddCreditPacakgesPage = () => {
                         />
                       </FormControl>
                       <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={control}
+                  name="is_shareable"
+                  render={({ field }) => (
+                    <FormItem className="flex flex-row w-full justify-between items-center pt-4">
+                      <div className="flex flex-col gap-2">
+                        <FormLabel className=" text-brand-999 font-medium text-sm">Allow Sharing</FormLabel>
+                        <FormDescription>Enable if this credit can be shared with friend</FormDescription>
+                      </div>
+                      <FormControl>
+                        <Switch checked={field.value} onCheckedChange={field.onChange} />
+                      </FormControl>
                     </FormItem>
                   )}
                 />

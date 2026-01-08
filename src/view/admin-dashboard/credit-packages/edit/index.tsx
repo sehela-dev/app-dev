@@ -20,6 +20,7 @@ import { Loader2 } from "lucide-react";
 import { ICreatePackagePayload, IPackageFormValues } from "@/types/credit-package.interface";
 import { useGetCreditPackageDetail } from "@/hooks/api/queries/admin/credit-package/use-get-credit-package-detail";
 import { useParams, useRouter } from "next/navigation";
+import { Switch } from "@/components/ui/switch";
 
 const sessionType = [
   {
@@ -47,6 +48,7 @@ const defaultValues: IPackageFormValues = {
   class_ids_restriction: [], //specific class UUID or null
   package_type: "purchase",
   is_active: true,
+  is_shareable: false,
 };
 export const EditCreditPacakgesPage = () => {
   const router = useRouter();
@@ -79,6 +81,7 @@ export const EditCreditPacakgesPage = () => {
       class_ids_restriction: data?.data?.class_ids_restriction?.map((item) => item.id) || [], // Make sure to provide fallback
       package_type: "purchase",
       is_active: true,
+      is_shareable: data?.data?.is_shareable,
     };
   }, [data?.data]);
 
@@ -98,6 +101,7 @@ export const EditCreditPacakgesPage = () => {
         class_ids_restriction: data?.class_ids_restriction,
         place_restriction: data?.place_restriction,
         session_type_restriction: data?.session_type_restriction,
+        is_shareable: data?.is_shareable,
       };
       const res = await mutateAsync({ id: id as string, data: payload });
       if (res) {
@@ -118,8 +122,8 @@ export const EditCreditPacakgesPage = () => {
   return (
     <div className="flex w-full  flex-col gap-2">
       <div className="flex flex-col">
-        <h3 className="text-2xl text-brand-999 font-semibold">Create Credit Package</h3>
-        <p className="text-sm text-gray-500">Fill in the details to create a new credit package.</p>
+        <h3 className="text-2xl text-brand-999 font-semibold">Edit Credit Package</h3>
+        <p className="text-sm text-gray-500">Fill in the details to modify existing package.</p>
       </div>
       <FormProvider {...methods}>
         <form onSubmit={onSubmit}>
@@ -253,6 +257,21 @@ export const EditCreditPacakgesPage = () => {
                         />
                       </FormControl>
                       <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={control}
+                  name="is_shareable"
+                  render={({ field }) => (
+                    <FormItem className="flex flex-row w-full justify-between items-center pt-4">
+                      <div className="flex flex-col gap-2">
+                        <FormLabel className=" text-brand-999 font-medium text-sm">Allow Sharing</FormLabel>
+                        <FormDescription>Enable if this credit can be shared with friend</FormDescription>
+                      </div>
+                      <FormControl>
+                        <Switch checked={field.value} onCheckedChange={field.onChange} />
+                      </FormControl>
                     </FormItem>
                   )}
                 />

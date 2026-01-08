@@ -119,6 +119,11 @@ export const CreditPackagePageView = () => {
       value: (row: ICreditPackageItem) => formatCurrency(row?.price_idr),
     },
     {
+      id: "is_shareable",
+      text: "Sharing",
+      value: (row: ICreditPackageItem) => (row?.is_shareable ? "Yes" : "No"),
+    },
+    {
       id: "validity_days",
       text: "Valid for",
       value: (row: ICreditPackageItem) => <p>{row.validity_days} Days</p>,
