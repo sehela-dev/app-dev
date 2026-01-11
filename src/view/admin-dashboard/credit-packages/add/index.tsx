@@ -22,7 +22,7 @@ import { BaseDialogConfirmation } from "@/components/general/dialog-confirnation
 import { useRouter } from "next/navigation";
 import { Switch } from "@/components/ui/switch";
 
-const sessionType = [
+export const sessionType = [
   {
     value: "all",
     label: "Online & Offline",

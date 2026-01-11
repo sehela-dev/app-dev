@@ -1,6 +1,8 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
 
 import { BaseDialogConfirmation } from "@/components/general/dialog-confirnation";
+import { InstructorPaymentModelForm } from "@/components/page/instructor-payment/form";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
@@ -10,16 +12,17 @@ import { BANK_LIST } from "@/constants/sample-data";
 import { useEditInstructor } from "@/hooks/api/mutations/admin";
 import { useGetInstructorDetail } from "@/hooks/api/queries/admin/instructor";
 import { DEFAULT_PASSWORD } from "@/lib/config";
+import { IFormValuesAddInstructor, IInstructorDetails } from "@/types/instructor.interface";
 import { Loader2 } from "lucide-react";
 import { useParams, useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
 import { FormProvider, useForm } from "react-hook-form";
 import Select from "react-select";
 
-const defaultValues = {
+const defaultValues: IFormValuesAddInstructor = {
   full_name: "",
   email: "",
-  // password:''
+
   phone: "",
   bank_name: {
     label: "",
@@ -27,8 +30,84 @@ const defaultValues = {
   },
   description: "",
   bank_account_number: "",
+  regular: {},
+  reg_online: {},
+  private: {},
+
+  special: {},
+
   password: DEFAULT_PASSWORD,
 };
+
+const PAYMENT_MODELS = [
+  {
+    name: "Regular Offline",
+    value: "regular",
+  },
+  {
+    name: "Regular Online",
+    value: "reg_online",
+  },
+  {
+    name: "Private",
+    value: "private",
+  },
+  {
+    name: "Special",
+    value: "special",
+  },
+];
+
+export function transformApiToFormValues(apiData: IInstructorDetails): IFormValuesAddInstructor {
+  console.log(apiData);
+  const formValues: IFormValuesAddInstructor = {
+    full_name: apiData.full_name,
+    email: apiData.email,
+    phone: apiData.phone || "",
+    description: apiData.description || "",
+    bank_name: {
+      label: apiData.bank_name || "",
+      value: apiData.bank_name || "",
+    },
+    bank_account_number: apiData.bank_account_number || "",
+    status: apiData.status,
+    regular: {},
+    reg_online: {},
+    private: {},
+    special: {},
+  };
+
+  // Process payment rules if they exist
+  if (apiData.payment_rules && apiData.payment_rules.length > 0) {
+    apiData.payment_rules.forEach((rule: any) => {
+      // Convert number values to strings for form inputs
+      const modelParams: any = {};
+      if (rule.model_params) {
+        Object.keys(rule.model_params).forEach((key) => {
+          modelParams[key] = String(rule.model_params[key]);
+        });
+      }
+
+      const paymentRule = {
+        payment_model: rule.payment_model,
+        model_params: modelParams,
+      };
+
+      // Map to the correct form field
+      if (rule.session_type === "regular" && rule.session_place === "offline") {
+        formValues.regular = paymentRule;
+      } else if (rule.session_type === "regular" && rule.session_place === "online") {
+        formValues.reg_online = paymentRule;
+      } else if (rule.session_type === "private") {
+        formValues.private = paymentRule;
+      } else if (rule.session_type === "special") {
+        formValues.special = paymentRule;
+      }
+    });
+  }
+
+  return formValues;
+}
 
 export const EditInstructorPage = () => {
   const router = useRouter();
@@ -44,17 +123,7 @@ export const EditInstructorPage = () => {
 
   const values = useMemo(() => {
     if (!data?.data) return defaultValues;
-    return {
-      full_name: data?.data?.full_name,
-      email: data?.data?.email,
-      phone: data?.data?.phone,
-      description: data?.data?.description,
-      bank_name: {
-        label: data?.data?.bank_name,
-        value: "",
-      },
-      bank_account_number: data?.data?.bank_account_number,
-    };
+    return transformApiToFormValues(data?.data);
   }, [data]);
 
   const methods = useForm({ defaultValues, values });
@@ -85,6 +154,7 @@ export const EditInstructorPage = () => {
       </div>
     );
 
+  console.log(values);
   return (
     <div className="flex flex-col gap-4">
       <div className="flex flex-col">
@@ -176,6 +246,14 @@ export const EditInstructorPage = () => {
                   </FormItem>
                 )}
               />
+            </CardContent>
+          </Card>
+          <Card>
+            <CardHeader className="font-medium">Payment Models</CardHeader>
+            <CardContent>
+              {PAYMENT_MODELS.map((item) => (
+                <InstructorPaymentModelForm key={item.value} label={item.name} prefix={item.value} />
+              ))}
             </CardContent>
           </Card>
           <Card>

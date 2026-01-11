@@ -61,7 +61,7 @@ export const DashboardPage = () => {
   const categoryList = useMemo(() => {
     const temp: string[] = [];
     dashboardOverViewProduct?.data?.by_category?.forEach((element) => {
-      temp.push(element?.class_name as string);
+      temp.push(element?.category_name as string);
     });
     const moreClass = temp.length - 3;
 
@@ -324,8 +324,8 @@ export const DashboardPage = () => {
                     </div> */}
                   </div>
                   <div className="text-gray-500 text-wrap  flex-wrap max-w-[75%] ">
-                    <p className="w-full ">{categoryList?.temp.slice(0, 3)?.join(", ")},</p>
-                    <span>and {categoryList.moreClass} other category</span>
+                    <p className="w-full ">{categoryList?.temp.slice(0, 3)?.join(", ")}</p>
+                    {categoryList.moreClass > 0 && <span>, and {categoryList.moreClass} other category</span>}
                   </div>
 
                   {/* <p className="text-gray-500 capitalize text-wrap flex-wrap max-w-[75%] ">{classList?.join(", ")}</p> */}
