@@ -76,89 +76,6 @@ export const CreateInstructorPage = () => {
 
   const { mutateAsync } = useCreateInstructor();
 
-  function cleanModelParams(params?: IModelParams): IModelParams {
-    if (!params) return {};
-
-    const cleaned: IModelParams = {};
-
-    Object.keys(params).forEach((key) => {
-      const value = params[key as keyof IModelParams];
-      if (value !== undefined && value !== null) {
-        // Convert string to number
-        const numValue = typeof value === "string" ? Number(value) : value;
-        // Only include if it's a valid number
-        if (!isNaN(numValue)) {
-          cleaned[key as keyof IModelParams] = numValue;
-        }
-      }
-    });
-
-    return cleaned;
-  }
-
-  function transformFormToPayload(formData: IFormValuesAddInstructor): ICreateIntructorPayload {
-    const payload = {
-      email: formData.email,
-      full_name: formData.full_name,
-      description: formData.description,
-      bank_name: formData?.bank_name.label,
-      phone: formData?.phone,
-      bank_account_number: formData.bank_account_number,
-      payment_rules: formData.payment_rules,
-      password: formData?.password,
-    };
-
-    // Build payment_rules array
-    const paymentRules: IPaymentRule[] = [];
-
-    // Add regular (offline) if it has a payment_model
-    if (formData.regular?.payment_model) {
-      paymentRules.push({
-        session_type: "regular",
-        session_place: "offline",
-        payment_model: formData.regular.payment_model,
-        model_params: cleanModelParams(formData.regular.model_params || {}),
-      });
-    }
-
-    // Add reg_online (regular online) if it has a payment_model
-    if (formData.reg_online?.payment_model) {
-      paymentRules.push({
-        session_type: "regular",
-        session_place: "online",
-        payment_model: formData.reg_online.payment_model,
-        model_params: cleanModelParams(formData.reg_online.model_params || {}),
-      });
-    }
-
-    // Add private if it has a payment_model
-    if (formData.private?.payment_model) {
-      paymentRules.push({
-        session_type: "private",
-        session_place: null,
-        payment_model: formData.private.payment_model,
-        model_params: cleanModelParams(formData.private.model_params || {}),
-      });
-    }
-
-    // Add special if it has a payment_model
-    if (formData.special?.payment_model) {
-      paymentRules.push({
-        session_type: "special",
-        session_place: null,
-        payment_model: formData.special.payment_model,
-        model_params: cleanModelParams(formData.special.model_params || {}),
-      });
-    }
-
-    // Only add payment_rules if there are any
-    if (paymentRules.length > 0) {
-      payload.payment_rules = paymentRules;
-    }
-
-    return payload;
-  }
-
   const onSubmit = handleSubmit(async (data) => {
     try {
       const payload = transformFormToPayload(data);
@@ -378,3 +295,86 @@ export const CreateInstructorPage = () => {
     </div>
   );
 };
+
+export function cleanModelParams(params?: IModelParams): IModelParams {
+  if (!params) return {};
+
+  const cleaned: IModelParams = {};
+
+  Object.keys(params).forEach((key) => {
+    const value = params[key as keyof IModelParams];
+    if (value !== undefined && value !== null) {
+      // Convert string to number
+      const numValue = typeof value === "string" ? Number(value) : value;
+      // Only include if it's a valid number
+      if (!isNaN(numValue)) {
+        cleaned[key as keyof IModelParams] = numValue;
+      }
+    }
+  });
+
+  return cleaned;
+}
+
+export function transformFormToPayload(formData: IFormValuesAddInstructor): ICreateIntructorPayload {
+  const payload = {
+    email: formData.email,
+    full_name: formData.full_name,
+    description: formData.description,
+    bank_name: formData?.bank_name.label,
+    phone: formData?.phone,
+    bank_account_number: formData.bank_account_number,
+    payment_rules: formData.payment_rules,
+    password: formData?.password,
+  };
+
+  // Build payment_rules array
+  const paymentRules: IPaymentRule[] = [];
+
+  // Add regular (offline) if it has a payment_model
+  if (formData.regular?.payment_model) {
+    paymentRules.push({
+      session_type: "regular",
+      session_place: "offline",
+      payment_model: formData.regular.payment_model,
+      model_params: cleanModelParams(formData.regular.model_params || {}),
+    });
+  }
+
+  // Add reg_online (regular online) if it has a payment_model
+  if (formData.reg_online?.payment_model) {
+    paymentRules.push({
+      session_type: "regular",
+      session_place: "online",
+      payment_model: formData.reg_online.payment_model,
+      model_params: cleanModelParams(formData.reg_online.model_params || {}),
+    });
+  }
+
+  // Add private if it has a payment_model
+  if (formData.private?.payment_model) {
+    paymentRules.push({
+      session_type: "private",
+      session_place: null,
+      payment_model: formData.private.payment_model,
+      model_params: cleanModelParams(formData.private.model_params || {}),
+    });
+  }
+
+  // Add special if it has a payment_model
+  if (formData.special?.payment_model) {
+    paymentRules.push({
+      session_type: "special",
+      session_place: null,
+      payment_model: formData.special.payment_model,
+      model_params: cleanModelParams(formData.special.model_params || {}),
+    });
+  }
+
+  // Only add payment_rules if there are any
+  if (paymentRules.length > 0) {
+    payload.payment_rules = paymentRules;
+  }
+
+  return payload;
+}

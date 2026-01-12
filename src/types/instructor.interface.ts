@@ -39,15 +39,10 @@ export interface IInstructorDetails {
 }
 
 export interface IPaymentRuleResponse {
-  id: string;
-  instructor_id: string;
   session_type: string;
   session_place: string | null;
   payment_model: string;
   model_params: IModelParams;
-  is_active: boolean;
-  created_at: string;
-  updated_at: string;
 }
 
 export interface IPaymentRule {
@@ -64,6 +59,10 @@ export interface IModelParams {
   amount?: number;
   credit_rate?: number;
   non_credit_rate?: number;
+  base_amount?: number;
+  additional_per_person?: number;
+  base_people?: number;
+  per_person_amount?: number;
 }
 
 export interface IFormValuesAddInstructor extends Omit<ICreateIntructorPayload, "bank_name"> {
@@ -71,10 +70,10 @@ export interface IFormValuesAddInstructor extends Omit<ICreateIntructorPayload, 
     label: string;
     value: string;
   };
-  regular: IPaymentRuleForm;
-  reg_online: IPaymentRuleForm;
-  private: IPaymentRuleForm;
-  special: IPaymentRuleForm;
+  regular: IPaymentRuleForm | null;
+  reg_online: IPaymentRuleForm | null;
+  private: IPaymentRuleForm | null;
+  special: IPaymentRuleForm | null;
   payment_model?: string;
 }
 

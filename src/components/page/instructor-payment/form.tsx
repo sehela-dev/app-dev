@@ -46,11 +46,11 @@ export const InstructorPaymentModelForm = ({ prefix, label }: IProps) => {
   const regular = watch(prefix);
   const paymentModel = watch(`${prefix}.payment_model`);
 
-  useEffect(() => {
-    if (paymentModel) {
-      setValue(`${prefix}.model_params`, {});
-    }
-  }, [paymentModel, prefix, setValue]);
+  // useEffect(() => {
+  //   if (paymentModel) {
+  //     setValue(`${prefix}.model_params`, {});
+  //   }
+  // }, [paymentModel, prefix, setValue]);
 
   return (
     <div>
@@ -65,7 +65,7 @@ export const InstructorPaymentModelForm = ({ prefix, label }: IProps) => {
               </div>
               <FormControl>
                 <Switch
-                  checked={field.value}
+                  checked={!!field.value}
                   onCheckedChange={(e) => {
                     field.onChange(e);
                   }}
@@ -86,10 +86,12 @@ export const InstructorPaymentModelForm = ({ prefix, label }: IProps) => {
                   </FormLabel>
                   <FormControl>
                     <Select
+                      {...field}
                       onValueChange={(e) => {
                         field.onChange(e);
                       }}
-                      {...field}
+                      defaultValue={field.value}
+                      value={field.value}
                     >
                       <SelectTrigger className="w-full px-4 py-4 border-2 border-gray-200 rounded-lg text-gray-999  placeholder-gray-400 focus:outline-none focus:border-brand-500 transition-colors h-[42px]">
                         <SelectValue placeholder="Select Class Type" className="!text-gray-400" />
@@ -112,7 +114,7 @@ export const InstructorPaymentModelForm = ({ prefix, label }: IProps) => {
             {paymentModel === "percentage" && (
               <FormField
                 control={control}
-                name={`${prefix}.model_params.amount`}
+                name={`${prefix}.model_params.percentage`}
                 rules={{
                   pattern: {
                     value: /^[0-9]+$/,

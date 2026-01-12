@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
 
 import { BaseDialogConfirmation } from "@/components/general/dialog-confirnation";
@@ -12,12 +11,13 @@ import { BANK_LIST } from "@/constants/sample-data";
 import { useEditInstructor } from "@/hooks/api/mutations/admin";
 import { useGetInstructorDetail } from "@/hooks/api/queries/admin/instructor";
 import { DEFAULT_PASSWORD } from "@/lib/config";
-import { IFormValuesAddInstructor, IInstructorDetails } from "@/types/instructor.interface";
+import { IFormValuesAddInstructor, IInstructorDetails, IModelParams } from "@/types/instructor.interface";
 import { Loader2 } from "lucide-react";
 import { useParams, useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
 import { FormProvider, useForm } from "react-hook-form";
 import Select from "react-select";
+import { transformFormToPayload } from "../create";
 
 const defaultValues: IFormValuesAddInstructor = {
   full_name: "",
@@ -30,13 +30,11 @@ const defaultValues: IFormValuesAddInstructor = {
   },
   description: "",
   bank_account_number: "",
-  regular: {},
-  reg_online: {},
-  private: {},
+  regular: null,
+  reg_online: null,
+  private: null,
 
-  special: {},
-
-  password: DEFAULT_PASSWORD,
+  special: null,
 };
 
 const PAYMENT_MODELS = [
@@ -57,9 +55,7 @@ const PAYMENT_MODELS = [
     value: "special",
   },
 ];
-
 export function transformApiToFormValues(apiData: IInstructorDetails): IFormValuesAddInstructor {
-  console.log(apiData);
   const formValues: IFormValuesAddInstructor = {
     full_name: apiData.full_name,
     email: apiData.email,
@@ -77,14 +73,30 @@ export function transformApiToFormValues(apiData: IInstructorDetails): IFormValu
     special: {},
   };
 
+  // Define which fields are valid for each payment model
+  const validFieldsByModel: Record<string, (keyof IModelParams)[]> = {
+    percentage: ["percentage"],
+    percentage_with_min: ["percentage", "min_amount", "min_threshold_people"],
+    fixed: ["amount"],
+    tiered: ["base_amount", "base_people", "additional_per_person"],
+    source_based: ["credit_rate", "non_credit_rate"],
+    per_person_with_min: ["per_person_amount", "min_amount"],
+  };
+
   // Process payment rules if they exist
   if (apiData.payment_rules && apiData.payment_rules.length > 0) {
-    apiData.payment_rules.forEach((rule: any) => {
-      // Convert number values to strings for form inputs
-      const modelParams: any = {};
+    apiData.payment_rules.forEach((rule) => {
+      // Get valid fields for this payment model
+      const validFields = validFieldsByModel[rule.payment_model] || [];
+
+      // Convert number values to strings for form inputs, filtering by valid fields only
+      const modelParams: Record<string, string> = {};
       if (rule.model_params) {
-        Object.keys(rule.model_params).forEach((key) => {
-          modelParams[key] = String(rule.model_params[key]);
+        validFields.forEach((field) => {
+          const value = rule.model_params[field];
+          if (value !== undefined && value !== null) {
+            modelParams[field] = String(value);
+          }
         });
       }
 
@@ -93,7 +105,7 @@ export function transformApiToFormValues(apiData: IInstructorDetails): IFormValu
         model_params: modelParams,
       };
 
-      // Map to the correct form field
+      // Map to the correct form field based on session_type and session_place
       if (rule.session_type === "regular" && rule.session_place === "offline") {
         formValues.regular = paymentRule;
       } else if (rule.session_type === "regular" && rule.session_place === "online") {
@@ -124,16 +136,13 @@ export const EditInstructorPage = () => {
   const values = useMemo(() => {
     if (!data?.data) return defaultValues;
     return transformApiToFormValues(data?.data);
-  }, [data]);
+  }, [data?.data]);
 
   const methods = useForm({ defaultValues, values });
   const { control, handleSubmit } = methods;
   const onSubmit = handleSubmit(async (data) => {
     try {
-      const payload = {
-        ...data,
-        bank_name: data?.bank_name.label,
-      };
+      const payload = transformFormToPayload(data);
       const res = await mutateAsync({ data: payload, id: id as string });
       if (res) {
         handleOpenModal("SUCCESS");
@@ -154,7 +163,6 @@ export const EditInstructorPage = () => {
       </div>
     );
 
-  console.log(values);
   return (
     <div className="flex flex-col gap-4">
       <div className="flex flex-col">
