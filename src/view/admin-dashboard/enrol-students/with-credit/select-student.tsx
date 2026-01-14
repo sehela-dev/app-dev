@@ -79,49 +79,53 @@ export const SelectStudentWithCreditComponent = ({ selectedSession }: IProps) =>
                         </div>
                       </div>
                     </div>
-                    {walletCust?.data && (customerData?.id as string) === item.id && (
-                      <div className="flex flex-col ml-4 mb-4">
-                        {loadingWallet ? (
-                          <div className="flex items-center justify-center py-6">
-                            <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
-                          </div>
-                        ) : walletCust?.data?.eligible_packages?.length > 0 ? (
-                          <div className="flex flex-col gap-1">
-                            <p className="text-sm text-gray-500">Select Credit</p>
-                            <div className="grid grid-cols-3 gap-2">
-                              {walletCust?.data.eligible_packages?.map((wallet) => (
-                                <div
-                                  className={cn(
-                                    "border border-brand-100 max-w-auto min-w-[250px]  max-h-[100px] rounded-lg px-4 py-2 hover:bg-brand-50  hover:border-brand-500 cursor-pointer",
-                                    {
-                                      "border-brand-500 bg-brand-50": wallet.package_purchase_id === customerData?.package?.package_purchase_id,
-                                    },
-                                  )}
-                                  key={wallet.package_purchase_id}
-                                  onClick={() =>
-                                    addCustomer({
-                                      email: item.email,
-                                      name: item.full_name,
-                                      id: item.id,
-                                      phone: item.phone,
-                                      package: wallet,
-                                    })
-                                  }
-                                >
-                                  <div className="flex flex-col justify-center">
-                                    <p className="text-md font-semibold text-gray-600">{wallet.package_name}</p>
-                                    <p className="text-xs text-green-500 font-semibold">{wallet.credits_remaining} Credit</p>
-                                  </div>
+                    {loadingWallet && customerData?.id === item.id ? (
+                      <div className="flex items-center justify-center py-6">
+                        <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+                      </div>
+                    ) : (
+                      <>
+                        {walletCust?.data && (customerData?.id as string) === item.id && (
+                          <div className="flex flex-col ml-4 mb-4">
+                            {walletCust?.data?.eligible_packages?.length > 0 ? (
+                              <div className="flex flex-col gap-1">
+                                <p className="text-sm text-gray-500">Select Credit</p>
+                                <div className="grid grid-cols-3 gap-2">
+                                  {walletCust?.data.eligible_packages?.map((wallet) => (
+                                    <div
+                                      className={cn(
+                                        "border border-brand-100 max-w-auto min-w-[250px]  max-h-[100px] rounded-lg px-4 py-2 hover:bg-brand-50  hover:border-brand-500 cursor-pointer",
+                                        {
+                                          "border-brand-500 bg-brand-50": wallet.package_purchase_id === customerData?.package?.package_purchase_id,
+                                        },
+                                      )}
+                                      key={wallet.package_purchase_id}
+                                      onClick={() =>
+                                        addCustomer({
+                                          email: item.email,
+                                          name: item.full_name,
+                                          id: item.id,
+                                          phone: item.phone,
+                                          package: wallet,
+                                        })
+                                      }
+                                    >
+                                      <div className="flex flex-col justify-center">
+                                        <p className="text-md font-semibold text-gray-600">{wallet.package_name}</p>
+                                        <p className="text-xs text-green-500 font-semibold">{wallet.credits_remaining} Credit</p>
+                                      </div>
+                                    </div>
+                                  ))}
                                 </div>
-                              ))}
-                            </div>
-                          </div>
-                        ) : (
-                          <div className="text-center py-4">
-                            <div className="text-gray-500 text-sm">No Eligible Credit for this session</div>
+                              </div>
+                            ) : (
+                              <div className="text-center py-4">
+                                <div className="text-gray-500 text-sm">No Eligible Credit for this session</div>
+                              </div>
+                            )}
                           </div>
                         )}
-                      </div>
+                      </>
                     )}
                   </div>
                 ))

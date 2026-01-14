@@ -49,8 +49,8 @@ export const AddTransactionFOrm = () => {
   const debounceClass = useDebounce(search, 300);
 
   const [selectedRange, setSelectedRange] = useState({
-    from: defaultDate().formattedOneMonthAgo,
-    to: defaultDate().formattedToday,
+    from: defaultDate().formattedToday,
+    to: defaultDate().formattedOneMonthLater,
   });
   const handleSearch = (query: string) => {
     setSearch(query);
