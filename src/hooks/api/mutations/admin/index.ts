@@ -13,3 +13,4 @@ export * from "./use-edit-credit-package";
 export * from "./use-delete-credit-package";
 export * from "./use-create-discount-voucher";
 export * from "./use-apply-discount-voucher";
+export * from "./use-booking-session";

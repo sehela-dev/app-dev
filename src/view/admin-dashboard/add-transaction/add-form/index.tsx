@@ -56,7 +56,14 @@ export const AddTransactionFOrm = () => {
     setSearch(query);
   };
 
-  const { data, isLoading } = useGetSessions({ page, limit, startDate: selectedRange.from, endDate: selectedRange.to, search: debounceClass });
+  const { data, isLoading } = useGetSessions({
+    page,
+    limit,
+    startDate: selectedRange.from,
+    endDate: selectedRange.to,
+    search: debounceClass,
+    status: "scheduled",
+  });
 
   const handleDateRangeChangeDual = (startDate: string, endDate?: string) => {
     setSelectedRange((prev) => ({ ...prev, from: startDate, to: endDate ?? "" }));

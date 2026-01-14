@@ -1,5 +1,6 @@
 import { IResponseData } from "@/lib/config";
 import { ICommonParams } from "./general.interface";
+import { IEligiblePackage } from "./customers.interface";
 
 export interface IOrderItem {
   order_id: string;
@@ -21,6 +22,9 @@ export interface ICustomerData {
   role?: string;
   is_active?: string;
   type?: string;
+  package?: IEligiblePackage;
+  third_party?: IThirdPartyApp;
+  booking_id?: string;
 }
 
 export interface IAdminCartItemData {
@@ -137,6 +141,78 @@ export interface Item {
   total_price_idr: number;
 }
 
+export interface IBookingPayload {
+  class_session_id: string;
+  customer_name?: string;
+  customer_phone?: string;
+  customer_email?: string;
+  user_id?: string;
+  status: string;
+
+  third_party_id?: string;
+
+  payment_method?: string;
+  package_purchase_id?: string;
+}
+
+export interface IBookingResponseData {
+  booking_id: string;
+  payment_id: string;
+  order_id: string;
+  status: string;
+  payment_method: string;
+  booking: Booking;
+}
+
+export interface Booking {
+  id: string;
+  customer_name: string;
+  customer_phone: string;
+  customer_email: string;
+  booking_status: string;
+  payment_method: string;
+  price_idr: number;
+  revenue_idr: number;
+  credit_unit_value_idr: number;
+  source_platform: string;
+  platform_fee_idr: number;
+  third_party_id: string;
+  channel: string;
+  created_at: string;
+  class_session: ClassSession;
+  third_party: ThirdParty;
+}
+
+export interface ClassSession {
+  id: string;
+  type: string;
+  level: string;
+  place: string;
+  session_name: string;
+  start_datetime: string;
+}
+
+export interface ThirdParty {
+  id: string;
+  name: string;
+  deduction_type: string;
+  deduction_value: number;
+}
+
+export interface IThirdPartyApp {
+  id: string;
+  name: string;
+  deduction_type: string;
+  deduction_value: number;
+  deduction_description: string;
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
 export type TOrderList = (param: ICommonParams) => Promise<IResponseData<IOrderItem[]>>;
 export type TOrderDetail = (id: string) => Promise<IResponseData<IDetailOrder>>;
 export type TCreateManualOrder = (payload: IAddTransactionPayload) => Promise<IResponseData<ICreatManualTrxResponse>>;
+
+export type TBookingsSession = (data: IBookingPayload) => Promise<IResponseData<IBookingResponseData>>;
+export type TThirdPartyApp = () => Promise<IResponseData<IThirdPartyApp[]>>;

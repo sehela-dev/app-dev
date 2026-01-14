@@ -1,5 +1,6 @@
 "use client";
 
+import { ISessionItem } from "@/types/class-sessions.interface";
 import { IAdminCartItemData, ICustomerData } from "@/types/orders.interface";
 import type React from "react";
 
@@ -18,6 +19,9 @@ interface IAdminCartContext {
   customerData?: ICustomerData;
   stepper: number;
   updateStepper: () => void;
+  resetStepper: () => void;
+  sessionData?: ISessionItem;
+  onSelectSession: (data: ISessionItem | null) => void;
 }
 
 const AddTransactionContext = createContext<IAdminCartContext | undefined>(undefined);
@@ -26,6 +30,7 @@ export function AddTransactionProvider({ children }: { children: React.ReactNode
   const [customerData, setCustomerData] = useState<ICustomerData | undefined>(undefined);
   const [cartItems, setCartItems] = useState<IAdminCartItemData[]>([]);
   const [stepper, setStepper] = useState<number>(1);
+  const [session, setSession] = useState<ISessionItem | null>(null);
 
   const calculateSubtotal = (price: number, quantity: number): number => {
     return price * quantity;
@@ -96,6 +101,13 @@ export function AddTransactionProvider({ children }: { children: React.ReactNode
       setStepper(1);
     }
   };
+  const resetStepper = () => {
+    setStepper(1);
+  };
+
+  const handleSelectSession = (data: ISessionItem | null) => {
+    setSession(data);
+  };
 
   return (
     <AddTransactionContext.Provider
@@ -112,6 +124,9 @@ export function AddTransactionProvider({ children }: { children: React.ReactNode
         customerData,
         stepper,
         updateStepper,
+        resetStepper,
+        onSelectSession: handleSelectSession,
+        sessionData: session as ISessionItem,
       }}
     >
       {children}

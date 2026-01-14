@@ -5,10 +5,13 @@ import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { useAdminManualTransaction } from "@/context/admin/add-transaction.ctx";
 import { useDebounce } from "@/hooks";
 import { useGetCustomers } from "@/hooks/api/queries/admin/customers";
+import { useGetThirdPartyApp } from "@/hooks/api/queries/admin/orders/use-get-third-party";
 import { ICustomerData } from "@/types/customers.interface";
+import { IThirdPartyApp } from "@/types/orders.interface";
 
 // import { useCreateNewGuest } from "@/hooks/api/mutations/admin";
 import { useState } from "react";
@@ -30,14 +33,19 @@ const defaultValues = {
   name: "",
   phone: "",
   email: "",
+  third_party_id: "",
+  booking_id: "",
 };
-export const OrderCustomerSectionComponent = () => {
+
+export const OrderCustomerSectionComponent = ({ enroll = false }: { enroll?: boolean }) => {
   const { addCustomer } = useAdminManualTransaction();
   // const { mutateAsync } = useCreateNewGuest();
   const methods = useForm({ defaultValues });
   const [search, setSearch] = useState("");
   const debounceSearch = useDebounce(search, 300);
   const [selectedUser, setSelectedUser] = useState<ICustomerData | null>();
+  const { data: thirdPartyApp } = useGetThirdPartyApp(enroll);
+  const [thirdParty, setThirdParty] = useState<IThirdPartyApp | null>(null);
 
   const onSearch = (e: string) => {
     setSearch(e);
@@ -47,6 +55,7 @@ export const OrderCustomerSectionComponent = () => {
   const [tabCustomer, setTabCustomer] = useState("new");
 
   const { data, isLoading, refetch } = useGetCustomers({ search: debounceSearch });
+  const bookings = methods.watch("booking_id");
 
   const onSubmit = handleSubmit(async (data) => {
     try {
@@ -55,14 +64,19 @@ export const OrderCustomerSectionComponent = () => {
         name: data.name,
         phone: data.phone,
         ...(tabCustomer === "search" ? { id: data?.id } : null),
-        // role: "guest",
+        ...(enroll && {
+          third_party: thirdParty as IThirdPartyApp,
+          booking_id: data?.booking_id ?? bookings,
+        }),
       };
       // const res = await mutateAsync(payload);
       // if (res) {
       //   console.log(res);
       // }
       addCustomer(payload);
-      methods.reset();
+      if (!enroll) {
+        methods.reset();
+      }
     } catch (error) {
       console.log(error);
     }
@@ -93,6 +107,66 @@ export const OrderCustomerSectionComponent = () => {
           <div className="flex w-full pt-4">
             <FormProvider {...methods}>
               <form onSubmit={onSubmit} className="w-full">
+                {enroll && (
+                  <div className="flex flex-col gap-4 mb-4">
+                    <FormField
+                      control={control}
+                      name="third_party_id"
+                      render={({ field }) => (
+                        <FormItem className="flex flex-col">
+                          <FormLabel className=" text-brand-999 font-medium text-sm" required>
+                            Select Third Party App
+                          </FormLabel>
+                          <FormControl>
+                            <RadioGroup
+                              defaultValue="no"
+                              value={field.value}
+                              className="flex flex-row gap-3 items-center"
+                              onValueChange={(e) => {
+                                field.onChange(e);
+                              }}
+                            >
+                              {thirdPartyApp?.data?.map((item) => (
+                                <div className="flex items-center gap-3" key={item.id}>
+                                  <RadioGroupItem value={item.id} id="third_party_id" onClick={() => setThirdParty(item)} />
+                                  <Label htmlFor="r1" className="text-brand-999">
+                                    {item.name}
+                                  </Label>
+                                </div>
+                              ))}
+                            </RadioGroup>
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <div className="grid grid-cols-2">
+                      <div className="col-span-4">
+                        <FormField
+                          control={control}
+                          name="booking_id"
+                          render={({ field }) => (
+                            <FormItem className="flex flex-col">
+                              <FormLabel className=" text-brand-999 font-medium text-sm" required>
+                                Booking ID
+                              </FormLabel>
+                              <FormControl>
+                                <Input
+                                  className="w-full px-4 py-4 border-2 border-gray-200 rounded-lg text-gray-999  placeholder-gray-400 focus:outline-none focus:border-brand-500 transition-colors h-[42px]"
+                                  placeholder="Type here.."
+                                  {...field}
+                                  // className="w-auto min-w-[388px]"
+                                />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                      </div>
+                    </div>
+                  </div>
+                )}
+
                 {tabCustomer === "new" ? (
                   <>
                     <div className="grid grid-cols-12 gap-4 ">
@@ -169,7 +243,7 @@ export const OrderCustomerSectionComponent = () => {
                         </Button>
                       </div>
                       <div>
-                        <Button type="submit">Create Customer/Guest</Button>
+                        <Button type="submit">Add Customer</Button>
                       </div>
                     </div>
                   </>
@@ -188,21 +262,45 @@ export const OrderCustomerSectionComponent = () => {
                       }}
                       isLoading={isLoading}
                       getOptionLabel={(option) => option?.full_name}
+                      getOptionValue={(opt) => opt.id}
                       onInputChange={onSearch}
                       onChange={(e) => {
                         setSelectedUser(e);
-                        methods.setValue("name", e?.full_name as string);
-                        methods.setValue("email", e?.email as string);
-                        methods.setValue("phone", e?.phone as string);
-                        methods.setValue("id", e?.id as string);
-                        addCustomer({
-                          name: e?.full_name as string,
-                          email: e?.email as string,
-                          phone: e?.phone as string,
-                          id: e?.id,
-                        });
+
+                        if (enroll) {
+                        } else {
+                          methods.setValue("name", e?.full_name as string);
+                          methods.setValue("email", e?.email as string);
+                          methods.setValue("phone", e?.phone as string);
+                          methods.setValue("id", e?.id as string);
+                          addCustomer({
+                            name: e?.full_name as string,
+                            email: e?.email as string,
+                            phone: e?.phone as string,
+                            id: e?.id,
+                          });
+                        }
                       }}
                     />
+                    {enroll && (
+                      <div className="flex justify-end">
+                        <Button
+                          type="button"
+                          onClick={() => {
+                            addCustomer({
+                              name: selectedUser?.full_name as string,
+                              email: selectedUser?.email as string,
+                              phone: selectedUser?.phone as string,
+                              id: selectedUser?.id,
+                              third_party: thirdParty as IThirdPartyApp,
+                              booking_id: bookings,
+                            });
+                          }}
+                        >
+                          Select Customer
+                        </Button>
+                      </div>
+                    )}
                   </div>
                 )}
               </form>

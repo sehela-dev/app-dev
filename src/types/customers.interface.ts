@@ -88,6 +88,39 @@ export interface IActivePackageCredit {
   place_restriction: unknown;
 }
 
+export interface ICustomerWalletAdmin {
+  user: {
+    id: string;
+    full_name: string;
+  };
+  session: ISessionWallet;
+  eligible_packages: IEligiblePackage[];
+  total_eligible_credits: number;
+}
+
+export interface ISessionWallet {
+  id: string;
+  session_name: string;
+  type: string;
+  place: string;
+  price_idr: number;
+  status: string;
+}
+export interface IEligiblePackage {
+  package_purchase_id: string;
+  package_name: string;
+  package_description: string;
+  credits_remaining: number;
+  total_credits: number;
+  expires_at: string;
+  session_type_restriction: unknown;
+  place_restriction: unknown;
+  class_ids_restriction: unknown;
+  is_owner: boolean;
+  is_shared: boolean;
+}
+
 export type TCustomerData = (params: ICommonParams) => Promise<IResponseData<ICustomerData[]>>;
 export type TCreteateCustomerAdmin = (data: ICreateNewCustomerAdminPaylod) => Promise<IResponseData<IResponseCustomer>>;
 export type TCustomerDetail = (id: string) => Promise<IResponseData<IResponseCustomerDetail>>;
+export type TGetUserWallet = ({ user, session }: { user: string; session: string }) => Promise<IResponseData<ICustomerWalletAdmin>>;

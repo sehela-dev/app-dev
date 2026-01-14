@@ -1,7 +1,7 @@
 import { axiosx } from "@/lib/axiosx";
 import { MAIN_API_URL } from "@/lib/config";
 import { ICommonParams } from "@/types/general.interface";
-import { TCreateManualOrder, TOrderDetail, TOrderList } from "@/types/orders.interface";
+import { TBookingsSession, TCreateManualOrder, TOrderDetail, TOrderList, TThirdPartyApp } from "@/types/orders.interface";
 import { TAddNewGuest } from "@/types/user.type";
 
 export const getOrders: TOrderList = async ({ page, limit, search, payment_method, status, startDate, endDate }) => {
@@ -44,5 +44,15 @@ export const getProductOrder = async ({ page, limit, search }: ICommonParams) =>
     },
   });
 
+  return res.data;
+};
+
+export const adminBooking: TBookingsSession = async (data) => {
+  const res = await axiosx(true).post(`${MAIN_API_URL}/admin/bookings`, data);
+  return res.data;
+};
+
+export const getThirdParyApp: TThirdPartyApp = async () => {
+  const res = await axiosx(true).get(`${MAIN_API_URL}/admin/third-parties`);
   return res.data;
 };

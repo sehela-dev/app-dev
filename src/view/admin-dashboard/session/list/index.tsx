@@ -54,8 +54,8 @@ export const SessionListPage = () => {
   const [openNotif, setOpenNotif] = useState(false);
 
   const [selectedRange, setSelectedRange] = useState({
-    from: defaultDate().formattedOneMonthAgo,
-    to: defaultDate().formattedToday,
+    from: defaultDate().formattedToday,
+    to: defaultDate().formattedOneMonthLater,
   });
   const { data, isLoading, refetch } = useGetSessions({
     page,
@@ -82,7 +82,7 @@ export const SessionListPage = () => {
     {
       id: "capacity",
       text: "Capacity",
-      value: (row: ISessionItem) => String(row.capacity),
+      value: (row: ISessionItem) => String(row.slots_display),
     },
     {
       id: "start_date",
