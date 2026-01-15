@@ -5,7 +5,6 @@ import { useFormContext } from "react-hook-form";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import { formatCurrency } from "@/lib/helper";
-import { useEffect } from "react";
 
 const PAYMENT_MODELS = [
   {

@@ -1,4 +1,4 @@
-import { IResponseData } from "@/lib/config";
+import { IPagiantion, IResponseData } from "@/lib/config";
 import { ICommonParams } from "./general.interface";
 
 export interface IInstructorData {
@@ -85,3 +85,65 @@ export type TCreateInstructor = (data: ICreateIntructorPayload) => Promise<IResp
 export type TEditInstructor = ({ data, id }: { data: ICreateIntructorPayload; id: string }) => Promise<IResponseData<IInstructorData>>;
 export type TInstructorData = (params: ICommonParams) => Promise<IResponseData<IInstructorData[]>>;
 export type TInstructorDetail = (id: string) => Promise<IResponseData<IInstructorDetails>>;
+
+export type TClassPaymentInstructor = (params: ICommonParams) => Promise<IResponseData<IInstructorPaymentResponse>>;
+
+export interface IInstructorPaymentResponse {
+  instructor_id: string;
+  instructor_name: string;
+  period: Period;
+  page_summary: PageSummary;
+  sessions?: ISessionInstructorPayment[];
+  pagination: IPagiantion;
+}
+
+export interface Period {
+  start_date: string;
+  end_date: string;
+}
+
+export interface PageSummary {
+  total_sessions: number;
+  total_bookings: number;
+  total_revenue: number;
+  total_payment: number;
+}
+
+export interface ISessionInstructorPayment {
+  session_id: string;
+  session_code: string;
+  session_name: string;
+  class_name: string;
+  session_date: string;
+  session_type: string;
+  session_place: string;
+  total_bookings: number;
+  credit_bookings: number;
+  non_credit_bookings: number;
+  third_party_bookings: number;
+  total_revenue: number;
+  payment_model: string;
+  calculated_payment: number;
+}
+
+export interface IExportInstructorPayment {
+  report_id: string;
+  instructor_id: string;
+  instructor_name: string;
+  period: string;
+  total_sessions: number;
+  total_bookings: number;
+  total_revenue: number;
+  total_payment: number;
+  file_name: string;
+  storage_path: string;
+  download_url: string;
+}
+
+export interface IPayloadExport {
+  id: string;
+  year: number | string;
+  month: number | string;
+}
+
+export type TExportInstructorPayment = (data: IPayloadExport) => Promise<IResponseData<IExportInstructorPayment>>;

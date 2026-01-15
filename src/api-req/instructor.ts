@@ -1,7 +1,14 @@
 import { axiosx } from "@/lib/axiosx";
 import { MAIN_API_URL } from "@/lib/config";
 import { ICommonParams } from "@/types/general.interface";
-import { TCreateInstructor, TEditInstructor, TInstructorData, TInstructorDetail } from "@/types/instructor.interface";
+import {
+  TClassPaymentInstructor,
+  TCreateInstructor,
+  TEditInstructor,
+  TExportInstructorPayment,
+  TInstructorData,
+  TInstructorDetail,
+} from "@/types/instructor.interface";
 
 export const getInstructor: TInstructorData = async ({ page, limit, search, status }) => {
   const res = await axiosx(true).get(`${MAIN_API_URL}/admin/instructors`, {
@@ -25,13 +32,13 @@ export const getInstructorDetail: TInstructorDetail = async (id) => {
   return res.data;
 };
 
-export const getInstructorPayments = async ({ page, limit, startDate, endDate, id }: ICommonParams) => {
+export const getInstructorPayments: TClassPaymentInstructor = async ({ page, limit, startDate, endDate, id }) => {
   const res = await axiosx(true).get(`${MAIN_API_URL}/admin/instructors/${id}/payment`, {
     params: {
       page,
       page_limit: limit,
-      start_date: startDate,
-      end_date: endDate,
+      month: startDate,
+      year: endDate,
     },
   });
   return res.data;
@@ -44,5 +51,10 @@ export const editInstructor: TEditInstructor = async ({ data, id }) => {
 
 export const deleteInstructor = async (id: string) => {
   const res = await axiosx(true).delete(`${MAIN_API_URL}/admin/instructors/${id}`);
+  return res.data;
+};
+
+export const exportInstructorPayment: TExportInstructorPayment = async ({ id, year, month }) => {
+  const res = await axiosx(true).post(`${MAIN_API_URL}/admin/instructors/${id}/monthly-report`, { year, month });
   return res.data;
 };

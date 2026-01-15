@@ -52,7 +52,7 @@ export const EnrollStudentView = () => {
     // to: "2026-02-01",
   });
 
-  const { data, isLoading } = useGetSessions({
+  const { data, isLoading, refetch } = useGetSessions({
     page,
     limit,
     startDate: selectedRange.from,
@@ -91,8 +91,8 @@ export const EnrollStudentView = () => {
 
       const res = await mutateAsync(payload);
       if (res) {
-        console.log(res);
         clearForm();
+        refetch();
       }
     } catch (error) {
       console.log(error);

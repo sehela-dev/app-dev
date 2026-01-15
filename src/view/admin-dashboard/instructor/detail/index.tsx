@@ -13,7 +13,11 @@ import { defaultDate, formatDateHelper, formatCurrency } from "@/lib/helper";
 import { File, ListFilter, Loader2, PenIcon, Receipt, ChevronDown, ChevronUp } from "lucide-react";
 import { useParams, useRouter } from "next/navigation";
 import { Fragment, useState } from "react";
-import { IModelParams, IPaymentRuleResponse } from "@/types/instructor.interface";
+import { IModelParams, IPaymentRuleResponse, ISessionInstructorPayment } from "@/types/instructor.interface";
+import { Select, SelectContent, SelectGroup, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { MONTH_LIST, YEAR_LIST } from "@/constants/sample-data";
+import { CustomPagination } from "@/components/general/pagination-component";
+import { useExportInstructorPayment } from "@/hooks/api/mutations/admin";
 
 const instructorTabs = [
   {
@@ -55,20 +59,21 @@ export const InstructorDetailPage = () => {
   const [tabs, setTabs] = useState("basic");
   const [expandedCards, setExpandedCards] = useState<Record<string, boolean>>({});
   const [selectedRange, setSelectedRange] = useState({
-    from: defaultDate().formattedOneMonthAgo,
-    to: defaultDate().formattedToday,
+    month: formatDateHelper(defaultDate().formattedToday, "M") as string,
+    year: formatDateHelper(defaultDate().formattedToday, "yyyy") as string,
   });
 
-  const handleDateRangeChangeDual = (startDate: string, endDate?: string) => {
-    setSelectedRange((prev) => ({ ...prev, from: startDate, to: endDate ?? "" }));
+  const handleDateRangeChangeDual = (type: "month" | "year", data: string) => {
+    setSelectedRange((prev) => ({ ...prev, [type]: data }));
   };
-
+  const { mutateAsync: exportPayment, isPending } = useExportInstructorPayment();
   const { data: payments, isLoading: loadingPayments } = useGetInstructorPaymentDetails(
     {
       id: id as string,
-      startDate: selectedRange.from,
-      endDate: selectedRange.to,
+      startDate: selectedRange.month,
+      endDate: selectedRange.year,
       page,
+      limit: 10,
     },
     tabs,
   );
@@ -180,31 +185,63 @@ export const InstructorDetailPage = () => {
 
   const headers = [
     {
-      id: "sessions",
+      id: "sessions_name",
       text: "Sessions",
-      value: "Session Name",
+      value: "session_name",
     },
     {
-      id: "class",
+      id: "class_name",
       text: "Class",
-      value: "class",
+      value: "class_name",
     },
     {
-      id: "date_time",
-      text: "Date & Time",
-      value: "date_time",
+      id: "session_date",
+      text: "Date",
+      value: (row: ISessionInstructorPayment) => formatDateHelper(row.session_date, "dd/MM/yyyy"),
     },
     {
-      id: "payment_models",
-      text: "Payment Models",
-      value: "payment_models",
+      id: "payment_model",
+      text: "Payment Model",
+      value: (row: ISessionInstructorPayment) => <p className="capitalize">{row.payment_model}</p>,
     },
     {
-      id: "payment_amount",
-      text: "Payment Amount",
-      value: "payment_amount",
+      id: "session_type",
+      text: "Session Type",
+      value: (row: ISessionInstructorPayment) => <p className="capitalize">{row.session_type}</p>,
+    },
+    {
+      id: "session_place",
+      text: "Session Type",
+      value: (row: ISessionInstructorPayment) => <p className="capitalize">{row.session_place ?? "-"}</p>,
+    },
+    {
+      id: "calculated_payment",
+      text: "Total Payment",
+      value: (row: ISessionInstructorPayment) => formatCurrency(row.calculated_payment),
+    },
+    {
+      id: "payment_revenue",
+      text: "Total Revenue",
+      value: (row: ISessionInstructorPayment) => formatCurrency(row.total_revenue),
     },
   ];
+
+  const onExportPayment = async () => {
+    try {
+      const payload = {
+        id: id as string,
+        year: selectedRange.year,
+        month: selectedRange.month,
+      };
+      const res = await exportPayment(payload);
+      if (res) {
+        console.log(res);
+        window.open(res.data.download_url, "_blank");
+      }
+    } catch (error) {
+      console.log(error);
+    }
+  };
 
   if (isLoading)
     return (
@@ -325,14 +362,55 @@ export const InstructorDetailPage = () => {
             </div>
             <div className="flex flex-row items-center gap-2 w-full justify-end">
               <div className="">
-                <DateRangePicker
+                <Select
+                  onValueChange={(e) => {
+                    handleDateRangeChangeDual("year", e);
+                  }}
+                  value={selectedRange.year}
+                >
+                  <SelectTrigger className="w-full px-4 py-4 border-2 border-gray-200 rounded-lg text-gray-999  placeholder-gray-400 focus:outline-none focus:border-brand-500 transition-colors h-[42px]">
+                    <SelectValue placeholder="Select Year" className="!text-gray-400" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectGroup>
+                      {YEAR_LIST.map((item) => (
+                        <SelectItem value={String(item)} key={item}>
+                          {item}
+                        </SelectItem>
+                      ))}
+                    </SelectGroup>
+                  </SelectContent>
+                </Select>
+
+                {/* <DateRangePicker
                   mode="range"
                   onDateRangeChange={handleDateRangeChangeDual}
                   startDate={selectedRange.from}
                   endDate={selectedRange.to}
                   allowFutureDates
                   allowPastDates={false}
-                />
+                /> */}
+              </div>
+              <div className="">
+                <Select
+                  onValueChange={(e) => {
+                    handleDateRangeChangeDual("month", e);
+                  }}
+                  value={selectedRange.month as string}
+                >
+                  <SelectTrigger className="w-full px-4 py-4 border-2 border-gray-200 rounded-lg text-gray-999  placeholder-gray-400 focus:outline-none focus:border-brand-500 transition-colors h-[42px]">
+                    <SelectValue placeholder="Select Month" className="!text-gray-400" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectGroup>
+                      {MONTH_LIST.map((item) => (
+                        <SelectItem value={String(item.value)} key={item.value}>
+                          {item.label}
+                        </SelectItem>
+                      ))}
+                    </SelectGroup>
+                  </SelectContent>
+                </Select>
               </div>
               <div className="">
                 <Button variant={"outline"}>
@@ -340,7 +418,7 @@ export const InstructorDetailPage = () => {
                 </Button>
               </div>
               <div className="">
-                <Button variant={"outline"}>
+                <Button variant={"outline"} onClick={onExportPayment} disabled={!!isPending}>
                   <File /> Export
                 </Button>
               </div>
@@ -353,7 +431,19 @@ export const InstructorDetailPage = () => {
           </CardHeader>
           <CardContent>
             <div className="flex flex-col gap-4">
-              <CustomTable headers={headers} data={payments?.data ?? []} isLoading={loadingPayments} />
+              <CustomTable headers={headers} data={payments?.data?.sessions ?? []} isLoading={loadingPayments} />
+              <CustomPagination
+                onPageChange={(e) => {
+                  setPage(e);
+                }}
+                currentPage={page}
+                showTotal
+                hasPrevPage={payments?.data?.pagination.has_prev}
+                hasNextPage={payments?.data?.pagination?.has_next}
+                totalItems={payments?.data?.pagination?.total_items as number}
+                totalPages={payments?.data?.pagination?.total_pages as number}
+                limit={10}
+              />
             </div>
           </CardContent>
         </Card>
