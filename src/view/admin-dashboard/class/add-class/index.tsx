@@ -1,5 +1,6 @@
 "use client";
 
+import { BaseDialogConfirmation } from "@/components/general/dialog-confirnation";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
@@ -7,6 +8,8 @@ import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import { useCreateClassSession } from "@/hooks/api/mutations/admin";
+import { useRouter } from "next/navigation";
+import { useState } from "react";
 // import { useRouter } from "next/navigation";
 // import { useState } from "react";
 import { FormProvider, useForm } from "react-hook-form";
@@ -17,12 +20,19 @@ const defaultValues = {
   allow_credit: true,
 };
 export const AddClassPageView = () => {
-  // const router = useRouter();
+  const router = useRouter();
   const methods = useForm({ defaultValues });
   const { control, handleSubmit } = methods;
   const { mutateAsync } = useCreateClassSession();
   // const [open, setOpen] = useState(false);
+  const [open, setOpen] = useState({
+    SUCCESS: false,
+    CANCEL: false,
+  });
 
+  const handleOpenModal = (type: "SUCCESS" | "CANCEL") => {
+    setOpen((prev) => ({ ...prev, [type]: !open[type] }));
+  };
   const onSubmit = handleSubmit(async (data) => {
     try {
       const payload = {
@@ -34,6 +44,7 @@ export const AddClassPageView = () => {
         console.log(res.data);
         methods.reset();
         // router.push("/admin/class");
+        handleOpenModal("SUCCESS");
       }
     } catch (error) {
       console.log(error);
@@ -127,6 +138,33 @@ export const AddClassPageView = () => {
           </div>
         </CardContent>
       </Card>
+      {open.SUCCESS && (
+        <BaseDialogConfirmation
+          image="success-add"
+          onCancel={() => router.push("/admin/class")}
+          open={open.SUCCESS}
+          title="Success!"
+          subtitle="Your new class category has been successfully added."
+          onConfirm={() => {
+            methods.reset();
+            handleOpenModal("SUCCESS");
+          }}
+          cancelText="Class Category List"
+          confirmText="Create More"
+        />
+      )}
+      {open.CANCEL && (
+        <BaseDialogConfirmation
+          image="warning-1"
+          onCancel={() => handleOpenModal("CANCEL")}
+          open={open.CANCEL}
+          title="Class Category Not Saved"
+          subtitle="If you exit now, unsaved changes will be lost and cannot be recovered. Continue?"
+          onConfirm={() => router.push("/admin/class")}
+          cancelText="Cancel"
+          confirmText="Continue"
+        />
+      )}
     </div>
   );
 };

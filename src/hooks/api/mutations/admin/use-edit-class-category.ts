@@ -1,3 +1,5 @@
+// deleteSession
+
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import type { AxiosError } from "axios";
 
@@ -5,14 +7,14 @@ import { toast } from "sonner";
 import { useCallback } from "react";
 import { useMutation } from "@tanstack/react-query";
 
-import { createNewClassCategory } from "@/api-req/class-session";
+import { editClassCategory } from "@/api-req/class-session";
 import { validationStatus } from "@/lib/config";
 
-export const useCreateClassSession = () => {
+export const useEditClassCategory = () => {
   const config = useConfig();
 
   return useMutation({
-    mutationFn: createNewClassCategory,
+    mutationFn: editClassCategory,
     ...config,
   });
 };
@@ -37,7 +39,7 @@ const useConfig = () => {
   const onSuccess = useCallback((data: any) => {
     toast.success("Success!", {
       id: "sucess",
-      description: "New class category has been created!",
+      description: data.message,
       position: "top-center",
     });
   }, []);

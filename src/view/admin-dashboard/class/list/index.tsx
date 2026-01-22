@@ -1,13 +1,16 @@
 "use client";
 import { buildNumber, CustomTable } from "@/components/general/custom-table";
+import { BaseDialogConfirmation } from "@/components/general/dialog-confirnation";
 import { CustomPagination } from "@/components/general/pagination-component";
 import { DropdownFilter } from "@/components/general/table-filter";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { SearchInput } from "@/components/ui/search-input";
+import { useEditClassCategory } from "@/hooks/api/mutations/admin";
 import { useGetClassSessionsCategory } from "@/hooks/api/queries/admin/class-session";
 import { formatDateHelper } from "@/lib/helper";
+import { cn } from "@/lib/utils";
 import { IClassSessionCategory } from "@/types/class-category.interface";
 
 import { CirclePlus, Ellipsis } from "lucide-react";
@@ -38,17 +41,27 @@ export const ClassListView = () => {
   const [limit] = useState(10);
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState("");
-  const { data, isLoading } = useGetClassSessionsCategory({ page, limit, search });
+  const { data, isLoading, refetch } = useGetClassSessionsCategory({ page, limit, search });
   const [selectedValues, setSelectedValues] = useState({
     Type: "all",
     Status: "all",
   });
+  const [selectedData, setSelectedData] = useState<IClassSessionCategory | null>(null);
+  const [openNotif, setOpenNotif] = useState(false);
+  const [openDialogConfirm, setOpenDialogConfirm] = useState(false);
+
+  const { mutateAsync: deleteClass } = useEditClassCategory();
 
   const handleSelectionChange = (section: string, optionId: string) => {
     setSelectedValues((prev) => ({
       ...prev,
       [section]: optionId,
     }));
+  };
+
+  const onDelete = (data: IClassSessionCategory | null) => {
+    setOpenDialogConfirm(!openDialogConfirm);
+    setSelectedData(data);
   };
 
   const handleReset = () => {
@@ -82,7 +95,9 @@ export const ClassListView = () => {
     {
       id: "status",
       text: "Status",
-      value: (row: IClassSessionCategory) => <p className={row?.is_active ? "text-green-400" : "text-red-500"}>{row.is_active ? "Yes" : "No"}</p>,
+      value: (row: IClassSessionCategory) => (
+        <p className={row?.is_active ? "text-green-400" : "text-red-500"}>{row.is_active ? "Active" : "Inactive"}</p>
+      ),
     },
     {
       id: "created_at",
@@ -109,9 +124,15 @@ export const ClassListView = () => {
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end" className="w-32">
           <DropdownMenuItem onClick={() => alert(row.id)}>Edit</DropdownMenuItem>
-          <DropdownMenuItem>Set as Inactive</DropdownMenuItem>
-          <DropdownMenuItem variant="destructive" className="" onClick={() => alert(row.id)}>
-            Delete
+          {/* <DropdownMenuItem>Set as Inactive</DropdownMenuItem> */}
+          <DropdownMenuItem
+            className={cn({
+              "text-red-500": row.is_active,
+              "text-green-500": !row.is_active,
+            })}
+            onClick={() => onDelete(row)}
+          >
+            {row?.is_active ? "Set Inactive" : "Set Active"}
           </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
@@ -120,6 +141,24 @@ export const ClassListView = () => {
 
   const handleSearch = (e: string) => {
     setSearch(e);
+  };
+
+  const onConfirmDelete = async () => {
+    try {
+      const res = await deleteClass({
+        id: selectedData?.id as string,
+        data: {
+          is_active: !selectedData?.is_active,
+        },
+      });
+      if (res) {
+        setOpenNotif(true);
+        onDelete(null);
+        refetch();
+      }
+    } catch (error) {
+      console.log(error);
+    }
   };
 
   return (
@@ -171,6 +210,36 @@ export const ClassListView = () => {
           />
         </CardFooter>
       </Card>
+
+      {openDialogConfirm && (
+        <BaseDialogConfirmation
+          image="trash-1"
+          onCancel={() => onDelete(null)}
+          open={openDialogConfirm}
+          title={`Set ${selectedData?.is_active ? "Inactive" : "Active"} Class Category?`}
+          subtitle="This class category will be set to inactive  from the system"
+          onConfirm={onConfirmDelete}
+          cancelText="Cancel"
+          confirmText="Proceed"
+        />
+      )}
+
+      {/* {openNotif && (
+        <BaseDialogConfirmation
+          image="trash-success"
+          onCancel={() => onDelete(null)}
+          hideCancel
+          open={openNotif}
+          title="Class Category Deleted Successfully"
+          subtitle="Your credit package has been successfully removed from the system."
+          onConfirm={() => {
+            setOpenNotif(false);
+            refetch();
+          }}
+          cancelText="Cancel"
+          confirmText="Ok"
+        />
+      )} */}
     </div>
   );
 };

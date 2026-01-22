@@ -15,3 +15,4 @@ export * from "./use-create-discount-voucher";
 export * from "./use-apply-discount-voucher";
 export * from "./use-booking-session";
 export * from "./use-export-instructor-payment";
+export * from "./use-edit-class-category";

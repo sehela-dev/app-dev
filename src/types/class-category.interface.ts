@@ -16,6 +16,14 @@ export interface ICreateNewCategoryPayload {
   allow_credit: boolean;
   is_active?: boolean;
 }
+export interface IEditategoryPayload {
+  class_name?: string;
+  class_description?: string;
+  allow_credit?: boolean;
+  is_active?: boolean;
+}
 
 export type TClassSessionCategoryResponse = (params: ICommonParams) => Promise<IResponseData<IClassSessionCategory[]>>;
 export type TCreateNewClassCategory = (data: ICreateNewCategoryPayload) => Promise<IResponseData<IClassSessionCategory>>;
+export type TEditClassCategory = ({ id, data }: { id: string; data: IEditategoryPayload }) => Promise<IResponseData<IClassSessionCategory>>;
+export type TDeleteClassCategory = (data: string) => Promise<IResponseData<IClassSessionCategory>>;

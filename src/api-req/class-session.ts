@@ -1,6 +1,6 @@
 import { axiosx } from "@/lib/axiosx";
 import { MAIN_API_URL } from "@/lib/config";
-import { TClassSessionCategoryResponse, TCreateNewClassCategory } from "@/types/class-category.interface";
+import { TClassSessionCategoryResponse, TCreateNewClassCategory, TDeleteClassCategory, TEditClassCategory } from "@/types/class-category.interface";
 import { TCreateSessionData, TEditSessionData, TSessionBookings, TSessionDetailData, TSessionListData } from "@/types/class-sessions.interface";
 
 export const getSessions: TSessionListData = async ({ page, limit, search, payment_method, status, startDate, endDate }) => {
@@ -56,7 +56,14 @@ export const createNewClassCategory: TCreateNewClassCategory = async (data) => {
   const res = await axiosx(true).post(`${MAIN_API_URL}/classes`, data);
   return res.data;
 };
-
+export const editClassCategory: TEditClassCategory = async ({ id, data }) => {
+  const res = await axiosx(true).patch(`${MAIN_API_URL}/classes/${id}`, data);
+  return res.data;
+};
+export const deleteClassCategory: TDeleteClassCategory = async (id) => {
+  const res = await axiosx(true).delete(`${MAIN_API_URL}/classes/${id}`);
+  return res.data;
+};
 export const createNewSession: TCreateSessionData = async (data) => {
   const res = await axiosx(true).post(`${MAIN_API_URL}/classes/sessions`, data);
   return res.data;
