@@ -13,7 +13,7 @@ import { defaultDate, formatDateHelper } from "@/lib/helper";
 import { cn } from "@/lib/utils";
 import { ISessionItem } from "@/types/class-sessions.interface";
 import { Calendar, Clock, Loader2, User, Users } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { SelectStudentWithCreditComponent } from "./with-credit/select-student";
 import { useAdminManualTransaction } from "@/context/admin/add-transaction.ctx";
 import { useBookingSession } from "@/hooks/api/mutations/admin";
@@ -31,6 +31,16 @@ const enrollmentType = [
 ];
 export const EnrollStudentView = () => {
   const { customerData, sessionData, onSelectSession: selectSession, addCustomer } = useAdminManualTransaction();
+  const targetDivRef = useRef<HTMLDivElement | null>(null);
+
+  const handleScroll = () => {
+    if (targetDivRef.current) {
+      targetDivRef.current.scrollIntoView({
+        behavior: "smooth", // Optional: adds smooth scrolling animation
+        block: "center", // Optional: aligns the top of the element to the top of the viewport
+      });
+    }
+  };
 
   const [tabs, setTabs] = useState("credit");
   const [selectedSession, setSelectedSession] = useState<ISessionItem | null>(sessionData as ISessionItem | null);
@@ -68,6 +78,11 @@ export const EnrollStudentView = () => {
     setSelectedSession((prev) => (prev?.id === data.id ? null : data));
     selectSession(data);
   };
+  useEffect(() => {
+    if (sessionData) {
+      handleScroll();
+    }
+  }, [sessionData]);
 
   const handleBookingSession = async () => {
     try {
@@ -184,12 +199,14 @@ export const EnrollStudentView = () => {
               />
             </CardFooter>
           </Card>
-          {sessionData && tabs === "credit" && <SelectStudentWithCreditComponent selectedSession={sessionData} />}
-          {sessionData && tabs === "3rd" && (
-            <>
-              <OrderCustomerSectionComponent enroll />
-            </>
-          )}
+          <div ref={targetDivRef}>
+            {sessionData && tabs === "credit" && <SelectStudentWithCreditComponent selectedSession={sessionData} />}
+            {sessionData && tabs === "3rd" && (
+              <>
+                <OrderCustomerSectionComponent enroll />
+              </>
+            )}
+          </div>
         </div>
         <div className="col-span-4">
           <Card>
