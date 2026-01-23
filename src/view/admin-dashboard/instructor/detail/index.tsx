@@ -18,6 +18,7 @@ import { Select, SelectContent, SelectGroup, SelectItem, SelectTrigger, SelectVa
 import { MONTH_LIST, YEAR_LIST } from "@/constants/sample-data";
 import { CustomPagination } from "@/components/general/pagination-component";
 import { useExportInstructorPayment } from "@/hooks/api/mutations/admin";
+import { BaseDialogComponent } from "@/components/general/base-dialog-component";
 
 const instructorTabs = [
   {
@@ -59,19 +60,28 @@ export const InstructorDetailPage = () => {
   const [tabs, setTabs] = useState("basic");
   const [expandedCards, setExpandedCards] = useState<Record<string, boolean>>({});
   const [selectedRange, setSelectedRange] = useState({
+    startDate: defaultDate().formattedOneMonthAgo,
+    endDate: defaultDate().formattedToday,
+  });
+
+  const [openExport, setOpenExport] = useState(false);
+  const [selectPeriodExport, setSelectPeriodExport] = useState({
     month: formatDateHelper(defaultDate().formattedToday, "M") as string,
     year: formatDateHelper(defaultDate().formattedToday, "yyyy") as string,
   });
 
-  const handleDateRangeChangeDual = (type: "month" | "year", data: string) => {
-    setSelectedRange((prev) => ({ ...prev, [type]: data }));
+  const handleDateRangeChangeDual = (startDate: string, endDate?: string) => {
+    setSelectedRange((prev) => ({ ...prev, from: startDate, to: endDate ?? "" }));
+  };
+  const handleSelectPeriode = (type: "month" | "year", data: string) => {
+    setSelectPeriodExport((prev) => ({ ...prev, [type]: data }));
   };
   const { mutateAsync: exportPayment, isPending } = useExportInstructorPayment();
   const { data: payments, isLoading: loadingPayments } = useGetInstructorPaymentDetails(
     {
       id: id as string,
-      startDate: selectedRange.month,
-      endDate: selectedRange.year,
+      startDate: selectedRange.startDate,
+      endDate: selectedRange.endDate,
       page,
       limit: 10,
     },
@@ -230,12 +240,13 @@ export const InstructorDetailPage = () => {
     try {
       const payload = {
         id: id as string,
-        year: selectedRange.year,
-        month: selectedRange.month,
+        year: selectPeriodExport.year,
+        month: selectPeriodExport.month,
       };
       const res = await exportPayment(payload);
       if (res) {
         console.log(res);
+        setOpenExport(false);
         window.open(res.data.download_url, "_blank");
       }
     } catch (error) {
@@ -362,7 +373,7 @@ export const InstructorDetailPage = () => {
             </div>
             <div className="flex flex-row items-center gap-2 w-full justify-end">
               <div className="">
-                <Select
+                {/* <Select
                   onValueChange={(e) => {
                     handleDateRangeChangeDual("year", e);
                   }}
@@ -380,18 +391,18 @@ export const InstructorDetailPage = () => {
                       ))}
                     </SelectGroup>
                   </SelectContent>
-                </Select>
+                </Select> */}
 
-                {/* <DateRangePicker
+                <DateRangePicker
                   mode="range"
                   onDateRangeChange={handleDateRangeChangeDual}
-                  startDate={selectedRange.from}
-                  endDate={selectedRange.to}
+                  startDate={selectedRange.startDate}
+                  endDate={selectedRange.endDate}
                   allowFutureDates
                   allowPastDates={false}
-                /> */}
+                />
               </div>
-              <div className="">
+              {/* <div className="">
                 <Select
                   onValueChange={(e) => {
                     handleDateRangeChangeDual("month", e);
@@ -411,14 +422,14 @@ export const InstructorDetailPage = () => {
                     </SelectGroup>
                   </SelectContent>
                 </Select>
-              </div>
+              </div> */}
               <div className="">
                 <Button variant={"outline"}>
                   <ListFilter /> Filter
                 </Button>
               </div>
               <div className="">
-                <Button variant={"outline"} onClick={onExportPayment} disabled={!!isPending}>
+                <Button variant={"outline"} onClick={() => setOpenExport(true)}>
                   <File /> Export
                 </Button>
               </div>
@@ -447,6 +458,64 @@ export const InstructorDetailPage = () => {
             </div>
           </CardContent>
         </Card>
+      )}
+      {openExport && (
+        <BaseDialogComponent
+          isOpen={openExport}
+          title="Export Data"
+          onClose={() => {
+            setOpenExport(false);
+          }}
+          onConfirm={onExportPayment}
+          isDisabled={!!isPending}
+        >
+          <div className="flex flex-col gap-4">
+            <div className="grid grid-cols-2 gap-4">
+              <p>Year:</p>
+              <Select
+                onValueChange={(e) => {
+                  handleSelectPeriode("year", e);
+                }}
+                value={selectPeriodExport.year}
+              >
+                <SelectTrigger className="w-full px-4 py-4 border-2 border-gray-200 rounded-lg text-gray-999  placeholder-gray-400 focus:outline-none focus:border-brand-500 transition-colors h-[42px]">
+                  <SelectValue placeholder="Select Year" className="!text-gray-400" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectGroup>
+                    {YEAR_LIST.map((item) => (
+                      <SelectItem value={String(item)} key={item}>
+                        {item}
+                      </SelectItem>
+                    ))}
+                  </SelectGroup>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <p>Month:</p>
+              <Select
+                onValueChange={(e) => {
+                  handleSelectPeriode("month", e);
+                }}
+                value={selectPeriodExport.month as string}
+              >
+                <SelectTrigger className="w-full px-4 py-4 border-2 border-gray-200 rounded-lg text-gray-999  placeholder-gray-400 focus:outline-none focus:border-brand-500 transition-colors h-[42px]">
+                  <SelectValue placeholder="Select Month" className="!text-gray-400" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectGroup>
+                    {MONTH_LIST.map((item) => (
+                      <SelectItem value={String(item.value)} key={item.value}>
+                        {item.label}
+                      </SelectItem>
+                    ))}
+                  </SelectGroup>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+        </BaseDialogComponent>
       )}
     </div>
   );

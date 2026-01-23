@@ -46,7 +46,7 @@ const defaultValues: IFormValuesAddInstructor = {
   password: DEFAULT_PASSWORD,
 };
 
-const PAYMENT_MODELS = [
+export const PAYMENT_MODELS = [
   {
     name: "Regular Offline",
     value: "regular",

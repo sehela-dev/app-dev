@@ -262,6 +262,12 @@ export const OrderCustomerSectionComponent = ({ enroll = false }: { enroll?: boo
                       }}
                       isLoading={isLoading}
                       getOptionLabel={(option) => option?.full_name}
+                      formatOptionLabel={(opt) => (
+                        <div className="flex flex-col gap-1">
+                          <p className="font-semibold">{opt.full_name}</p>
+                          <p className="text-gray-500 text-sm">{opt.phone}</p>
+                        </div>
+                      )}
                       getOptionValue={(opt) => opt.id}
                       onInputChange={onSearch}
                       onChange={(e) => {

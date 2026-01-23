@@ -1,5 +1,6 @@
 import { IResponseData } from "@/lib/config";
 import { ICommonParams } from "./general.interface";
+import { IModelParams, IPaymentRule } from "./instructor.interface";
 
 export interface ISessionItem {
   id: string;
@@ -9,6 +10,8 @@ export interface ISessionItem {
   capacity: number;
   instructor_id: string;
   instructor_name: string;
+  instructor_payment_model?: string;
+  instructor_payment_params?: IModelParams;
   session_description: string;
   start_datetime: string;
   end_datetime: string;
@@ -73,6 +76,7 @@ export interface ICreateSessionPaylaod {
   //OTHER
   type: string; //regular
   level: string; // "advanced",
+  payment?: IPaymentRule;
 }
 
 export interface IParticipantsSession {

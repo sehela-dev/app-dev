@@ -195,16 +195,6 @@ export const SessionListPage = () => {
         </div>
         <div className="flex flex-row items-center w-full justify-end gap-2">
           <div>
-            <DateRangePicker
-              mode="range"
-              onDateRangeChange={handleDateRangeChangeDual}
-              startDate={selectedRange.from}
-              endDate={selectedRange.to}
-              allowFutureDates
-              allowPastDates
-            />
-          </div>
-          <div>
             <Button variant={"outline"} className="text-brand-999 text-sm font-medium">
               <ListFilter /> Filter
             </Button>
@@ -224,6 +214,16 @@ export const SessionListPage = () => {
             <p className="text-sm text-gray-500">Manage class schedules and sessions</p>
           </div>
           <div className="flex items-center flex-row gap-2">
+            <div>
+              <DateRangePicker
+                mode="range"
+                onDateRangeChange={handleDateRangeChangeDual}
+                startDate={selectedRange.from}
+                endDate={selectedRange.to}
+                allowFutureDates
+                allowPastDates
+              />
+            </div>
             <div>
               <SearchInput className="border-brand-100 min-h-[42px]" onSearch={handleSearch} search={search} />
             </div>
