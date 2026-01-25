@@ -1,7 +1,15 @@
 import { axiosx } from "@/lib/axiosx";
 import { MAIN_API_URL } from "@/lib/config";
 import { ICommonParams } from "@/types/general.interface";
-import { TBookingsSession, TCreateManualOrder, TOrderDetail, TOrderList, TThirdPartyApp } from "@/types/orders.interface";
+import {
+  TBookingsSession,
+  TChangeAttendanceStatus,
+  TCreateManualOrder,
+  TOrderDetail,
+  TOrderList,
+  TRescheduleSessionCust,
+  TThirdPartyApp,
+} from "@/types/orders.interface";
 import { TAddNewGuest } from "@/types/user.type";
 
 export const getOrders: TOrderList = async ({ page, limit, search, payment_method, status, startDate, endDate }) => {
@@ -54,5 +62,21 @@ export const adminBooking: TBookingsSession = async (data) => {
 
 export const getThirdParyApp: TThirdPartyApp = async () => {
   const res = await axiosx(true).get(`${MAIN_API_URL}/admin/third-parties`);
+  return res.data;
+};
+
+export const changeAttendanceStatus: TChangeAttendanceStatus = async (data) => {
+  const res = await axiosx(true).patch(`${MAIN_API_URL}/admin/bookings/${data.id}`, {
+    attendance_status: data?.attendance_status,
+    notes: data?.notes,
+  });
+  return res.data;
+};
+
+export const rescheduleSession: TRescheduleSessionCust = async (data) => {
+  const res = await axiosx(true).post(`${MAIN_API_URL}/admin/bookings/${data.id}/reschedule`, {
+    new_session_id: data?.new_session_id,
+    notes: data?.notes,
+  });
   return res.data;
 };
