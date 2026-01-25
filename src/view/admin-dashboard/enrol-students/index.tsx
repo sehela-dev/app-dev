@@ -68,7 +68,7 @@ export const EnrollStudentView = () => {
     startDate: selectedRange.from,
     endDate: selectedRange.to,
     search: debounceClass,
-    // status: "scheduled",
+    status: "scheduled",
   });
 
   const handleDateRangeChangeDual = (startDate: string, endDate?: string) => {

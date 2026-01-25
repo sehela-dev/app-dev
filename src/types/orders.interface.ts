@@ -84,6 +84,11 @@ export interface IAddTransactionPayload {
   products?: IProduct[] | [];
   notes: string;
   status: string;
+  transfer_details?: {
+    account_name_from: string;
+    account_bank_from: string;
+    account_bank_to: string;
+  };
 }
 
 export interface ISession {
@@ -210,9 +215,61 @@ export interface IThirdPartyApp {
   updated_at: string;
 }
 
+export interface IChangeAttendance {
+  id: string;
+  notes?: string | null;
+  attendance_status: IAttendanceStatus;
+}
+
+export type IAttendanceStatus = "attended" | "no_show" | null;
+
+export interface IChangeAttendanceResponse {
+  id: string;
+  customer_name: string;
+  customer_phone: string;
+  customer_email: string;
+  booking_status: string;
+  attendance_status: string;
+  payment_method: string;
+  price_idr: number;
+  notes?: string | null;
+  class_session: IClassSession;
+}
+export interface IClassSession {
+  id: string;
+  type: string;
+  place: string;
+  session_name: string;
+  start_datetime: string;
+}
+
+export interface IReschedulePaylaod {
+  id: string;
+  new_session_id: string;
+  notes?: string;
+}
+
+export interface IBooking {
+  id: string;
+  customer_name: string;
+  booking_status: string;
+  attendance_status: IAttendanceStatus;
+  payment_method: string;
+  price_idr: number;
+  rescheduled_from_booking_id: string;
+  class_session: ClassSession;
+}
+export interface IReschdueResponse {
+  message: string;
+  original_booking: IBooking;
+  new_bookings: IBooking;
+}
 export type TOrderList = (param: ICommonParams) => Promise<IResponseData<IOrderItem[]>>;
 export type TOrderDetail = (id: string) => Promise<IResponseData<IDetailOrder>>;
 export type TCreateManualOrder = (payload: IAddTransactionPayload) => Promise<IResponseData<ICreatManualTrxResponse>>;
 
 export type TBookingsSession = (data: IBookingPayload) => Promise<IResponseData<IBookingResponseData>>;
 export type TThirdPartyApp = () => Promise<IResponseData<IThirdPartyApp[]>>;
+
+export type TChangeAttendanceStatus = (data: IChangeAttendance) => Promise<IResponseData<IChangeAttendanceResponse>>;
+export type TRescheduleSessionCust = (data: IReschedulePaylaod) => Promise<IResponseData<IReschdueResponse>>;

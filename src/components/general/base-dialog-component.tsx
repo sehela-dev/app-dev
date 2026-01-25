@@ -27,7 +27,7 @@ export const BaseDialogComponent = ({
 }: IProps) => {
   return (
     <AlertDialog open={isOpen}>
-      <AlertDialogContent>
+      <AlertDialogContent className="min-w-[55vw]">
         <AlertDialogHeader>
           <AlertDialogTitle>{title}</AlertDialogTitle>
         </AlertDialogHeader>

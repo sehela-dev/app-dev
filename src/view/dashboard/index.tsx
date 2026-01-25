@@ -16,6 +16,10 @@ import { Fragment, useMemo, useState } from "react";
 
 const filterOption = [
   {
+    name: "Today",
+    value: "last_1_day",
+  },
+  {
     name: "7D",
     value: "last_7_days",
   },
@@ -37,8 +41,10 @@ export const DashboardPage = () => {
   const { data: dashboardOverView, isLoading: isLoadingOverview } = useGetDashboardOverview();
   const { data: dashboardOverViewPerformance, isLoading: isLoadingOverviewPerformance } = useGetDashboardSessionPerformance();
   const { data: dashboardOverViewProduct, isLoading: isLoadingOverviewProduct } = useGetDashboardProductPerformance();
-  const [selectedFilter, setSelectedFilter] = useState("all");
+  const [selectedFilter, setSelectedFilter] = useState("last_1_day");
+  const [selectedFilterProduct, setSelectedFilterProduct] = useState("last_1_day");
   const [performacePagination, setPerformancePagination] = useState(0);
+  const [productPagination, setProductPagination] = useState(0);
 
   const classList = useMemo(() => {
     const temp: string[] = [];
@@ -88,6 +94,21 @@ export const DashboardPage = () => {
         setPerformancePagination(0);
       } else {
         setPerformancePagination((prev) => prev + 1);
+      }
+    }
+  };
+  const handlePaginationProduct = (type: string) => {
+    if (type === "-") {
+      if (productPagination === 0) {
+        setProductPagination(d.total - 1);
+      } else {
+        setProductPagination((prev) => prev - 1);
+      }
+    } else {
+      if (productPagination === d.total - 1) {
+        setProductPagination(0);
+      } else {
+        setProductPagination((prev) => prev + 1);
       }
     }
   };
@@ -173,7 +194,6 @@ export const DashboardPage = () => {
                 {filterOption?.map((f) => (
                   <div key={f.value}>
                     <Button
-                      size={"icon"}
                       variant={selectedFilter === f.value ? "default" : "ghost"}
                       onClick={() => {
                         setSelectedFilter(f.value);
@@ -292,11 +312,10 @@ export const DashboardPage = () => {
                 {filterOption?.map((f) => (
                   <div key={f.value}>
                     <Button
-                      size={"icon"}
-                      variant={selectedFilter === f.value ? "default" : "ghost"}
+                      variant={selectedFilterProduct === f.value ? "default" : "ghost"}
                       onClick={() => {
-                        setSelectedFilter(f.value);
-                        setPerformancePagination(0);
+                        setSelectedFilterProduct(f.value);
+                        setProductPagination(0);
                       }}
                     >
                       {f.name}
@@ -384,12 +403,12 @@ export const DashboardPage = () => {
                 </div>
                 <div className="flex flex-row justify-center items-center gap-2">
                   <div>
-                    <Button variant={"outline"} size={"icon"} onClick={() => handlePaginationClass("-")}>
+                    <Button variant={"outline"} size={"icon"} onClick={() => handlePaginationProduct("-")}>
                       <ChevronLeft />
                     </Button>
                   </div>
                   <div>
-                    <Button variant={"outline"} size={"icon"} onClick={() => handlePaginationClass("+")}>
+                    <Button variant={"outline"} size={"icon"} onClick={() => handlePaginationProduct("+")}>
                       <ChevronRight />
                     </Button>
                   </div>

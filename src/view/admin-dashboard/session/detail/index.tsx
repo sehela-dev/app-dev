@@ -1,17 +1,27 @@
 "use client";
 
+import { DateRangePicker } from "@/components/base/date-range-picker";
+import { BaseDialogComponent } from "@/components/general/base-dialog-component";
 import { CustomTable } from "@/components/general/custom-table";
 import { CustomPagination } from "@/components/general/pagination-component";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Divider } from "@/components/ui/divider";
-import { useGetSessionBookings, useGetSessionDetail } from "@/hooks/api/queries/admin/class-session";
-import { formatCurrency, formatDateHelper } from "@/lib/helper";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { SearchInput } from "@/components/ui/search-input";
+import { useDebounce } from "@/hooks";
+import { useChangeAttendanceStatus, useRescheduleSession } from "@/hooks/api/mutations/admin";
+import { useGetSessionBookings, useGetSessionDetail, useGetSessions } from "@/hooks/api/queries/admin/class-session";
+import { defaultDate, formatCurrency, formatDateHelper } from "@/lib/helper";
 import { cn } from "@/lib/utils";
-import { IParticipantsSession } from "@/types/class-sessions.interface";
-import { BellRing, File, Loader2, PenIcon } from "lucide-react";
+import { IParticipantsSession, ISessionItem } from "@/types/class-sessions.interface";
+import { IAttendanceStatus } from "@/types/orders.interface";
+import { BellRing, Ellipsis, File, Loader2, PenIcon } from "lucide-react";
 import { useParams, useRouter } from "next/navigation";
 import { useState } from "react";
+import { CardSession } from "../../enrol-students";
+import { Textarea } from "@/components/ui/textarea";
+import { Label } from "@/components/ui/label";
 
 export const SessionDetailPage = () => {
   const router = useRouter();
@@ -19,8 +29,50 @@ export const SessionDetailPage = () => {
   const { id } = params;
   const { data, isLoading } = useGetSessionDetail(id as string);
   const [page, setPage] = useState(1);
+  const [openDialog, setOpenDialog] = useState(false);
+  // resechedule
+  const [limit] = useState(6);
+  const [pageSession, setPageSession] = useState(1);
+  const [selectedSession, setSelectedSession] = useState<ISessionItem | null>(null);
+  const [selectedRange, setSelectedRange] = useState({
+    from: defaultDate().formattedToday,
+    to: defaultDate().formattedOneMonthLater,
+    // from: "2026-01-01",
+    // to: "2026-02-01",
+  });
+  const [search, setSearch] = useState("");
+  const debounceClass = useDebounce(search, 300);
+  const [rescheduleNotes, setRescheduleNotes] = useState("");
+  const [selectedRow, setSelectedRow] = useState<string | null>(null);
 
-  const { data: session, isLoading: loadingSession } = useGetSessionBookings({ id: id as string, page, limit: 10 });
+  const { mutateAsync: rescheduleSession } = useRescheduleSession();
+
+  const handleSearch = (query: string) => {
+    setSearch(query);
+  };
+
+  const handleDateRangeChangeDual = (startDate: string, endDate?: string) => {
+    setSelectedRange((prev) => ({ ...prev, from: startDate, to: endDate ?? "" }));
+  };
+  const { data: session, isLoading: loadingSession, refetch } = useGetSessionBookings({ id: id as string, page, limit: 10 });
+
+  const { mutateAsync, isPending } = useChangeAttendanceStatus();
+
+  const onConfirmAttendance = async (id: string, status: IAttendanceStatus) => {
+    try {
+      const payload = {
+        id,
+        attendance_status: status,
+      };
+      const res = await mutateAsync(payload);
+      if (res) {
+        console.log(res.data);
+        refetch();
+      }
+    } catch (error) {
+      console.log(error);
+    }
+  };
 
   const headers = [
     {
@@ -53,16 +105,95 @@ export const SessionDetailPage = () => {
       id: "attendance_status",
       text: "Attendance",
       value: (row: IParticipantsSession) => (
-        <p
-          className={cn({
-            "text-gray-500": !row.attendance_status,
-          })}
-        >
-          {row.attendance_status ?? "Not Checked In"}
-        </p>
+        <div className="">
+          {!row.attendance_status ? (
+            <p className="italic text-gray-500">Unconfirmed</p>
+          ) : (
+            <p
+              className={cn({
+                "text-green-500": row.attendance_status === "attended",
+                "text-red-500": row.attendance_status === "no_show",
+              })}
+            >
+              {row.attendance_status === "attended" ? "Checked In" : "No Show"}
+            </p>
+          )}
+        </div>
       ),
     },
   ];
+
+  const handleCloseDialog = () => {
+    setOpenDialog(false);
+    setPageSession(1);
+    setRescheduleNotes("");
+    setSelectedRow(null);
+    setSelectedSession(null);
+    refetch();
+    refetchSession();
+    setSearch("");
+  };
+
+  const {
+    data: sessionList,
+    isLoading: loadingSessionReschedule,
+    refetch: refetchSession,
+  } = useGetSessions({
+    page,
+    limit,
+    startDate: selectedRange.from,
+    endDate: selectedRange.to,
+    search: debounceClass,
+    status: "scheduled",
+  });
+
+  const actionOptions = {
+    text: "Action",
+    show: true,
+    render: (row: IParticipantsSession) => (
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <Button variant="ghost" className="data-[state=open]:bg-muted text-muted-foreground flex size-8" size="icon">
+            <Ellipsis />
+          </Button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="end" className="w-32">
+          <DropdownMenuItem onClick={() => onConfirmAttendance(row.id, "attended")} disabled={isPending}>
+            Check In
+          </DropdownMenuItem>
+          <DropdownMenuItem onClick={() => onConfirmAttendance(row.id, "no_show")} className="text-red-500" disabled={isPending}>
+            No Show
+          </DropdownMenuItem>
+          <DropdownMenuItem
+            onClick={() => {
+              setOpenDialog(true);
+              setSelectedRow(row.id);
+            }}
+          >
+            Reschedule
+          </DropdownMenuItem>
+        </DropdownMenuContent>
+      </DropdownMenu>
+    ),
+  };
+
+  const onResheduleSession = async () => {
+    try {
+      const payload = {
+        id: selectedRow as string,
+        new_session_id: selectedSession?.id as string,
+        notes: rescheduleNotes as string,
+      };
+      const res = await rescheduleSession(payload);
+      if (res) {
+        console.log(res);
+      }
+    } catch (error) {
+      console.log(error);
+    } finally {
+      handleCloseDialog();
+    }
+  };
 
   if (isLoading)
     return (
@@ -170,6 +301,7 @@ export const SessionDetailPage = () => {
                 isLoading={loadingSession}
                 // setSelectedData={setSelectedData}
                 // selectedData={selectedData}
+                actionOptions={actionOptions}
               />
               <CustomPagination
                 onPageChange={(e) => {
@@ -187,6 +319,89 @@ export const SessionDetailPage = () => {
           </div>
         </div>
       </CardContent>
+      <BaseDialogComponent
+        title="Reschedule"
+        isOpen={openDialog}
+        btnConfirm="Proceed"
+        onClose={() => {
+          handleCloseDialog();
+        }}
+        onConfirm={onResheduleSession}
+      >
+        <div className="flex flex-col gap-2">
+          <SearchInput className="border-brand-100" search={search} onSearch={handleSearch} />
+          <div className="flex flex-row items-center gap-4">
+            <div className="w-full flex flex-col gap-1">
+              <p className="text-sm font-medium">Date From</p>
+              <DateRangePicker
+                mode="single"
+                onDateRangeChange={(e) => handleDateRangeChangeDual(e)}
+                startDate={selectedRange.from}
+                allowFutureDates
+                allowPastDates={false}
+              />
+            </div>
+            <div className="w-full">
+              <p className="text-sm font-medium">Date to</p>
+              <DateRangePicker
+                mode="single"
+                onDateRangeChange={(e) => handleDateRangeChangeDual(selectedRange.from, e)}
+                startDate={selectedRange.to}
+                allowFutureDates
+                allowPastDates={false}
+              />
+            </div>
+          </div>
+          <div className="w-full flex-col gap-2">
+            {loadingSessionReschedule ? (
+              <div className="flex items-center justify-center py-6">
+                <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+              </div>
+            ) : (sessionList?.data?.length as number) > 0 ? (
+              <div className="grid grid-cols-3 gap-2 pt-2">
+                {sessionList?.data?.map((item) =>
+                  item.id !== id ? (
+                    <CardSession
+                      key={item.id}
+                      date={formatDateHelper(item.start_datetime, "dd/MM/yyyy")}
+                      instructor={item.instructor_name}
+                      time={`${item.time_start} - ${item.time_end}`}
+                      slot={item.slots_display}
+                      title={`[${item?.class?.class_name}] - ${item.session_name}`}
+                      onSelect={() => setSelectedSession(item)}
+                      isSelected={item.id === selectedSession?.id}
+                    />
+                  ) : null,
+                )}
+              </div>
+            ) : (
+              <div className="italic flex flex-row items-center justify-center w-full">No Data Found</div>
+            )}
+          </div>
+          <CustomPagination
+            onPageChange={(e) => {
+              setPageSession(e);
+            }}
+            currentPage={pageSession}
+            showTotal
+            hasPrevPage={sessionList?.pagination?.has_prev}
+            hasNextPage={sessionList?.pagination?.has_next}
+            totalItems={sessionList?.pagination?.total_items as number}
+            totalPages={sessionList?.pagination?.total_pages as number}
+            limit={limit}
+          />
+          {selectedSession && (
+            <div className="flex flex-col gap-2">
+              <Label>Notes</Label>
+              <Textarea
+                className="w-full px-4 py-4 border-2 border-gray-200 rounded-lg text-gray-999  placeholder-gray-400 focus:outline-none focus:border-brand-500 transition-colors h-[42px]"
+                placeholder="Type here.."
+                onChange={(e) => setRescheduleNotes(e.target.value)}
+              />
+            </div>
+          )}
+        </div>
+      </BaseDialogComponent>
     </Card>
   );
 };

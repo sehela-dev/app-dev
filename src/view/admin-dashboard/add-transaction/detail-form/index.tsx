@@ -47,9 +47,11 @@ export const DetailFormAddTransaction = () => {
   const [discountData, setDiscountData] = useState<IApplyDiscountResponse | null>(null);
   const [open, setOpen] = useState(false);
   const [selectedPaymentMethod, setSelectPaymentMethod] = useState("cash");
-  const [selectedBank, setSelectedBank] = useState(null);
+  const [selectedBank, setSelectedBank] = useState<string | null>(null);
+  const [selectedBankTo, setSelectedBankTo] = useState<string | null>(null);
+  const [nameFrom, setNameFrom] = useState(customerData?.name ?? "");
 
-  const { mutateAsync } = useCreateNewManualTrx();
+  const { mutateAsync, isPending } = useCreateNewManualTrx();
   const onModifyQty = (id: number | string, type: "+" | "-") => {
     const item = cartItems?.find((item) => item.id === id);
     const currentQty = item?.quantity || 0;
@@ -110,7 +112,11 @@ export const DetailFormAddTransaction = () => {
       payment_method: selectedPaymentMethod,
       ...(selectedPaymentMethod === "bank"
         ? {
-            bank_name: selectedBank,
+            transfer_details: {
+              account_name_from: nameFrom as string,
+              account_bank_from: selectedBank as string,
+              account_bank_to: selectedBankTo as string,
+            },
           }
         : null),
       user_id: customerData?.id as string,
@@ -360,7 +366,7 @@ export const DetailFormAddTransaction = () => {
                 </Button>
               </div>
               <div className="flex w-full">
-                <Button className="w-full" onClick={() => onConfirm()}>
+                <Button className="w-full" onClick={() => onConfirm()} disabled={!!isPending}>
                   Save
                 </Button>
               </div>
@@ -397,23 +403,57 @@ export const DetailFormAddTransaction = () => {
                     />
                   </div>
                   {selectedPaymentMethod === "transfer" && (
-                    <div className="flex flex-col gap-1 mt-2">
-                      <Label className="text-gray-500">Bank</Label>
-                      <Select
-                        options={BANK_LIST as never}
-                        className="basic-multi-select "
-                        classNames={{
-                          control: () =>
-                            "w-full !border-2 !border-gray-200 rounded-lg text-gray-999  focus:outline-none focus:border-brand-500 transition-colors h-[42px] !rounded-md !bg-transparent shadow-xs",
-                          placeholder: () => "placeholder-gray-400",
-                          singleValue: () => "text-brand-999",
-                          input: () => "text-brand-999 bg-none",
-                        }}
-                        onChange={(e) => {
-                          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                          setSelectedBank(e as any);
-                        }}
-                      />
+                    <div className="flex flex-col gap-1">
+                      <div className="flex flex-col gap-1 mt-2">
+                        <Label className="text-gray-500">Transfer To</Label>
+                        <Select
+                          options={BANK_LIST as never}
+                          className="basic-multi-select "
+                          classNames={{
+                            control: () =>
+                              "w-full !border-2 !border-gray-200 rounded-lg text-gray-999  focus:outline-none focus:border-brand-500 transition-colors h-[42px] !rounded-md !bg-transparent shadow-xs",
+                            placeholder: () => "placeholder-gray-400",
+                            singleValue: () => "text-brand-999",
+                            input: () => "text-brand-999 bg-none",
+                          }}
+                          onChange={(e) => {
+                            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                            setSelectedBankTo(e as any);
+                          }}
+                        />
+                      </div>
+                      <div className="flex flex-col gap-1 mt-2">
+                        <Label className="text-gray-500">Account Name</Label>
+                        <Input
+                          className="w-full px-4 py-4 border-2 border-gray-200 rounded-lg text-brand-999 placeholder-gray-400 focus:outline-none focus:border-brand-500 transition-colors h-[42px]"
+                          placeholder="Type here.."
+                          value={nameFrom}
+                          onChange={(e) => {
+                            setNameFrom(e.target.value);
+                          }}
+
+                          // className="w-auto min-w-[388px]"
+                        />
+                      </div>
+
+                      <div className="flex flex-col gap-1 mt-2">
+                        <Label className="text-gray-500">Transfer From</Label>
+                        <Select
+                          options={BANK_LIST as never}
+                          className="basic-multi-select "
+                          classNames={{
+                            control: () =>
+                              "w-full !border-2 !border-gray-200 rounded-lg text-gray-999  focus:outline-none focus:border-brand-500 transition-colors h-[42px] !rounded-md !bg-transparent shadow-xs",
+                            placeholder: () => "placeholder-gray-400",
+                            singleValue: () => "text-brand-999",
+                            input: () => "text-brand-999 bg-none",
+                          }}
+                          onChange={(e) => {
+                            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                            setSelectedBank(e as any);
+                          }}
+                        />
+                      </div>
                     </div>
                   )}
 
