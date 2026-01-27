@@ -59,6 +59,10 @@ export interface IDetailOrder {
   payment_method: string;
   status: string;
   date: string;
+  discount?: number;
+  discount_formatted?: string;
+  subtotal: number;
+  subtotal_formatted: string;
   time: string;
   customer_name: string;
   customer_phone: string;
@@ -66,6 +70,11 @@ export interface IDetailOrder {
   items: IOrderedItem[];
   total_price: number;
   total_price_formatted: string;
+  voucher?: {
+    code: string;
+    name: string;
+    discount_applied: number;
+  };
 }
 
 export interface IOrderedItem {

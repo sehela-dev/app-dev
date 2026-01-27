@@ -1,11 +1,13 @@
 "use client";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
+import { Divider } from "@/components/ui/divider";
 import { useSendReceiptEmail } from "@/hooks/api/mutations/admin/use-send-receipt-email";
 
 import { useGetOrderDetail } from "@/hooks/api/queries/admin/orders";
 import { formatCurrency, formatDateHelper } from "@/lib/helper";
-import { Mail } from "lucide-react";
+import { Loader2, Mail } from "lucide-react";
 import { useParams } from "next/navigation";
 
 import { Fragment } from "react";
@@ -20,7 +22,7 @@ export const OrderReceiptPage = () => {
     try {
       const payload = {
         id: id as string,
-        recipient_email: data?.data?.customer_email,
+        recipient_email: data?.data?.customer_email as string,
       };
       const res = await mutateAsync(payload);
       if (res) {
@@ -31,7 +33,12 @@ export const OrderReceiptPage = () => {
     }
   };
 
-  if (isLoading) return <>Loading...</>;
+  if (isLoading)
+    return (
+      <div className="flex items-center justify-center py-6">
+        <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+      </div>
+    );
 
   return (
     <div className="mx-auto max-w-[45vw] w-full">
@@ -43,14 +50,14 @@ export const OrderReceiptPage = () => {
           </div>
         </CardHeader>
         <hr style={{ color: "var(--color-brand-100" }} />
-        <CardContent className="p-0">
+        <CardContent className="p-0 h-full">
           <div className="flex flex-col gap-2">
             <div className="grid grid-cols-2">
               <p className="text-brand-999 font-semibold text-sm">Order Detail</p>
             </div>
             <div className="grid grid-cols-2">
               <p className="text-gray-500  text-sm">Order ID</p>
-              <p className="text-brand-999 text-right text-sm">{data?.data?.order_id}</p>
+              <p className="text-brand-999 text-right text-sm font-bold">{data?.data?.order_id}</p>
             </div>
             <div className="grid grid-cols-2">
               <p className="text-gray-500  text-sm">Payment Method</p>
@@ -114,9 +121,26 @@ export const OrderReceiptPage = () => {
                   <hr style={{ color: "var(--color-brand-100" }} />
                 </Fragment>
               ))}
+
               <div className="grid grid-cols-2">
-                <p className="text-brand-999 font-bold text-sm">Total</p>
-                <p className="text-brand-999 font-bold text-sm text-right">{formatCurrency(data?.data.total_price)}</p>
+                <p className="text-brand-999 font-bold text-md">Sub Total</p>
+                <p className="text-brand-999 font-bold text-md text-right">{formatCurrency(data?.data.subtotal)}</p>
+              </div>
+              {data?.data?.voucher?.code && (
+                <div className="grid grid-cols-2 items-center">
+                  <div className="text-brand-999 font-bold  items-center flex flex-row gap-4">
+                    <p className="text-brand-999 font-bold text-md">Discount</p>
+                    <Badge variant={"outline"} className="text-sm rounded-xl bg-brand-50 text-brand-600 font-bold">
+                      {data?.data?.voucher?.code}
+                    </Badge>
+                  </div>
+                  <p className="text-brand-999 font-semibold text-md text-right"> - {formatCurrency(data?.data?.voucher?.discount_applied)}</p>
+                </div>
+              )}
+
+              <div className="grid grid-cols-2">
+                <p className="text-brand-999 font-bold text-md">Total</p>
+                <p className="text-brand-999 font-bold text-md text-right">{formatCurrency(data?.data.total_price)}</p>
               </div>
             </div>
           </div>
@@ -124,7 +148,7 @@ export const OrderReceiptPage = () => {
       </Card>
       <div className="flex flex-row gap-2 pt-4">
         <div className="flex w-full">
-          <Button className="w-full" onClick={onSendEmail} disabled={!!isPending}>
+          <Button className="w-full !rounded-[10px]" onClick={onSendEmail} disabled={!!isPending}>
             <Mail className="w-4 h-4" /> Send Receipt via Email
           </Button>
         </div>
