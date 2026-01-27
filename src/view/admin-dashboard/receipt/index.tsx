@@ -20,7 +20,7 @@ export const OrderReceiptPage = () => {
     try {
       const payload = {
         id: id as string,
-        recipient_email: "luthfianugerah@gmail.com",
+        recipient_email: data?.data?.customer_email,
       };
       const res = await mutateAsync(payload);
       if (res) {
