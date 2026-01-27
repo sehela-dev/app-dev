@@ -8,5 +8,5 @@ export const useGetInstructorPaymentDetails = (params: ICommonParams, tabs: stri
     queryKey: ["dashboard", "instructors", "instructor-payments", params],
     queryFn: () => getInstructorPayments(params),
     refetchOnWindowFocus: false,
-    enabled: !!params.startDate && !!params.endDate && tabs === "payment",
+    enabled: (!!params.startDate && !!params.endDate) || tabs === "payment",
   });

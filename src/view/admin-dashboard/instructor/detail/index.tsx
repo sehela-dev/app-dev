@@ -59,9 +59,9 @@ export const InstructorDetailPage = () => {
   const [page, setPage] = useState(1);
   const [tabs, setTabs] = useState("basic");
   const [expandedCards, setExpandedCards] = useState<Record<string, boolean>>({});
-  const [selectedRange, setSelectedRange] = useState({
-    startDate: undefined,
-    endDate: undefined,
+  const [selectedRange, setSelectedRange] = useState<{ startDate?: string | null; endDate?: string | null }>({
+    startDate: null,
+    endDate: null,
   });
 
   const [openExport, setOpenExport] = useState(false);
@@ -70,8 +70,9 @@ export const InstructorDetailPage = () => {
     year: formatDateHelper(defaultDate().formattedToday, "yyyy") as string,
   });
 
-  const handleDateRangeChangeDual = (startDate: string, endDate?: string) => {
-    setSelectedRange((prev) => ({ ...prev, from: startDate, to: endDate ?? "" }));
+  const handleDateRangeChangeDual = (startDate?: string, endDate?: string) => {
+    setSelectedRange((prev) => ({ ...prev, startDate: startDate as string, endDate: endDate as string }));
+    refetch();
   };
   const handleSelectPeriode = (type: "month" | "year", data: string) => {
     setSelectPeriodExport((prev) => ({ ...prev, [type]: data }));
@@ -81,11 +82,12 @@ export const InstructorDetailPage = () => {
     data: payments,
     isLoading: loadingPayments,
     isFetching,
+    refetch,
   } = useGetInstructorPaymentDetails(
     {
       id: id as string,
-      ...(selectedRange?.startDate ? { startDate: selectedRange.startDate } : null),
-      ...(selectedRange.endDate ? { endDate: selectedRange.endDate } : null),
+      startDate: selectedRange?.startDate ?? undefined,
+      endDate: selectedRange?.endDate ?? undefined,
       page,
       limit: 10,
     },
@@ -400,10 +402,10 @@ export const InstructorDetailPage = () => {
                 <DateRangePicker
                   mode="range"
                   onDateRangeChange={handleDateRangeChangeDual}
-                  startDate={selectedRange?.startDate}
-                  endDate={selectedRange?.endDate}
+                  startDate={selectedRange?.startDate ?? undefined}
+                  endDate={selectedRange?.endDate ?? undefined}
                   allowFutureDates
-                  allowPastDates={false}
+                  allowPastDates
                 />
               </div>
               {/* <div className="">
@@ -446,7 +448,7 @@ export const InstructorDetailPage = () => {
           </CardHeader>
           <CardContent>
             <div className="flex flex-col gap-4">
-              <CustomTable headers={headers} data={payments?.data?.sessions ?? []} isLoading={isFetching} />
+              <CustomTable headers={headers} data={payments?.data?.sessions ?? []} isLoading={isFetching || loadingPayments} />
               <CustomPagination
                 onPageChange={(e) => {
                   setPage(e);
