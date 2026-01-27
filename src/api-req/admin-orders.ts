@@ -8,6 +8,7 @@ import {
   TOrderDetail,
   TOrderList,
   TRescheduleSessionCust,
+  TSendEmailReceipt,
   TThirdPartyApp,
 } from "@/types/orders.interface";
 import { TAddNewGuest } from "@/types/user.type";
@@ -77,6 +78,12 @@ export const rescheduleSession: TRescheduleSessionCust = async (data) => {
   const res = await axiosx(true).post(`${MAIN_API_URL}/admin/bookings/${data.id}/reschedule`, {
     new_session_id: data?.new_session_id,
     notes: data?.notes,
+  });
+  return res.data;
+};
+export const sendReceiptByEmail: TSendEmailReceipt = async (data) => {
+  const res = await axiosx(true).post(`${MAIN_API_URL}/admin/transactions/${data?.id}/send-receipt`, {
+    recipient_email: data?.recipient_email,
   });
   return res.data;
 };

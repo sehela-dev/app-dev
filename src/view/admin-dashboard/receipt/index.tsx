@@ -1,8 +1,11 @@
 "use client";
+import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
+import { useSendReceiptEmail } from "@/hooks/api/mutations/admin/use-send-receipt-email";
 
 import { useGetOrderDetail } from "@/hooks/api/queries/admin/orders";
 import { formatCurrency, formatDateHelper } from "@/lib/helper";
+import { Mail } from "lucide-react";
 import { useParams } from "next/navigation";
 
 import { Fragment } from "react";
@@ -11,6 +14,22 @@ export const OrderReceiptPage = () => {
   const params = useParams();
   const { id } = params;
   const { data, isLoading } = useGetOrderDetail(id as string);
+
+  const { mutateAsync, isPending } = useSendReceiptEmail();
+  const onSendEmail = async () => {
+    try {
+      const payload = {
+        id: id as string,
+        recipient_email: "luthfianugerah@gmail.com",
+      };
+      const res = await mutateAsync(payload);
+      if (res) {
+        console.log(res);
+      }
+    } catch (error) {
+      console.log(error);
+    }
+  };
 
   if (isLoading) return <>Loading...</>;
 
@@ -75,20 +94,20 @@ export const OrderReceiptPage = () => {
                 <p className="text-gray-500 font-medium text-sm text-right">Price & Qty</p>
               </div>
               <hr style={{ color: "var(--color-brand-100" }} />
-              {data?.data?.ordered_items?.map((item, id) => (
+              {data?.data?.items?.map((item, id) => (
                 <Fragment key={id}>
                   <div className="grid grid-cols-2 items-center">
                     <div>
-                      <p className="text-brand-999 font-medium text-sm">{item.item_name}</p>
-                      <p className="text-gray-500 font-medium text-sm">{item.item_detail}</p>
+                      <p className="text-brand-999 font-medium text-sm">{item.name}</p>
+                      <p className="text-gray-500 font-medium text-sm">{item.variant}</p>
                     </div>
                     <div className="flex flex-row gap-2 justify-end items-center">
                       {/* {item.badge && (
                         <Badge className="border bg-brand-100 min-w-[18px] h-[18px] text-[10px] border-brand-400 !p-1.5 ">{item.badge}</Badge>
                       )} */}
                       <div className="flex flex-col justify-center">
-                        <p className="text-brand-999 font-medium text-sm text-right">{formatCurrency(item.item_total_price)}</p>
-                        <p className="text-brand-999 font-medium text-sm text-right">X{item.item_qty}</p>
+                        <p className="text-brand-999 font-medium text-sm text-right">{formatCurrency(item.total_price)}</p>
+                        <p className="text-brand-999 font-medium text-sm text-right">X{item.qty}</p>
                       </div>
                     </div>
                   </div>
@@ -103,21 +122,21 @@ export const OrderReceiptPage = () => {
           </div>
         </CardContent>
       </Card>
-      {/* <div className="flex flex-row gap-2 pt-4">
-        <div className="flex">
-          <Button variant="outline" className="w-full">
-            <Share2 className="w-4 h-4" />
+      <div className="flex flex-row gap-2 pt-4">
+        <div className="flex w-full">
+          <Button className="w-full" onClick={onSendEmail} disabled={!!isPending}>
+            <Mail className="w-4 h-4" /> Send Receipt via Email
           </Button>
         </div>
-        <div className="flex w-full">
+        {/* <div className="flex w-full">
           <Button className="w-full text-brand-999" variant={"secondary"}>
             Export PDF
           </Button>
         </div>
         <div className="flex w-full">
           <Button className="w-full">Print</Button>
-        </div>
-      </div> */}
+        </div> */}
+      </div>
     </div>
   );
 };

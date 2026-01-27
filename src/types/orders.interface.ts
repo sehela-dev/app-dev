@@ -63,16 +63,16 @@ export interface IDetailOrder {
   customer_name: string;
   customer_phone: string;
   customer_email: string;
-  ordered_items: IOrderedItem[];
+  items: IOrderedItem[];
   total_price: number;
   total_price_formatted: string;
 }
 
 export interface IOrderedItem {
-  item_name: string;
-  item_detail: string;
-  item_qty: number;
-  item_total_price: number;
+  name: string;
+  variant?: string;
+  qty: number;
+  total_price: number;
 }
 
 export interface IAddTransactionPayload {
@@ -264,6 +264,18 @@ export interface IReschdueResponse {
   original_booking: IBooking;
   new_bookings: IBooking;
 }
+
+export interface ISendEmailReceipt {
+  id: string;
+  recipient_email: string;
+}
+
+export interface IResponseSendReceipt {
+  email_sent: boolean;
+  recipient_email: string;
+  order_code: string;
+  payment_id: string;
+}
 export type TOrderList = (param: ICommonParams) => Promise<IResponseData<IOrderItem[]>>;
 export type TOrderDetail = (id: string) => Promise<IResponseData<IDetailOrder>>;
 export type TCreateManualOrder = (payload: IAddTransactionPayload) => Promise<IResponseData<ICreatManualTrxResponse>>;
@@ -273,3 +285,5 @@ export type TThirdPartyApp = () => Promise<IResponseData<IThirdPartyApp[]>>;
 
 export type TChangeAttendanceStatus = (data: IChangeAttendance) => Promise<IResponseData<IChangeAttendanceResponse>>;
 export type TRescheduleSessionCust = (data: IReschedulePaylaod) => Promise<IResponseData<IReschdueResponse>>;
+
+export type TSendEmailReceipt = (data: ISendEmailReceipt) => Promise<IResponseData<IResponseSendReceipt>>;
