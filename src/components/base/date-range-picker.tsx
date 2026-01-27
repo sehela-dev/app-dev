@@ -13,6 +13,7 @@ import {
   isWithinInterval,
   isBefore,
   isAfter,
+  differenceInDays,
 } from "date-fns";
 import { Button } from "@/components/ui/button";
 import { ChevronLeft, ChevronRight, Calendar } from "lucide-react";
@@ -32,6 +33,7 @@ interface DateRangePickerProps {
   onDateRangeChange?: (startDate: string, endDate?: string) => void;
   allowFutureDates?: boolean;
   allowPastDates?: boolean;
+  maxSelectionDays?: number; // Maximum days allowed in range mode (default: 31)
 }
 
 export function DateRangePicker({
@@ -41,19 +43,20 @@ export function DateRangePicker({
   onDateRangeChange,
   allowFutureDates = false,
   allowPastDates = true,
+  maxSelectionDays = 31,
 }: DateRangePickerProps) {
   const defaultStartDate = useMemo(() => {
     if (startDate) {
       return new Date(startDate);
     }
-    return subMonths(new Date(), 1);
+    return null;
   }, [startDate]);
 
   const defaultEndDate = useMemo(() => {
     if (endDate) {
       return new Date(endDate);
     }
-    return new Date();
+    return null;
   }, [endDate]);
 
   const [dateRange, setDateRange] = useState<DateRange>({
@@ -61,9 +64,13 @@ export function DateRangePicker({
     end: mode === "single" ? null : defaultEndDate,
   });
 
-  const [firstMonth, setFirstMonth] = useState(defaultStartDate);
-  const [secondMonth, setSecondMonth] = useState(addMonths(defaultStartDate, 1));
+  const [firstMonth, setFirstMonth] = useState(defaultStartDate || new Date());
+  const [secondMonth, setSecondMonth] = useState(addMonths(defaultStartDate || new Date(), 1));
   const [isOpen, setIsOpen] = useState(false);
+  const [notification, setNotification] = useState<{ show: boolean; message: string }>({
+    show: false,
+    message: "",
+  });
 
   const today = useMemo(() => {
     const date = new Date();
@@ -88,13 +95,37 @@ export function DateRangePicker({
 
     if (mode === "single") {
       setDateRange({ start: date, end: null });
+      setNotification({ show: false, message: "" });
     } else {
       if (!dateRange.start || (dateRange.start && dateRange.end)) {
         setDateRange({ start: date, end: null });
+        setNotification({ show: false, message: "" });
       } else if (isBefore(date, dateRange.start)) {
-        setDateRange({ start: date, end: dateRange.start });
+        // Check if the range would exceed max selection days
+        const daysDifference = differenceInDays(dateRange.start, date);
+        if (daysDifference <= maxSelectionDays) {
+          setDateRange({ start: date, end: dateRange.start });
+          setNotification({ show: false, message: "" });
+        } else {
+          // Show notification when exceeding max days
+          setNotification({
+            show: true,
+            message: `Maximum selection is ${maxSelectionDays} days. Please select a shorter range.`,
+          });
+        }
       } else {
-        setDateRange({ start: dateRange.start, end: date });
+        // Check if the range would exceed max selection days
+        const daysDifference = differenceInDays(date, dateRange.start);
+        if (daysDifference <= maxSelectionDays) {
+          setDateRange({ start: dateRange.start, end: date });
+          setNotification({ show: false, message: "" });
+        } else {
+          // Show notification when exceeding max days
+          setNotification({
+            show: true,
+            message: `Maximum selection is ${maxSelectionDays} days. Please select a shorter range.`,
+          });
+        }
       }
     }
   };
@@ -214,6 +245,13 @@ export function DateRangePicker({
       </PopoverTrigger>
       <PopoverContent className="w-auto p-0 bg-gray-50 border-brand-50" align="start">
         <div className="p-4 bg-card">
+          {notification.show && (
+            <div className="mb-4 p-3 rounded-md bg-red-50 border border-red-200 flex items-center gap-2">
+              <div className="w-2 h-2 rounded-full bg-red-500 flex-shrink-0" />
+              <p className="text-sm text-red-700 font-medium">{notification.message}</p>
+            </div>
+          )}
+
           <div className="flex items-center justify-between mb-4">
             <Button variant="outline" size="sm" onClick={handlePrevMonth} className="h-8 w-8 p-0 bg-transparent">
               <ChevronLeft className="h-4 w-4" />

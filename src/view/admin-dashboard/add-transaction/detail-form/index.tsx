@@ -47,8 +47,8 @@ export const DetailFormAddTransaction = () => {
   const [discountData, setDiscountData] = useState<IApplyDiscountResponse | null>(null);
   const [open, setOpen] = useState(false);
   const [selectedPaymentMethod, setSelectPaymentMethod] = useState("cash");
-  const [selectedBank, setSelectedBank] = useState<string | null>(null);
-  const [selectedBankTo, setSelectedBankTo] = useState<string | null>(null);
+  const [selectedBank, setSelectedBank] = useState<{ label: string; value: string } | null>(null);
+  const [selectedBankTo, setSelectedBankTo] = useState<{ label: string; value: string } | null>(null);
   const [nameFrom, setNameFrom] = useState(customerData?.name ?? "");
 
   const { mutateAsync, isPending } = useCreateNewManualTrx();
@@ -110,12 +110,12 @@ export const DetailFormAddTransaction = () => {
       notes: "Combined purchase",
       status: "paid",
       payment_method: selectedPaymentMethod,
-      ...(selectedPaymentMethod === "bank"
+      ...(selectedPaymentMethod === "transfer"
         ? {
             transfer_details: {
               account_name_from: nameFrom as string,
-              account_bank_from: selectedBank as string,
-              account_bank_to: selectedBankTo as string,
+              account_bank_from: selectedBank?.label as string,
+              account_bank_to: selectedBankTo?.label as string,
             },
           }
         : null),

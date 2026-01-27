@@ -18,3 +18,4 @@ export * from "./use-export-instructor-payment";
 export * from "./use-edit-class-category";
 export * from "./use-change-attendance-status";
 export * from "./use-reschedule-session";
+export * from "./use-generate-outstanding-report";

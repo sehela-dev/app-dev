@@ -256,13 +256,17 @@ export const defaultDate = () => {
   // Get date from one month ago
   const oneMonthAgo = subDays(today, 30);
   const oneMonthForward = addMonths(today, 1);
+  const twoWeeksAdvance = addMonths(today, 14);
+  const twoWeeksBefore = subDays(today, 14);
 
   // Format the dates (you can customize the format string)
   const formattedToday = format(today, "yyyy-MM-dd");
   const formattedOneMonthAgo = format(oneMonthAgo, "yyyy-MM-dd");
   const formattedOneMonthLater = format(oneMonthForward, "yyyy-MM-dd");
+  const formattedTwoWeeksAdvance = format(twoWeeksAdvance, "yyyy-MM-dd");
+  const formattedTwoWeeksBefore = format(twoWeeksBefore, "yyyy-MM-dd");
 
-  return { formattedToday, formattedOneMonthAgo, formattedOneMonthLater };
+  return { formattedToday, formattedOneMonthAgo, formattedOneMonthLater, formattedTwoWeeksAdvance, formattedTwoWeeksBefore };
 };
 
 export function combineToISOString(date: string, time: string): string {

@@ -60,8 +60,8 @@ export const InstructorDetailPage = () => {
   const [tabs, setTabs] = useState("basic");
   const [expandedCards, setExpandedCards] = useState<Record<string, boolean>>({});
   const [selectedRange, setSelectedRange] = useState({
-    startDate: defaultDate().formattedOneMonthAgo,
-    endDate: defaultDate().formattedToday,
+    startDate: undefined,
+    endDate: undefined,
   });
 
   const [openExport, setOpenExport] = useState(false);
@@ -77,11 +77,15 @@ export const InstructorDetailPage = () => {
     setSelectPeriodExport((prev) => ({ ...prev, [type]: data }));
   };
   const { mutateAsync: exportPayment, isPending } = useExportInstructorPayment();
-  const { data: payments, isLoading: loadingPayments } = useGetInstructorPaymentDetails(
+  const {
+    data: payments,
+    isLoading: loadingPayments,
+    isFetching,
+  } = useGetInstructorPaymentDetails(
     {
       id: id as string,
-      startDate: selectedRange.startDate,
-      endDate: selectedRange.endDate,
+      ...(selectedRange?.startDate ? { startDate: selectedRange.startDate } : null),
+      ...(selectedRange.endDate ? { endDate: selectedRange.endDate } : null),
       page,
       limit: 10,
     },
@@ -396,8 +400,8 @@ export const InstructorDetailPage = () => {
                 <DateRangePicker
                   mode="range"
                   onDateRangeChange={handleDateRangeChangeDual}
-                  startDate={selectedRange.startDate}
-                  endDate={selectedRange.endDate}
+                  startDate={selectedRange?.startDate}
+                  endDate={selectedRange?.endDate}
                   allowFutureDates
                   allowPastDates={false}
                 />
@@ -442,7 +446,7 @@ export const InstructorDetailPage = () => {
           </CardHeader>
           <CardContent>
             <div className="flex flex-col gap-4">
-              <CustomTable headers={headers} data={payments?.data?.sessions ?? []} isLoading={loadingPayments} />
+              <CustomTable headers={headers} data={payments?.data?.sessions ?? []} isLoading={isFetching} />
               <CustomPagination
                 onPageChange={(e) => {
                   setPage(e);

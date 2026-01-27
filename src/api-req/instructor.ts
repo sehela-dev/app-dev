@@ -37,8 +37,8 @@ export const getInstructorPayments: TClassPaymentInstructor = async ({ page, lim
     params: {
       page,
       page_limit: limit,
-      start_date: startDate,
-      end_date: endDate,
+      ...(startDate ? { start_date: startDate } : null),
+      ...(endDate ? { end_date: endDate } : null),
     },
   });
   return res.data;

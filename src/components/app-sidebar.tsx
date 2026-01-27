@@ -7,7 +7,7 @@ import { NavMain } from "@/components/nav-main";
 
 import { NavUser } from "@/components/nav-user";
 import { Sidebar, SidebarContent, SidebarFooter, SidebarHeader, SidebarMenu, SidebarMenuButton, SidebarMenuItem } from "@/components/ui/sidebar";
-import { dataNavMain, dataNavMarketPlace } from "@/constants/nav-item";
+import { dataNavMain, dataNavMarketPlace, dataNavReport } from "@/constants/nav-item";
 import { useAuthAdmin } from "@/context/admin/admin-context";
 
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
@@ -35,6 +35,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
       <SidebarContent>
         {/* <NavMain items={dataNavMain} groupLabel="POS" /> */}
         <NavMain items={dataNavMarketPlace} groupLabel="Marketplace" />
+        <NavMain items={dataNavReport} groupLabel="Report" />
       </SidebarContent>
       <SidebarFooter>
         <NavUser user={user} />

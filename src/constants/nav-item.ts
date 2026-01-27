@@ -1,4 +1,4 @@
-import { Store, Users, ShoppingCart, BarChart2, Receipt, Gem, CalendarCheck, PackageSearch, Tag, UserSquare2 } from "lucide-react";
+import { Store, Users, ShoppingCart, BarChart2, Receipt, Gem, CalendarCheck, PackageSearch, Tag, DollarSign } from "lucide-react";
 
 export const dataNavMain = [
   { title: "Commerce", url: "#", icon: Store }, // 🛍️ icon visual → Store sudah mewakili group
@@ -28,4 +28,8 @@ export const dataNavMarketPlace = [
   { title: "Discount Voucher", url: "/admin/discount-voucher", icon: Tag },
   // { title: "Discounts", url: "#", icon: Tag },
   { title: "Customers", url: "/admin/member", icon: Users },
+];
+
+export const dataNavReport = [
+  { title: "Outstanding Credit", url: "/admin/report/outstanding-credit", icon: DollarSign }, // 🛍️ icon visual → Store sudah mewakili group
 ];
