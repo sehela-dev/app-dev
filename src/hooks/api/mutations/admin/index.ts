@@ -19,3 +19,4 @@ export * from "./use-edit-class-category";
 export * from "./use-change-attendance-status";
 export * from "./use-reschedule-session";
 export * from "./use-generate-outstanding-report";
+export * from "./use-cancel-booking";

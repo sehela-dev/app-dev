@@ -26,16 +26,22 @@ export const CreditPackageTabComponent = () => {
   const [search, setSearch] = useState("");
   const debounceClass = useDebounce(search, 300);
 
-  const [selectedRange, setSelectedRange] = useState({
-    from: defaultDate().formattedOneMonthAgo,
-    to: defaultDate().formattedToday,
+  const [selectedRange, setSelectedRange] = useState<{ from: string | null; to: string | null }>({
+    from: null,
+    to: null,
   });
 
   const handleSearch = (query: string) => {
     setSearch(query);
   };
 
-  const { data, isLoading } = useGetCreditPackage({ page, limit, startDate: selectedRange.from, endDate: selectedRange.to, search: debounceClass });
+  const { data, isLoading } = useGetCreditPackage({
+    page,
+    limit,
+    startDate: selectedRange.from as string,
+    endDate: selectedRange.to as string,
+    search: debounceClass,
+  });
 
   const handleDateRangeChangeDual = (startDate: string, endDate?: string) => {
     setSelectedRange((prev) => ({ ...prev, from: startDate, to: endDate ?? "" }));
@@ -152,7 +158,7 @@ export const CreditPackageTabComponent = () => {
           <p className="text-sm text-gray-500">Enter customer information to buy credit(s)</p>
         </div>
         <div className="flex flex-row gap-2">
-          <div className="flex  min-w-[60%] w-full">
+          {/* <div className="flex  min-w-[60%] w-full">
             <DateRangePicker
               mode="range"
               onDateRangeChange={handleDateRangeChangeDual}
@@ -161,7 +167,7 @@ export const CreditPackageTabComponent = () => {
               allowFutureDates
               allowPastDates={false}
             />
-          </div>
+          </div> */}
           <div className="flex w-full">
             <SearchInput className="border-brand-100" search={search} onSearch={handleSearch} />
           </div>

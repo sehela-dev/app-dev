@@ -37,6 +37,13 @@ export interface IAdminCartItemData {
   quantity: number;
   subtotal: number;
   type?: string;
+  share_with_user_id?: string;
+  shared_with_user?: {
+    id: string;
+    name: string;
+    phone: string;
+    email: string;
+  } | null;
 }
 export interface IAdminCartData {
   customer?: ICustomerData;
@@ -229,6 +236,11 @@ export interface IChangeAttendance {
   notes?: string | null;
   attendance_status: IAttendanceStatus;
 }
+export interface ICancelBooking {
+  id: string;
+  refund_type: string;
+  cancel_reason: string;
+}
 
 export type IAttendanceStatus = "attended" | "no_show" | null;
 
@@ -296,3 +308,5 @@ export type TChangeAttendanceStatus = (data: IChangeAttendance) => Promise<IResp
 export type TRescheduleSessionCust = (data: IReschedulePaylaod) => Promise<IResponseData<IReschdueResponse>>;
 
 export type TSendEmailReceipt = (data: ISendEmailReceipt) => Promise<IResponseData<IResponseSendReceipt>>;
+
+export type TCancelBooking = (data: ICancelBooking) => Promise<IResponseData<unknown>>;

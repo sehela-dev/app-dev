@@ -14,7 +14,7 @@ import { ICustomerData } from "@/types/customers.interface";
 import { IThirdPartyApp } from "@/types/orders.interface";
 
 // import { useCreateNewGuest } from "@/hooks/api/mutations/admin";
-import { useState } from "react";
+import { useCallback, useState } from "react";
 import { FormProvider, useForm } from "react-hook-form";
 import Select from "react-select";
 const customerSectionTab = [
@@ -81,6 +81,13 @@ export const OrderCustomerSectionComponent = ({ enroll = false }: { enroll?: boo
       console.log(error);
     }
   });
+
+  const optionData = useCallback(() => {
+    return data?.data?.map((item) => ({
+      ...item,
+      label: `${item.full_name} - ${item.phone}`,
+    }));
+  }, [data?.data]);
 
   return (
     <Card className="p-6  border-brand-100 w-full">
@@ -251,25 +258,27 @@ export const OrderCustomerSectionComponent = ({ enroll = false }: { enroll?: boo
                   <div className="flex flex-col gap-2">
                     <Label className=" text-brand-999 font-medium text-sm">Find Member</Label>
                     <Select
-                      options={data?.data}
+                      options={optionData()}
                       value={selectedUser}
                       classNames={{
                         control: () =>
-                          "w-full !border-2 !border-gray-200 rounded-lg text-gray-999  focus:outline-none focus:border-brand-500 transition-colors h-[42px] !rounded-md !bg-transparent shadow-xs",
+                          "w-full !border-2 !border-gray-200 rounded-lg text-gray-999  focus:outline-none focus:border-brand-500 transition-colors !rounded-md !bg-transparent shadow-xs h-[42px]",
                         placeholder: () => "placeholder-gray-400",
                         singleValue: () => "text-brand-999",
                         input: () => "text-brand-999 bg-none",
                       }}
                       isLoading={isLoading}
-                      getOptionLabel={(option) => option?.full_name}
-                      formatOptionLabel={(opt) => (
-                        <div className="flex flex-col gap-1">
-                          <p className="font-semibold">{opt.full_name}</p>
-                          <p className="text-gray-500 text-sm">{opt.phone}</p>
-                        </div>
-                      )}
+                      // getOptionLabel={(opt) => opt.full_name ?? opt.phone}
+                      // formatOptionLabel={(opt) => (
+                      //   <div className="flex flex-col gap-1">
+                      //     <p className="font-semibold">{opt.full_name}</p>
+                      //     <p className="text-gray-500 text-sm">{opt.phone}</p>
+                      //   </div>
+                      // )}
+
                       getOptionValue={(opt) => opt.id}
                       onInputChange={onSearch}
+                      inputValue={search}
                       onChange={(e) => {
                         setSelectedUser(e);
 

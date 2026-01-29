@@ -10,7 +10,7 @@ import { Divider } from "@/components/ui/divider";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { SearchInput } from "@/components/ui/search-input";
 import { useDebounce } from "@/hooks";
-import { useChangeAttendanceStatus, useRescheduleSession } from "@/hooks/api/mutations/admin";
+import { useCancelBooking, useChangeAttendanceStatus, useRescheduleSession } from "@/hooks/api/mutations/admin";
 import { useGetSessionBookings, useGetSessionDetail, useGetSessions } from "@/hooks/api/queries/admin/class-session";
 import { defaultDate, formatCurrency, formatDateHelper } from "@/lib/helper";
 import { cn } from "@/lib/utils";
@@ -22,6 +22,7 @@ import { useState } from "react";
 import { CardSession } from "../../enrol-students";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
+import { cancelBookingSession } from "@/api-req";
 
 export const SessionDetailPage = () => {
   const router = useRouter();
@@ -57,6 +58,7 @@ export const SessionDetailPage = () => {
   const { data: session, isLoading: loadingSession, refetch } = useGetSessionBookings({ id: id as string, page, limit: 10 });
 
   const { mutateAsync, isPending } = useChangeAttendanceStatus();
+  const { mutateAsync: cancelBooking } = useCancelBooking();
 
   const onConfirmAttendance = async (id: string, status: IAttendanceStatus) => {
     try {
@@ -65,6 +67,22 @@ export const SessionDetailPage = () => {
         attendance_status: status,
       };
       const res = await mutateAsync(payload);
+      if (res) {
+        console.log(res.data);
+        refetch();
+      }
+    } catch (error) {
+      console.log(error);
+    }
+  };
+  const onCancelBooking = async (id: string) => {
+    try {
+      const payload = {
+        id,
+        refund_type: "credit_return",
+        cancel_reason: "",
+      };
+      const res = await cancelBookingSession(payload);
       if (res) {
         console.log(res.data);
         refetch();
@@ -171,6 +189,9 @@ export const SessionDetailPage = () => {
             }}
           >
             Reschedule
+          </DropdownMenuItem>
+          <DropdownMenuItem onClick={() => onCancelBooking(row.id)} className="text-red-500" disabled={isPending}>
+            Cancel Booking
           </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>

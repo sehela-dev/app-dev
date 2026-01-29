@@ -3,6 +3,7 @@ import { MAIN_API_URL } from "@/lib/config";
 import { ICommonParams } from "@/types/general.interface";
 import {
   TBookingsSession,
+  TCancelBooking,
   TChangeAttendanceStatus,
   TCreateManualOrder,
   TOrderDetail,
@@ -70,6 +71,13 @@ export const changeAttendanceStatus: TChangeAttendanceStatus = async (data) => {
   const res = await axiosx(true).patch(`${MAIN_API_URL}/admin/bookings/${data.id}`, {
     attendance_status: data?.attendance_status,
     notes: data?.notes,
+  });
+  return res.data;
+};
+export const cancelBookingSession: TCancelBooking = async (data) => {
+  const res = await axiosx(true).patch(`${MAIN_API_URL}/admin/bookings/${data.id}/cancel`, {
+    refund_type: data?.refund_type,
+    cancel_reason: data?.cancel_reason,
   });
   return res.data;
 };

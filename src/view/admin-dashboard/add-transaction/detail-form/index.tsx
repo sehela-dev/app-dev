@@ -13,17 +13,21 @@ import { useAdminManualTransaction } from "@/context/admin/add-transaction.ctx";
 import { formatCurrency } from "@/lib/helper";
 import { BaseDialogConfirmation } from "@/components/general/dialog-confirnation";
 import { useCreateNewManualTrx } from "@/hooks/api/mutations/admin/use-create-manual-order";
-import { IPackages, IProduct, ISession } from "@/types/orders.interface";
+import { IAdminCartItemData, IPackages, IProduct, ISession } from "@/types/orders.interface";
 import { useRouter } from "next/navigation";
 import { useApplyDiscountVoucher } from "@/hooks/api/mutations/admin";
 import { IApplyDiscountResponse, IVouchersListItem } from "@/types/discount-voucher.interface";
 import { DiscountSelectComponent } from "@/components/page/orders/discount-code-select";
-import { XIcon } from "lucide-react";
+import { Plus, XIcon } from "lucide-react";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { BANK_LIST } from "@/constants/sample-data";
 import Select from "react-select";
+import { BaseDialogComponent } from "@/components/general/base-dialog-component";
+import { useDebounce } from "@/hooks";
+import { useGetCustomers } from "@/hooks/api/queries/admin/customers";
+import { ICustomerData } from "@/types/customers.interface";
 
 export const PAYMENT_METHODS = [
   {
@@ -42,7 +46,7 @@ export const PAYMENT_METHODS = [
 export const DetailFormAddTransaction = () => {
   const router = useRouter();
 
-  const { cartItems, updateStepper, customerData, removeItem, updateQuantity, clearCart, addCustomer } = useAdminManualTransaction();
+  const { cartItems, updateItem, updateStepper, customerData, removeItem, updateQuantity, clearCart, addCustomer } = useAdminManualTransaction();
   const [selectedVoucher, setSelectedVoucher] = useState<IVouchersListItem | null>(null);
   const [discountData, setDiscountData] = useState<IApplyDiscountResponse | null>(null);
   const [open, setOpen] = useState(false);
@@ -50,6 +54,25 @@ export const DetailFormAddTransaction = () => {
   const [selectedBank, setSelectedBank] = useState<{ label: string; value: string } | null>(null);
   const [selectedBankTo, setSelectedBankTo] = useState<{ label: string; value: string } | null>(null);
   const [nameFrom, setNameFrom] = useState(customerData?.name ?? "");
+  const [openModalSharing, setOpenModalSharing] = useState(false);
+  const [selectedItem, setSelectedItem] = useState<IAdminCartItemData | null>(null);
+  const [search, setSearch] = useState("");
+  const debounceSearch = useDebounce(search, 300);
+  const [selectedUser, setSelectedUser] = useState<ICustomerData | null>(null);
+
+  const onSearch = (e: string) => {
+    setSearch(e);
+  };
+
+  const { data, isLoading, refetch } = useGetCustomers({ search: debounceSearch });
+
+  const optionData = useCallback(() => {
+    const custData = data?.data?.filter((item) => item.id !== customerData?.id);
+    return custData?.map((item) => ({
+      ...item,
+      label: `${item.full_name} - ${item.phone}`,
+    }));
+  }, [customerData?.id, data?.data]);
 
   const { mutateAsync, isPending } = useCreateNewManualTrx();
   const onModifyQty = (id: number | string, type: "+" | "-") => {
@@ -95,7 +118,11 @@ export const DetailFormAddTransaction = () => {
       } else if (item.type === "packages") {
         packages.push({
           package_id: item.id as string,
-          // share_with_user_id: item.quantity,
+          ...(item.badge === "Sharing"
+            ? {
+                share_with_user_id: item.share_with_user_id,
+              }
+            : null),
         });
       }
     });
@@ -189,6 +216,26 @@ export const DetailFormAddTransaction = () => {
     }
   };
 
+  const onSaveShareWithUser = () => {
+    if (!selectedUser || !selectedItem) return;
+
+    // Find the item to update
+
+    updateItem(selectedItem?.id, {
+      share_with_user_id: selectedUser.id,
+      shared_with_user: {
+        id: selectedUser.id,
+        name: selectedUser.full_name,
+        phone: selectedUser.phone,
+        email: selectedUser.email,
+      },
+    });
+    setOpenModalSharing(false);
+    setSelectedUser(null);
+    setSelectedItem(null);
+    setSearch("");
+  };
+
   return (
     <>
       <div className="flex mt-2">
@@ -224,8 +271,9 @@ export const DetailFormAddTransaction = () => {
                   <div className="flex flex-col w-full">
                     <p className="text-brand-999 font-semibold text-sm mb-2">Ordered Items</p>
                     <div className="grid grid-cols-9">
-                      <p className="text-gray-500 font-medium text-sm col-span-6">Item</p>
+                      <p className="text-gray-500 font-medium text-sm col-span-4">Item</p>
                       <p className="text-gray-500 font-medium text-sm col-span-1">Type</p>
+                      <p className="text-gray-500 font-medium text-sm col-span-2">Share with</p>
                       <p className="text-gray-500 font-medium text-sm col-span-1 text-center flex justify-center items-center">Action</p>
                       <p className="text-gray-500 font-medium text-sm text-right col-span-1">Price & Qty</p>
                     </div>
@@ -234,21 +282,47 @@ export const DetailFormAddTransaction = () => {
                       <ScrollArea>
                         {cartItems?.map((item) => (
                           <div key={item.id}>
-                            <div className="grid grid-cols-9">
-                              <div className="col-span-6 items-center">
+                            <div className="grid grid-cols-9 items-center">
+                              <div className="col-span-4 items-center">
                                 <p className="text-brand-999 font-medium text-sm">{item.name}</p>
                                 {item?.description && <p className="text-gray-500 font-medium text-sm">{item.description}</p>}
                                 {/* <p className="text-sm font-semibold text-brand-200 flex-1">
                               {item?.variant?.map((v: { name: string; value: string }) => v.value).join(", ")}
                             </p> */}
                               </div>
-                              <p className="text-brand-999 font-medium text-sm col-span-1">
-                                {item.badge && (
+                              <p className="text-brand-999 font-medium text-sm col-span-1 flex flex-col">
+                                {item.badge ? (
                                   <Badge className="border bg-brand-100 min-w-[18px] h-[18px] text-[10px] border-brand-400 !p-1.5 ">
                                     {item.badge}
                                   </Badge>
+                                ) : (
+                                  ""
                                 )}
                               </p>
+                              <div className="text-brand-999 font-medium text-sm col-span-2 flex flex-col">
+                                {item?.type === "packages" && item.badge === "Sharing" ? (
+                                  <>
+                                    {item?.share_with_user_id ? (
+                                      <div className="flex flex-col">
+                                        <p>{item?.shared_with_user?.name}</p>
+                                        <p>{item?.shared_with_user?.phone}</p>
+                                      </div>
+                                    ) : (
+                                      <Button
+                                        size={"icon"}
+                                        onClick={() => {
+                                          setSelectedItem(item);
+                                          setOpenModalSharing(true);
+                                        }}
+                                      >
+                                        <Plus size={12} />
+                                      </Button>
+                                    )}
+                                  </>
+                                ) : (
+                                  <>{""}</>
+                                )}
+                              </div>
                               <div className="text-brand-999 font-medium text-sm text-center col-span-1">
                                 {" "}
                                 <div className="flex flex-row gap-2 items-center justify-center">
@@ -476,6 +550,58 @@ export const DetailFormAddTransaction = () => {
           cancelText="Order List"
           confirmText="Create More"
         />
+      )}
+
+      {openModalSharing && (
+        <BaseDialogComponent
+          onConfirm={onSaveShareWithUser}
+          isOpen={openModalSharing}
+          title="Select User to share package"
+          btnConfirm="Save"
+          onClose={() => {
+            setOpenModalSharing(false);
+            setSelectedUser(null);
+            setSelectedItem(null);
+            setSearch("");
+          }}
+        >
+          <Select
+            options={optionData()}
+            value={selectedUser}
+            classNames={{
+              control: () =>
+                "w-full !border-2 !border-gray-200 rounded-lg text-gray-999  focus:outline-none focus:border-brand-500 transition-colors !rounded-md !bg-transparent shadow-xs h-[42px]",
+              placeholder: () => "placeholder-gray-400",
+              singleValue: () => "text-brand-999",
+              input: () => "text-brand-999 bg-none",
+            }}
+            isLoading={isLoading}
+            // getOptionLabel={(opt) => opt.full_name ?? opt.phone}
+            // formatOptionLabel={(opt) => (
+            //   <div className="flex flex-col gap-1">
+            //     <p className="font-semibold">{opt.full_name}</p>
+            //     <p className="text-gray-500 text-sm">{opt.phone}</p>
+            //   </div>
+            // )}
+
+            getOptionValue={(opt) => opt.id}
+            onInputChange={onSearch}
+            inputValue={search}
+            onChange={(e) => {
+              setSelectedUser(e);
+            }}
+          />
+          {selectedUser && (
+            <div className="flex flex-col gap-2">
+              <p className="text-lg">Share with:</p>
+              <div className="flex flex-col gap-2 border border-brand-400 rounded-xl  p-4">
+                <p>{selectedUser?.full_name}</p>
+                <p>{selectedUser?.phone}</p>
+                <p>{selectedUser?.email}</p>
+              </div>
+            </div>
+          )}
+        </BaseDialogComponent>
       )}
     </>
   );
