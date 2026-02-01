@@ -303,9 +303,23 @@ export const DetailFormAddTransaction = () => {
                                 {item?.type === "packages" && item.badge === "Sharing" ? (
                                   <>
                                     {item?.share_with_user_id ? (
-                                      <div className="flex flex-col">
-                                        <p>{item?.shared_with_user?.name}</p>
-                                        <p>{item?.shared_with_user?.phone}</p>
+                                      <div className="flex flex-row items-center gap-4">
+                                        <div className="flex flex-col">
+                                          <p>{item?.shared_with_user?.name}</p>
+                                          <p>{item?.shared_with_user?.phone}</p>
+                                        </div>
+                                        <Button
+                                          size={"icon"}
+                                          variant={"outline"}
+                                          onClick={() => {
+                                            updateItem(item.id, {
+                                              share_with_user_id: undefined,
+                                              shared_with_user: null,
+                                            });
+                                          }}
+                                        >
+                                          <XIcon color="var(--color-red-500)" />
+                                        </Button>
                                       </div>
                                     ) : (
                                       <Button

@@ -87,13 +87,13 @@ export const OrdersCartComponent = ({ customerData, cartItems }: IOrderCartProps
                   <Fragment key={item.id}>
                     <div className="grid grid-cols-2 items-center">
                       <div className="flex flex-row items-center gap-2">
-                        {item.badge && (
-                          <Badge className="border bg-brand-100 min-w-[18px] h-[18px] text-[10px] border-brand-400 !p-1.5 ">{item.badge}</Badge>
-                        )}
                         <div>
                           <p className="text-brand-999 font-medium text-sm">{item.name}</p>
                           <p className="text-gray-500 font-medium text-sm">{item.description}</p>
                         </div>
+                        {item.badge && (
+                          <Badge className="border bg-brand-100 min-w-[18px] h-[18px] text-[10px] border-brand-400 !p-1.5 ">{item.badge}</Badge>
+                        )}
                       </div>
                       <div className="flex flex-row gap-2 justify-end items-center">
                         <div className="flex flex-col justify-center">
