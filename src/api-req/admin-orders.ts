@@ -75,9 +75,10 @@ export const changeAttendanceStatus: TChangeAttendanceStatus = async (data) => {
   return res.data;
 };
 export const cancelBookingSession: TCancelBooking = async (data) => {
-  const res = await axiosx(true).patch(`${MAIN_API_URL}/admin/bookings/${data.id}/cancel`, {
+  const res = await axiosx(true).post(`${MAIN_API_URL}/admin/bookings/${data.id}/cancel`, {
     refund_type: data?.refund_type,
     cancel_reason: data?.cancel_reason,
+    refund_validity_days: data?.refund_validity_days,
   });
   return res.data;
 };

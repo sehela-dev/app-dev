@@ -22,7 +22,6 @@ import { useState } from "react";
 import { CardSession } from "../../enrol-students";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
-import { cancelBookingSession } from "@/api-req";
 
 export const SessionDetailPage = () => {
   const router = useRouter();
@@ -45,6 +44,8 @@ export const SessionDetailPage = () => {
   const debounceClass = useDebounce(search, 300);
   const [rescheduleNotes, setRescheduleNotes] = useState("");
   const [selectedRow, setSelectedRow] = useState<string | null>(null);
+  const [openCancel, setOpenCancel] = useState(false);
+  const [selectedDataCancel, setSelectedDataCancel] = useState<string | null>(null);
 
   const { mutateAsync: rescheduleSession } = useRescheduleSession();
 
@@ -75,14 +76,20 @@ export const SessionDetailPage = () => {
       console.log(error);
     }
   };
-  const onCancelBooking = async (id: string) => {
+
+  const onTriggerCancel = (id: string) => {
+    setSelectedDataCancel(id);
+    setOpenCancel(true);
+  };
+  const onCancelBooking = async () => {
     try {
       const payload = {
-        id,
-        refund_type: "credit_return",
-        cancel_reason: "",
+        id: selectedDataCancel as string,
+        refund_type: "credit_issue_new",
+        cancel_reason: rescheduleNotes,
+        refund_validity_days: 30,
       };
-      const res = await cancelBookingSession(payload);
+      const res = await cancelBooking(payload);
       if (res) {
         console.log(res.data);
         refetch();
@@ -125,7 +132,7 @@ export const SessionDetailPage = () => {
       value: (row: IParticipantsSession) => (
         <div className="">
           {!row.attendance_status ? (
-            <p className="italic text-gray-500">Unconfirmed</p>
+            <p className="italic text-gray-500">No Confirmation</p>
           ) : (
             <p
               className={cn({
@@ -167,7 +174,7 @@ export const SessionDetailPage = () => {
 
   const actionOptions = {
     text: "Action",
-    show: true,
+    show: data?.data?.status !== "canceled",
     render: (row: IParticipantsSession) => (
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
@@ -190,7 +197,7 @@ export const SessionDetailPage = () => {
           >
             Reschedule
           </DropdownMenuItem>
-          <DropdownMenuItem onClick={() => onCancelBooking(row.id)} className="text-red-500" disabled={isPending}>
+          <DropdownMenuItem onClick={() => onTriggerCancel(row.id)} className="text-red-500" disabled={isPending}>
             Cancel Booking
           </DropdownMenuItem>
         </DropdownMenuContent>
@@ -421,6 +428,26 @@ export const SessionDetailPage = () => {
               />
             </div>
           )}
+        </div>
+      </BaseDialogComponent>
+
+      <BaseDialogComponent
+        isOpen={openCancel}
+        title="Cancel Booking"
+        buttonTriggerText="Cancel Booking"
+        onConfirm={onCancelBooking}
+        btnConfirm="Cancel Booking"
+        onClose={() => {
+          setOpenCancel(false);
+        }}
+      >
+        <div className="flex flex-col gap-2">
+          <Label>Notes</Label>
+          <Textarea
+            className="w-full px-4 py-4 border-2 border-gray-200 rounded-lg text-gray-999  placeholder-gray-400 focus:outline-none focus:border-brand-500 transition-colors h-[42px]"
+            placeholder="Type here.."
+            onChange={(e) => setRescheduleNotes(e.target.value)}
+          />
         </div>
       </BaseDialogComponent>
     </Card>

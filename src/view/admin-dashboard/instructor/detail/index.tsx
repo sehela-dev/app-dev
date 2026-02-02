@@ -10,7 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import { useGetInstructorDetail } from "@/hooks/api/queries/admin/instructor";
 import { useGetInstructorPaymentDetails } from "@/hooks/api/queries/admin/instructor/use-get-instructor-payment-details";
 import { defaultDate, formatDateHelper, formatCurrency } from "@/lib/helper";
-import { File, ListFilter, Loader2, PenIcon, Receipt, ChevronDown, ChevronUp } from "lucide-react";
+import { File, ListFilter, Loader2, PenIcon, Receipt, ChevronDown, ChevronUp, EyeIcon } from "lucide-react";
 import { useParams, useRouter } from "next/navigation";
 import { Fragment, useState } from "react";
 import { IModelParams, IPaymentRuleResponse, ISessionInstructorPayment } from "@/types/instructor.interface";
@@ -19,6 +19,7 @@ import { MONTH_LIST, YEAR_LIST } from "@/constants/sample-data";
 import { CustomPagination } from "@/components/general/pagination-component";
 import { useExportInstructorPayment } from "@/hooks/api/mutations/admin";
 import { BaseDialogComponent } from "@/components/general/base-dialog-component";
+import { InstructorPaymentDetailComponent } from "@/components/page/instructor-payment/payment-details";
 
 const instructorTabs = [
   {
@@ -63,6 +64,8 @@ export const InstructorDetailPage = () => {
     startDate: null,
     endDate: null,
   });
+  const [openDetail, setOpenDetail] = useState(false);
+  const [selectedPayment, setSelectedPayment] = useState<string | null>(null);
 
   const [openExport, setOpenExport] = useState(false);
   const [selectPeriodExport, setSelectPeriodExport] = useState({
@@ -70,6 +73,10 @@ export const InstructorDetailPage = () => {
     year: formatDateHelper(defaultDate().formattedToday, "yyyy") as string,
   });
 
+  const handleOpenModalDetail = (id: string | null) => {
+    setOpenDetail(true);
+    setSelectedPayment(id);
+  };
   const handleDateRangeChangeDual = (startDate?: string, endDate?: string) => {
     setSelectedRange((prev) => ({ ...prev, startDate: startDate as string, endDate: endDate as string }));
     refetch();
@@ -260,6 +267,16 @@ export const InstructorDetailPage = () => {
     }
   };
 
+  const actionOptions = {
+    text: "Action",
+    show: true,
+    render: (row: ISessionInstructorPayment) => (
+      <Button variant={"outline"} size={"icon"} onClick={() => handleOpenModalDetail(row.session_id)}>
+        <EyeIcon />
+      </Button>
+    ),
+  };
+
   if (isLoading)
     return (
       <div className="flex items-center justify-center py-6">
@@ -448,7 +465,12 @@ export const InstructorDetailPage = () => {
           </CardHeader>
           <CardContent>
             <div className="flex flex-col gap-4">
-              <CustomTable headers={headers} data={payments?.data?.sessions ?? []} isLoading={isFetching || loadingPayments} />
+              <CustomTable
+                headers={headers}
+                data={payments?.data?.sessions ?? []}
+                isLoading={isFetching || loadingPayments}
+                actionOptions={actionOptions}
+              />
               <CustomPagination
                 onPageChange={(e) => {
                   setPage(e);
@@ -522,6 +544,16 @@ export const InstructorDetailPage = () => {
             </div>
           </div>
         </BaseDialogComponent>
+      )}
+      {openDetail && selectedPayment && (
+        <InstructorPaymentDetailComponent
+          id={selectedPayment as string}
+          isOpen={openDetail}
+          onClose={() => {
+            setOpenDetail(false);
+            setSelectedPayment(null);
+          }}
+        />
       )}
     </div>
   );

@@ -146,4 +146,58 @@ export interface IPayloadExport {
   month: number | string;
 }
 
+export interface IPaymentDetailsResponse {
+  session: ISessionPaymentDetail;
+  bookings: IBookingPaymentDetail[];
+  payment: IPaymentDetail;
+}
+
+export interface ISessionPaymentDetail {
+  session_id: string;
+  session_code: string;
+  session_name: string;
+  class_name: string;
+  session_date: string;
+  session_type: string;
+  session_place: string;
+  session_status: string;
+  price_idr: number;
+  instructor_id: string;
+  instructor_name: string;
+}
+export interface IPaymentDetail {
+  total_bookings: number;
+  credit_bookings: number;
+  non_credit_bookings: number;
+  third_party_bookings: number;
+  total_revenue: number;
+  payment_model: string;
+  calculated_payment: number;
+  calculation_details?: {
+    fixed_amount: string;
+  } | null;
+}
+
+export interface IBookingPaymentDetail {
+  booking_id: string;
+  customer_id: string;
+  customer_name: string;
+  customer_phone: string;
+  customer_email: string;
+  booking_status: string;
+  attendance_status: string;
+  payment_method: string;
+  credits_used: number;
+  credit_unit_value_idr: string | number;
+  price_idr: number;
+  revenue_idr: number;
+  source_platform: string;
+  platform_fee_idr: number;
+  third_party_id: string;
+  voucher_code: string;
+  voucher_discount_idr: number;
+  created_at: string;
+}
 export type TExportInstructorPayment = (data: IPayloadExport) => Promise<IResponseData<IExportInstructorPayment>>;
+
+export type TInstructorSessionPaymentDetails = (data: string) => Promise<IResponseData<IPaymentDetailsResponse>>;

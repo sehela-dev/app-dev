@@ -8,6 +8,7 @@ import {
   TExportInstructorPayment,
   TInstructorData,
   TInstructorDetail,
+  TInstructorSessionPaymentDetails,
 } from "@/types/instructor.interface";
 
 export const getInstructor: TInstructorData = async ({ page, limit, search, status }) => {
@@ -56,5 +57,10 @@ export const deleteInstructor = async (id: string) => {
 
 export const exportInstructorPayment: TExportInstructorPayment = async ({ id, year, month }) => {
   const res = await axiosx(true).post(`${MAIN_API_URL}/admin/instructors/${id}/monthly-report`, { year, month });
+  return res.data;
+};
+
+export const getInstructorPaymentDetail: TInstructorSessionPaymentDetails = async (id) => {
+  const res = await axiosx(true).get(`${MAIN_API_URL}/admin/sessions/${id}/payment-details`);
   return res.data;
 };

@@ -35,16 +35,21 @@ export const BaseDialogComponent = ({
         <Divider />
         <AlertDialogFooter>
           <div className="flex flex-row w-full gap-2.5">
-            <div className="w-full">
-              <Button type="button" variant="secondary" className="w-full" onClick={onClose}>
-                Cancel
-              </Button>
-            </div>
-            <div className="w-full">
-              <Button type="button" className="w-full" variant={"default"} onClick={onConfirm} disabled={isDisabled}>
-                {btnConfirm}
-              </Button>
-            </div>
+            {onClose && (
+              <div className="w-full">
+                <Button type="button" variant="secondary" className="w-full" onClick={onClose}>
+                  Cancel
+                </Button>
+              </div>
+            )}
+
+            {btnConfirm && (
+              <div className="w-full">
+                <Button type="button" className="w-full" variant={"default"} onClick={onConfirm} disabled={isDisabled}>
+                  {btnConfirm}
+                </Button>
+              </div>
+            )}
           </div>
         </AlertDialogFooter>
       </AlertDialogContent>
