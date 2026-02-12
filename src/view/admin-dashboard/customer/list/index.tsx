@@ -1,11 +1,14 @@
 "use client";
 import { buildNumber, CustomTable } from "@/components/general/custom-table";
+import { BaseDialogConfirmation } from "@/components/general/dialog-confirnation";
 import { CustomPagination } from "@/components/general/pagination-component";
 import { GeneralTabComponent } from "@/components/general/tabs-component";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { SearchInput } from "@/components/ui/search-input";
+import { useEditCustomer } from "@/hooks/api/mutations/admin";
+import { useDeleteCustomer } from "@/hooks/api/mutations/admin/use-delete-customer";
 import { useGetCustomers } from "@/hooks/api/queries/admin/customers";
 import { ICustomerData } from "@/types/orders.interface";
 
@@ -35,7 +38,21 @@ export const CustomersPage = () => {
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState("");
   const [tab, setTab] = useState("all");
-  const { data, isLoading } = useGetCustomers({ page, limit, search, ...(tab !== "all" ? { status: tab === "active" ? "true" : "false" } : null) });
+  const { data, isLoading, refetch } = useGetCustomers({
+    page,
+    limit,
+    search,
+    ...(tab !== "all" ? { status: tab === "active" ? "true" : "false" } : null),
+  });
+  const [selectedData, setSelectedData] = useState<ICustomerData | null>(null);
+  const [openNotif, setOpenNotif] = useState(false);
+
+  const [openDialogConfirm, setOpenDialogConfirm] = useState(false);
+  const onDelete = (data: ICustomerData | null) => {
+    setOpenDialogConfirm(!openDialogConfirm);
+    setSelectedData(data);
+  };
+  const { mutateAsync } = useEditCustomer();
 
   const headers = [
     {
@@ -88,11 +105,11 @@ export const CustomersPage = () => {
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end" className="w-32">
-          <DropdownMenuItem onClick={() => alert(row.id)}>Edit</DropdownMenuItem>
+          <DropdownMenuItem onClick={() => router.push(`member/${row.id}/edit`)}>Edit</DropdownMenuItem>
           <DropdownMenuItem onClick={() => router.push(`member/${row.id}`)}>View Details</DropdownMenuItem>
-          <DropdownMenuItem>Set as Inactive</DropdownMenuItem>
-          <DropdownMenuItem variant="destructive" className="" onClick={() => alert(row.id)}>
-            Delete
+          {/* <DropdownMenuItem>Set as Inactive</DropdownMenuItem> */}
+          <DropdownMenuItem variant="destructive" className="" onClick={() => onDelete(row)}>
+            Set as Inactive
           </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
@@ -103,17 +120,34 @@ export const CustomersPage = () => {
     setSearch(e);
   };
 
+  const onConfirmDelete = async () => {
+    try {
+      const payload = {
+        is_active: !selectedData?.is_active as boolean,
+      };
+      const res = await mutateAsync({
+        data: payload,
+        id: selectedData?.id as string,
+      });
+      if (res) {
+        setOpenNotif(true);
+        onDelete(null);
+        refetch();
+      }
+    } catch (error) {
+      console.log(error);
+    }
+  };
+
   return (
     <div className="flex w-full  flex-col gap-2">
       <div className="flex flex-row items-center w-full justify-between gap-2">
-        <div>
-          <GeneralTabComponent tabs={tabs} selecetedTab={tab} setTab={setTab} />
-        </div>
+        <div>{/* <GeneralTabComponent tabs={tabs} selecetedTab={tab} setTab={setTab} /> */}</div>
         <div className="flex flex-row items-center gap-2">
           <div>
-            <Button variant={"outline"} className="text-brand-999 text-sm font-medium">
+            {/* <Button variant={"outline"} className="text-brand-999 text-sm font-medium">
               <ListFilter /> Filter
-            </Button>
+            </Button> */}
           </div>
           <div>
             <Button className=" text-sm font-medium" onClick={() => router.push("member/create")}>
@@ -126,7 +160,9 @@ export const CustomersPage = () => {
         <CardHeader className="flex flex-row w-full justify-between items-center">
           <div className="flex flex-col gap-1">
             <h3 className="text-2xl text-brand-999 font-medium">Member</h3>
-            <p className="text-sm text-gray-500">Monitor member activity, attendance, and payment status to ensure a seamless experience.</p>
+            <p className="text-sm text-gray-500 max-w-[80%]">
+              Monitor member activity, attendance, and payment status to ensure a seamless experience.
+            </p>
           </div>
           <div className="flex">
             <SearchInput className="border-brand-100" onSearch={handleSearch} />
@@ -159,6 +195,19 @@ export const CustomersPage = () => {
           />
         </CardFooter>
       </Card>
+
+      {openDialogConfirm && (
+        <BaseDialogConfirmation
+          image="trash-1"
+          onCancel={() => onDelete(null)}
+          open={openDialogConfirm}
+          title={`Set ${selectedData?.is_active ? "Inactive" : "Active"} Member?`}
+          subtitle="This member will be set to Inactive from the system"
+          onConfirm={onConfirmDelete}
+          cancelText="Cancel"
+          confirmText="Proceed"
+        />
+      )}
     </div>
   );
 };

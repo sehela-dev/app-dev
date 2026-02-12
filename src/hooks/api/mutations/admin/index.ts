@@ -20,3 +20,4 @@ export * from "./use-change-attendance-status";
 export * from "./use-reschedule-session";
 export * from "./use-generate-outstanding-report";
 export * from "./use-cancel-booking";
+export * from "./use-edit-customer";

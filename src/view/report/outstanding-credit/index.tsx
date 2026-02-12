@@ -7,7 +7,7 @@ import { GeneralTabComponent } from "@/components/general/tabs-component";
 import { CardRevenueComponent } from "@/components/page/dashboard";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Select, SelectContent, SelectGroup, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { MONTH_LIST, YEAR_LIST } from "@/constants/sample-data";
@@ -15,7 +15,7 @@ import { useGenerateOutstandingReport } from "@/hooks/api/mutations/admin";
 import { useGetOutstandingCreditTable } from "@/hooks/api/queries/admin/report/outstanding-credit";
 import { defaultDate, formatCurrency, formatDateHelper } from "@/lib/helper";
 import { IGeenrateOutstandingResponse, IPackage } from "@/types/report.interface";
-import { BadgeDollarSign, DollarSign, Download, FileText, Loader2, Package2 } from "lucide-react";
+import { BadgeDollarSign, DollarSign, Download, FileText, Loader2 } from "lucide-react";
 import { useState } from "react";
 import { FormProvider, useForm } from "react-hook-form";
 

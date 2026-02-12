@@ -18,10 +18,15 @@ export interface ICustomerData {
   status: string;
 }
 export interface ICreateNewCustomerAdminPaylod {
-  full_name: string;
-  email: string;
-  phone: string;
+  full_name?: string;
+  email?: string;
+  phone?: string;
   password?: string;
+  instagram_username?: string;
+  photo_url?: string;
+  tnc_agreed?: boolean;
+  photo_consent?: boolean;
+  is_active?: boolean;
 }
 
 export interface ICustomerUserData {
@@ -120,7 +125,38 @@ export interface IEligiblePackage {
   is_shared: boolean;
 }
 
+export interface ICustomerActvity {
+  booking_id: string;
+  session_id: string;
+  session_name: string;
+  class_name: string;
+  instructor_name: string;
+  start_datetime: string;
+  end_datetime: string;
+  type: string;
+  place: string;
+  location: string;
+  booking_status: string;
+  attendance_status: string;
+  payment_method: string;
+  price_idr: number;
+  credits_used: number;
+  voucher_code: string;
+  source_platform: string;
+  rescheduled_to_booking_id: string;
+  rescheduled_to_session_name: string;
+  rescheduled_to_start_datetime: string;
+  booked_at: string;
+}
+
+export interface ICustomerActivityParams extends ICommonParams {
+  id: string;
+}
+
 export type TCustomerData = (params: ICommonParams) => Promise<IResponseData<ICustomerData[]>>;
 export type TCreteateCustomerAdmin = (data: ICreateNewCustomerAdminPaylod) => Promise<IResponseData<IResponseCustomer>>;
 export type TCustomerDetail = (id: string) => Promise<IResponseData<IResponseCustomerDetail>>;
 export type TGetUserWallet = ({ user, session }: { user: string; session: string }) => Promise<IResponseData<ICustomerWalletAdmin>>;
+export type TEditCustomer = ({ data, id }: { data: ICreateNewCustomerAdminPaylod; id: string }) => Promise<IResponseData<IResponseCustomer>>;
+export type TDeleteCustomer = (id: string) => Promise<IResponseData<IResponseCustomer>>;
+export type TCustomerActivity = (params: ICustomerActivityParams) => Promise<IResponseData<ICustomerActvity[]>>;

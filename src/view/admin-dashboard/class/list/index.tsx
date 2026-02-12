@@ -224,7 +224,7 @@ export const ClassListView = () => {
         />
       )}
 
-      {/* {openNotif && (
+      {openNotif && (
         <BaseDialogConfirmation
           image="trash-success"
           onCancel={() => onDelete(null)}
@@ -239,7 +239,7 @@ export const ClassListView = () => {
           cancelText="Cancel"
           confirmText="Ok"
         />
-      )} */}
+      )}
     </div>
   );
 };

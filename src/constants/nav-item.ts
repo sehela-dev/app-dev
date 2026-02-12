@@ -27,7 +27,7 @@ export const dataNavMarketPlace = [
   },
   { title: "Discount Voucher", url: "/admin/discount-voucher", icon: Tag },
   // { title: "Discounts", url: "#", icon: Tag },
-  { title: "Customers", url: "/admin/member", icon: Users },
+  { title: "Members", url: "/admin/member", icon: Users },
 ];
 
 export const dataNavReport = [

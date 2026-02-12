@@ -1,5 +1,5 @@
-import { CreateMemberPage } from "@/view/admin-dashboard/customer/add";
+import { EditMemberPage } from "@/view/admin-dashboard/customer/edit";
 
 export default function Page() {
-  return <CreateMemberPage />;
+  return <EditMemberPage />;
 }
