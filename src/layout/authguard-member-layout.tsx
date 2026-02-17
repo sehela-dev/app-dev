@@ -16,8 +16,7 @@ export default function AuthMemberGuard({ children }: { children: React.ReactNod
   useEffect(() => {
     if (isAuthReady) {
       if (!isAuthenticated) {
-        console.log(33);
-        router.replace("/auth/login");
+        console.log("token expired");
       }
     }
   }, [isAuthReady, isAuthenticated, router]);
