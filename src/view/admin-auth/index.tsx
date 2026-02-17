@@ -11,6 +11,7 @@ import { FormProvider, useForm } from "react-hook-form";
 import { Button } from "@/components/ui/button";
 import { useLoginAdmin } from "@/hooks/api/mutations";
 import { useAuthAdmin } from "@/context/admin/admin-context";
+import { IUser } from "@/types/auth/user.interface";
 
 const defaultValues = {
   email: "",
@@ -35,7 +36,7 @@ export default function AdminLoginPage() {
         login({
           access_token: res.access_token,
           refresh_token: res.refresh_token,
-          user: res.user,
+          admin: res?.user as IUser,
           expires_at: res.expires_at,
           expires_in: res.expires_in,
         });

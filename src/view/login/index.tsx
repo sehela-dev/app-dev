@@ -2,25 +2,55 @@
 
 import type React from "react";
 
-import { useState } from "react";
 import { LogoComponent } from "@/components/asset/logo";
 import { Input } from "@/components/ui/input";
 import { PasswordInput } from "@/components/general/password-input";
 import { FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { FormProvider, useForm } from "react-hook-form";
 import { Button } from "@/components/ui/button";
+import { AuthLoginFormValues, authLoginSchema } from "@/resolver";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { useCustomerAuthLogin } from "@/hooks/api/mutations/customers";
+import { useRouter } from "next/navigation";
+import { useAuthMember } from "@/context/member.ctx";
+
+const defaultValues = {
+  email: "",
+  password: "",
+};
+
+const resolver = zodResolver(authLoginSchema);
 
 export default function LoginPageView() {
-  const methods = useForm();
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [showPassword, setShowPassword] = useState(false);
+  const router = useRouter();
+  const { login } = useAuthMember();
+  const methods = useForm<AuthLoginFormValues>({ defaultValues, resolver, mode: "all" });
+  const { control, handleSubmit } = methods;
 
-  const handleLogin = (e: React.FormEvent) => {
-    e.preventDefault();
-    // Handle login logic here
-    console.log("Login:", { email, password });
-  };
+  const { mutateAsync } = useCustomerAuthLogin();
+
+  const onSubmit = handleSubmit(async (data) => {
+    try {
+      const payload = {
+        ...data,
+      };
+      const res = await mutateAsync(payload);
+
+      if (res) {
+        login({
+          access_token: res.data?.session?.access_token as string,
+          refresh_token: res.data?.session?.refresh_token as string,
+          member: res?.data,
+          expires_at: res.data?.session?.expires_at,
+          expires_in: res.data?.session?.expires_in,
+        });
+      }
+    } catch (error: unknown) {
+      console.log(error);
+      methods.setError("email", { message: "Invalid email or password" });
+      methods.setError("password", { message: "Invalid email or password" });
+    }
+  });
 
   return (
     <div className="flex flex-col items-center w-full space-y-12 font-serif">
@@ -34,17 +64,17 @@ export default function LoginPageView() {
       <div className="w-full   mx-auto max-w-[361px]">
         <div className="bg-white mx-auto w-full px-6 rounded-md pt-10">
           {/* Heading */}
-          <div>
-            <h2 className="text-3xl font-bold text-brand-500 leading-tight">Welcome Back!</h2>
-            <h3 className="text-3xl font-bold text-brand-500 leading-tight">Login</h3>
+          <div className="">
+            <h2 className="text-2xl font-bold text-brand-500 leading-tight mb-2">Welcome Back!</h2>
+            <h3 className="text-2xl font-bold text-brand-500 leading-tight">Login</h3>
           </div>
           <FormProvider {...methods}>
             {/* Form */}
-            <form onSubmit={handleLogin} className="space-y-2 my-4">
+            <form onSubmit={onSubmit} className="space-y-2 my-4">
               {/* Email Field */}
               <div className="space-y-3">
                 <FormField
-                  control={methods.control}
+                  control={control}
                   name="email"
                   render={({ field }) => (
                     <FormItem className="flex flex-col">
@@ -64,17 +94,17 @@ export default function LoginPageView() {
                   )}
                 />
                 <FormField
-                  control={methods.control}
+                  control={control}
                   name="password"
                   render={({ field }) => (
                     <FormItem className="flex flex-col">
                       <FormLabel className="font-serif text-brand-500 text-sm" required>
-                        Passwword
+                        Password
                       </FormLabel>
                       <FormControl>
                         <PasswordInput
                           className="w-full px-4 py-4 border-2 border-gray-200 rounded-lg text-gray-600 placeholder-gray-400 focus:outline-none focus:border-brand-500 transition-colors h-[42px]"
-                          placeholder="password@1234"
+                          placeholder="Password"
                           {...field}
                         />
                       </FormControl>
@@ -88,7 +118,7 @@ export default function LoginPageView() {
 
               {/* Forgot Password */}
               <div className="text-right">
-                <a href="#" className="text-sm font-medium text-brand-400 hover:text-teal-700 transition-colors">
+                <a href="/auth/forgot-password" className="text-sm font-medium text-brand-400 hover:text-teal-700 transition-colors">
                   Forgot your password?
                 </a>
               </div>
@@ -98,7 +128,7 @@ export default function LoginPageView() {
                 <Button type="submit" className="w-full max-h-[42px] min-h-[42px] text-sm">
                   Login
                 </Button>
-                <div className="flex items-center gap-4 w-full justify-center">
+                {/* <div className="flex items-center gap-4 w-full justify-center">
                   <span className="text-brand-500 font-medium text-center text-sm">Or login with</span>
                 </div>
                 <Button
@@ -125,7 +155,7 @@ export default function LoginPageView() {
                     />
                   </svg>
                   <span className="text-sm font-medium text-teal-700">Login with Google</span>
-                </Button>
+                </Button> */}
               </div>
             </form>
           </FormProvider>
@@ -138,7 +168,7 @@ export default function LoginPageView() {
           <div className="text-center space-y-4 pb-12">
             <p className="text-sm text-brand-500">
               Don’t have an account?
-              <a href="#" className="ml-1 font-semibold text-brand-500 hover:text-brand-600 underline transition-colors">
+              <a href="/auth/sign-up" className="ml-1 font-semibold text-brand-500 hover:text-brand-600 underline transition-colors">
                 Sign up here
               </a>
             </p>

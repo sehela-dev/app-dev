@@ -1,3 +1,4 @@
+"use client";
 import { isEqual } from "@/lib/helper";
 import { localStorageGetItem } from "@/utils/storage-available";
 import { useMemo, useState, useEffect, useCallback } from "react";
@@ -10,11 +11,12 @@ export type UseLocalStorageReturn<T> = {
   resetState: () => void;
   setState: (updateState: T | Partial<T>) => void;
   setField: (name: keyof T, updateValue: T[keyof T]) => void;
+  isHydrated: boolean;
 };
 
 export function useLocalStorage<T>(key: string, initialState: T): UseLocalStorageReturn<T> {
   const [state, set] = useState(initialState);
-
+  const [isHydrated, setIsHydrated] = useState(false);
   const multiValue = initialState && typeof initialState === "object";
 
   const canReset = !isEqual(state, initialState);
@@ -29,6 +31,7 @@ export function useLocalStorage<T>(key: string, initialState: T): UseLocalStorag
         set(restoredValue);
       }
     }
+    setIsHydrated(true);
   }, [key, multiValue]);
 
   const setState = useCallback(
@@ -67,8 +70,9 @@ export function useLocalStorage<T>(key: string, initialState: T): UseLocalStorag
       setField,
       resetState,
       canReset,
+      isHydrated,
     }),
-    [canReset, resetState, setField, setState, state],
+    [canReset, resetState, setField, setState, state, isHydrated],
   );
 
   return memoizedValue;

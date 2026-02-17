@@ -9,7 +9,7 @@ import { useRouter } from "next/navigation";
 export interface IAuthContextAdmin {
   isAuthenticated: boolean;
   isLoading: boolean;
-  user: ILocalStorageData["user"] | null;
+  user: ILocalStorageData["admin"] | null;
   login: (data: ILocalStorageData) => void;
   logout: () => void;
 }
@@ -18,7 +18,7 @@ const AuthContextAdmin = createContext<IAuthContextAdmin | undefined>(undefined)
 
 export const AuthProviderAdmin: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const router = useRouter();
-  const { access_token, setJwtToken, resetJwt, user, expires_at } = useJwtToken();
+  const { access_token, setJwtToken, resetJwt, admin, expires_at } = useJwtToken();
   const [isLoading, setIsLoading] = useState(true);
 
   // Check if token is expired
@@ -56,7 +56,7 @@ export const AuthProviderAdmin: React.FC<{ children: React.ReactNode }> = ({ chi
   const value: IAuthContextAdmin = {
     isAuthenticated,
     isLoading,
-    user: isAuthenticated ? user : undefined,
+    user: isAuthenticated ? admin : undefined,
     login,
     logout,
   };

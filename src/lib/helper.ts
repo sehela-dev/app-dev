@@ -287,3 +287,9 @@ export function splitArray(array: any, chunkSize: number) {
   }
   return chunks;
 }
+
+export const previewURLHelper = (data: any) => {
+  console.log(data);
+  const previewUrl = data ? URL.createObjectURL(data) : "/assets/user-placeholder.png";
+  return previewUrl;
+};
