@@ -1,6 +1,5 @@
 import type React from "react";
 
-import { NavigationProvider } from "@/context/nav-context";
 import CartLayout from "@/layout/cart-layout";
 
 export default function RootLayout({
@@ -8,9 +7,5 @@ export default function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  return (
-    <NavigationProvider>
-      <CartLayout>{children}</CartLayout>
-    </NavigationProvider>
-  );
+  return <CartLayout>{children}</CartLayout>;
 }

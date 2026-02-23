@@ -49,8 +49,8 @@ export interface IAuthSignUpPaylaod {
   password: string;
   date_of_birth: string;
   gender: string;
-  instagram_username: string;
-  photo: File;
+  instagram_username?: string;
+  photo?: File;
   photo_consent: boolean;
   tnc_agreed: boolean;
 }
@@ -72,9 +72,11 @@ export interface IProfileResponse {
   role: string;
   instagram_username: string;
   photo_url: string;
-  tnc_agreed_at: boolean;
+  tnc_agreed_at: string;
   photo_consent: boolean;
   medical_notes: string;
+  gender: string;
+  date_of_birth: string;
   is_active: boolean;
   created_at: string;
   updated_at: string;
@@ -93,4 +95,5 @@ export interface IOverviewSession {
 export type TAuthCustomerLogin = (data: IAuthLoginPayload) => Promise<IResponseData<IAuthLoginResponse>>;
 export type TAuthCustomerSignUp = (data: IAuthSignUpPaylaod | FormData) => Promise<IResponseData<IAuthSignUpResponse>>;
 export type TAuthCustomerVerifyAccount = (data: IAuthVerifyAccountPayload) => Promise<IResponseData<{ message: string }>>;
-export type TAuthProfileCustomer = () => Promise<IResponseData<IProfileResponse>>;
+export type TAuthProfileCustomer = (data?: string) => Promise<IResponseData<IProfileResponse>>;
+export type TAuthCompleteProfile = (data: IAuthSignUpPaylaod | FormData) => Promise<IResponseData<unknown>>;

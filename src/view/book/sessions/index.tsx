@@ -19,8 +19,8 @@ export const SessionDetailView = () => {
 
   return (
     <>
-      <div className="relative flex flex-col w-full gap-8 font-serif mx-auto pt-8 min-h-dvh text-brand-500">
-        <div className="flex w-full px-4 sm:px-8 flex-col gap-8 h-full min-h-dvh">
+      <div className="relative flex flex-col w-full gap-8 font-serif mx-auto pt-8  text-brand-500 mb-8">
+        <div className="flex w-full px-4 sm:px-8 flex-col gap-8 h-full ">
           <div className="relative w-full  h-full mx-auto">
             <Image src="/assets/book-page/yoga-class.png" alt="yoga-class" width={361} height={225} className="w-full h-full" objectFit="fill" />
           </div>

@@ -1,6 +1,7 @@
 import { axiosx } from "@/lib/axiosx";
-import { MAIN_API_URL } from "@/lib/config";
+import { MAIN_API_URL, MAIN_AUTH_API_URL } from "@/lib/config";
 import {
+  TAuthCompleteProfile,
   TAuthCustomerLogin,
   TAuthCustomerSignUp,
   TAuthCustomerVerifyAccount,
@@ -29,5 +30,19 @@ export const userAuthResendVerifyEmail: TAuthCustomerVerifyAccount = async (data
 
 export const userAuthGetProfile: TAuthProfileCustomer = async () => {
   const res = await axiosx(true).get(`${MAIN_API_URL}/profile`);
+  return res.data;
+};
+export const userAuthGetProfileCallback: TAuthProfileCustomer = async (data) => {
+  const res = await axiosx(false, data).get(`${MAIN_API_URL}/profile`);
+  return res.data;
+};
+
+export const userSigInWithGoogle = async () => {
+  const url = `${MAIN_AUTH_API_URL}/authorize?provider=google&redirect_to=http://localhost:3000/auth/callback`;
+  window.open(url);
+};
+
+export const userCompleteProfile: TAuthCompleteProfile = async (data) => {
+  const res = await axiosx(true).post(`${MAIN_API_URL}/profile/update`, data);
   return res.data;
 };

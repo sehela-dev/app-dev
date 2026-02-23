@@ -1,7 +1,7 @@
 import type React from "react";
 
-import MainLayout from "@/layout/main-layout";
-import { NavigationProvider } from "@/context/nav-context";
+import MainLayout from "@/layout/main-layout-with-nav";
+
 import { SessionFilterCtxProvider } from "@/context/session-filter.ctx";
 
 export default function RootLayout({
@@ -10,10 +10,8 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <NavigationProvider showNav={false}>
-      <SessionFilterCtxProvider>
-        <MainLayout>{children}</MainLayout>
-      </SessionFilterCtxProvider>
-    </NavigationProvider>
+    <SessionFilterCtxProvider>
+      <MainLayout>{children}</MainLayout>
+    </SessionFilterCtxProvider>
   );
 }

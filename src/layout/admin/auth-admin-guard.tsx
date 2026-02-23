@@ -33,7 +33,7 @@ export const AdminAuthGuard: React.FC<AuthGuardProps> = ({ children, fallback, r
   if (!isAuthenticated) {
     return fallback || <AdminRequiredFallback />;
   }
-  if (requireAdmin && user?.role !== "manager") {
+  if (requireAdmin && user?.isAdmin) {
     return fallback || <SuperAdminRequiredFallback />;
   }
 

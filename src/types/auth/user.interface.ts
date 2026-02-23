@@ -1,4 +1,4 @@
-import { IAuthLoginResponse, IProfileResponse } from "../customer-app/auth-customer.interface";
+import { IAuthLoginResponse, IOverviewSession, IProfileResponse } from "../customer-app/auth-customer.interface";
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 export interface ILoginRequest {
@@ -46,10 +46,17 @@ export interface ILocalStorageData {
   access_token: string;
   expires_in?: number;
   expires_at?: number;
-  refresh_token: string;
-  admin?: IUser | null;
-  member?: IAuthLoginResponse | null;
-  member_user_profile?: IProfileResponse;
+  refresh_token?: string;
+  profile?: ILocalStorageDataProfile | null;
+  isAdmin?: boolean;
+}
+
+export interface ILocalStorageDataProfile {
+  email: string;
+  name: string;
+  role?: string;
+  id: string;
+  overview?: IOverviewSession;
 }
 
 export type TLogin = (data: ILoginRequest) => Promise<IAdminLoginResponse>;

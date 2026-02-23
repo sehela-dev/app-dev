@@ -10,35 +10,35 @@ import { useAuthMember } from "@/context/member.ctx";
 export default function AuthMemberGuard({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const { isAuthenticated, isAuthReady } = useAuthMember();
-  const { setProfile } = useJwtToken();
+  const {} = useJwtToken();
 
   // redirect if no token
-  useEffect(() => {
-    if (isAuthReady) {
-      if (!isAuthenticated) {
-        console.log("token expired");
-      }
-    }
-  }, [isAuthReady, isAuthenticated, router]);
+  // useEffect(() => {
+  //   if (isAuthReady) {
+  //     if (!isAuthenticated) {
+  //       console.log("token expired");
+  //     }
+  //   }
+  // }, [isAuthReady, isAuthenticated, router]);
 
   // fetch profile once globally
-  const { data, isLoading, error, isFetched } = useGetProfile(isAuthenticated);
+  // const { data, isLoading, error, isFetched } = useGetProfile();
 
-  // store profile globally
-  useEffect(() => {
-    if (isFetched) {
-      setProfile(data?.data);
-    }
-  }, [isFetched]);
+  // // store profile globally
+  // useEffect(() => {
+  //   if (isFetched) {
+  //     setProfile(data?.data);
+  //   }
+  // }, [isFetched]);
 
   // if (!isAuthenticated || isLoading) {
   //   return <div>Loading...</div>;
   // }
 
-  if (error) {
-    router.replace("/auth/login");
-    return null;
-  }
+  // if (error) {
+  //   // router.replace("/auth/login");
+  //   return null;
+  // }
 
   return <>{children}</>;
 }

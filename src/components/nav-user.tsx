@@ -13,10 +13,10 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { SidebarMenu, SidebarMenuButton, SidebarMenuItem, useSidebar } from "@/components/ui/sidebar";
-import { IUser } from "@/types/auth/user.interface";
+import { ILocalStorageData } from "@/types/auth/user.interface";
 import { useAuthAdmin } from "@/context/admin/admin-context";
 
-export function NavUser({ user }: { user?: IUser | null }) {
+export function NavUser({ user }: { user?: ILocalStorageData | null }) {
   const { isMobile } = useSidebar();
   const { logout } = useAuthAdmin();
 
@@ -31,8 +31,8 @@ export function NavUser({ user }: { user?: IUser | null }) {
                 <AvatarFallback className="rounded-lg">CN</AvatarFallback>
               </Avatar>
               <div className="grid flex-1 text-left text-sm leading-tight">
-                <span className="truncate font-medium">{user?.user_metadata.full_name}</span>
-                <span className="truncate text-xs">{user?.email}</span>
+                <span className="truncate font-medium">{user?.profile?.name}</span>
+                <span className="truncate text-xs">{user?.profile?.name}</span>
               </div>
               <ChevronsUpDown className="ml-auto size-4" />
             </SidebarMenuButton>
@@ -49,8 +49,8 @@ export function NavUser({ user }: { user?: IUser | null }) {
                   <CircleUserRound />
                 </Avatar>
                 <div className="grid flex-1 text-left text-sm leading-tight">
-                  <span className="truncate font-medium">{user?.user_metadata.full_name}</span>
-                  <span className="truncate text-xs">{user?.email}</span>
+                  <span className="truncate font-medium">{user?.profile?.name}</span>
+                  <span className="truncate text-xs">{user?.profile?.name}</span>
                 </div>
               </div>
             </DropdownMenuLabel>

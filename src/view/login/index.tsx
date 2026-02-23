@@ -13,6 +13,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useCustomerAuthLogin } from "@/hooks/api/mutations/customers";
 import { useRouter } from "next/navigation";
 import { useAuthMember } from "@/context/member.ctx";
+import { userSigInWithGoogle } from "@/api-req/customer-app";
 
 const defaultValues = {
   email: "",
@@ -22,7 +23,6 @@ const defaultValues = {
 const resolver = zodResolver(authLoginSchema);
 
 export default function LoginPageView() {
-  const router = useRouter();
   const { login } = useAuthMember();
   const methods = useForm<AuthLoginFormValues>({ defaultValues, resolver, mode: "all" });
   const { control, handleSubmit } = methods;
@@ -40,7 +40,6 @@ export default function LoginPageView() {
         login({
           access_token: res.data?.session?.access_token as string,
           refresh_token: res.data?.session?.refresh_token as string,
-          member: res?.data,
           expires_at: res.data?.session?.expires_at,
           expires_in: res.data?.session?.expires_in,
         });
@@ -128,13 +127,16 @@ export default function LoginPageView() {
                 <Button type="submit" className="w-full max-h-[42px] min-h-[42px] text-sm">
                   Login
                 </Button>
-                {/* <div className="flex items-center gap-4 w-full justify-center">
+                <div className="flex items-center gap-4 w-full justify-center">
                   <span className="text-brand-500 font-medium text-center text-sm">Or login with</span>
                 </div>
                 <Button
                   type="button"
                   variant={"outline"}
                   className="text-sm w-full py-4 border-2 border-gray-200 rounded-lg flex items-center justify-center gap-3 hover:border-teal-300 hover:bg-teal-50 transition-colors"
+                  onClick={() => {
+                    userSigInWithGoogle();
+                  }}
                 >
                   <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                     <path
@@ -155,7 +157,7 @@ export default function LoginPageView() {
                     />
                   </svg>
                   <span className="text-sm font-medium text-teal-700">Login with Google</span>
-                </Button> */}
+                </Button>
               </div>
             </form>
           </FormProvider>

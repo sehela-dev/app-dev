@@ -36,9 +36,15 @@ export default function AdminLoginPage() {
         login({
           access_token: res.access_token,
           refresh_token: res.refresh_token,
-          admin: res?.user as IUser,
           expires_at: res.expires_at,
           expires_in: res.expires_in,
+          profile: {
+            email: res.user?.email as string,
+            name: res?.user?.user_metadata?.full_name as string,
+            role: res?.user?.role as string,
+            id: res?.user?.id as string,
+          },
+          isAdmin: true,
         });
       }
     } catch (error) {

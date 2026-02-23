@@ -10,7 +10,7 @@ interface NavigationContextType {
 
 const NavigationContext = createContext<NavigationContextType>({});
 
-export function NavigationProvider({ children, showNav = true }: { children: React.ReactNode; showNav?: boolean }) {
+export function NavigationProviders({ children, showNav = true }: { children: React.ReactNode; showNav?: boolean }) {
   return <NavigationContext.Provider value={{ showNav }}>{children}</NavigationContext.Provider>;
 }
 

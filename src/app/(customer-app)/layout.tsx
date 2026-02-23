@@ -1,5 +1,6 @@
-import { AuthMemberProvider } from "@/context/member.ctx";
-import AuthMemberGuard from "@/layout/authguard-member-layout";
+// import { AuthMemberProvider } from "@/context/member.ctx";
+// import AuthMemberGuard from "@/layout/authguard-member-layout";
+import { AuthProvider } from "@/context/member.ctx";
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
@@ -7,14 +8,11 @@ export const metadata: Metadata = {
   description: "Sehela Booking App",
 };
 
+// will put context here
 export default function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  return (
-    <AuthMemberProvider>
-      <AuthMemberGuard>{children}</AuthMemberGuard>
-    </AuthMemberProvider>
-  );
+  return <AuthProvider>{children}</AuthProvider>;
 }

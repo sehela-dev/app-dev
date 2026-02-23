@@ -21,7 +21,8 @@ export const authSignUpSchema = z
       .max(13, { message: "Phone max 13 digits" })
       .regex(/^\d+$/, { message: "Phone must contain only numbers" }),
 
-    instagram_username: z.string().min(4, { message: "Instagram username min 4 characters" }),
+    instagram_username: z.string().optional(),
+    medical_notes: z.string().optional(),
 
     gender: z.string().min(1, { message: "Gender is required" }),
 
@@ -30,7 +31,7 @@ export const authSignUpSchema = z
     // ✅ RHF compatible file validation
     photo: z
       .any()
-      .refine((file) => file instanceof File, "Photo is required")
+      .optional()
       .refine((file) => !file || file.size <= MAX_FILE_SIZE, {
         message: "Max file size is 2MB",
       })
