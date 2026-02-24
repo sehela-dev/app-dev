@@ -55,8 +55,18 @@ export const deleteInstructor = async (id: string) => {
   return res.data;
 };
 
-export const exportInstructorPayment: TExportInstructorPayment = async ({ id, year, month }) => {
-  const res = await axiosx(true).post(`${MAIN_API_URL}/admin/instructors/${id}/monthly-report`, { year, month });
+// export const exportInstructorPayment: TExportInstructorPayment = async ({ id, start_date, end_date }) => {
+//   const res = await axiosx(true).post(`${MAIN_API_URL}/admin/instructors/${id}/payment-export`, { startDate:start_date, endDate:end_date });
+//   // const res = await axiosx(true).post(`${MAIN_API_URL}/admin/instructors/${id}/monthly-report`, { start_date, end_date });
+//   return res.data;
+// };
+
+export const exportInstructorPayment: TExportInstructorPayment = async ({ id, start_date, end_date }) => {
+  const res = await axiosx(true).get(`${MAIN_API_URL}/admin/instructors/${id}/payment-export`, {
+    params: { start_date, end_date, format: "csv" },
+    responseType: "blob",
+  });
+  // const res = await axiosx(true).post(`${MAIN_API_URL}/admin/instructors/${id}/monthly-report`, { start_date, end_date });
   return res.data;
 };
 

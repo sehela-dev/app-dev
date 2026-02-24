@@ -36,6 +36,15 @@ export const CustomerDetailPage = () => {
     month: formatDateHelper(defaultDate().formattedToday, "M") as string,
     year: formatDateHelper(defaultDate().formattedToday, "yyyy") as string,
   });
+  const [selectedRange, setSelectedRange] = useState<{ startDate?: string | null; endDate?: string | null }>({
+    startDate: null,
+    endDate: null,
+  });
+
+  const handleDateRangeChangeDual = (startDate?: string, endDate?: string) => {
+    setSelectedRange((prev) => ({ ...prev, startDate: startDate as string, endDate: endDate as string }));
+    refetch();
+  };
   const { data, isLoading } = useGetCustomerDetail(id as string);
   const {
     data: activity,
@@ -43,8 +52,8 @@ export const CustomerDetailPage = () => {
     refetch,
   } = useGetCustomerActivity({
     id: id as string,
-    startDate: selectPeriod.year as string,
-    endDate: selectPeriod.month as string,
+    startDate: selectedRange.startDate as string,
+    endDate: selectedRange.endDate as string,
     page,
     limit: 10,
   });
@@ -133,7 +142,7 @@ export const CustomerDetailPage = () => {
               <div className="flex flex-col gap-4">
                 <h4 className="text-sm font-semibold">Basic Information</h4>
                 <div className="grid grid-cols-12 gap-4">
-                  <div className="grid col-span-3 text-gray-500">Instructor Name</div>
+                  <div className="grid col-span-3 text-gray-500">Name</div>
                   <div className="grid col-span-9">{data?.data?.profile?.full_name}</div>
                   <div className="grid col-span-3 text-gray-500">WhatsApp</div>
                   <div className="grid col-span-9">{data?.data?.profile?.phone}</div>
@@ -153,21 +162,27 @@ export const CustomerDetailPage = () => {
               <div className="flex flex-col gap-4">
                 <h4 className="text-sm font-semibold">Credits</h4>
                 <div className="grid gap-4 grid-cols-4">
-                  {data?.data?.wallet?.active_packages?.map((item) => (
-                    <Card className="border-brand-500 shadow-md p-4 gap-1" key={item.package_purchase_id}>
-                      <CardHeader className="p-0 font-medium text-sm">{item.package_name}</CardHeader>
-                      <CardContent className="p-0">
-                        <div className="grid grid-cols-12 gap-1">
-                          <div className="grid col-span-4 text-gray-500 text-sm">Amount</div>
-                          <div className="grid col-span-8 text-brand-999 text-sm">{item.credits_remaining}</div>
-                          <div className="grid col-span-4 text-gray-500 text-sm">Expired</div>
-                          <div className="grid col-span-8 text-brand-999 text-sm">
-                            {item.expires_at ? formatDateHelper(item.expires_at, "dd MMM yyyy") : "-"}
+                  {(data?.data?.wallet?.active_packages.length as number) > 0 ? (
+                    data?.data?.wallet?.active_packages?.map((item) => (
+                      <Card className="border-brand-500 shadow-md p-4 gap-1" key={item.package_purchase_id}>
+                        <CardHeader className="p-0 font-medium text-sm">{item.package_name}</CardHeader>
+                        <CardContent className="p-0">
+                          <div className="grid grid-cols-12 gap-1">
+                            <div className="grid col-span-4 text-gray-500 text-sm">Amount</div>
+                            <div className="grid col-span-8 text-brand-999 text-sm">{item.credits_remaining}</div>
+                            <div className="grid col-span-4 text-gray-500 text-sm">Expired</div>
+                            <div className="grid col-span-8 text-brand-999 text-sm">
+                              {item.expires_at ? formatDateHelper(item.expires_at, "dd MMM yyyy") : "-"}
+                            </div>
                           </div>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  ))}
+                        </CardContent>
+                      </Card>
+                    ))
+                  ) : (
+                    <div className="flex w-full items-center justify-center col-span-12">
+                      <p className="capitalize  text-sm italic text-gray-500 font-bold">No Credit Active</p>
+                    </div>
+                  )}
                 </div>
               </div>
             </div>
@@ -184,7 +199,15 @@ export const CustomerDetailPage = () => {
                   <p className="text-sm text-gray-500 max-w-[80%]">Monitor member activity, attendance, and payment status</p>
                 </div>
                 <div className="flex flex-row items-center gap-4">
-                  <div>
+                  <DateRangePicker
+                    mode="range"
+                    onDateRangeChange={handleDateRangeChangeDual}
+                    startDate={selectedRange?.startDate ?? undefined}
+                    endDate={selectedRange?.endDate ?? undefined}
+                    allowFutureDates
+                    allowPastDates
+                  />
+                  {/* <div>
                     <Select
                       onValueChange={(e) => {
                         handleSelectPeriode("year", e);
@@ -225,7 +248,7 @@ export const CustomerDetailPage = () => {
                         </SelectGroup>
                       </SelectContent>
                     </Select>
-                  </div>
+                  </div> */}
                 </div>
               </div>
             </CardHeader>

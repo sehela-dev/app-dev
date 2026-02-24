@@ -53,17 +53,17 @@ export const SessionListPage = () => {
   const [selectedId, setSelectedId] = useState("");
   const [openNotif, setOpenNotif] = useState(false);
 
-  const [selectedRange, setSelectedRange] = useState({
-    from: defaultDate().formattedToday,
-    to: defaultDate().formattedOneMonthLater,
+  const [selectedRange, setSelectedRange] = useState<{ from?: string | null; to?: string | null }>({
+    from: null,
+    to: null,
   });
   const { data, isLoading, refetch } = useGetSessions({
     page,
     limit,
     search,
     status: tabs !== "all" ? tabs : "",
-    startDate: selectedRange.from,
-    endDate: selectedRange.to,
+    startDate: selectedRange.from as string,
+    endDate: selectedRange.to as string,
   });
 
   const { mutateAsync } = useDeleteSession();
@@ -218,8 +218,8 @@ export const SessionListPage = () => {
               <DateRangePicker
                 mode="range"
                 onDateRangeChange={handleDateRangeChangeDual}
-                startDate={selectedRange.from}
-                endDate={selectedRange.to}
+                startDate={selectedRange.from as string}
+                endDate={selectedRange.to as string}
                 allowFutureDates
                 allowPastDates
               />

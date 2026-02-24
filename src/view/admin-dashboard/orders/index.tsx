@@ -17,21 +17,6 @@ import { CirclePlus, File, ListFilter, ReceiptText } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 
-// const tabOptions = [
-//   {
-//     value: "week",
-//     name: "Week",
-//   },
-//   {
-//     value: "month",
-//     name: "Month",
-//   },
-//   {
-//     value: "Year",
-//     name: "Year",
-//   },
-// ];
-
 export const OrdersPageView = () => {
   const router = useRouter();
   // const [selecetedTab, setSelectedTab] = useState("week");

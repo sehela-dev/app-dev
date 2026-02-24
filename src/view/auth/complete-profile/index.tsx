@@ -82,6 +82,7 @@ export const CompleteProfilePageView = () => {
         ...(data?.photo ? { photo: data?.photo } : null),
         photo_consent: data?.photo_consent as boolean,
         tnc_agreed: data?.tnc_agreed,
+        phone: data?.phone,
       };
 
       const res = await mutateAsync(payload);

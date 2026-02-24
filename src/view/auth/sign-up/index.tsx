@@ -33,7 +33,6 @@ const defaultValues = {
   photo: null,
   photo_consent: false,
   tnc_agreed: false,
-
   confirm_password: "",
 };
 const resolver = zodResolver(authSignUpSchema);
@@ -58,6 +57,7 @@ export const SignUpViewPage = () => {
         photo: data?.photo,
         photo_consent: data?.photo_consent,
         tnc_agreed: data?.tnc_agreed,
+        phone: data?.phone,
       };
 
       const formData = createFormData(payload);

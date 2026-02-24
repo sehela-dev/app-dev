@@ -30,10 +30,6 @@ const instructorTabs = [
     value: "payment",
     name: "Class & Payment",
   },
-  {
-    value: "report",
-    name: "Report",
-  },
 ];
 
 const PAYMENT_MODEL_LABELS: Record<string, string> = {
@@ -61,8 +57,8 @@ export const InstructorDetailPage = () => {
   const [tabs, setTabs] = useState("basic");
   const [expandedCards, setExpandedCards] = useState<Record<string, boolean>>({});
   const [selectedRange, setSelectedRange] = useState<{ startDate?: string | null; endDate?: string | null }>({
-    startDate: null,
-    endDate: null,
+    startDate: defaultDate().formattedOneMonthAgo,
+    endDate: defaultDate().formattedToday,
   });
   const [openDetail, setOpenDetail] = useState(false);
   const [selectedPayment, setSelectedPayment] = useState<string | null>(null);
@@ -253,15 +249,18 @@ export const InstructorDetailPage = () => {
     try {
       const payload = {
         id: id as string,
-        year: selectPeriodExport.year,
-        month: selectPeriodExport.month,
+        start_date: selectedRange?.startDate ?? defaultDate().formattedOneMonthAgo,
+        end_date: selectedRange?.endDate ?? defaultDate().formattedToday,
       };
-      const res = await exportPayment(payload);
-      if (res) {
-        console.log(res);
-        setOpenExport(false);
-        window.open(res.data.download_url, "_blank");
-      }
+      const blob = await exportPayment(payload);
+
+      // Download example
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `[${payments?.data?.instructor_name}] Payment - ${selectedRange?.startDate} -  ${selectedRange?.endDate}`;
+      a.click();
+      window.URL.revokeObjectURL(url);
     } catch (error) {
       console.log(error);
     }
@@ -299,9 +298,9 @@ export const InstructorDetailPage = () => {
               </div>
               <div className="flex flex-row items-center gap-2">
                 <div>
-                  <Button variant={"outline"}>
+                  {/* <Button variant={"outline"} >
                     <File /> Export
-                  </Button>
+                  </Button> */}
                 </div>
                 <div>
                   <Button onClick={() => router.push(`${id}/edit`)}>
@@ -452,7 +451,7 @@ export const InstructorDetailPage = () => {
                 </Button>
               </div>
               <div className="">
-                <Button variant={"outline"} onClick={() => setOpenExport(true)}>
+                <Button variant={"outline"} onClick={() => onExportPayment()} disabled={isPending}>
                   <File /> Export
                 </Button>
               </div>
@@ -487,7 +486,7 @@ export const InstructorDetailPage = () => {
           </CardContent>
         </Card>
       )}
-      {openExport && (
+      {/* {openExport && (
         <BaseDialogComponent
           isOpen={openExport}
           title="Export Data"
@@ -544,7 +543,7 @@ export const InstructorDetailPage = () => {
             </div>
           </div>
         </BaseDialogComponent>
-      )}
+      )} */}
       {openDetail && selectedPayment && (
         <InstructorPaymentDetailComponent
           id={selectedPayment as string}

@@ -1,6 +1,7 @@
 "use client";
 import { CalendarMinus, MapPin } from "lucide-react";
 import { Card } from "../ui/card";
+import { cn } from "@/lib/utils";
 
 interface ISessionCardProps {
   time: string;
@@ -8,12 +9,17 @@ interface ISessionCardProps {
   title: string;
   location: string;
   date: string;
+  isCancelled?: boolean;
 }
 
-export const CheckoutSessionCardComponent = ({ time, duration, title, location, date }: ISessionCardProps) => {
+export const CheckoutSessionCardComponent = ({ time, duration, title, location, date, isCancelled = false }: ISessionCardProps) => {
   return (
     <div className="relative w-full">
-      <Card className="bg-brand-500 text-gray-50 rounded-xl p-2  cursor-pointer hover:shadow-md border-none">
+      <Card
+        className={cn("bg-brand-500 text-gray-50 rounded-xl p-2  cursor-pointer hover:shadow-md border-none", {
+          "bg-red-900": isCancelled,
+        })}
+      >
         <div className="flex flex-row items-start gap-2.5 ">
           <div className="bg-brand-400 h-[88px] w-[90px] rounded-md flex flex-col justify-center items-center ">
             <p className="text-sm">{time} WIB</p>

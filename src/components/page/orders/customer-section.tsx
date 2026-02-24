@@ -18,10 +18,10 @@ import { useCallback, useState } from "react";
 import { FormProvider, useForm } from "react-hook-form";
 import Select from "react-select";
 const customerSectionTab = [
-  {
-    value: "new",
-    name: "New Customer",
-  },
+  // {
+  //   value: "new",
+  //   name: "New Customer",
+  // },
   {
     value: "search",
     name: "Find Member",
@@ -52,7 +52,7 @@ export const OrderCustomerSectionComponent = ({ enroll = false }: { enroll?: boo
   };
 
   const { control, handleSubmit } = methods;
-  const [tabCustomer, setTabCustomer] = useState("new");
+  const [tabCustomer, setTabCustomer] = useState("search");
 
   const { data, isLoading, refetch } = useGetCustomers({ search: debounceSearch });
   const bookings = methods.watch("booking_id");
@@ -97,7 +97,7 @@ export const OrderCustomerSectionComponent = ({ enroll = false }: { enroll?: boo
       </CardHeader>
       <CardContent className="p-0">
         <div className="flex flex-col gap-1">
-          <div className="max-w-fit">
+          {/* <div className="max-w-fit">
             <GeneralTabComponent
               selecetedTab={tabCustomer}
               setTab={(e) => {
@@ -110,7 +110,7 @@ export const OrderCustomerSectionComponent = ({ enroll = false }: { enroll?: boo
               }}
               tabs={customerSectionTab}
             />
-          </div>
+          </div> */}
           <div className="flex w-full pt-4">
             <FormProvider {...methods}>
               <form onSubmit={onSubmit} className="w-full">
@@ -256,7 +256,7 @@ export const OrderCustomerSectionComponent = ({ enroll = false }: { enroll?: boo
                   </>
                 ) : (
                   <div className="flex flex-col gap-2">
-                    <Label className=" text-brand-999 font-medium text-sm">Find Member</Label>
+                    <Label className=" text-brand-999 font-medium text-sm">Select Member</Label>
                     <Select
                       options={optionData()}
                       value={selectedUser}

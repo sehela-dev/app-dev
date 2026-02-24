@@ -54,8 +54,8 @@ export const getCustomerActivity: TCustomerActivity = async ({ id, startDate, en
     params: {
       page,
       page_size: limit,
-      ...(startDate ? { year: startDate } : null),
-      ...(endDate ? { month: endDate } : null),
+      ...(startDate ? { start_date: startDate } : null),
+      ...(endDate ? { end_date: endDate } : null),
     },
   });
   return res.data;

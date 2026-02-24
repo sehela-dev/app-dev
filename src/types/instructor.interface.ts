@@ -142,8 +142,8 @@ export interface IExportInstructorPayment {
 
 export interface IPayloadExport {
   id: string;
-  year: number | string;
-  month: number | string;
+  start_date: number | string;
+  end_date: number | string;
 }
 
 export interface IPaymentDetailsResponse {
@@ -198,6 +198,7 @@ export interface IBookingPaymentDetail {
   voucher_discount_idr: number;
   created_at: string;
 }
-export type TExportInstructorPayment = (data: IPayloadExport) => Promise<IResponseData<IExportInstructorPayment>>;
+// export type TExportInstructorPayment = (data: IPayloadExport) => Promise<IResponseData<IExportInstructorPayment>>;
+export type TExportInstructorPayment = (data: IPayloadExport) => Promise<Blob>;
 
 export type TInstructorSessionPaymentDetails = (data: string) => Promise<IResponseData<IPaymentDetailsResponse>>;
