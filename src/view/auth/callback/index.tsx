@@ -35,6 +35,10 @@ export const AuthCallBackPage = () => {
         refresh_token: refreshToken,
       });
 
+      setJwtToken({
+        access_token: accessToken,
+      });
+
       // optional but recommended — remove token from URL
       // window.history.replaceState(null, "", "/callback");
     } else {
@@ -51,7 +55,7 @@ export const AuthCallBackPage = () => {
   useEffect(() => {
     if (!data?.data) return;
     if (!data?.data?.is_profile_complete) {
-      router.replace("/auth/complete-profile");
+      router.push("/complete-profile");
     } else {
       setJwtToken({
         access_token: token?.access_token as string,

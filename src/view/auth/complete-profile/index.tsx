@@ -45,7 +45,7 @@ const resolver = zodResolver(authSignUpSchema);
 
 export const CompleteProfilePageView = () => {
   const router = useRouter();
-  const { data: profileUser, isLoading, refetch } = useGetProfile();
+  const { data: profileUser, isLoading } = useGetProfile();
 
   const values = useMemo(() => {
     if (!profileUser?.data) return defaultValues;
@@ -94,12 +94,13 @@ export const CompleteProfilePageView = () => {
     }
   });
 
-  if (isLoading)
+  if (isLoading) {
     return (
       <div className="flex items-center justify-center py-6">
         <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
       </div>
     );
+  }
 
   return (
     <div className="flex flex-col items-center w-full space-y-12 font-serif">

@@ -1,12 +1,11 @@
 import { userAuthGetProfile, userAuthGetProfileCallback } from "@/api-req/customer-app";
 import { useQuery } from "@tanstack/react-query";
 
-export const useGetProfile = (accessToken?: string) =>
+export const useGetProfile = () =>
   useQuery({
-    queryKey: ["user", "profile", accessToken],
+    queryKey: ["user", "profile"],
     queryFn: () => userAuthGetProfile(),
     refetchOnWindowFocus: false,
-    enabled: !!accessToken,
   });
 // userAuthGetProfileCallback
 
