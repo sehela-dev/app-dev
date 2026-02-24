@@ -35,6 +35,10 @@ export const AuthCallBackPage = () => {
         refresh_token: refreshToken,
       });
 
+      setJwtToken({
+        access_token: accessToken,
+      });
+
       // optional but recommended — remove token from URL
       // window.history.replaceState(null, "", "/callback");
     } else {
