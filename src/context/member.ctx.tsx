@@ -34,10 +34,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setProfile(null);
   };
 
-  const { data, isLoading } = useGetProfile(access_token);
+  const { data, isLoading } = useGetProfile();
 
   useEffect(() => {
-    if (data)
+    if (data) {
       setProfile({
         email: data?.data?.email,
         name: data?.data?.full_name,
@@ -45,6 +45,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         overview: data?.data?.overview,
         role: "user",
       });
+    }
   }, [data]);
 
   const value: IAuthContextMember = {

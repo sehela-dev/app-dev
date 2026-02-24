@@ -38,8 +38,9 @@ export const userAuthGetProfileCallback: TAuthProfileCustomer = async (data) => 
 };
 
 export const userSigInWithGoogle = async () => {
-  const url = `${MAIN_AUTH_API_URL}/authorize?provider=google&redirect_to=http://app-dev.sehelaspace.com/auth/callback`;
-  window.open(url);
+  // const url = `${MAIN_AUTH_API_URL}/authorize?provider=google&redirect_to=https://app-dev.sehelaspace.com/auth/callback`;
+  const url = `${MAIN_AUTH_API_URL}/authorize?provider=google&redirect_to=http://localhost:3000/auth/callback`;
+  window.location.href = url;
 };
 
 export const userCompleteProfile: TAuthCompleteProfile = async (data) => {

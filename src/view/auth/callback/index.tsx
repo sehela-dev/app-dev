@@ -55,7 +55,7 @@ export const AuthCallBackPage = () => {
   useEffect(() => {
     if (!data?.data) return;
     if (!data?.data?.is_profile_complete) {
-      router.push("/auth/complete-profile");
+      router.push("/complete-profile");
     } else {
       setJwtToken({
         access_token: token?.access_token as string,
