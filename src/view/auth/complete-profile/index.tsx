@@ -84,6 +84,7 @@ export const CompleteProfilePageView = () => {
         tnc_agreed: data?.tnc_agreed,
         phone: data?.phone,
       };
+      console.log(payload);
 
       const res = await mutateAsync(payload);
       if (res) {
