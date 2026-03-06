@@ -149,6 +149,25 @@ export interface ICustomerActvity {
   booked_at: string;
 }
 
+export interface ICustomerTrx {
+  id: string;
+  order_id: string;
+  customer_name: string;
+  date_purchased: string;
+  payment_method: string;
+  type: string;
+  price_idr: number;
+  price_formatted: string;
+  status: string;
+  transfer_details: ITransferDetails;
+}
+
+export interface ITransferDetails {
+  account_bank_to: string;
+  account_bank_from: string;
+  account_name_from: string;
+}
+
 export interface ICustomerActivityParams extends ICommonParams {
   id: string;
 }
@@ -160,3 +179,5 @@ export type TGetUserWallet = ({ user, session }: { user: string; session: string
 export type TEditCustomer = ({ data, id }: { data: ICreateNewCustomerAdminPaylod; id: string }) => Promise<IResponseData<IResponseCustomer>>;
 export type TDeleteCustomer = (id: string) => Promise<IResponseData<IResponseCustomer>>;
 export type TCustomerActivity = (params: ICustomerActivityParams) => Promise<IResponseData<ICustomerActvity[]>>;
+
+export type TCustomerTrx = ({ id, page, limit }: ICustomerActivityParams) => Promise<IResponseData<ICustomerTrx[]>>;

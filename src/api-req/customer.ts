@@ -5,6 +5,7 @@ import {
   TCustomerActivity,
   TCustomerData,
   TCustomerDetail,
+  TCustomerTrx,
   TDeleteCustomer,
   TEditCustomer,
   TGetUserWallet,
@@ -56,6 +57,16 @@ export const getCustomerActivity: TCustomerActivity = async ({ id, startDate, en
       page_size: limit,
       ...(startDate ? { start_date: startDate } : null),
       ...(endDate ? { end_date: endDate } : null),
+    },
+  });
+  return res.data;
+};
+
+export const getCustomerTrx: TCustomerTrx = async ({ id, page, limit }) => {
+  const res = await axiosx(true).get(`${MAIN_API_URL}/admin/users/${id}/transactions`, {
+    params: {
+      page,
+      page_size: limit,
     },
   });
   return res.data;

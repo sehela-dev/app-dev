@@ -4,14 +4,15 @@ import { DateRangePicker } from "@/components/base/date-range-picker";
 import { CustomTable } from "@/components/general/custom-table";
 import { CustomPagination } from "@/components/general/pagination-component";
 import { GeneralTabComponent } from "@/components/general/tabs-component";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card";
 import { Divider } from "@/components/ui/divider";
 import { Select, SelectGroup, SelectValue, SelectTrigger, SelectContent, SelectItem } from "@/components/ui/select";
 import { MONTH_LIST, YEAR_LIST } from "@/constants/sample-data";
-import { useGetCustomerActivity, useGetCustomerDetail } from "@/hooks/api/queries/admin/customers";
-import { defaultDate, formatDateHelper } from "@/lib/helper";
-import { ICustomerActvity } from "@/types/customers.interface";
+import { useGetCustomerActivity, useGetCustomerDetail, useGetCustomerTrx } from "@/hooks/api/queries/admin/customers";
+import { defaultDate, formatCurrency, formatDateHelper } from "@/lib/helper";
+import { ICustomerActvity, ICustomerTrx } from "@/types/customers.interface";
 import { Loader2, PenIcon } from "lucide-react";
 import { useParams, useRouter } from "next/navigation";
 import { useState } from "react";
@@ -24,6 +25,10 @@ const instructorTabs = [
   {
     value: "activity",
     name: "Activity",
+  },
+  {
+    value: "trx",
+    name: "Transaction",
   },
 ];
 
@@ -59,6 +64,9 @@ export const CustomerDetailPage = () => {
   });
 
   const [tabs, setTabs] = useState("basic");
+  const { data: trx, isLoading: loadingTrx } = useGetCustomerTrx({ id: id as string, page, limit: 10 }, tabs as string);
+
+  console.log(trx);
 
   const handleSelectPeriode = (type: "month" | "year", data: string) => {
     setSelectPeriod((prev) => ({ ...prev, [type]: data }));
@@ -108,6 +116,48 @@ export const CustomerDetailPage = () => {
       value: (row: ICustomerActvity) => <p className="capitalize">{row?.payment_method}</p>,
     },
   ];
+
+  const headersTrx = [
+    {
+      id: "order_id",
+      text: "Order ID",
+      value: (row: ICustomerTrx) => (
+        <a href={`/admin/orders/${row.id}`} target="_blank" className="text-brand-500 font-semibold underline">
+          <p className="capitalize max-w-[70%] flex-wrap text-wrap">{row?.order_id}</p>
+        </a>
+      ),
+    },
+    {
+      id: "date_purchased",
+      text: "Date",
+      value: (row: ICustomerTrx) => formatDateHelper(row.date_purchased, "dd/MM/yyyy H:mm"),
+    },
+    {
+      id: "payment_method",
+      text: "Payment Method",
+      value: (row: ICustomerTrx) => <p className="capitalize">{row.payment_method}</p>,
+    },
+    {
+      id: "type",
+      text: "Type",
+      value: (row: ICustomerTrx) => <p className="capitalize">{row.type}</p>,
+    },
+    {
+      id: "price_idr",
+      text: "Price",
+      value: (row: ICustomerTrx) => formatCurrency(row.price_idr),
+    },
+    {
+      id: "status",
+      text: "Status",
+      value: (row: ICustomerTrx) => (
+        <Badge className="capitalize" variant={row.status === "paid" ? "default" : "destructive"}>
+          {row.status}
+        </Badge>
+      ),
+    },
+  ];
+
   if (isLoading)
     return (
       <div className="flex items-center justify-center py-6">
@@ -254,6 +304,38 @@ export const CustomerDetailPage = () => {
             </CardHeader>
             <CardContent className="">
               <CustomTable headers={headers} data={activity?.data ?? []} isLoading={loadingActivity} />
+            </CardContent>
+            <CardFooter>
+              <CustomPagination
+                onPageChange={(e) => {
+                  setPage(e);
+                }}
+                currentPage={page}
+                showTotal
+                hasPrevPage={activity?.pagination?.has_prev}
+                hasNextPage={activity?.pagination?.has_next}
+                totalItems={activity?.pagination?.total_items as number}
+                totalPages={activity?.pagination?.total_pages as number}
+                limit={10}
+              />
+            </CardFooter>
+          </Card>
+        </div>
+      )}
+      {tabs === "trx" && (
+        <div className="flex flex-col gap-4 w-full">
+          <Card>
+            <CardHeader>
+              <div className="flex flex-row items-center w-full justify-between">
+                <div className="flex flex-col gap-1">
+                  <h3 className="text-2xl text-brand-999 font-medium">Members Transaction History</h3>
+                  <p className="text-sm text-gray-500 max-w-[80%]">Monitor member transaction status</p>
+                </div>
+                <div className="flex flex-row items-center gap-4"></div>
+              </div>
+            </CardHeader>
+            <CardContent className="">
+              <CustomTable headers={headersTrx} data={trx?.data ?? []} isLoading={loadingTrx} />
             </CardContent>
             <CardFooter>
               <CustomPagination
