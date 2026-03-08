@@ -9,6 +9,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { SearchInput } from "@/components/ui/search-input";
 import { useEditClassCategory } from "@/hooks/api/mutations/admin";
 import { useGetClassSessionsCategory } from "@/hooks/api/queries/admin/class-session";
+import { useAdminPermission } from "@/hooks/use-role-access";
 import { formatDateHelper } from "@/lib/helper";
 import { cn } from "@/lib/utils";
 import { IClassSessionCategory } from "@/types/class-category.interface";
@@ -37,6 +38,7 @@ const filterSections = [
 ];
 
 export const ClassListView = () => {
+  const { can } = useAdminPermission();
   const router = useRouter();
   const [limit] = useState(10);
   const [page, setPage] = useState(1);
@@ -123,17 +125,20 @@ export const ClassListView = () => {
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end" className="w-32">
-          <DropdownMenuItem onClick={() => alert(row.id)}>Edit</DropdownMenuItem>
+          {can("class:update") && <DropdownMenuItem onClick={() => alert(row.id)}>Edit</DropdownMenuItem>}
           {/* <DropdownMenuItem>Set as Inactive</DropdownMenuItem> */}
-          <DropdownMenuItem
-            className={cn({
-              "text-red-500": row.is_active,
-              "text-green-500": !row.is_active,
-            })}
-            onClick={() => onDelete(row)}
-          >
-            {row?.is_active ? "Set Inactive" : "Set Active"}
-          </DropdownMenuItem>
+
+          {can("class:delete") && (
+            <DropdownMenuItem
+              className={cn({
+                "text-red-500": row.is_active,
+                "text-green-500": !row.is_active,
+              })}
+              onClick={() => onDelete(row)}
+            >
+              {row?.is_active ? "Set Inactive" : "Set Active"}
+            </DropdownMenuItem>
+          )}
         </DropdownMenuContent>
       </DropdownMenu>
     ),

@@ -12,6 +12,7 @@ import { Button } from "@/components/ui/button";
 import { useLoginAdmin } from "@/hooks/api/mutations";
 import { useAuthAdmin } from "@/context/admin/admin-context";
 import { IUser } from "@/types/auth/user.interface";
+import { useCustomerAuthLogin } from "@/hooks/api/mutations/customers";
 
 const defaultValues = {
   email: "",
@@ -19,9 +20,10 @@ const defaultValues = {
 };
 
 export default function AdminLoginPage() {
-  const { mutateAsync } = useLoginAdmin();
+  const { mutateAsync } = useCustomerAuthLogin();
 
-  const { login } = useAuthAdmin();
+  const { login, user } = useAuthAdmin();
+
   const methods = useForm({ defaultValues });
 
   const { control, handleSubmit } = methods;
@@ -34,17 +36,16 @@ export default function AdminLoginPage() {
       const res = await mutateAsync(payload);
       if (res) {
         login({
-          access_token: res.access_token,
-          refresh_token: res.refresh_token,
-          expires_at: res.expires_at,
-          expires_in: res.expires_in,
+          access_token: res?.data?.session?.access_token as string,
+          refresh_token: res?.data?.session?.refresh_token as string,
+          expires_at: res?.data?.session?.expires_at,
+          expires_in: res?.data?.session?.expires_in,
           profile: {
-            email: res.user?.email as string,
-            name: res?.user?.user_metadata?.full_name as string,
-            role: res?.user?.role as string,
-            id: res?.user?.id as string,
+            email: res?.data?.user?.email as string,
+            name: res?.data?.profile?.full_name as string,
+            role: res?.data?.profile?.role as string,
+            id: res?.data?.profile?.id as string,
           },
-          isAdmin: true,
         });
       }
     } catch (error) {

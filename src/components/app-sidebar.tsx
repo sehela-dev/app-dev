@@ -9,9 +9,16 @@ import { NavUser } from "@/components/nav-user";
 import { Sidebar, SidebarContent, SidebarFooter, SidebarHeader, SidebarMenu, SidebarMenuButton, SidebarMenuItem } from "@/components/ui/sidebar";
 import { dataNavMain, dataNavMarketPlace, dataNavReport } from "@/constants/nav-item";
 import { useAuthAdmin } from "@/context/admin/admin-context";
+import { useAdminPermission } from "@/hooks/use-role-access";
+import { filterNavItems } from "@/lib/helper";
 
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   const { user } = useAuthAdmin();
+
+  const { can } = useAdminPermission();
+
+  const marketMenu = filterNavItems(dataNavMarketPlace, can);
+  const reportMenu = filterNavItems(dataNavReport, can);
 
   return (
     <Sidebar className="top-(--header-height) h-[calc(100svh-var(--header-height))]! bg-brand-25" {...props}>
@@ -34,8 +41,8 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
       </SidebarHeader>
       <SidebarContent>
         {/* <NavMain items={dataNavMain} groupLabel="POS" /> */}
-        <NavMain items={dataNavMarketPlace} groupLabel="Marketplace" />
-        <NavMain items={dataNavReport} groupLabel="Report" />
+        <NavMain items={marketMenu} groupLabel="Marketplace" />
+        {reportMenu?.length > 0 && <NavMain items={reportMenu} groupLabel="Report" />}
       </SidebarContent>
       <SidebarFooter>
         <NavUser user={user} />

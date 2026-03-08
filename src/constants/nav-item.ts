@@ -6,30 +6,32 @@ export const dataNavMain = [
   { title: "Orders", url: "#", icon: ShoppingCart },
 ];
 export const dataNavMarketPlace = [
-  { title: "Reporting and Analytics", url: "/admin/dashboard", icon: BarChart2 },
-  { title: "Orders", url: "/admin/orders", isActive: true, icon: Receipt },
-  { title: "Credit Packages", url: "/admin/credit-packages", icon: Gem },
+  { title: "Reporting and Analytics", url: "/admin/dashboard", icon: BarChart2, permission: "dashboard:view" },
+  { title: "Orders", url: "/admin/orders", isActive: true, icon: Receipt, permission: "order:view" },
+  { title: "Credit Packages", url: "/admin/credit-packages", icon: Gem, permission: "credit_package:view" },
   {
     title: "Class",
     url: "#",
     icon: CalendarCheck,
+    // permission: "class:view",
+
     items: [
-      { title: "Classes", url: "/admin/class", icon: CalendarCheck },
-      { title: "Sessions", url: "/admin/session", icon: CalendarCheck },
-      { title: "Instructor", url: "/admin/instructor", icon: Users },
+      { title: "Classes", url: "/admin/class", icon: CalendarCheck, permission: "class:view" },
+      { title: "Sessions", url: "/admin/session", icon: CalendarCheck, permission: "session:view" },
+      { title: "Instructor", url: "/admin/instructor", icon: Users, permission: "instructor:view" },
     ],
   },
   {
     title: "Products",
     url: "#",
     icon: PackageSearch,
-    items: [{ title: "Products", url: "/admin/products", icon: PackageSearch }],
+    items: [{ title: "Products", url: "/admin/products", icon: PackageSearch, permission: "products:view" }],
   },
-  { title: "Discount Voucher", url: "/admin/discount-voucher", icon: Tag },
+  { title: "Discount Voucher", url: "/admin/discount-voucher", icon: Tag, permission: "voucher:view" },
   // { title: "Discounts", url: "#", icon: Tag },
-  { title: "Members", url: "/admin/member", icon: Users },
+  { title: "Members", url: "/admin/member", icon: Users, permission: "member:view" },
 ];
 
 export const dataNavReport = [
-  { title: "Outstanding Credit", url: "/admin/report/outstanding-credit", icon: DollarSign }, // 🛍️ icon visual → Store sudah mewakili group
+  { title: "Outstanding Credit", url: "/admin/report/outstanding-credit", icon: DollarSign, permission: "outstanding:view" }, // 🛍️ icon visual → Store sudah mewakili group
 ];

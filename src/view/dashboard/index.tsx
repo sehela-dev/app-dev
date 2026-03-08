@@ -7,6 +7,7 @@ import { Divider } from "@/components/ui/divider";
 import { Separator } from "@/components/ui/separator";
 import { useGetDashboardOverview, useGetDashboardProductPerformance } from "@/hooks/api/queries/admin/dashboard";
 import { useGetDashboardSessionPerformance } from "@/hooks/api/queries/admin/dashboard/use-get-dashboard-session-performance";
+import { useAdminPermission } from "@/hooks/use-role-access";
 
 import { formatCurrency, splitArray } from "@/lib/helper";
 import { cn } from "@/lib/utils";

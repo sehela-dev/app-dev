@@ -46,13 +46,48 @@ export const axiosx = (auth?: boolean, params?: string, type?: string) => {
 };
 
 const getToken = () => {
-  const jwt = JSON.parse(window.localStorage.getItem("jwt") ?? "{}");
-
-  return jwt?.access_token;
+  const admin = JSON.parse(window.localStorage.getItem("admin") ?? "{}");
+  const user = JSON.parse(window.localStorage.getItem("user") ?? "{}");
+  const instructor = JSON.parse(window.localStorage.getItem("instructor") ?? "{}");
+  if (admin?.access_token) return admin?.access_token;
+  if (user?.access_token) return user?.access_token;
+  if (instructor?.access_token) return instructor?.access_token;
+  return null;
 };
 
+// const getAdminToken = () => {
+//   const admin = JSON.parse(window.localStorage.getItem("admin") ?? "{}");
+//   return admin?.access_token;
+// };
+
+// const getJwtToken = () => {
+//   const jwt = JSON.parse(window.localStorage.getItem("jwt") ?? "{}");
+
+//   return jwt?.access_token;
+// };
+
 export const clearToken = () => {
-  // window.localStorage.removeItem("jwt");
+  const admin = JSON.parse(window.localStorage.getItem("admin") ?? "{}");
+  const user = JSON.parse(window.localStorage.getItem("user") ?? "{}");
+  const instructor = JSON.parse(window.localStorage.getItem("instructor") ?? "{}");
+
+  if (admin || instructor) {
+    window.localStorage.removeItem("admin");
+    window.location.href = "/admin/login";
+  } else if (user) {
+    window.localStorage.removeItem("user");
+    window.location.href = "/auth/login";
+  }
+  window.location.href = admin ? "/admin-login" : "/auth/login";
+
+  toast.error(validationStatus("401" as string), {
+    id: "error",
+    description: "Session expired! Please login again to continue",
+    position: "top-center",
+  });
+
+  /*  // window.localStorage.removeItem("user");
+  // window.localStorage.removeItem("instructor");
   const jwt = JSON.parse(window.localStorage.getItem("jwt") ?? "{}");
   console.log(jwt.isAdmin);
   // const { user } = jwt;
@@ -62,5 +97,5 @@ export const clearToken = () => {
   //   description: "Session expired! Please login again to continue",
   //   position: "top-center",
   // });
-  // window.location.href = role !== "user" ? "/admin-login" : "/auth/login";
+  // window.location.href = role !== "user" ? "/admin-login" : "/auth/login"; */
 };

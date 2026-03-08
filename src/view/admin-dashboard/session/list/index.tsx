@@ -10,6 +10,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { SearchInput } from "@/components/ui/search-input";
 import { useDeleteSession } from "@/hooks/api/mutations/admin";
 import { useGetSessions } from "@/hooks/api/queries/admin/class-session";
+import { useAdminPermission } from "@/hooks/use-role-access";
 import { defaultDate, formatDateHelper } from "@/lib/helper";
 import { cn } from "@/lib/utils";
 // import { IClassSessionCategory } from "@/types/class-category.interface";
@@ -44,6 +45,7 @@ const tabFilter = [
 ];
 
 export const SessionListPage = () => {
+  const { can } = useAdminPermission();
   const router = useRouter();
   const [limit, setLimit] = useState(10);
   const [page, setPage] = useState(1);
@@ -139,14 +141,17 @@ export const SessionListPage = () => {
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="start" className="w-32">
-          <DropdownMenuItem onClick={() => router.push(`session/${row.id}/edit`)}>Edit</DropdownMenuItem>
-          <DropdownMenuItem onClick={() => router.push(`session/${row.id}`)}>View Details</DropdownMenuItem>
+          {can("session:update") && <DropdownMenuItem onClick={() => router.push(`session/${row.id}/edit`)}>Edit</DropdownMenuItem>}
+          {can("session:detail") && <DropdownMenuItem onClick={() => router.push(`session/${row.id}`)}>View Details</DropdownMenuItem>}
+
           {row.status === "ended" || row.status === "canceled" ? (
             <></>
           ) : (
-            <DropdownMenuItem variant="destructive" className="" onClick={() => onDelete(row.id)}>
-              Delete
-            </DropdownMenuItem>
+            can("session:delete") && (
+              <DropdownMenuItem variant="destructive" className="" onClick={() => onDelete(row.id)}>
+                Delete
+              </DropdownMenuItem>
+            )
           )}
         </DropdownMenuContent>
       </DropdownMenu>
@@ -200,9 +205,11 @@ export const SessionListPage = () => {
             </Button>
           </div>
           <div>
-            <Button className=" text-sm font-medium" onClick={() => router.push("session/create")}>
-              <CirclePlus /> Create New Session
-            </Button>
+            {can("session:create") && (
+              <Button className=" text-sm font-medium" onClick={() => router.push("session/create")}>
+                <CirclePlus /> Create New Session
+              </Button>
+            )}
           </div>
         </div>
       </div>

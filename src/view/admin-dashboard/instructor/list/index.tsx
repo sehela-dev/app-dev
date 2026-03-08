@@ -10,6 +10,7 @@ import { SearchInput } from "@/components/ui/search-input";
 import { useDeleteInstructor } from "@/hooks/api/mutations/admin";
 
 import { useGetInstructor } from "@/hooks/api/queries/admin/instructor";
+import { useAdminPermission } from "@/hooks/use-role-access";
 
 import { IInstructorData } from "@/types/instructor.interface";
 
@@ -33,6 +34,7 @@ const tab = [
 ];
 
 export const InstructorListPage = () => {
+  const { can } = useAdminPermission();
   const router = useRouter();
   const [limit] = useState(10);
   const [page, setPage] = useState(1);
@@ -97,12 +99,15 @@ export const InstructorListPage = () => {
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end" className="w-32">
-          <DropdownMenuItem onClick={() => router.push(`instructor/${row.id}/edit`)}>Edit</DropdownMenuItem>
-          <DropdownMenuItem onClick={() => router.push(`instructor/${row.id}`)}>View Details</DropdownMenuItem>
-          <DropdownMenuItem>Set as Inactive</DropdownMenuItem>
-          <DropdownMenuItem variant="destructive" className="" onClick={() => onDelete(row.id)}>
-            Delete
-          </DropdownMenuItem>
+          {can("instructor:update") && <DropdownMenuItem onClick={() => router.push(`instructor/${row.id}/edit`)}>Edit</DropdownMenuItem>}
+          {can("instructor:detail") && <DropdownMenuItem onClick={() => router.push(`instructor/${row.id}`)}>View Details</DropdownMenuItem>}
+
+          {/* <DropdownMenuItem>Set as Inactive</DropdownMenuItem> */}
+          {can("instructor:delete") && (
+            <DropdownMenuItem variant="destructive" className="" onClick={() => onDelete(row.id)}>
+              Delete
+            </DropdownMenuItem>
+          )}
         </DropdownMenuContent>
       </DropdownMenu>
     ),
@@ -133,20 +138,22 @@ export const InstructorListPage = () => {
   return (
     <div className="flex w-full  flex-col gap-2">
       <div className="flex flex-row items-center w-full justify-end gap-2">
-        <div>
+        {/* <div>
           <GeneralTabComponent tabs={tab} selecetedTab={tabs} setTab={setTabs} />
-        </div>
+        </div> */}
         <div className="flex flex-row items-center w-full gap-2 justify-end">
           <div>
             <Button variant={"outline"} className="text-brand-999 text-sm font-medium">
               <ListFilter /> Filter
             </Button>
           </div>
-          <div>
-            <Button className=" text-sm font-medium" onClick={() => router.push("instructor/create")}>
-              <CirclePlus /> Create New Instructor
-            </Button>
-          </div>
+          {can("instructor:create") && (
+            <div>
+              <Button className=" text-sm font-medium" onClick={() => router.push("instructor/create")}>
+                <CirclePlus /> Create New Instructor
+              </Button>
+            </div>
+          )}
         </div>
       </div>
       <Card className="border-brand-100 w-full">

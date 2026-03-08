@@ -1,3 +1,4 @@
+import { NavItem } from "@/components/nav-main";
 import { IOverallResultByClass } from "@/types/dashboard.interface";
 import { addMonths, format, parseISO, subDays, subMonths } from "date-fns";
 import { id } from "date-fns/locale";
@@ -293,3 +294,21 @@ export const previewURLHelper = (data: any) => {
   const previewUrl = data ? URL.createObjectURL(data) : "/assets/user-placeholder.png";
   return previewUrl;
 };
+
+export function filterNavItems(items: NavItem[], can: (p: string) => boolean): NavItem[] {
+  return items
+    .map((item) => {
+      if (item.permission && !can(item.permission)) return null;
+
+      if (item.items) {
+        const filteredChildren = item.items.filter((child) => !child?.permission || can(child?.permission));
+
+        if (filteredChildren.length === 0) return null;
+
+        return { ...item, items: filteredChildren };
+      }
+
+      return item;
+    })
+    .filter(Boolean) as NavItem[];
+}

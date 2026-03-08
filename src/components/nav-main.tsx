@@ -17,14 +17,16 @@ import {
 import { Badge } from "./ui/badge";
 import { cn } from "@/lib/utils";
 
-type NavItem = {
+export type NavItem = {
   title: string;
   url: string;
   icon?: LucideIcon;
+  permission?: string;
   isActive?: boolean;
   items?: {
     title: string;
     url: string;
+    permission?: string;
     count?: number;
   }[];
 };
