@@ -5,7 +5,7 @@ import { CreateSessionPageView } from "@/view/admin-dashboard/session/add-sessio
 export default function Page() {
   return (
     <AdminPermissionGuard permission="session:create">
-      <CreateSessionPageView />;
+      <CreateSessionPageView />
     </AdminPermissionGuard>
   );
 }
