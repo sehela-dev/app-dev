@@ -91,6 +91,27 @@ export const OrderReceiptPage = () => {
               <p className="text-gray-500  text-sm">Email</p>
               <p className="text-brand-999 text-right text-sm">{data?.data?.customer_email}</p>
             </div>
+
+            {data?.data?.items?.map((item, i) =>
+              (item?.booked_for?.length as number) > 0 ? (
+                <div key={i}>
+                  {" "}
+                  <hr style={{ color: "var(--color-brand-100" }} className="my-4" />
+                  <div className="grid grid-cols-2">
+                    <p className="text-brand-999 font-semibold text-sm">Additional Information</p>
+                  </div>
+                  {item?.booked_for?.map((d, index) =>
+                    index > 0 ? (
+                      <div className="grid grid-cols-2 pt-2" key={d?.user_id}>
+                        <p className="text-gray-500  text-sm">Customer Name</p>
+                        <p className="text-brand-999 text-right text-sm">{d?.name}</p>
+                      </div>
+                    ) : null,
+                  )}
+                </div>
+              ) : null,
+            )}
+
             <hr style={{ color: "var(--color-brand-100" }} className="my-4" />
             <div className="grid grid-cols-2">
               <p className="text-brand-999 font-semibold text-sm">Ordered Items</p>

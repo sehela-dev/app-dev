@@ -98,6 +98,10 @@ export interface IOrderedItem {
   variant?: string;
   qty: number;
   total_price: number;
+  booked_for?: {
+    user_id: string;
+    name: string;
+  }[];
 }
 
 export interface IAddTransactionPayload {
