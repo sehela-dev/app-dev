@@ -18,7 +18,7 @@ import { useRouter } from "next/navigation";
 import { useApplyDiscountVoucher } from "@/hooks/api/mutations/admin";
 import { IApplyDiscountResponse, IVouchersListItem } from "@/types/discount-voucher.interface";
 import { DiscountSelectComponent } from "@/components/page/orders/discount-code-select";
-import { Plus, XIcon } from "lucide-react";
+import { Plus, UserPlus2, Users2, XIcon } from "lucide-react";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
@@ -59,6 +59,9 @@ export const DetailFormAddTransaction = () => {
   const [search, setSearch] = useState("");
   const debounceSearch = useDebounce(search, 300);
   const [selectedUser, setSelectedUser] = useState<ICustomerData | null>(null);
+  const [selectedUsers, setSelectedUsers] = useState<ICustomerData[]>([]);
+  const [openSessionSharing, setOpenSessionSharing] = useState(false);
+  console.log(cartItems);
 
   const onSearch = (e: string) => {
     setSearch(e);
@@ -73,6 +76,12 @@ export const DetailFormAddTransaction = () => {
       label: `${item.full_name} - ${item.phone}`,
     }));
   }, [customerData?.id, data?.data]);
+
+  const shareSessionWithOption = useCallback(() => {
+    const selectedIds = new Set(selectedUsers?.map((u) => u.id));
+
+    return optionData()?.filter((item) => !selectedIds.has(item.id));
+  }, [optionData, selectedUsers]);
 
   const { mutateAsync, isPending } = useCreateNewManualTrx();
   const onModifyQty = (id: number | string, type: "+" | "-") => {
@@ -109,6 +118,7 @@ export const DetailFormAddTransaction = () => {
       if (item.type === "class") {
         sessions.push({
           class_session_id: item.id as string,
+          ...((item?.share_with_users?.length as number) > 0 ? { additional_user_ids: item?.share_with_user_ids } : null),
         });
       } else if (item.type === "buy_product" || item.type === "rent_product") {
         products.push({
@@ -236,11 +246,33 @@ export const DetailFormAddTransaction = () => {
     setSearch("");
   };
 
+  const onsSaveShareSession = () => {
+    updateItem(selectedItem?.id as string, {
+      share_with_user_ids: selectedUsers?.map((item) => item.id),
+      share_with_users: selectedUsers?.map((item) => ({
+        email: item.email,
+        id: item.id,
+        name: item.full_name,
+        phone: item.phone,
+      })),
+    });
+
+    setSelectedUsers([]);
+    setSelectedItem(null);
+    setSearch("");
+    setOpenSessionSharing(false);
+  };
+
+  const onOpenSharingSessiong = (data: IAdminCartItemData) => {
+    setSelectedItem(data);
+    setOpenSessionSharing(true);
+  };
+
   return (
-    <>
-      <div className="flex mt-2">
-        <div className="grid grid-cols-8 gap-4">
-          <div className="col-span-6 flex flex-col gap-4 w-full">
+    <div className="flex w-full">
+      <div className="flex mt-2 w-full">
+        <div className="grid grid-cols-12 gap-4">
+          <div className="col-span-8 flex flex-col gap-4 w-full">
             <Card className="border-brand-100 w-full pb-0 ">
               <CardHeader>
                 <h3 className=" text-brand-999 text-2xl font-semibold">Detail Order</h3>
@@ -296,7 +328,9 @@ export const DetailFormAddTransaction = () => {
                                     {item.badge}
                                   </Badge>
                                 ) : (
-                                  ""
+                                  <Badge variant={"default"} className="uppercase">
+                                    {item.type}
+                                  </Badge>
                                 )}
                               </p>
                               <div className="text-brand-999 font-medium text-sm col-span-2 flex flex-col">
@@ -333,8 +367,54 @@ export const DetailFormAddTransaction = () => {
                                       </Button>
                                     )}
                                   </>
+                                ) : item?.type === "class" && item.quantity > 1 ? (
+                                  (item?.share_with_users?.length as number) > 0 ? (
+                                    <div className="flex flex-row gap-1 items-center">
+                                      <ul className="flex flex-col gap-1 text-xs">
+                                        {item?.share_with_users?.map((item) => (
+                                          <li key={item.id}>
+                                            {item.name} - {item?.phone}
+                                          </li>
+                                        ))}
+                                      </ul>
+                                      <div>
+                                        <Button
+                                          size={"icon"}
+                                          variant={"outline"}
+                                          onClick={() => {
+                                            updateItem(item.id, {
+                                              share_with_user_ids: undefined,
+                                              share_with_users: null,
+                                            });
+                                          }}
+                                        >
+                                          <XIcon />
+                                        </Button>
+                                      </div>
+                                    </div>
+                                  ) : (
+                                    <div className="flex flex-row gap-1 w-auto items-center">
+                                      <Button
+                                        className="w-fit text-sm"
+                                        size={"sm"}
+                                        variant={"outline"}
+                                        onClick={() => {
+                                          // updateItem(item.id, {
+                                          //   share_with_user_id: undefined,
+                                          //   shared_with_user: null,
+                                          // });'
+                                          onOpenSharingSessiong(item);
+                                        }}
+                                      >
+                                        <UserPlus2 />
+                                      </Button>
+                                      <p className="text-[8px] text-gray-500 flex-wrap italic w-auto max-w-[150px]">
+                                        *)You can share session with your friends up to {item.quantity - 1} person
+                                      </p>
+                                    </div>
+                                  )
                                 ) : (
-                                  <>{""}</>
+                                  ""
                                 )}
                               </div>
                               <div className="text-brand-999 font-medium text-sm text-center col-span-1">
@@ -460,96 +540,98 @@ export const DetailFormAddTransaction = () => {
               </div>
             </div>
           </div>
-          <Card className="flex flex-col w-full border border-brand-100  h-fit col-span-2 pt-2">
-            <CardHeader className="text-center font-semibold text-lg ">
-              Payment Method
-              <Divider />
-            </CardHeader>
-            <CardContent>
-              <div className="flex flex-col gap-2 w-full">
-                <RadioGroup
-                  className="flex flex-row items-center justify-between"
-                  value={selectedPaymentMethod}
-                  onValueChange={(e) => setSelectPaymentMethod(e)}
-                >
-                  {PAYMENT_METHODS.map((option) => (
-                    <div key={option.value} className="flex items-center space-x-2">
-                      <RadioGroupItem value={option.value} id={option.value} />
-                      <Label htmlFor={option.value} className="text-sm font-medium text-brand-999 cursor-pointer">
-                        {option.label}
-                      </Label>
+          <div className="col-span-4">
+            <Card className="flex flex-col w-full border border-brand-100  h-fit col-span-2 pt-2">
+              <CardHeader className="text-center font-semibold text-lg ">
+                Payment Method
+                <Divider />
+              </CardHeader>
+              <CardContent>
+                <div className="flex flex-col gap-2 w-full">
+                  <RadioGroup
+                    className="flex flex-row items-center justify-between"
+                    value={selectedPaymentMethod}
+                    onValueChange={(e) => setSelectPaymentMethod(e)}
+                  >
+                    {PAYMENT_METHODS.map((option) => (
+                      <div key={option.value} className="flex items-center space-x-2">
+                        <RadioGroupItem value={option.value} id={option.value} />
+                        <Label htmlFor={option.value} className="text-sm font-medium text-brand-999 cursor-pointer">
+                          {option.label}
+                        </Label>
+                      </div>
+                    ))}
+                  </RadioGroup>
+                  <div className="flex flex-col gap-2">
+                    <div className="flex flex-col gap-1 mt-2">
+                      <Label className="text-gray-500">Pay Amount</Label>
+                      <Input
+                        className="w-full px-4 py-4 border-2 border-gray-200 rounded-lg text-gray-999  placeholder-gray-400 focus:outline-none focus:border-brand-500 transition-colors h-[42px]"
+                        value={!discountData ? formatCurrency(totalPrice) : formatCurrency(discountData?.final_amount)}
+                        readOnly
+                      />
                     </div>
-                  ))}
-                </RadioGroup>
-                <div className="flex flex-col gap-2">
-                  <div className="flex flex-col gap-1 mt-2">
-                    <Label className="text-gray-500">Pay Amount</Label>
-                    <Input
-                      className="w-full px-4 py-4 border-2 border-gray-200 rounded-lg text-gray-999  placeholder-gray-400 focus:outline-none focus:border-brand-500 transition-colors h-[42px]"
-                      value={!discountData ? formatCurrency(totalPrice) : formatCurrency(discountData?.final_amount)}
-                      readOnly
-                    />
+                    {selectedPaymentMethod === "transfer" && (
+                      <div className="flex flex-col gap-1">
+                        <div className="flex flex-col gap-1 mt-2">
+                          <Label className="text-gray-500">Transfer To</Label>
+                          <Select
+                            options={BANK_LIST as never}
+                            className="basic-multi-select "
+                            classNames={{
+                              control: () =>
+                                "w-full !border-2 !border-gray-200 rounded-lg text-gray-999  focus:outline-none focus:border-brand-500 transition-colors h-[42px] !rounded-md !bg-transparent shadow-xs",
+                              placeholder: () => "placeholder-gray-400",
+                              singleValue: () => "text-brand-999",
+                              input: () => "text-brand-999 bg-none",
+                            }}
+                            onChange={(e) => {
+                              // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                              setSelectedBankTo(e as any);
+                            }}
+                          />
+                        </div>
+                        <div className="flex flex-col gap-1 mt-2">
+                          <Label className="text-gray-500">Account Name</Label>
+                          <Input
+                            className="w-full px-4 py-4 border-2 border-gray-200 rounded-lg text-brand-999 placeholder-gray-400 focus:outline-none focus:border-brand-500 transition-colors h-[42px]"
+                            placeholder="Type here.."
+                            value={nameFrom}
+                            onChange={(e) => {
+                              setNameFrom(e.target.value);
+                            }}
+
+                            // className="w-auto min-w-[388px]"
+                          />
+                        </div>
+
+                        <div className="flex flex-col gap-1 mt-2">
+                          <Label className="text-gray-500">Transfer From</Label>
+                          <Select
+                            options={BANK_LIST as never}
+                            className="basic-multi-select "
+                            classNames={{
+                              control: () =>
+                                "w-full !border-2 !border-gray-200 rounded-lg text-gray-999  focus:outline-none focus:border-brand-500 transition-colors h-[42px] !rounded-md !bg-transparent shadow-xs",
+                              placeholder: () => "placeholder-gray-400",
+                              singleValue: () => "text-brand-999",
+                              input: () => "text-brand-999 bg-none",
+                            }}
+                            onChange={(e) => {
+                              // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                              setSelectedBank(e as any);
+                            }}
+                          />
+                        </div>
+                      </div>
+                    )}
+
+                    {/* {selectedPaymentMethod === "bank_transfer" &&} */}
                   </div>
-                  {selectedPaymentMethod === "transfer" && (
-                    <div className="flex flex-col gap-1">
-                      <div className="flex flex-col gap-1 mt-2">
-                        <Label className="text-gray-500">Transfer To</Label>
-                        <Select
-                          options={BANK_LIST as never}
-                          className="basic-multi-select "
-                          classNames={{
-                            control: () =>
-                              "w-full !border-2 !border-gray-200 rounded-lg text-gray-999  focus:outline-none focus:border-brand-500 transition-colors h-[42px] !rounded-md !bg-transparent shadow-xs",
-                            placeholder: () => "placeholder-gray-400",
-                            singleValue: () => "text-brand-999",
-                            input: () => "text-brand-999 bg-none",
-                          }}
-                          onChange={(e) => {
-                            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                            setSelectedBankTo(e as any);
-                          }}
-                        />
-                      </div>
-                      <div className="flex flex-col gap-1 mt-2">
-                        <Label className="text-gray-500">Account Name</Label>
-                        <Input
-                          className="w-full px-4 py-4 border-2 border-gray-200 rounded-lg text-brand-999 placeholder-gray-400 focus:outline-none focus:border-brand-500 transition-colors h-[42px]"
-                          placeholder="Type here.."
-                          value={nameFrom}
-                          onChange={(e) => {
-                            setNameFrom(e.target.value);
-                          }}
-
-                          // className="w-auto min-w-[388px]"
-                        />
-                      </div>
-
-                      <div className="flex flex-col gap-1 mt-2">
-                        <Label className="text-gray-500">Transfer From</Label>
-                        <Select
-                          options={BANK_LIST as never}
-                          className="basic-multi-select "
-                          classNames={{
-                            control: () =>
-                              "w-full !border-2 !border-gray-200 rounded-lg text-gray-999  focus:outline-none focus:border-brand-500 transition-colors h-[42px] !rounded-md !bg-transparent shadow-xs",
-                            placeholder: () => "placeholder-gray-400",
-                            singleValue: () => "text-brand-999",
-                            input: () => "text-brand-999 bg-none",
-                          }}
-                          onChange={(e) => {
-                            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                            setSelectedBank(e as any);
-                          }}
-                        />
-                      </div>
-                    </div>
-                  )}
-
-                  {/* {selectedPaymentMethod === "bank_transfer" &&} */}
                 </div>
-              </div>
-            </CardContent>
-          </Card>
+              </CardContent>
+            </Card>
+          </div>
         </div>
       </div>
 
@@ -617,6 +699,66 @@ export const DetailFormAddTransaction = () => {
           )}
         </BaseDialogComponent>
       )}
-    </>
+      {openSessionSharing && (
+        <BaseDialogComponent
+          onConfirm={onsSaveShareSession}
+          isOpen={openSessionSharing}
+          title="Select User to share class/session"
+          btnConfirm="Save"
+          onClose={() => {
+            setOpenSessionSharing(false);
+            setSelectedUsers([]);
+            setSelectedItem(null);
+            setSearch("");
+          }}
+        >
+          <div>
+            <Select
+              options={shareSessionWithOption?.()}
+              value={selectedUsers}
+              isMulti
+              classNames={{
+                control: () =>
+                  "w-full !border-2 !border-gray-200 rounded-lg text-gray-999  focus:outline-none focus:border-brand-500 transition-colors !rounded-md !bg-transparent shadow-xs h-[42px]",
+                placeholder: () => "placeholder-gray-400",
+                singleValue: () => "text-brand-999",
+                input: () => "text-brand-999 bg-none",
+              }}
+              isLoading={isLoading}
+              // getOptionLabel={(opt) => opt.full_name ?? opt.phone}
+              // formatOptionLabel={(opt) => (
+              //   <div className="flex flex-col gap-1">
+              //     <p className="font-semibold">{opt.full_name}</p>
+              //     <p className="text-gray-500 text-sm">{opt.phone}</p>
+              //   </div>
+              // )}
+
+              getOptionValue={(opt) => opt.id}
+              onInputChange={onSearch}
+              inputValue={search}
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
+              onChange={(e: any) => {
+                // setSelectedUsers((prev) => ({ ...prev, e }));
+                if (e.length <= (selectedItem?.quantity as number) - 1) {
+                  setSelectedUsers(e);
+                }
+              }}
+            />
+            {selectedUsers?.length > 0 && (
+              <div className="flex flex-col gap-2">
+                <p className="text-lg">Share with:</p>
+                {selectedUsers?.map((item) => (
+                  <div className="flex flex-col gap-2 border border-brand-400 rounded-xl  p-4" key={item.id}>
+                    <p>{item?.full_name}</p>
+                    <p>{item?.phone}</p>
+                    <p>{item?.email}</p>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </BaseDialogComponent>
+      )}
+    </div>
   );
 };

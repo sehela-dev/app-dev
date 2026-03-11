@@ -38,6 +38,15 @@ export interface IAdminCartItemData {
   subtotal: number;
   type?: string;
   share_with_user_id?: string;
+  share_with_user_ids?: string[];
+  share_with_users?:
+    | {
+        id: string;
+        name: string;
+        phone: string;
+        email: string;
+      }[]
+    | null;
   shared_with_user?: {
     id: string;
     name: string;
