@@ -28,7 +28,11 @@ export const axiosx = (auth?: boolean, params?: string, type?: string) => {
     (response) => response,
     async (error) => {
       if (error?.response && error.response.status === 401 && auth) {
-        clearToken();
+        // only clear/session-redirect if a token actually exists
+        const token = getToken();
+        if (token) {
+          clearToken();
+        }
       }
       if (error?.response && error.response.status >= 500) {
         toast.error(validationStatus(error.response.status), {
@@ -45,13 +49,44 @@ export const axiosx = (auth?: boolean, params?: string, type?: string) => {
   return instance;
 };
 
+type AuthRole = "admin" | "user" | "instructor" | null;
+
+const safeParse = (raw: string | null) => {
+  if (!raw) return {};
+  try {
+    return JSON.parse(raw);
+  } catch {
+    return {};
+  }
+};
+
+const getAuthRole = (): AuthRole => {
+  if (typeof window === "undefined") return null;
+
+  const admin = safeParse(window.localStorage.getItem("admin"));
+  if (admin?.access_token) return "admin";
+
+  const instructor = safeParse(window.localStorage.getItem("instructor"));
+  if (instructor?.access_token) return "instructor";
+
+  const user = safeParse(window.localStorage.getItem("user"));
+  if (user?.access_token) return "user";
+
+  return null;
+};
+
 const getToken = () => {
-  const admin = JSON.parse(window.localStorage.getItem("admin") ?? "{}");
-  const user = JSON.parse(window.localStorage.getItem("user") ?? "{}");
-  const instructor = JSON.parse(window.localStorage.getItem("instructor") ?? "{}");
-  if (admin?.access_token) return admin?.access_token;
-  if (user?.access_token) return user?.access_token;
-  if (instructor?.access_token) return instructor?.access_token;
+  if (typeof window === "undefined") return null;
+
+  const admin = safeParse(window.localStorage.getItem("admin"));
+  if (admin?.access_token) return admin.access_token;
+
+  const instructor = safeParse(window.localStorage.getItem("instructor"));
+  if (instructor?.access_token) return instructor.access_token;
+
+  const user = safeParse(window.localStorage.getItem("user"));
+  if (user?.access_token) return user.access_token;
+
   return null;
 };
 
@@ -67,24 +102,21 @@ const getToken = () => {
 // };
 
 export const clearToken = () => {
-  const admin = JSON.parse(window.localStorage.getItem("admin") ?? "{}");
-  const user = JSON.parse(window.localStorage.getItem("user") ?? "{}");
-  const instructor = JSON.parse(window.localStorage.getItem("instructor") ?? "{}");
+  if (typeof window === "undefined") return;
 
-  if (admin || instructor) {
-    window.localStorage.removeItem("admin");
-    window.location.href = "/admin/login";
-  } else if (user) {
-    window.localStorage.removeItem("user");
-    window.location.href = "/auth/login";
-  }
-  window.location.href = admin ? "/admin-login" : "/auth/login";
+  const role = getAuthRole();
+
+  window.localStorage.removeItem("admin");
+  window.localStorage.removeItem("user");
+  window.localStorage.removeItem("instructor");
 
   toast.error(validationStatus("401" as string), {
     id: "error",
     description: "Session expired! Please login again to continue",
     position: "top-center",
   });
+
+  window.location.href = role === "admin" || role === "instructor" ? "/admin-login" : "/auth/login";
 
   /*  // window.localStorage.removeItem("user");
   // window.localStorage.removeItem("instructor");

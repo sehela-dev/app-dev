@@ -57,7 +57,7 @@ export const CompleteProfilePageView = () => {
       instagram_username: profileUser?.data?.instagram_username ?? "",
       gender: profileUser?.data?.gender ?? "",
       date_of_birth: profileUser?.data?.date_of_birth,
-      photo: null,
+      photo: undefined,
       photo_consent: false,
       tnc_agreed: false,
       confirm_password: "",

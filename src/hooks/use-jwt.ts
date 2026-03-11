@@ -11,13 +11,13 @@ const defaultValues: ILocalStorageData = {
 };
 
 export const useJwtToken = () => {
-  const jwtAuth = useLocalStorage<ILocalStorageData>("jwt", defaultValues);
+  const jwtAuth = useLocalStorage<ILocalStorageData>("user", defaultValues);
 
   const setJwtToken = (data: ILocalStorageData) => {
     jwtAuth.setState(data);
   };
 
-  const resetJwt = useCallback(() => removeStorage("jwt"), []);
+  const resetJwt = useCallback(() => removeStorage("user"), []);
   const { access_token, refresh_token, expires_at, profile, isAdmin } = jwtAuth.state;
 
   return {

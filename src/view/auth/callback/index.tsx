@@ -60,7 +60,7 @@ export const AuthCallBackPage = () => {
       setJwtToken({
         access_token: token?.access_token as string,
         refresh_token: token?.refresh_token as string,
-        isAdmin: false,
+
         profile: {
           email: data?.data?.email,
           name: data?.data?.full_name,

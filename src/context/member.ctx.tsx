@@ -34,7 +34,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setProfile(null);
   };
 
-  const { data, isLoading } = useGetProfile();
+  const { data, isLoading } = useGetProfile(Boolean(access_token) && isHydrated);
 
   useEffect(() => {
     if (data) {
