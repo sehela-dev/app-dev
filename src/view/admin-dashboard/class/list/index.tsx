@@ -125,7 +125,7 @@ export const ClassListView = () => {
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end" className="w-32">
-          {can("class:update") && <DropdownMenuItem onClick={() => alert(row.id)}>Edit</DropdownMenuItem>}
+          {can("class:update") && <DropdownMenuItem onClick={() => router.push(`/admin/class/${row.id}/edit`)}>Edit</DropdownMenuItem>}
           {/* <DropdownMenuItem>Set as Inactive</DropdownMenuItem> */}
 
           {can("class:delete") && (

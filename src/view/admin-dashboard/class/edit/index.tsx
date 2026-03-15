@@ -1,0 +1,186 @@
+"use client";
+
+import { BaseDialogConfirmation } from "@/components/general/dialog-confirnation";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader } from "@/components/ui/card";
+import { FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+import { Input } from "@/components/ui/input";
+import { Switch } from "@/components/ui/switch";
+import { Textarea } from "@/components/ui/textarea";
+import { useCreateClassSession, useEditClassCategory } from "@/hooks/api/mutations/admin";
+import { useGetDetailClassSessionsCategory } from "@/hooks/api/queries/admin/class-session";
+import { useParams, useRouter } from "next/navigation";
+import { useMemo, useState } from "react";
+// import { useRouter } from "next/navigation";
+// import { useState } from "react";
+import { FormProvider, useForm } from "react-hook-form";
+
+const defaultValues = {
+  class_name: "",
+  class_description: "",
+  allow_credit: true,
+};
+export const EditClassPageView = () => {
+  const router = useRouter();
+  const { mutateAsync } = useEditClassCategory();
+  const params = useParams();
+  const { id } = params;
+
+  const { data, isLoading } = useGetDetailClassSessionsCategory(id as string);
+
+  const values = useMemo(() => {
+    if (!data?.data) return defaultValues;
+    return {
+      class_name: data?.data?.class_name,
+      class_description: data?.data?.class_description,
+      allow_credit: data?.data?.allow_credit,
+    };
+  }, [data?.data]);
+  const methods = useForm({ defaultValues, values });
+  const { control, handleSubmit } = methods;
+
+  // const [open, setOpen] = useState(false);
+  const [open, setOpen] = useState({
+    SUCCESS: false,
+    CANCEL: false,
+  });
+
+  const handleOpenModal = (type: "SUCCESS" | "CANCEL") => {
+    setOpen((prev) => ({ ...prev, [type]: !open[type] }));
+  };
+  const onSubmit = handleSubmit(async (data) => {
+    try {
+      const payload = {
+        ...data,
+        is_active: true,
+      };
+      const res = await mutateAsync({
+        id: id as string,
+        data: { ...payload },
+      });
+      if (res) {
+        console.log(res.data);
+        methods.reset();
+        // router.push("/admin/class");
+        handleOpenModal("SUCCESS");
+      }
+    } catch (error) {
+      console.log(error);
+    }
+  });
+  return (
+    <div className="flex w-full  flex-col gap-2">
+      <div className="flex flex-col">
+        <h3 className="text-2xl text-brand-999 font-semibold">Edit Class Category</h3>
+        <p className="text-sm text-gray-500">Manage class category</p>
+      </div>
+
+      <Card className="border-brand-100 w-full">
+        <CardHeader className="flex flex-row w-full justify-between items-center text-sm font-semibold">Class Information</CardHeader>
+        <CardContent>
+          <div className="flex flex-col gap-4">
+            <FormProvider {...methods}>
+              <form onSubmit={onSubmit}>
+                <div className="flex flex-col gap-4">
+                  <FormField
+                    control={control}
+                    name="class_name"
+                    render={({ field }) => (
+                      <FormItem className="flex flex-col">
+                        <FormLabel className=" text-brand-999 font-medium text-sm" required>
+                          Class Name
+                        </FormLabel>
+                        <FormControl>
+                          <Input
+                            className="w-full px-4 py-4 border-2 border-gray-200 rounded-lg text-gray-999  placeholder-gray-400 focus:outline-none focus:border-brand-500 transition-colors h-[42px]"
+                            placeholder="Type here.."
+                            {...field}
+                            // className="w-auto min-w-[388px]"
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={control}
+                    name="class_description"
+                    render={({ field }) => (
+                      <FormItem className="flex flex-col">
+                        <FormLabel className=" text-brand-999 font-medium text-sm" required>
+                          Class Description
+                        </FormLabel>
+                        <FormControl>
+                          <Textarea
+                            className="w-full px-4 py-4 border-2 border-gray-200 rounded-lg text-gray-999  placeholder-gray-400 focus:outline-none focus:border-brand-500 transition-colors h-[42px]"
+                            placeholder="Type here.."
+                            {...field}
+
+                            // className="w-auto min-w-[388px]"
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={control}
+                    name="allow_credit"
+                    render={({ field }) => (
+                      <FormItem className="flex flex-row w-full justify-between items-center">
+                        <div className="flex flex-col gap-2">
+                          <FormLabel className=" text-brand-999 font-medium text-sm" required>
+                            Allow Credit
+                          </FormLabel>
+                          <FormDescription>Enable if this class can be booked with credits</FormDescription>
+                        </div>
+                        <FormControl>
+                          <Switch checked={field.value} onCheckedChange={field.onChange} />
+                        </FormControl>
+                      </FormItem>
+                    )}
+                  />
+                </div>
+                <div className="flex flex-row items-center gap-2 mt-4 justify-end">
+                  <div className="">
+                    <Button variant={"secondary"} type="button">
+                      Cancel
+                    </Button>
+                  </div>
+                  <div className="">
+                    <Button>Save</Button>
+                  </div>
+                </div>
+              </form>
+            </FormProvider>
+          </div>
+        </CardContent>
+      </Card>
+      {open.SUCCESS && (
+        <BaseDialogConfirmation
+          image="success-edit"
+          onConfirm={() => router.push("/admin/class")}
+          onCancel={() => router.push("/admin/class")}
+          open={open.SUCCESS}
+          title="Success!"
+          subtitle="Class category has been successfully updated."
+          hideCancel
+          cancelText="Class Category List"
+          confirmText="Class Category List"
+        />
+      )}
+      {open.CANCEL && (
+        <BaseDialogConfirmation
+          image="warning-1"
+          onCancel={() => handleOpenModal("CANCEL")}
+          open={open.CANCEL}
+          title="Class Category Not Saved"
+          subtitle="If you exit now, unsaved changes will be lost and cannot be recovered. Continue?"
+          onConfirm={() => router.push("/admin/class")}
+          cancelText="Cancel"
+          confirmText="Continue"
+        />
+      )}
+    </div>
+  );
+};
