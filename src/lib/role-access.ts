@@ -52,6 +52,7 @@ export const PERMISSIONS_ROLE = {
     "session:create",
     "session:delete",
     "session:update",
+    "session:detail",
     "instructor:view",
     "products:view",
     "products:create",
