@@ -358,7 +358,7 @@ export const CreateDiscountVoucherPage = () => {
                         />
                       </FormControl>
                       <FormMessage />
-                      <FormDescription className="text-brand-200"> *) Leave empty for no minimum purchase requirement</FormDescription>
+                      <FormDescription className="text-brand-200"> *) Leave empty for no maximum purchase requirement</FormDescription>
                     </FormItem>
                   )}
                 />
