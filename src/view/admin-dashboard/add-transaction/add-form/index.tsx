@@ -48,9 +48,9 @@ export const AddTransactionFOrm = () => {
   const [search, setSearch] = useState("");
   const debounceClass = useDebounce(search, 300);
 
-  const [selectedRange, setSelectedRange] = useState({
-    from: defaultDate().formattedToday,
-    to: defaultDate().formattedOneMonthLater,
+  const [selectedRange, setSelectedRange] = useState<{ from?: string; to?: string }>({
+    from: undefined,
+    to: undefined,
   });
   const handleSearch = (query: string) => {
     setSearch(query);
@@ -62,10 +62,10 @@ export const AddTransactionFOrm = () => {
     startDate: selectedRange.from,
     endDate: selectedRange.to,
     search: debounceClass,
-    status: "scheduled",
+    // status: "scheduled",
   });
 
-  const handleDateRangeChangeDual = (startDate: string, endDate?: string) => {
+  const handleDateRangeChangeDual = (startDate?: string, endDate?: string) => {
     setSelectedRange((prev) => ({ ...prev, from: startDate, to: endDate ?? "" }));
   };
 
@@ -112,6 +112,22 @@ export const AddTransactionFOrm = () => {
       id: "price",
       text: "Price",
       value: (row: ISessionItem) => formatCurrency(row.price_idr),
+    },
+    {
+      id: "status",
+      text: "Status",
+      value: (row: ISessionItem) => (
+        <p
+          className={cn("capitalize font-semibold", {
+            "text-green-500": row.status === "ongoing",
+            "text-blue-500": row.status === "scheduled",
+            "text-red-500": row.status === "ended",
+            "text-yellow-500": row.status === "canceled",
+          })}
+        >
+          {row.status}
+        </p>
+      ),
     },
   ];
 
@@ -223,7 +239,6 @@ export const AddTransactionFOrm = () => {
                       startDate={selectedRange.from}
                       endDate={selectedRange.to}
                       allowFutureDates
-                      allowPastDates={false}
                     />
                   </div>
                   <div className="flex w-full">
