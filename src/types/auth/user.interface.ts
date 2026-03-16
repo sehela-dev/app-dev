@@ -59,4 +59,9 @@ export interface ILocalStorageDataProfile {
   overview?: IOverviewSession;
 }
 
+export interface IRefreshToken {
+  refresh_token: string;
+}
+
 export type TLogin = (data: ILoginRequest) => Promise<IAdminLoginResponse>;
+export type TRefreshToken = (data: IRefreshToken) => Promise<IAuthLoginResponse>;

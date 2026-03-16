@@ -1,6 +1,6 @@
 import axios from "axios";
 import { toast } from "sonner";
-import { SECRET_KEY, validationStatus, AUTH_KEY } from "./config";
+import { SECRET_KEY, validationStatus, AUTH_KEY, MAIN_API_URL } from "./config";
 
 const jwtPrefix = "Bearer";
 export const axiosx = (auth?: boolean, params?: string, type?: string) => {
@@ -24,16 +24,34 @@ export const axiosx = (auth?: boolean, params?: string, type?: string) => {
     (error) => Promise.reject((error.response && error.response.data) || "Something went wrong!"),
   );
 
-  instance.interceptors.response?.use(
+  instance.interceptors.response.use(
     (response) => response,
     async (error) => {
-      if (error?.response && error.response.status === 401 && auth) {
-        // only clear/session-redirect if a token actually exists
-        const token = getToken();
-        if (token) {
+      const originalRequest = error.config ?? {};
+
+      if (error?.response?.status === 401 && auth && !originalRequest._retry) {
+        originalRequest._retry = true;
+
+        try {
+          const newToken = await refreshAccessToken();
+
+          // persist the new token into localStorage for the current role
+          updateAccessToken(newToken);
+
+          // retry the original request with updated Authorization header
+          originalRequest.headers = {
+            ...(originalRequest.headers || {}),
+            Authorization: `${jwtPrefix} ${newToken}`,
+          };
+
+          return instance(originalRequest);
+        } catch (refreshError) {
+          // refresh failed → clear local auth and let caller handle redirect/UI
           clearToken();
+          return Promise.reject(refreshError);
         }
       }
+
       if (error?.response && error.response.status >= 500) {
         toast.error(validationStatus(error.response.status), {
           id: "error",
@@ -104,8 +122,6 @@ const getToken = () => {
 export const clearToken = () => {
   if (typeof window === "undefined") return;
 
-  const role = getAuthRole();
-
   window.localStorage.removeItem("admin");
   window.localStorage.removeItem("user");
   window.localStorage.removeItem("instructor");
@@ -116,7 +132,7 @@ export const clearToken = () => {
     position: "top-center",
   });
 
-  window.location.href = role === "admin" || role === "instructor" ? "/admin-login" : "/auth/login";
+  // window.location.href = role === "admin" || role === "instructor" ? "/admin-login" : "/auth/login";
 
   /*  // window.localStorage.removeItem("user");
   // window.localStorage.removeItem("instructor");
@@ -130,4 +146,52 @@ export const clearToken = () => {
   //   position: "top-center",
   // });
   // window.location.href = role !== "user" ? "/admin-login" : "/auth/login"; */
+};
+
+const getRefreshToken = () => {
+  if (typeof window === "undefined") return null;
+
+  const admin = safeParse(window.localStorage.getItem("admin"));
+  if (admin?.refresh_token) return admin.refresh_token;
+
+  const instructor = safeParse(window.localStorage.getItem("instructor"));
+  if (instructor?.refresh_token) return instructor.refresh_token;
+
+  const user = safeParse(window.localStorage.getItem("user"));
+  if (user?.refresh_token) return user.refresh_token;
+
+  return null;
+};
+
+const updateAccessToken = (newToken: string) => {
+  const role = getAuthRole();
+  if (!role) return;
+
+  const data = safeParse(window.localStorage.getItem(role));
+
+  window.localStorage.setItem(
+    role,
+    JSON.stringify({
+      ...data,
+      access_token: newToken,
+    }),
+  );
+};
+const refreshAccessToken = async () => {
+  const refreshToken = getRefreshToken();
+  if (!refreshToken) throw new Error("No refresh token");
+
+  const res = await axios.post(
+    `${MAIN_API_URL}/auth/refresh`,
+    {
+      refresh_token: refreshToken,
+    },
+    {
+      headers: {
+        "x-api-key": SECRET_KEY,
+      },
+    },
+  );
+
+  return res.data.data?.session?.access_token;
 };
