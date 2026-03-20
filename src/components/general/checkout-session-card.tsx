@@ -17,11 +17,15 @@ export const CheckoutSessionCardComponent = ({ time, duration, title, location, 
     <div className="relative w-full">
       <Card
         className={cn("bg-brand-500 text-gray-50 rounded-xl p-2  cursor-pointer hover:shadow-md border-none", {
-          "bg-red-900": isCancelled,
+          "bg-[#A14949]": isCancelled,
         })}
       >
         <div className="flex flex-row items-start gap-2.5 ">
-          <div className="bg-brand-400 h-[88px] w-[90px] rounded-md flex flex-col justify-center items-center ">
+          <div
+            className={cn("bg-brand-400 h-[88px] w-[90px] rounded-md flex flex-col justify-center items-center ", {
+              "bg-[#B45D5D]": isCancelled,
+            })}
+          >
             <p className="text-sm">{time} WIB</p>
             <p className="text-sm">{duration} Min</p>
           </div>

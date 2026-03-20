@@ -1,4 +1,5 @@
 import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious } from "@/components/ui/pagination";
+import { cn } from "@/lib/utils";
 
 export interface ApiPagination {
   currentPage: number;
@@ -10,6 +11,7 @@ export interface ApiPagination {
   nextPage?: number | null;
   previousPage?: number | null;
   showTotal?: boolean;
+  position?: "left" | "right" | "center";
 }
 
 interface CustomPaginationProps extends ApiPagination {
@@ -46,10 +48,14 @@ export function CustomPagination(props: CustomPaginationProps) {
         </div>
       )}
 
-      <div className="flex w-full text-right ">
-        <Pagination>
+      <div className={`flex w-full text-right `}>
+        <Pagination
+          className={cn({
+            "!justify-center": props?.position === "center",
+          })}
+        >
           <PaginationContent>
-            <PaginationItem>
+            <PaginationItem className="">
               <PaginationPrevious
                 aria-disabled={!hasPrevPage}
                 tabIndex={!hasPrevPage ? -1 : 0}
@@ -75,7 +81,7 @@ export function CustomPagination(props: CustomPaginationProps) {
             <PaginationItem>
               <PaginationLink
                 isActive
-                className="min-w-[44px]"
+                className="min-w-[36px] min-h-[36px]"
                 onClick={(e) => {
                   e.preventDefault();
                 }}

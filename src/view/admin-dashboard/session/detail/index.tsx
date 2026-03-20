@@ -174,7 +174,8 @@ export const SessionDetailPage = () => {
 
   const actionOptions = {
     text: "Action",
-    show: data?.data?.status !== "ended",
+    // show: data?.data?.status !== "ended",
+    show: true,
     render: (row: IParticipantsSession) => (
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
