@@ -1,5 +1,5 @@
 "use client";
-import { CalendarMinus, MapPin } from "lucide-react";
+import { CalendarMinus, MapPin, User } from "lucide-react";
 import { Card } from "../ui/card";
 import { cn } from "@/lib/utils";
 
@@ -10,19 +10,31 @@ interface ISessionCardProps {
   location: string;
   date: string;
   isCancelled?: boolean;
+  instructor?: string;
+  onClick?: () => void;
 }
 
-export const CheckoutSessionCardComponent = ({ time, duration, title, location, date, isCancelled = false }: ISessionCardProps) => {
+export const CheckoutSessionCardComponent = ({
+  time,
+  duration,
+  title,
+  location,
+  date,
+  isCancelled = false,
+  instructor,
+  onClick,
+}: ISessionCardProps) => {
   return (
     <div className="relative w-full">
       <Card
         className={cn("bg-brand-500 text-gray-50 rounded-xl p-2  cursor-pointer hover:shadow-md border-none", {
           "bg-[#A14949]": isCancelled,
         })}
+        onClick={onClick ? onClick : () => {}}
       >
-        <div className="flex flex-row items-start gap-2.5 ">
+        <div className="flex flex-row items-stretch gap-2.5">
           <div
-            className={cn("bg-brand-400 h-[88px] w-[90px] rounded-md flex flex-col justify-center items-center ", {
+            className={cn("bg-brand-400 w-[90px] rounded-md flex flex-col justify-center items-center", {
               "bg-[#B45D5D]": isCancelled,
             })}
           >
@@ -42,6 +54,12 @@ export const CheckoutSessionCardComponent = ({ time, duration, title, location, 
                 <CalendarMinus size={14} />
                 {date}
               </p>
+              {instructor && (
+                <p className="flex items-center gap-2 text-sm opacity-[0.7]">
+                  <User size={14} />
+                  {instructor}
+                </p>
+              )}
             </div>{" "}
           </div>
         </div>

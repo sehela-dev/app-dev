@@ -8,6 +8,7 @@ import { useGetMySessions } from "@/hooks/api/queries/customer/profile";
 import { formatDateHelper, getDurationInMinutes } from "@/lib/helper";
 
 import { ChevronRight, DiamondIcon, Gem, LogOut, RefreshCcw, ShoppingBag, SquarePen } from "lucide-react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { ReactNode } from "react";
 
@@ -23,7 +24,6 @@ export const ProfilePageView = () => {
     limit: 8,
   });
 
-  console.log(upcoming);
   const { logout } = useAuthMember();
   const router = useRouter();
   return (
@@ -35,9 +35,11 @@ export const ProfilePageView = () => {
       <div className="px-4 flex flex-col w-full">
         <div className="flex flex-row items-end w-full justify-between mb-2">
           <p className="font-extrabold text-xl text-bra">My Class</p>
-          <p className="font-semibold text-md">View All</p>
+          <Link href="/profile/my-sessions" className="font-semibold text-md cursor-pointer">
+            View All
+          </Link>
         </div>
-        {(upcoming?.data?.length as number) < 0 ? (
+        {(upcoming?.data?.length as number) > 0 ? (
           <ScrollArea className="w-full whitespace-nowrap">
             <div className="flex flex-row items-center gap-2">
               {upcoming?.data?.map((item) => (
@@ -78,7 +80,7 @@ export const ProfilePageView = () => {
                   key={item.id}
                   duration={getDurationInMinutes(item?.class_session?.start_datetime, item?.class_session?.end_datetime)}
                   location={item?.class_session?.location_address}
-                  date={formatDateHelper(item.class_session.start_datetime, "EEEE, MMM yyyy")}
+                  date={formatDateHelper(item.class_session.start_datetime, "EEEE, dd MMM yyyy")}
                   time={formatDateHelper(item?.class_session?.start_datetime, "H:mm")}
                   title={item?.class_session?.session_name}
                   isCancelled

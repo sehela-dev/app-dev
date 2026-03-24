@@ -1,6 +1,6 @@
 "use client";
 import AuthMemberGuard from "@/layout/authguard-member-layout";
-import { ProfilePageView } from "@/view/customer-profile";
+
 import { MyCreditsView } from "@/view/profile/my-credit";
 
 export default function Home() {

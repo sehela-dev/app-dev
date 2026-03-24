@@ -14,6 +14,7 @@ export interface IProps {
   isOpen?: boolean;
   onClose?: () => void;
   isDisabled?: boolean;
+  onCloseText?: string;
 }
 
 export const BaseDialogComponent = ({
@@ -24,12 +25,13 @@ export const BaseDialogComponent = ({
   btnConfirm = "Export",
   onClose,
   isDisabled,
+  onCloseText = "Cancel",
 }: IProps) => {
   return (
     <AlertDialog open={isOpen}>
-      <AlertDialogContent className="min-w-[55vw]">
+      <AlertDialogContent className="min-w-[55vw] font-serif">
         <AlertDialogHeader>
-          <AlertDialogTitle>{title}</AlertDialogTitle>
+          <AlertDialogTitle className="text-brand-500">{title}</AlertDialogTitle>
         </AlertDialogHeader>
         {children}
         <Divider />
@@ -38,7 +40,7 @@ export const BaseDialogComponent = ({
             {onClose && (
               <div className="w-full">
                 <Button type="button" variant="secondary" className="w-full" onClick={onClose}>
-                  Cancel
+                  {onCloseText}
                 </Button>
               </div>
             )}
