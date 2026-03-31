@@ -13,7 +13,7 @@ export default function RootLayout({
   // Hide bottom navigation on pages that need more vertical space.
   // For dynamic routes like `/something/[id]`, include only the static prefix,
   // e.g. `"/admin-dashboard/session/detail"`.
-  const HIDE_NAV_PREFIXES = ["/profile/my-credits", "/profile/my-sessions"] as const;
+  const HIDE_NAV_PREFIXES = ["/profile/my-credits", "/profile/my-sessions", "/profile/update"] as const;
 
   const hideNav = HIDE_NAV_PREFIXES.some((prefix) => {
     // Match either the exact prefix path or any nested path under it.

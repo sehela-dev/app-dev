@@ -93,7 +93,7 @@ export const EditCreditPacakgesPage = () => {
       const payload: ICreatePackagePayload = {
         credits: parseInt(data?.credits as string),
         package_type: data?.package_type,
-        description: data?.description,
+        description: data?.description ?? "",
         is_active: true,
         name: data?.name,
         price_idr: parseInt(data?.price_idr as string),
