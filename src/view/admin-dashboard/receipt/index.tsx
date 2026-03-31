@@ -1,4 +1,4 @@
-"use client";
+a"use client";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
@@ -42,7 +42,7 @@ export const OrderReceiptPage = () => {
 
   return (
     <div className="mx-auto max-w-[45vw] w-full">
-      <Card className="w-full border-brand-100 p-6">
+      <Card className="w-full border-brand-100 p-6" id="print_receipt">
         <CardHeader className="p-0">
           <div className="flex flex-col gap-1">
             <h3 className="text-3xl font-semibold">Transaction Recipt</h3>

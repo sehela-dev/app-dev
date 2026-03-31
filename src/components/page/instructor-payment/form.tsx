@@ -35,15 +35,17 @@ const PAYMENT_MODELS = [
 
 interface IProps {
   prefix: string;
-  label: string;
+  label?: string;
+  hidden?: boolean;
+  payment_model?: string;
 }
 
-export const InstructorPaymentModelForm = ({ prefix, label }: IProps) => {
+export const InstructorPaymentModelForm = ({ prefix, label, hidden = false, payment_model }: IProps) => {
   const methods = useFormContext();
 
   const { control, watch, setValue } = methods;
   const regular = watch(prefix);
-  const paymentModel = watch(`${prefix}.payment_model`);
+  const paymentModel = watch(`${prefix}.payment_model`) ?? payment_model;
 
   // useEffect(() => {
   //   if (paymentModel) {
@@ -54,25 +56,27 @@ export const InstructorPaymentModelForm = ({ prefix, label }: IProps) => {
   return (
     <div>
       <div className="flex flex-col gap-4">
-        <FormField
-          control={control}
-          name={prefix}
-          render={({ field }) => (
-            <FormItem className="flex flex-row w-[250px] justify-between items-center pt-4">
-              <div className="flex flex-col gap-2">
+        {!hidden && (
+          <FormField
+            control={control}
+            name={prefix}
+            render={({ field }) => (
+              <FormItem className="flex flex-row w-[250px] justify-between items-center pt-4">
                 <FormLabel className=" text-brand-999 font-medium text-lg">{label}</FormLabel>
-              </div>
-              <FormControl>
-                <Switch
-                  checked={!!field.value}
-                  onCheckedChange={(e) => {
-                    field.onChange(e);
-                  }}
-                />
-              </FormControl>
-            </FormItem>
-          )}
-        />
+
+                <FormControl>
+                  <Switch
+                    checked={!!field.value}
+                    onCheckedChange={(e) => {
+                      field.onChange(e);
+                    }}
+                  />
+                </FormControl>
+              </FormItem>
+            )}
+          />
+        )}
+
         {regular && (
           <div className="flex flex-col gap-2">
             <FormField
@@ -89,11 +93,10 @@ export const InstructorPaymentModelForm = ({ prefix, label }: IProps) => {
                       onValueChange={(e) => {
                         field.onChange(e);
                       }}
-                      defaultValue={field.value}
-                      value={field.value}
+                      value={field.value ?? payment_model}
                     >
                       <SelectTrigger className="w-full px-4 py-4 border-2 border-gray-200 rounded-lg text-gray-999  placeholder-gray-400 focus:outline-none focus:border-brand-500 transition-colors h-[42px]">
-                        <SelectValue placeholder="Select Class Type" className="!text-gray-400" />
+                        <SelectValue placeholder="Select Payment Model" className="!text-gray-400" />
                       </SelectTrigger>
                       <SelectContent>
                         <SelectGroup>
