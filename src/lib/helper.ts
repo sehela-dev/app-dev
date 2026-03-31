@@ -312,3 +312,12 @@ export function filterNavItems(items: NavItem[], can: (p: string) => boolean): N
     })
     .filter(Boolean) as NavItem[];
 }
+export function getDurationInMinutes(startTime: string, endTime: string): string {
+  const start = new Date(startTime);
+  const end = new Date(endTime);
+
+  const diffMs = end.getTime() - start.getTime();
+  const diffMinutes = diffMs / (1000 * 60);
+
+  return String(diffMinutes);
+}

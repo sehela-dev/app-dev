@@ -47,7 +47,7 @@ export function DialogSessionFilter() {
   return (
     <Dialog>
       <DialogTrigger asChild>
-        <Button size={"icon"} variant={"outline"} className="min-h-[40px] min-w-[40px] bg-transparent ">
+        <Button size={"icon"} variant={"outline"} className="h-9 w-9 bg-transparent ">
           <ListFilter />
         </Button>
       </DialogTrigger>
