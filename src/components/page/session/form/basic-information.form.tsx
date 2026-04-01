@@ -8,13 +8,14 @@ import { Input } from "@/components/ui/input";
 
 import { Textarea } from "@/components/ui/textarea";
 import { useGetClassSessionsCategory } from "@/hooks/api/queries/admin/class-session";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 import Select from "react-select";
 
 import { useDebounce } from "@/hooks";
 import { useGetInstructor } from "@/hooks/api/queries/admin/instructor";
 import { Select as Selects, SelectItem, SelectGroup, SelectContent, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { InstructorPaymentModelForm } from "../../instructor-payment/form";
 
 export const OPTION_TYPE = [
   {
@@ -31,10 +32,11 @@ export const OPTION_TYPE = [
   },
 ];
 
-export const SessionBasicInfoFormComponent = () => {
+export const SessionBasicInfoFormComponent = ({ type }: { type?: string }) => {
   const methods = useFormContext();
   const { control } = methods;
   const [search, setSearch] = useState("");
+  const [selectedClassType, setSelectedClassType] = useState<string | null>(type ?? "regular");
   const [searchInstructor, setSearchInstructor] = useState("");
 
   const debouncedSearch = useDebounce(search, 300); // 500ms delay
@@ -65,6 +67,12 @@ export const SessionBasicInfoFormComponent = () => {
     }));
     return opt ?? [];
   }, [instructorData]);
+
+  useEffect(() => {
+    if (type) {
+      methods?.setValue("type", type);
+    }
+  }, [methods, type]);
 
   return (
     <FormProvider {...methods}>
@@ -125,10 +133,13 @@ export const SessionBasicInfoFormComponent = () => {
                   </FormLabel>
                   <FormControl>
                     <Selects
+                      {...field}
+                      value={field.value}
+                      defaultValue={field.value}
                       onValueChange={(e) => {
                         field.onChange(e);
+                        setSelectedClassType(e);
                       }}
-                      {...field}
                     >
                       <SelectTrigger className="w-full px-4 py-4 border-2 border-gray-200 rounded-lg text-gray-999  placeholder-gray-400 focus:outline-none focus:border-brand-500 transition-colors h-[42px]">
                         <SelectValue placeholder="Select Class Type" className="!text-gray-400" />

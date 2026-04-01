@@ -2,12 +2,14 @@
 
 import { BaseDialogConfirmation } from "@/components/general/dialog-confirnation";
 import {
+  OveridePaymentModelForm,
   SessionBasicInfoFormComponent,
   SessionDateTimeFormComponent,
   SessionLocationFormComponent,
   SessionPricingFormComponent,
 } from "@/components/page/session/form";
 import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { useCreateNewSession } from "@/hooks/api/mutations/admin";
 import { defaultDate } from "@/lib/helper";
 import { ICreateSessionPaylaod } from "@/types/class-sessions.interface";
@@ -56,11 +58,29 @@ const defaultValues = {
   //OTHER
   type: "regular",
   level: "advanced",
+  isOveride: false,
+  payment: {
+    payment_model: "",
+    model_params: {
+      percentage: 0,
+      min_amount: 0,
+      min_threshold_people: 0,
+      amount: 0,
+      credit_rate: 0,
+      non_credit_rate: 0,
+      base_amount: 0,
+      additional_per_person: 0,
+      base_people: 0,
+      per_person_amount: 0,
+    },
+  },
 };
 
 export const CreateSessionPageView = () => {
   const router = useRouter();
   const methods = useForm({ defaultValues });
+  const { watch } = methods;
+  const isOveride = watch("type");
   const { handleSubmit } = methods;
   const { mutateAsync } = useCreateNewSession();
 
@@ -115,9 +135,29 @@ export const CreateSessionPageView = () => {
         start_date: data?.start_date as string,
         time_start: data?.time_start as string,
         time_end: data?.time_end as string,
+
+        ...(data?.isOveride && (data?.type === "private" || data?.type === "special")
+          ? {
+              payment: {
+                payment_model: data?.payment?.payment_model,
+                session_type: data?.type,
+                model_params: {
+                  percentage: +data?.payment?.model_params?.percentage as number,
+                  min_amount: +data?.payment?.model_params?.min_amount as number,
+                  min_threshold_people: +data?.payment?.model_params?.min_threshold_people as number,
+                  amount: +data?.payment?.model_params?.amount as number,
+                  credit_rate: +data?.payment?.model_params?.credit_rate as number,
+                  non_credit_rate: +data?.payment?.model_params?.non_credit_rate as number,
+                  base_amount: +data?.payment?.model_params?.base_amount as number,
+                  additional_per_person: +data?.payment?.model_params?.additional_per_person as number,
+                  base_people: +data?.payment?.model_params?.base_people as number,
+                  per_person_amount: +data?.payment?.model_params?.per_person_amount as number,
+                },
+              },
+            }
+          : null),
       };
-      // console.log(payload, "payload");
-      // return;
+
       const res = await mutateAsync(payload);
       if (res) {
         handleOpenModal("ONSUCCESS");
@@ -144,6 +184,8 @@ export const CreateSessionPageView = () => {
         <form onSubmit={onSubmit}>
           <div className="flex flex-col gap-4">
             <SessionBasicInfoFormComponent />
+            {isOveride !== "regular" && <OveridePaymentModelForm prefix={"payment"} />}
+
             <div className="grid grid-cols-2 gap-2">
               <SessionDateTimeFormComponent />
               <SessionLocationFormComponent />

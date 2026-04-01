@@ -76,7 +76,7 @@ export interface ICreateSessionPaylaod {
   //OTHER
   type: string; //regular
   level: string; // "advanced",
-  payment?: IPaymentRule;
+  payment?: IPaymentRule | null;
 }
 
 export interface IParticipantsSession {

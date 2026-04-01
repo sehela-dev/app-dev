@@ -1,13 +1,16 @@
 "use client";
 
 import { BaseDialogConfirmation } from "@/components/general/dialog-confirnation";
+import { InstructorPaymentModelForm } from "@/components/page/instructor-payment/form";
 import {
+  OveridePaymentModelForm,
   SessionBasicInfoFormComponent,
   SessionDateTimeFormComponent,
   SessionLocationFormComponent,
   SessionPricingFormComponent,
 } from "@/components/page/session/form";
 import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { useEditSession } from "@/hooks/api/mutations/admin";
 import { useGetSessionDetail } from "@/hooks/api/queries/admin/class-session";
 
@@ -57,6 +60,28 @@ const defaultValues = {
   //OTHER
   type: "regular",
   level: "advanced",
+  isOveride: false,
+  payment: {
+    payment_model: null,
+    model_params: {
+      percentage: 0,
+      min_amount: 0,
+      min_threshold_people: 0,
+      amount: 0,
+      credit_rate: 0,
+      non_credit_rate: 0,
+      base_amount: 0,
+      additional_per_person: 0,
+      base_people: 0,
+      per_person_amount: 0,
+    },
+  },
+};
+
+export const OPTION_TYPE_KEY = {
+  regular: "Regular",
+  private: "Private",
+  special: "Special",
 };
 
 export const EditSessionPage = () => {
@@ -104,7 +129,7 @@ export const EditSessionPage = () => {
         value: data?.data?.instructor_id,
         label: data?.data?.instructor_name,
       },
-      description: data?.data?.session_description,
+      description: data?.data?.session_description ?? "",
 
       //DATE AND TIME
       start_date: data?.data?.start_date,
@@ -128,14 +153,36 @@ export const EditSessionPage = () => {
       //OTHER
       type: data?.data?.type,
       level: "advanced",
+      isOveride: !!data?.data?.instructor_payment_model || false,
+      ...(data?.data?.type === "private" || data?.data?.type === "special"
+        ? {
+            payment: {
+              payment_model: data?.data?.instructor_payment_model,
+              session_type: data?.data?.type,
+              model_params: {
+                percentage: data?.data?.instructor_payment_params?.percentage,
+                min_amount: data?.data?.instructor_payment_params?.min_amount,
+                min_threshold_people: data?.data?.instructor_payment_params?.min_threshold_people,
+                amount: data?.data?.instructor_payment_params?.amount,
+                credit_rate: data?.data?.instructor_payment_params?.credit_rate,
+                non_credit_rate: data?.data?.instructor_payment_params?.non_credit_rate,
+                base_amount: data?.data?.instructor_payment_params?.base_amount,
+                additional_per_person: data?.data?.instructor_payment_params?.additional_per_person,
+                base_people: data?.data?.instructor_payment_params?.base_people,
+                per_person_amount: data?.data?.instructor_payment_params?.per_person_amount,
+              },
+            },
+          }
+        : { payment: null }),
     };
   }, [data?.data]);
 
   const methods = useForm({ defaultValues, values });
-  const { handleSubmit } = methods;
+  const { handleSubmit, watch } = methods;
+  const classType = watch("type");
   const onSubmit = handleSubmit(async (data) => {
     try {
-      const payload: ICreateSessionPaylaod = {
+      const payload = {
         session_description: data?.description,
         session_name: data?.session_name,
 
@@ -159,6 +206,27 @@ export const EditSessionPage = () => {
         start_date: data?.start_date as string,
         time_start: data?.time_start as string,
         time_end: data?.time_end as string,
+        ...(data?.isOveride && (data?.type === "private" || data?.type === "special")
+          ? {
+              payment: {
+                payment_model: data?.payment?.payment_model,
+                session_type: data?.type,
+                model_params: {
+                  percentage: parseInt(String(data?.payment?.model_params?.percentage)) as number,
+                  min_amount: parseInt(String(data?.payment?.model_params?.min_amount)) as number,
+                  min_threshold_people: parseInt(String(data?.payment?.model_params?.min_threshold_people)) as number,
+                  amount: parseInt(String(data?.payment?.model_params?.amount)) as number,
+                  credit_rate: parseInt(String(data?.payment?.model_params?.credit_rate)) as number,
+                  non_credit_rate: parseInt(String(data?.payment?.model_params?.non_credit_rate)) as number,
+                  base_amount: parseInt(String(data?.payment?.model_params?.base_amount)) as number,
+                  additional_per_person: parseInt(String(data?.payment?.model_params?.additional_per_person)) as number,
+                  base_people: parseInt(String(data?.payment?.model_params?.base_people)) as number,
+                  per_person_amount: parseInt(String(data?.payment?.model_params?.per_person_amount)) as number,
+                },
+              },
+            }
+          : // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            { payment: null as any }),
       };
       const res = await mutateAsync({ id: id as string, data: { ...payload } });
       if (res) {
@@ -168,6 +236,27 @@ export const EditSessionPage = () => {
       console.log(error);
     }
   });
+
+  // useEffect(() => {
+  //   if (data?.data) {
+  //     methods.setValue("payment", {
+  //       payment_model: data?.data?.instructor_payment_model,
+  //       session_type: data?.data?.type,
+  //       model_params: {
+  //         percentage: data?.data?.instructor_payment_params?.percentage,
+  //         min_amount: data?.data?.instructor_payment_params?.min_amount,
+  //         min_threshold_people: data?.data?.instructor_payment_params?.min_threshold_people,
+  //         amount: data?.data?.instructor_payment_params?.amount,
+  //         credit_rate: data?.data?.instructor_payment_params?.credit_rate,
+  //         non_credit_rate: data?.data?.instructor_payment_params?.non_credit_rate,
+  //         base_amount: data?.data?.instructor_payment_params?.base_amount,
+  //         additional_per_person: data?.data?.instructor_payment_params?.additional_per_person,
+  //         base_people: data?.data?.instructor_payment_params?.base_people,
+  //         per_person_amount: data?.data?.instructor_payment_params?.per_person_amount,
+  //       },
+  //     });
+  //   }
+  // }, [data?.data, methods]);
 
   if (isLoading || !isFetched)
     return (
@@ -185,6 +274,10 @@ export const EditSessionPage = () => {
         <form onSubmit={onSubmit}>
           <div className="flex flex-col gap-4">
             <SessionBasicInfoFormComponent />
+            {/* {(methods.watch("type") === "special" || methods.watch("type") === "private") && ( */}
+            {classType !== "regular" && <OveridePaymentModelForm prefix={"payment"} payment_model={values?.payment?.payment_model as string} />}
+
+            {/* )} */}
             <div className="grid grid-cols-2 gap-2">
               <SessionDateTimeFormComponent start_date={values.start_date} isEdit />
               <SessionLocationFormComponent />

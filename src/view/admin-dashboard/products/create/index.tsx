@@ -1,6 +1,7 @@
 "use client";
 
 import { BaseDialogConfirmation } from "@/components/general/dialog-confirnation";
+import { PhotoUploadForm } from "@/components/general/photo-upload-form";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
@@ -138,55 +139,9 @@ export const CreateProductPage = () => {
             </CardContent>
           </Card>
           <Card>
-            <CardHeader className="font-medium">Payment Information</CardHeader>
             <CardContent>
               <div className="grid grid-cols-2 gap-4">
-                <FormField
-                  control={control}
-                  name="bank_name"
-                  render={({ field }) => (
-                    <FormItem className="flex flex-col">
-                      <FormLabel className=" text-brand-999 font-medium text-sm">Bank Name</FormLabel>
-                      <FormControl>
-                        <Select
-                          {...field}
-                          options={BANK_LIST as never}
-                          className="basic-multi-select "
-                          classNames={{
-                            control: () =>
-                              "w-full !border-2 !border-gray-200 rounded-lg text-gray-999  focus:outline-none focus:border-brand-500 transition-colors h-[42px] !rounded-md !bg-transparent shadow-xs",
-                            placeholder: () => "placeholder-gray-400",
-                            singleValue: () => "text-brand-999",
-                            input: () => "text-brand-999 bg-none",
-                          }}
-                          onChange={(e) => {
-                            field.onChange(e);
-                            console.log(e);
-                          }}
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={control}
-                  name="bank_account_number"
-                  render={({ field }) => (
-                    <FormItem className="flex flex-col">
-                      <FormLabel className=" text-brand-999 font-medium text-sm">Account Number</FormLabel>
-                      <FormControl>
-                        <Input
-                          className="w-full px-4 py-4 border-2 border-gray-200 rounded-lg text-gray-999  placeholder-gray-400 focus:outline-none focus:border-brand-500 transition-colors h-[42px]"
-                          placeholder="Type here.."
-                          {...field}
-                          // className="w-auto min-w-[388px]"
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
+                <PhotoUploadForm name="photos" />
               </div>
             </CardContent>
           </Card>
