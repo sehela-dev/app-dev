@@ -7,6 +7,7 @@ import type { ILocalStorageData, ILocalStorageDataProfile } from "@/types/auth/u
 
 import { useJwtToken } from "@/hooks";
 import { useGetProfile } from "@/hooks/api/queries/customer/profile";
+import { IProfileResponse } from "@/types/customer-app/auth-customer.interface";
 
 export interface IAuthContextMember {
   isAuthenticated: boolean;
@@ -15,6 +16,7 @@ export interface IAuthContextMember {
   login: (data: ILocalStorageData) => void;
   logout: () => void;
   isCompleteProfile?: boolean;
+  profile?: IProfileResponse;
 }
 
 const AuthContext = createContext<IAuthContextMember | undefined>(undefined);
@@ -57,6 +59,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           isAdmin: false,
         }
       : null,
+    profile: data?.data,
     isAuthReady: isHydrated && (!!access_token ? !isLoading : true),
     login,
     logout,
