@@ -1,8 +1,8 @@
-a"use client";
+"use client";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
-import { Divider } from "@/components/ui/divider";
+
 import { useSendReceiptEmail } from "@/hooks/api/mutations/admin/use-send-receipt-email";
 
 import { useGetOrderDetail } from "@/hooks/api/queries/admin/orders";

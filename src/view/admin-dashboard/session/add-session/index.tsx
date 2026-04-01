@@ -2,12 +2,14 @@
 
 import { BaseDialogConfirmation } from "@/components/general/dialog-confirnation";
 import {
+  OveridePaymentModelForm,
   SessionBasicInfoFormComponent,
   SessionDateTimeFormComponent,
   SessionLocationFormComponent,
   SessionPricingFormComponent,
 } from "@/components/page/session/form";
 import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { useCreateNewSession } from "@/hooks/api/mutations/admin";
 import { defaultDate } from "@/lib/helper";
 import { ICreateSessionPaylaod } from "@/types/class-sessions.interface";
@@ -56,6 +58,7 @@ const defaultValues = {
   //OTHER
   type: "regular",
   level: "advanced",
+  isOveride: false,
   payment: {
     payment_model: "",
     model_params: {
@@ -76,6 +79,8 @@ const defaultValues = {
 export const CreateSessionPageView = () => {
   const router = useRouter();
   const methods = useForm({ defaultValues });
+  const { watch } = methods;
+  const isOveride = watch("type");
   const { handleSubmit } = methods;
   const { mutateAsync } = useCreateNewSession();
 
@@ -130,7 +135,8 @@ export const CreateSessionPageView = () => {
         start_date: data?.start_date as string,
         time_start: data?.time_start as string,
         time_end: data?.time_end as string,
-        ...(data?.type === "private" || data?.type === "special"
+
+        ...(data?.isOveride && (data?.type === "private" || data?.type === "special")
           ? {
               payment: {
                 payment_model: data?.payment?.payment_model,
@@ -151,8 +157,7 @@ export const CreateSessionPageView = () => {
             }
           : null),
       };
-      // console.log(payload, "payload");
-      // return;
+
       const res = await mutateAsync(payload);
       if (res) {
         handleOpenModal("ONSUCCESS");
@@ -179,6 +184,8 @@ export const CreateSessionPageView = () => {
         <form onSubmit={onSubmit}>
           <div className="flex flex-col gap-4">
             <SessionBasicInfoFormComponent />
+            {isOveride !== "regular" && <OveridePaymentModelForm prefix={"payment"} />}
+
             <div className="grid grid-cols-2 gap-2">
               <SessionDateTimeFormComponent />
               <SessionLocationFormComponent />

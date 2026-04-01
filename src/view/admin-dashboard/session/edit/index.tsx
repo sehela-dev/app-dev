@@ -3,6 +3,7 @@
 import { BaseDialogConfirmation } from "@/components/general/dialog-confirnation";
 import { InstructorPaymentModelForm } from "@/components/page/instructor-payment/form";
 import {
+  OveridePaymentModelForm,
   SessionBasicInfoFormComponent,
   SessionDateTimeFormComponent,
   SessionLocationFormComponent,
@@ -59,6 +60,7 @@ const defaultValues = {
   //OTHER
   type: "regular",
   level: "advanced",
+  isOveride: false,
   payment: {
     payment_model: null,
     model_params: {
@@ -127,7 +129,7 @@ export const EditSessionPage = () => {
         value: data?.data?.instructor_id,
         label: data?.data?.instructor_name,
       },
-      description: data?.data?.session_description,
+      description: data?.data?.session_description ?? "",
 
       //DATE AND TIME
       start_date: data?.data?.start_date,
@@ -151,6 +153,7 @@ export const EditSessionPage = () => {
       //OTHER
       type: data?.data?.type,
       level: "advanced",
+      isOveride: !!data?.data?.instructor_payment_model || false,
       ...(data?.data?.type === "private" || data?.data?.type === "special"
         ? {
             payment: {
@@ -175,7 +178,8 @@ export const EditSessionPage = () => {
   }, [data?.data]);
 
   const methods = useForm({ defaultValues, values });
-  const { handleSubmit } = methods;
+  const { handleSubmit, watch } = methods;
+  const classType = watch("type");
   const onSubmit = handleSubmit(async (data) => {
     try {
       const payload = {
@@ -202,22 +206,22 @@ export const EditSessionPage = () => {
         start_date: data?.start_date as string,
         time_start: data?.time_start as string,
         time_end: data?.time_end as string,
-        ...(data?.type === "private" || data?.type === "special"
+        ...(data?.isOveride && (data?.type === "private" || data?.type === "special")
           ? {
               payment: {
                 payment_model: data?.payment?.payment_model,
                 session_type: data?.type,
                 model_params: {
-                  percentage: data?.payment?.model_params?.percentage as number,
-                  min_amount: data?.payment?.model_params?.min_amount as number,
-                  min_threshold_people: data?.payment?.model_params?.min_threshold_people as number,
-                  amount: data?.payment?.model_params?.amount as number,
-                  credit_rate: data?.payment?.model_params?.credit_rate as number,
-                  non_credit_rate: data?.payment?.model_params?.non_credit_rate as number,
-                  base_amount: data?.payment?.model_params?.base_amount as number,
-                  additional_per_person: data?.payment?.model_params?.additional_per_person as number,
-                  base_people: data?.payment?.model_params?.base_people as number,
-                  per_person_amount: data?.payment?.model_params?.per_person_amount as number,
+                  percentage: parseInt(String(data?.payment?.model_params?.percentage)) as number,
+                  min_amount: parseInt(String(data?.payment?.model_params?.min_amount)) as number,
+                  min_threshold_people: parseInt(String(data?.payment?.model_params?.min_threshold_people)) as number,
+                  amount: parseInt(String(data?.payment?.model_params?.amount)) as number,
+                  credit_rate: parseInt(String(data?.payment?.model_params?.credit_rate)) as number,
+                  non_credit_rate: parseInt(String(data?.payment?.model_params?.non_credit_rate)) as number,
+                  base_amount: parseInt(String(data?.payment?.model_params?.base_amount)) as number,
+                  additional_per_person: parseInt(String(data?.payment?.model_params?.additional_per_person)) as number,
+                  base_people: parseInt(String(data?.payment?.model_params?.base_people)) as number,
+                  per_person_amount: parseInt(String(data?.payment?.model_params?.per_person_amount)) as number,
                 },
               },
             }
@@ -254,8 +258,6 @@ export const EditSessionPage = () => {
   //   }
   // }, [data?.data, methods]);
 
-  console.log(methods.watch("payment"));
-
   if (isLoading || !isFetched)
     return (
       <div className="flex items-center justify-center py-6">
@@ -271,18 +273,10 @@ export const EditSessionPage = () => {
       <FormProvider {...methods}>
         <form onSubmit={onSubmit}>
           <div className="flex flex-col gap-4">
-            <SessionBasicInfoFormComponent type={values?.type} />
+            <SessionBasicInfoFormComponent />
             {/* {(methods.watch("type") === "special" || methods.watch("type") === "private") && ( */}
-            <Card>
-              <CardHeader hidden></CardHeader>
-              <CardContent>
-                <InstructorPaymentModelForm
-                  label={"Overide payment model"}
-                  prefix={"payment"}
-                  payment_model={values?.payment?.payment_model as string}
-                />
-              </CardContent>
-            </Card>
+            {classType !== "regular" && <OveridePaymentModelForm prefix={"payment"} payment_model={values?.payment?.payment_model as string} />}
+
             {/* )} */}
             <div className="grid grid-cols-2 gap-2">
               <SessionDateTimeFormComponent start_date={values.start_date} isEdit />

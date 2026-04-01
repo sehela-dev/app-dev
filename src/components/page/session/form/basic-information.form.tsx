@@ -134,7 +134,7 @@ export const SessionBasicInfoFormComponent = ({ type }: { type?: string }) => {
                   <FormControl>
                     <Selects
                       {...field}
-                      value={type ?? field.value}
+                      value={field.value}
                       defaultValue={field.value}
                       onValueChange={(e) => {
                         field.onChange(e);
