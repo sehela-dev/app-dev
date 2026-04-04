@@ -5,7 +5,9 @@ import {
   TAuthCustomerLogin,
   TAuthCustomerSignUp,
   TAuthCustomerVerifyAccount,
+  TAuthForgotPassword,
   TAuthProfileCustomer,
+  TAuthResetPassword,
 } from "@/types/customer-app/auth-customer.interface";
 
 export const userAuthLogin: TAuthCustomerLogin = async (data) => {
@@ -45,5 +47,15 @@ export const userSigInWithGoogle = async () => {
 
 export const userCompleteProfile: TAuthCompleteProfile = async (data) => {
   const res = await axiosx(true).post(`${MAIN_API_URL}/profile/update`, data);
+  return res.data;
+};
+
+export const userAuthForgotPassword: TAuthForgotPassword = async (data) => {
+  const res = await axiosx(false).post(`${MAIN_API_URL}/auth/forgot-password`, data);
+  return res.data;
+};
+
+export const userAuthResetPassword: TAuthResetPassword = async (data) => {
+  const res = await axiosx(false).post(`${MAIN_API_URL}/auth/reset-password`, data);
   return res.data;
 };

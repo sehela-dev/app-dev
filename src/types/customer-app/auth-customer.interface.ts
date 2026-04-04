@@ -93,8 +93,15 @@ export interface IOverviewSession {
   my_sessions: unknown[];
 }
 
+export interface IAuthResetPassword {
+  email: string;
+  token: string;
+  new_password: string;
+}
 export type TAuthCustomerLogin = (data: IAuthLoginPayload) => Promise<IResponseData<IAuthLoginResponse>>;
 export type TAuthCustomerSignUp = (data: IAuthSignUpPaylaod | FormData) => Promise<IResponseData<IAuthSignUpResponse>>;
 export type TAuthCustomerVerifyAccount = (data: IAuthVerifyAccountPayload) => Promise<IResponseData<{ message: string }>>;
 export type TAuthProfileCustomer = (data?: string) => Promise<IResponseData<IProfileResponse>>;
 export type TAuthCompleteProfile = (data: IAuthSignUpPaylaod | FormData) => Promise<IResponseData<unknown>>;
+export type TAuthForgotPassword = (data: { email: string }) => Promise<IResponseData<unknown>>;
+export type TAuthResetPassword = (data: IAuthResetPassword) => Promise<IResponseData<unknown>>;

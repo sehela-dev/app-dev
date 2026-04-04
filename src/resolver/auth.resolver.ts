@@ -53,3 +53,14 @@ export const authSignUpSchema = z
     path: ["confirm_password"], // attach error to field
   });
 export type AuthSignUpFormValues = z.infer<typeof authSignUpSchema>;
+
+export const resetPasswordSchema = z
+  .object({
+    password: z.string().min(8, { message: "Required!" }),
+    confirm_password: z.string().min(8, { message: "Confirm password is required" }),
+  })
+  .refine((data) => data.password === data.confirm_password, {
+    message: "Passwords do not match",
+    path: ["confirm_password"], // attach error to field
+  });
+export type ResetPasswordFormValues = z.infer<typeof resetPasswordSchema>;
