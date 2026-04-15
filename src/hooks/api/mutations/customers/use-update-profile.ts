@@ -35,9 +35,10 @@ const useConfig = () => {
   }, []);
 
   const onSuccess = useCallback((data: any) => {
+    console.log("res:", data);
     toast.success("Profile Updated!", {
       id: "sucess",
-      description: "Redirecting...",
+      description: "",
       position: "top-center",
     });
   }, []);

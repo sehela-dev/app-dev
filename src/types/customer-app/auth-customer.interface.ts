@@ -44,16 +44,16 @@ export interface IAuthLoginResponseProfile {
 }
 
 export interface IAuthSignUpPaylaod {
-  email: string;
-  full_name: string;
-  password: string;
-  date_of_birth: string;
-  gender: string;
+  email?: string;
+  full_name?: string;
+  password?: string;
+  date_of_birth?: string;
+  gender?: string;
   instagram_username?: string;
   photo?: File;
-  photo_consent: boolean;
-  tnc_agreed: boolean;
-  phone: string;
+  photo_consent?: boolean;
+  tnc_agreed?: boolean;
+  phone?: string;
 }
 export interface IAuthSignUpResponse {
   message: string;

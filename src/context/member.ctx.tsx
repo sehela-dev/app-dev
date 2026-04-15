@@ -17,6 +17,7 @@ export interface IAuthContextMember {
   logout: () => void;
   isCompleteProfile?: boolean;
   profile?: IProfileResponse;
+  refetch?: () => void;
 }
 
 const AuthContext = createContext<IAuthContextMember | undefined>(undefined);
@@ -36,7 +37,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setProfile(null);
   };
 
-  const { data, isLoading } = useGetProfile(Boolean(access_token) && isHydrated);
+  const { data, isLoading, refetch } = useGetProfile(Boolean(access_token) && isHydrated);
 
   useEffect(() => {
     if (data) {
@@ -63,6 +64,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     isAuthReady: isHydrated && (!!access_token ? !isLoading : true),
     login,
     logout,
+    refetch,
     isAuthenticated: !!access_token,
     isCompleteProfile: data?.data?.is_profile_complete,
   };
