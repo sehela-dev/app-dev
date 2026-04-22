@@ -18,6 +18,8 @@ import { SelectStudentWithCreditComponent } from "./with-credit/select-student";
 import { useAdminManualTransaction } from "@/context/admin/add-transaction.ctx";
 import { useBookingSession } from "@/hooks/api/mutations/admin";
 import { OrderCustomerSectionComponent } from "@/components/page/orders";
+import { useAdminPermission } from "@/hooks/use-role-access";
+import { Badge } from "@/components/ui/badge";
 
 const enrollmentType = [
   {
@@ -30,6 +32,7 @@ const enrollmentType = [
   },
 ];
 export const EnrollStudentView = () => {
+  const { isManager } = useAdminPermission();
   const { customerData, sessionData, onSelectSession: selectSession, addCustomer } = useAdminManualTransaction();
   const targetDivRef = useRef<HTMLDivElement | null>(null);
 
@@ -55,24 +58,23 @@ export const EnrollStudentView = () => {
     setSearch(query);
   };
 
-  const [selectedRange, setSelectedRange] = useState({
-    from: defaultDate().formattedToday,
-    to: defaultDate().formattedOneMonthLater,
-    // from: "2026-01-01",
-    // to: "2026-02-01",
+  const [selectedRange, setSelectedRange] = useState<{ from: string | null; to: string | null }>({
+    from: isManager ? null : defaultDate().formattedToday,
+    to: isManager ? null : defaultDate().formattedOneMonthLater,
   });
 
   const { data, isLoading, refetch } = useGetSessions({
     page,
     limit,
-    startDate: selectedRange.from,
-    endDate: selectedRange.to,
+    startDate: selectedRange.from as string,
+    endDate: selectedRange.to as string,
     search: debounceClass,
-    status: "scheduled",
+    // status: "scheduled",
   });
 
-  const handleDateRangeChangeDual = (startDate: string, endDate?: string) => {
-    setSelectedRange((prev) => ({ ...prev, from: startDate, to: endDate ?? "" }));
+  const handleDateRangeChangeDual = (startDate?: string, endDate?: string) => {
+    setSelectedRange((prev) => ({ ...prev, from: startDate as string, to: endDate as string }));
+    refetch();
   };
   const onSelectSession = (data: ISessionItem) => {
     setSelectedSession((prev) => (prev?.id === data.id ? null : data));
@@ -122,7 +124,15 @@ export const EnrollStudentView = () => {
   return (
     <div className="flex flex-col gap-4">
       <div className="flex max-w-fit">
-        <GeneralTabComponent tabs={enrollmentType} setTab={setTabs} selecetedTab={tabs} />
+        <GeneralTabComponent
+          tabs={enrollmentType}
+          setTab={(e) => {
+            setTabs(e);
+            setSelectedSession(null);
+            selectSession(null);
+          }}
+          selecetedTab={tabs}
+        />
       </div>
       <div className="grid grid-cols-12 gap-2 w-full pt-4">
         <div className="flex flex-col gap-4 w-full col-span-8 ">
@@ -138,19 +148,19 @@ export const EnrollStudentView = () => {
                       <DateRangePicker
                         mode="single"
                         onDateRangeChange={(e) => handleDateRangeChangeDual(e)}
-                        startDate={selectedRange.from}
+                        startDate={selectedRange.from as string}
                         allowFutureDates
-                        allowPastDates={false}
+                        allowPastDates={isManager}
                       />
                     </div>
                     <div className="w-full">
                       <p className="text-sm font-medium">Date to</p>
                       <DateRangePicker
                         mode="single"
-                        onDateRangeChange={(e) => handleDateRangeChangeDual(selectedRange.from, e)}
-                        startDate={selectedRange.to}
+                        onDateRangeChange={(e) => handleDateRangeChangeDual(selectedRange.from as string, e)}
+                        startDate={selectedRange.to as string}
                         allowFutureDates
-                        allowPastDates={false}
+                        allowPastDates={isManager}
                       />
                     </div>
                   </div>
@@ -174,8 +184,15 @@ export const EnrollStudentView = () => {
                         time={`${item.time_start} - ${item.time_end}`}
                         slot={item.slots_display}
                         title={`[${item?.class?.class_name}] - ${item.session_name}`}
-                        onSelect={() => onSelectSession(item)}
+                        onSelect={
+                          isManager
+                            ? () => onSelectSession(item)
+                            : item.status === "scheduled" || item.status === "ongoing"
+                            ? () => onSelectSession(item)
+                            : () => {}
+                        }
                         isSelected={item.id === sessionData?.id}
+                        status={item.status}
                       />
                     ))}
                   </div>
@@ -217,7 +234,7 @@ export const EnrollStudentView = () => {
                   <div className="flex flex-col gap-1">
                     <p className="text-sm text-gray-500">Session name</p>
                     <p className="text-mdnpx shadcn@latest add progress font-semibold">
-                      [{selectedSession?.class?.class_name}] - {sessionData.session_name}
+                      [{sessionData?.class?.class_name}] - {sessionData.session_name}
                     </p>
                   </div>
                   <div className="flex flex-col gap-1">
@@ -320,17 +337,30 @@ interface IProps {
   instructor: string;
   title: string;
   isSelected?: boolean;
+  status?: string;
   onSelect?: () => void;
 }
 export const CardSession = (props: IProps) => {
+  const { isManager } = useAdminPermission();
   return (
     <Card
       className={cn("gap-1 border-2 hover:bg-brand-100 hover:border-brand-500 cursor-pointer", {
         " bg-brand-100 border-brand-500": props.isSelected,
+        "cursor-not-allowed bg-gray-200 hover:bg-gray-200 hover:border-gray-200 opacity-45":
+          (props.status === "ended" || props?.status === "cancelled") && !isManager,
       })}
       onClick={props.onSelect}
     >
-      <CardHeader className="font-semibold">{props.title}</CardHeader>
+      <CardHeader className="font-semibold">
+        <div className="flex flex-col gap-2">
+          <div className="">
+            <Badge className="capitalize text-xs" variant={props?.status === "ended" || props?.status === "canceled" ? "destructive" : "default"}>
+              {props?.status}
+            </Badge>
+          </div>
+          <p>{props.title}</p>
+        </div>
+      </CardHeader>
       <CardContent>
         <div className="flex flex-col">
           <div className="flex flex-row items-center gap-1">

@@ -19,6 +19,7 @@ import { ISessionItem } from "@/types/class-sessions.interface";
 import { CustomPagination } from "@/components/general/pagination-component";
 import { DateRangePicker } from "@/components/base/date-range-picker";
 import { useDebounce } from "@/hooks";
+import { useAdminPermission } from "@/hooks/use-role-access";
 
 const tableTabOption = [
   {
@@ -40,6 +41,7 @@ const tableTabOption = [
 ];
 
 export const AddTransactionFOrm = () => {
+  const { isManager } = useAdminPermission();
   const { cartItems, addItem, removeItem, updateQuantity, customerData } = useAdminManualTransaction();
 
   const [tableTab, setTableTab] = useState("class");
@@ -192,6 +194,7 @@ export const AddTransactionFOrm = () => {
       //     }),
       //   );
       // };
+
       return (
         <div className="text-brand-999 font-medium text-sm text-center col-span-1">
           {" "}
