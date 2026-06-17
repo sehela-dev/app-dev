@@ -113,6 +113,11 @@ export const SelectStudentWithCreditComponent = ({ selectedSession }: IProps) =>
                                       <div className="flex flex-col justify-center">
                                         <p className="text-md font-semibold text-gray-600">{wallet.package_name}</p>
                                         <p className="text-xs text-green-500 font-semibold">{wallet.credits_remaining} Credit</p>
+                                        {wallet.expires_at ? (
+                                          <p className="text-xs text-red-800 font-semibold mt-2">
+                                            Expiry date: {wallet.expires_at ? formatDateHelper(wallet.expires_at, "dd MMM yyyy, HH:mm") : "-"}
+                                          </p>
+                                        ) : null}
                                       </div>
                                     </div>
                                   ))}
