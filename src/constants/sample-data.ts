@@ -148,6 +148,20 @@ export const BANK_LIST = [
     value: "095",
   },
 ];
+export const SEHELA_BANKS = [
+  {
+    label: "BCA 6810 - PT Ruang Bugar Sehela",
+    value: "6810",
+  },
+  {
+    label: "BCA 1022 - PT Ruang Bugar Sehela",
+    value: "1022",
+  },
+  {
+    label: "BCA 2855 - PT Ruang Bugar Sehela",
+    value: "2855",
+  },
+];
 
 export const MONTH_LIST = [
   { value: "1", label: "January" },

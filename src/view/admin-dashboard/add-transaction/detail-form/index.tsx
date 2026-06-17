@@ -22,7 +22,7 @@ import { Plus, UserPlus2, Users2, XIcon } from "lucide-react";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
-import { BANK_LIST } from "@/constants/sample-data";
+import { BANK_LIST, SEHELA_BANKS } from "@/constants/sample-data";
 import Select from "react-select";
 import { BaseDialogComponent } from "@/components/general/base-dialog-component";
 import { useDebounce } from "@/hooks";
@@ -576,7 +576,7 @@ export const DetailFormAddTransaction = () => {
                         <div className="flex flex-col gap-1 mt-2">
                           <Label className="text-gray-500">Transfer To</Label>
                           <Select
-                            options={BANK_LIST as never}
+                            options={SEHELA_BANKS as never}
                             className="basic-multi-select "
                             classNames={{
                               control: () =>

@@ -16,6 +16,18 @@ const nextConfig: NextConfig = {
     DEV_SECRET_AUTH_KEY: process.env.NEXT_DEV_AUTH_SECRET_KEY,
     ENV: process.env.ENV,
   },
+  images: {
+    remotePatterns: [
+      {
+        protocol: "https",
+        hostname: "**", // Matches any hostname
+      },
+      {
+        protocol: "http",
+        hostname: "**", // Optional: also allows non-secure images
+      },
+    ],
+  },
 };
 
 export default nextConfig;
