@@ -70,11 +70,11 @@ export const CustomersPage = () => {
       text: "Email",
       value: "email",
     },
-    {
-      id: "class_credit",
-      text: "Class Credit",
-      value: "class_credit",
-    },
+    // {
+    //   id: "class_credit",
+    //   text: "Class Credit",
+    //   value: "class_credit",
+    // },
 
     // {
     //   id: "defaultCredits",

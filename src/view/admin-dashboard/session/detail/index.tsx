@@ -121,6 +121,11 @@ export const SessionDetailPage = () => {
       value: (row: IParticipantsSession) => <p>{row?.photo_consent ? "Yes" : "No"}</p>,
     },
     {
+      id: "instagram_username",
+      text: "Instagram",
+      value: (row: IParticipantsSession) => <p>{row?.instagram_username ?? "-"}</p>,
+    },
+    {
       id: "medical_notes",
       text: "Medical Notes",
       value: (row: IParticipantsSession) => <p>{row?.medical_notes ?? "-"}</p>,

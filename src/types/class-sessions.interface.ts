@@ -90,6 +90,7 @@ export interface IParticipantsSession {
   medical_notes: string;
   photo_consent: string;
   created_at: string;
+  instagram_username?: string;
 }
 
 export type TSessionListData = (data: ICommonParams) => Promise<IResponseData<ISessionItem[]>>;
