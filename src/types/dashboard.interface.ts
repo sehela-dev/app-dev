@@ -1,4 +1,5 @@
 import { IResponseData } from "@/lib/config";
+import { ICommonParams } from "./general.interface";
 
 export interface IRevenue {
   all_time_total_idr: number;
@@ -66,5 +67,40 @@ export interface IOverallResultByClass {
   trends: IOverallResultSummaryTrends;
 }
 
+export interface INearlyExpiredCreditResponse {
+  within_days: number;
+  summary: ISummary;
+  packages: INearlyExpiredCreditPackage[];
+}
+export interface ISummary {
+  total_packages: number;
+  total_credits_remaining: number;
+  total_outstanding_value_idr: number;
+}
+export interface INearlyExpiredCreditPackage {
+  package_purchase_id: string;
+  user_id: string;
+  student_name: string;
+  student_phone: string;
+  package_name: string;
+  package_type: string;
+  credits_total: number;
+  credits_remaining: number;
+  credits_used: number;
+  actual_amount_paid_idr: number;
+  outstanding_value_idr: number;
+  purchased_at: string;
+  first_used_at: string;
+  expires_at: string;
+  days_until_expiry: number;
+  is_shared: boolean;
+  shared_with_name?: string;
+}
+
+export interface IParamsNearlyExpiredCredit extends ICommonParams {
+  within_days: number;
+}
+
 export type TOverviewDashboard = () => Promise<IResponseData<IOverviewDashboard>>;
 export type TSessionPerformance = () => Promise<IResponseData<IOverallResult>>;
+export type TNearlyExpiredCreditResponse = (data: IParamsNearlyExpiredCredit) => Promise<IResponseData<INearlyExpiredCreditResponse>>;

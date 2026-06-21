@@ -1,18 +1,21 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
+import { CustomTable } from "@/components/general/custom-table";
+import { CustomPagination } from "@/components/general/pagination-component";
 import { CardRevenueComponent } from "@/components/page/dashboard";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader } from "@/components/ui/card";
+import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card";
 import { Divider } from "@/components/ui/divider";
 import { Separator } from "@/components/ui/separator";
 import { useGetDashboardOverview, useGetDashboardProductPerformance } from "@/hooks/api/queries/admin/dashboard";
 import { useGetDashboardSessionPerformance } from "@/hooks/api/queries/admin/dashboard/use-get-dashboard-session-performance";
+import { useGetDashboardNearlyExpired } from "@/hooks/api/queries/admin/dashboard/use-get-nearly-expired";
 import { useAdminPermission } from "@/hooks/use-role-access";
 
-import { formatCurrency, splitArray } from "@/lib/helper";
+import { formatCurrency, formatDateHelper, splitArray } from "@/lib/helper";
 import { cn } from "@/lib/utils";
-import { IOverallResultByClass } from "@/types/dashboard.interface";
-import { ArrowDownRight, ArrowUpRight, ChevronLeft, ChevronRight, CircleDollarSign, File, Loader2, Package, Users } from "lucide-react";
+import { INearlyExpiredCreditPackage, IOverallResultByClass } from "@/types/dashboard.interface";
+import { ArrowDownRight, ArrowUpRight, ChevronLeft, ChevronRight, CircleDollarSign, File, Loader2, Package, Users, WalletCards } from "lucide-react";
 import { Fragment, useMemo, useState } from "react";
 
 const filterOption = [
@@ -46,6 +49,15 @@ export const DashboardPage = () => {
   const [selectedFilterProduct, setSelectedFilterProduct] = useState("last_1_day");
   const [performacePagination, setPerformancePagination] = useState(0);
   const [productPagination, setProductPagination] = useState(0);
+  const [page, setPage] = useState(1);
+
+  const {
+    data: nearlyExpired,
+    isLoading: isLoadingNearlyExpired,
+    refetch: refetchNearlyExpired,
+  } = useGetDashboardNearlyExpired({ within_days: 7, page: page, limit: 10 });
+
+  console.log(nearlyExpired);
 
   const classList = useMemo(() => {
     const temp: string[] = [];
@@ -113,6 +125,51 @@ export const DashboardPage = () => {
       }
     }
   };
+
+  const headers = [
+    {
+      id: "student_name",
+      text: "Name",
+      value: "student_name",
+    },
+    {
+      id: "package_name",
+      text: "Package Name",
+      value: "package_name",
+    },
+
+    {
+      id: "credits_total",
+      text: "Total Credit",
+      value: "credits_total",
+    },
+    {
+      id: "credits_used",
+      text: "Total Credit Used",
+      value: "credits_used",
+    },
+    {
+      id: "credits_remaining",
+      text: "Total Credit Remaining",
+      value: "credits_remaining",
+    },
+    {
+      id: "outstanding_value_idr",
+      text: "Total Outstanding (IDR)",
+      value: (row: INearlyExpiredCreditPackage) => formatCurrency(row?.outstanding_value_idr ?? 0),
+    },
+    {
+      id: "days_until_expiry",
+      text: "Days until Expiry",
+      value: "days_until_expiry",
+    },
+
+    {
+      id: "expired_at",
+      text: "Expired at",
+      value: (row: INearlyExpiredCreditPackage) => (row?.expires_at ? formatDateHelper(row.expires_at as string, "EEEE, dd MMM yyyy") : "-"),
+    },
+  ];
 
   if (isLoadingOverview || isLoadingOverviewPerformance)
     return (
@@ -298,6 +355,77 @@ export const DashboardPage = () => {
                 </div>
               </div>
             </CardContent>
+          </Card>
+        </div>
+        <div className="flex flex-col gap-4 pt-8">
+          <div className="flex flex-col">
+            <h3 className="text-2xl font-semibold">Nearly Expired Credits</h3>
+            <p className="text-gray-400 text-sm">Track customers credits that are expiring soon.</p>
+          </div>
+
+          <div className="flex flex-flex-row items-center justify-between gap-8">
+            <CardRevenueComponent
+              icon={
+                <WalletCards
+                  style={{
+                    color: "var(--color-gray-400)",
+                  }}
+                  size={18}
+                />
+              }
+              title="Total Credits Remaining"
+              amount={String(nearlyExpired?.data?.summary?.total_credits_remaining)}
+              // percentage={20}
+            />
+            <CardRevenueComponent
+              icon={
+                <Package
+                  style={{
+                    color: "var(--color-gray-400)",
+                  }}
+                  size={18}
+                />
+              }
+              title="Total Packages"
+              amount={String(nearlyExpired?.data?.summary?.total_packages)}
+              // percentage={20}
+            />{" "}
+            <CardRevenueComponent
+              icon={
+                <CircleDollarSign
+                  style={{
+                    color: "var(--color-gray-400)",
+                  }}
+                  size={18}
+                />
+              }
+              title="Total Outstanding (IDR)"
+              amount={formatCurrency(nearlyExpired?.data?.summary?.total_outstanding_value_idr)}
+              // percentage={20}
+            />
+          </div>
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between w-full">
+              <h4 className="text-[20px] font-semibold">Nearly Expired Credits</h4>
+            </CardHeader>
+            <CardContent>
+              <div className="flex flex-col gap-2">
+                <CustomTable headers={headers} data={nearlyExpired?.data?.packages ?? []} isLoading={isLoadingNearlyExpired} />
+              </div>
+            </CardContent>
+            <CardFooter>
+              <CustomPagination
+                onPageChange={(e) => {
+                  setPage(e);
+                }}
+                currentPage={page}
+                hasPrevPage={nearlyExpired?.pagination?.has_prev}
+                hasNextPage={nearlyExpired?.pagination?.has_next}
+                totalItems={nearlyExpired?.pagination?.total_items as number}
+                totalPages={nearlyExpired?.pagination?.total_pages as number}
+                limit={10}
+              />
+            </CardFooter>
           </Card>
         </div>
         {/* product */}

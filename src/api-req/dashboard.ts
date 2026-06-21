@@ -1,6 +1,6 @@
 import { axiosx } from "@/lib/axiosx";
 import { MAIN_API_URL } from "@/lib/config";
-import { TOverviewDashboard, TSessionPerformance } from "@/types/dashboard.interface";
+import { TNearlyExpiredCreditResponse, TOverviewDashboard, TSessionPerformance } from "@/types/dashboard.interface";
 
 export const getDashboardOverview: TOverviewDashboard = async () => {
   const res = await axiosx(true).get(`${MAIN_API_URL}/admin/dashboard/overview`);
@@ -14,5 +14,16 @@ export const getDashboardSessionPerformance: TSessionPerformance = async () => {
 
 export const getDashboardProductPerformance: TSessionPerformance = async () => {
   const res = await axiosx(true).get(`${MAIN_API_URL}/admin/dashboard/product-performance`);
+  return res.data;
+};
+
+export const getNearlyExpiredCredits: TNearlyExpiredCreditResponse = async ({ page, limit, within_days }) => {
+  const res = await axiosx(true).get(`${MAIN_API_URL}/admin/credits/packages/expiring-soon`, {
+    params: {
+      within_days,
+      page,
+      page_size: limit,
+    },
+  });
   return res.data;
 };
