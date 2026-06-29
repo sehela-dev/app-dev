@@ -83,3 +83,8 @@ export const deleteSession: TSessionDetailData = async (id) => {
   const res = await axiosx(true).delete(`${MAIN_API_URL}/classes/sessions/${id}`);
   return res.data;
 };
+
+export const sendReminderAll = async (data:string) =>{
+  const res = await axiosx(true).post(`${MAIN_API_URL}/classes/sessions/${data}/send-reminder`, data);
+  return res.data
+}

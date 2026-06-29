@@ -10,7 +10,7 @@ import { Divider } from "@/components/ui/divider";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { SearchInput } from "@/components/ui/search-input";
 import { useDebounce } from "@/hooks";
-import { useCancelBooking, useChangeAttendanceStatus, useRescheduleSession } from "@/hooks/api/mutations/admin";
+import { useCancelBooking, useChangeAttendanceStatus, useRescheduleSession, useSendReminderSession } from "@/hooks/api/mutations/admin";
 import { useGetSessionBookings, useGetSessionDetail, useGetSessions } from "@/hooks/api/queries/admin/class-session";
 import { defaultDate, formatCurrency, formatDateHelper } from "@/lib/helper";
 import { cn } from "@/lib/utils";
@@ -22,6 +22,7 @@ import { useState } from "react";
 import { CardSession } from "../../enrol-students";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
+import { BaseDialogConfirmation } from "@/components/general/dialog-confirnation";
 
 export const SessionDetailPage = () => {
   const router = useRouter();
@@ -60,6 +61,8 @@ export const SessionDetailPage = () => {
 
   const { mutateAsync, isPending } = useChangeAttendanceStatus();
   const { mutateAsync: cancelBooking } = useCancelBooking();
+  const [openReminder, setOpenReminder] = useState(false)
+  const { mutateAsync: remindAll } = useSendReminderSession()
 
   const onConfirmAttendance = async (id: string, status: IAttendanceStatus) => {
     try {
@@ -163,6 +166,24 @@ export const SessionDetailPage = () => {
     refetchSession();
     setSearch("");
   };
+  const onClickReminder = () => {
+    setOpenReminder(true)
+  }
+  const onRemindAll = async () => {
+    try {
+      const res = await remindAll(id as string)
+      if (res) {
+        console.log(res)
+      }
+    } catch (err) {
+      console.log(err)
+    }
+    finally {
+      setOpenReminder(false)
+    }
+  }
+
+
 
   const {
     data: sessionList,
@@ -320,12 +341,17 @@ export const SessionDetailPage = () => {
           <Divider className="my-2" />
           <div className="flex flex-col gap-4">
             <div className="flex flex-row items-center justify-between">
-              <h4 className="text-sm font-semibold">Participant</h4>
-              <div>
-                <Button>
-                  <BellRing /> Remind All
-                </Button>
-              </div>
+              <h4 className="text-sm font-semibold">Participants</h4>
+              {data?.data?.status !== 'canceled' && data?.data?.status !== 'ended' &&
+                <div>
+                  <Button onClick={() => {
+                    onClickReminder()
+                  }}>
+                    <BellRing /> Remind All
+                  </Button>
+                </div>
+              }
+
             </div>
             <div className="flex flex-col gap-2">
               <CustomTable
@@ -456,6 +482,11 @@ export const SessionDetailPage = () => {
           />
         </div>
       </BaseDialogComponent>
+      {openReminder &&
+        <BaseDialogConfirmation open={openReminder} title="Send Reminder to all participants?" subtitle="Participants will be receive email according this session" onConfirm={onRemindAll} confirmText="Remind All" onCancel={() => setOpenReminder(false)} image="warning-1" />
+      }
+
+
     </Card>
   );
 };
