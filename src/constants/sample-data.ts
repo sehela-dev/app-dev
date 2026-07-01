@@ -162,6 +162,16 @@ export const SEHELA_BANKS = [
     value: "2855",
   },
 ];
+export const SEHELA_BRANCH = [
+  {
+    label: "Kemang Studio",
+    value: "studio_kemang",
+  },
+  {
+    label: "Pondok Labu Studio",
+    value: "studio_pd_labu",
+  },
+];
 
 export const MONTH_LIST = [
   { value: "1", label: "January" },

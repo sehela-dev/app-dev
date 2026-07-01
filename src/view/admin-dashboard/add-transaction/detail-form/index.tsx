@@ -22,7 +22,7 @@ import { Plus, UserPlus2, Users2, XIcon } from "lucide-react";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
-import { BANK_LIST, SEHELA_BANKS } from "@/constants/sample-data";
+import { BANK_LIST, SEHELA_BANKS, SEHELA_BRANCH } from "@/constants/sample-data";
 import Select from "react-select";
 import { BaseDialogComponent } from "@/components/general/base-dialog-component";
 import { useDebounce } from "@/hooks";
@@ -53,6 +53,8 @@ export const DetailFormAddTransaction = () => {
   const [selectedPaymentMethod, setSelectPaymentMethod] = useState("cash");
   const [selectedBank, setSelectedBank] = useState<{ label: string; value: string } | null>(null);
   const [selectedBankTo, setSelectedBankTo] = useState<{ label: string; value: string } | null>(null);
+  const [selectedBranch, setSelectedBranch] = useState<{ label: string; value: string } | null>(null);
+
   const [nameFrom, setNameFrom] = useState(customerData?.name ?? "");
   const [openModalSharing, setOpenModalSharing] = useState(false);
   const [selectedItem, setSelectedItem] = useState<IAdminCartItemData | null>(null);
@@ -130,8 +132,8 @@ export const DetailFormAddTransaction = () => {
           package_id: item.id as string,
           ...(item.badge === "Sharing"
             ? {
-                share_with_user_id: item.share_with_user_id,
-              }
+              share_with_user_id: item.share_with_user_id,
+            }
             : null),
         });
       }
@@ -147,15 +149,18 @@ export const DetailFormAddTransaction = () => {
       notes: "Combined purchase",
       status: "paid",
       payment_method: selectedPaymentMethod,
+
       ...(selectedPaymentMethod === "transfer"
         ? {
-            transfer_details: {
-              account_name_from: nameFrom as string,
-              account_bank_from: selectedBank?.label as string,
-              account_bank_to: selectedBankTo?.label as string,
-            },
-          }
-        : null),
+          transfer_details: {
+            account_name_from: nameFrom as string,
+            account_bank_from: selectedBank?.label as string,
+            account_bank_to: selectedBankTo?.label as string,
+          },
+        }
+        : {
+          branch: selectedBranch?.value as string
+        }),
       user_id: customerData?.id as string,
       ...(discountData ? { voucher_code: selectedVoucher?.code } : null),
     };
@@ -510,8 +515,8 @@ export const DetailFormAddTransaction = () => {
                           {!discountData
                             ? formatCurrency(0)
                             : discountData?.discount_type === "percentage"
-                            ? `${formatCurrency(discountData?.calculated_discount)} (${discountData?.discount_value}%)`
-                            : formatCurrency(discountData?.discount_value)}
+                              ? `${formatCurrency(discountData?.calculated_discount)} (${discountData?.discount_value}%)`
+                              : formatCurrency(discountData?.discount_value)}
                         </p>
                       </div>
                     </div>
@@ -571,7 +576,7 @@ export const DetailFormAddTransaction = () => {
                         readOnly
                       />
                     </div>
-                    {selectedPaymentMethod === "transfer" && (
+                    {selectedPaymentMethod === "transfer" ? (
                       <div className="flex flex-col gap-1">
                         <div className="flex flex-col gap-1 mt-2">
                           <Label className="text-gray-500">Transfer To</Label>
@@ -601,7 +606,7 @@ export const DetailFormAddTransaction = () => {
                               setNameFrom(e.target.value);
                             }}
 
-                            // className="w-auto min-w-[388px]"
+                          // className="w-auto min-w-[388px]"
                           />
                         </div>
 
@@ -624,7 +629,26 @@ export const DetailFormAddTransaction = () => {
                           />
                         </div>
                       </div>
-                    )}
+                    ) : <>
+                      <div className="flex flex-col gap-1 mt-2">
+                        <Label className="text-gray-500">Branch</Label>
+                        <Select
+                          options={SEHELA_BRANCH as never}
+                          className="basic-multi-select "
+                          classNames={{
+                            control: () =>
+                              "w-full !border-2 !border-gray-200 rounded-lg text-gray-999  focus:outline-none focus:border-brand-500 transition-colors h-[42px] !rounded-md !bg-transparent shadow-xs",
+                            placeholder: () => "placeholder-gray-400",
+                            singleValue: () => "text-brand-999",
+                            input: () => "text-brand-999 bg-none",
+                          }}
+                          onChange={(e) => {
+                            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                            setSelectedBranch(e as any);
+                          }}
+                        />
+                      </div>
+                    </>}
 
                     {/* {selectedPaymentMethod === "bank_transfer" &&} */}
                   </div>

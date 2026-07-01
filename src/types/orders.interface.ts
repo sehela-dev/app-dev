@@ -118,6 +118,7 @@ export interface IAddTransactionPayload {
     account_bank_from: string;
     account_bank_to: string;
   };
+  branch?: string;
 }
 
 export interface ISession {
