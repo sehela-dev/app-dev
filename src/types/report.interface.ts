@@ -1,5 +1,5 @@
 import { IResponseData } from "@/lib/config";
-import { ICommonParams } from "./general.interface";
+import { ICommonParams, IPagination } from "./general.interface";
 
 export interface ITableOutstandingReportResponse {
   period: IPeriod;
@@ -108,3 +108,50 @@ export interface IDetailFile {
 export type TOutstandingCreditTable = (params: ICommonParams) => Promise<IResponseData<ITableOutstandingReportResponse>>;
 
 export type TGenerateReportOutstandingCredit = (data: IGenerateReportOutstanding) => Promise<IResponseData<IGeenrateOutstandingResponse>>;
+
+// /reports/cash-movement
+
+export interface IParamsCashFlowReport extends ICommonParams {
+  branch?: string;
+}
+export interface ICashFlowResponse {
+  date: string;
+  branch: string;
+  summary: ISummaryCashFlow;
+  by_payment_method: ICashFlowByPaymentMethod[];
+  transactions: ICashFlowTransaction[];
+  pagination: IPagination;
+}
+
+export interface ISummaryCashFlow {
+  collected: number;
+  collected_count: number;
+  refund: number;
+  refund_count: number;
+  outstanding: number;
+  outstanding_count: number;
+  net_movement: number;
+}
+
+export interface ICashFlowByPaymentMethod {
+  payment_method: string;
+  collected: number;
+  refund: number;
+  outstanding: number;
+  net: number;
+  transaction_count: number;
+}
+
+export interface ICashFlowTransaction {
+  id: string;
+  order_id: string;
+  payment_method: string;
+  branch?: string;
+  amount_idr: number;
+  movement_type: string;
+  raw_status: string;
+  status: string;
+  created_at: string;
+}
+
+export type TCashFlowReport = (data: IParamsCashFlowReport) => Promise<IResponseData<ICashFlowResponse>>;

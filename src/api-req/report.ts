@@ -1,6 +1,6 @@
 import { axiosx } from "@/lib/axiosx";
 import { MAIN_API_URL } from "@/lib/config";
-import { TGenerateReportOutstandingCredit, TOutstandingCreditTable } from "@/types/report.interface";
+import { TCashFlowReport, TGenerateReportOutstandingCredit, TOutstandingCreditTable } from "@/types/report.interface";
 
 export const generateTableOutstandingCredit: TOutstandingCreditTable = async (params) => {
   const res = await axiosx(true).get(`${MAIN_API_URL}/admin/credits/packages/by-purchase-period`, {
@@ -14,5 +14,17 @@ export const generateTableOutstandingCredit: TOutstandingCreditTable = async (pa
 
 export const generateOutstandingReport: TGenerateReportOutstandingCredit = async (data) => {
   const res = await axiosx(true).post(`${MAIN_API_URL}/admin/credits/outstanding/generate`, data);
+  return res.data;
+};
+
+export const getCashFlowReport: TCashFlowReport = async (data) => {
+  const { branch, page, limit } = data;
+  const res = await axiosx(true).get(`${MAIN_API_URL}/admin/reports/cash-movement`, {
+    params: {
+      branch,
+      page,
+      page_size: limit,
+    },
+  });
   return res.data;
 };
