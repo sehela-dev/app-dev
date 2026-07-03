@@ -3,7 +3,6 @@ import { PERMISSIONS_ROLE } from "@/lib/role-access";
 
 export const useAdminPermission = () => {
   const { user } = useAuthAdmin();
-  console.log(user);
 
   const role = user?.profile?.role;
 
