@@ -8,5 +8,5 @@ export const useGetClassFlowReport = (params: IParamsCashFlowReport) =>
     queryKey: ["dashboard", "report", "outstanding-credit", "cash-flow", params],
     queryFn: () => getCashFlowReport(params),
     refetchOnWindowFocus: false,
-    enabled: false,
+    enabled: !!params,
   });
