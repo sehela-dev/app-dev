@@ -38,6 +38,7 @@ export const PERMISSIONS_ROLE = {
     "member:delete",
     "member:detail",
     "outstanding:view",
+    "cash-flow:view",
   ],
   admin: [
     "dashboard:view",

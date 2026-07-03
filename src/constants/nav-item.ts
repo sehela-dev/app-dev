@@ -1,4 +1,16 @@
-import { Store, Users, ShoppingCart, BarChart2, Receipt, Gem, CalendarCheck, PackageSearch, Tag, DollarSign } from "lucide-react";
+import {
+  Store,
+  Users,
+  ShoppingCart,
+  BarChart2,
+  Receipt,
+  Gem,
+  CalendarCheck,
+  PackageSearch,
+  Tag,
+  DollarSign,
+  ChartNoAxesCombined,
+} from "lucide-react";
 
 export const dataNavMain = [
   { title: "Commerce", url: "#", icon: Store }, // 🛍️ icon visual → Store sudah mewakili group
@@ -34,4 +46,5 @@ export const dataNavMarketPlace = [
 
 export const dataNavReport = [
   { title: "Outstanding Credit", url: "/admin/report/outstanding-credit", icon: DollarSign, permission: "outstanding:view" }, // 🛍️ icon visual → Store sudah mewakili group
+  { title: "Cash Flow", url: "/admin/report/cash-flow", icon: ChartNoAxesCombined, permission: "cash-flow:view" },
 ];
