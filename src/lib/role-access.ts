@@ -63,5 +63,6 @@ export const PERMISSIONS_ROLE = {
     "member:view",
     "member:create",
     "member:detail",
+    "cash-flow:view",
   ],
 };
