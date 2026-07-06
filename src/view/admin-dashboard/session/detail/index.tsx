@@ -72,7 +72,6 @@ export const SessionDetailPage = () => {
       };
       const res = await mutateAsync(payload);
       if (res) {
-        console.log(res.data);
         refetch();
       }
     } catch (error) {
@@ -94,11 +93,18 @@ export const SessionDetailPage = () => {
       };
       const res = await cancelBooking(payload);
       if (res) {
-        console.log(res.data);
         refetch();
+        setOpenCancel(false)
+        setSelectedDataCancel(null);
+
       }
     } catch (error) {
       console.log(error);
+    }
+    finally {
+      setOpenCancel(false)
+      setSelectedDataCancel(null)
+
     }
   };
 

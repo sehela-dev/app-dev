@@ -56,7 +56,7 @@ export const SessionDateTimeFormComponent = ({ start_date, isEdit = false }: IPr
                       allowFutureDates
                       onDateRangeChange={(e) => {
                         field.onChange(e);
-                        console.log(e, field);
+
                       }}
                       startDate={start_date ?? field.value}
                     />

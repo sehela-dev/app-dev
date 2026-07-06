@@ -33,7 +33,7 @@ const defaultValues = {
   description: "",
 
   //DATE AND TIME
-  start_date: defaultDate().formattedToday,
+  start_date: "",
   time_start: "10:00",
   time_end: "13:00",
 
@@ -114,22 +114,22 @@ export const CreateSessionPageView = () => {
         place: data?.place as string,
         ...(data?.is_recurring === "yes"
           ? {
-              recurring: {
-                type: data?.recurring_type,
-                count: parseInt(data?.recurring_count),
-              },
-            }
+            recurring: {
+              type: data?.recurring_type,
+              count: parseInt(data?.recurring_count),
+            },
+          }
           : null),
         ...(data?.place === "offline"
           ? {
-              location: data?.location as string,
-              location_maps_url: data?.location_maps_url as string,
-              room_id: data?.room.value as string,
-              location_address: data?.location_address,
-            }
+            location: data?.location as string,
+            location_maps_url: data?.location_maps_url as string,
+            room_id: data?.room.value as string,
+            location_address: data?.location_address,
+          }
           : {
-              meeting_link: data?.meeting_link as string,
-            }),
+            meeting_link: data?.meeting_link as string,
+          }),
         price_idr: parseInt(data?.price_idr),
         price_credit_amount: parseInt(data?.price_credit_amount),
         start_date: data?.start_date as string,
@@ -138,23 +138,23 @@ export const CreateSessionPageView = () => {
 
         ...(data?.isOveride && (data?.type === "private" || data?.type === "special")
           ? {
-              payment: {
-                payment_model: data?.payment?.payment_model,
-                session_type: data?.type,
-                model_params: {
-                  percentage: +data?.payment?.model_params?.percentage as number,
-                  min_amount: +data?.payment?.model_params?.min_amount as number,
-                  min_threshold_people: +data?.payment?.model_params?.min_threshold_people as number,
-                  amount: +data?.payment?.model_params?.amount as number,
-                  credit_rate: +data?.payment?.model_params?.credit_rate as number,
-                  non_credit_rate: +data?.payment?.model_params?.non_credit_rate as number,
-                  base_amount: +data?.payment?.model_params?.base_amount as number,
-                  additional_per_person: +data?.payment?.model_params?.additional_per_person as number,
-                  base_people: +data?.payment?.model_params?.base_people as number,
-                  per_person_amount: +data?.payment?.model_params?.per_person_amount as number,
-                },
+            payment: {
+              payment_model: data?.payment?.payment_model,
+              session_type: data?.type,
+              model_params: {
+                percentage: +data?.payment?.model_params?.percentage as number,
+                min_amount: +data?.payment?.model_params?.min_amount as number,
+                min_threshold_people: +data?.payment?.model_params?.min_threshold_people as number,
+                amount: +data?.payment?.model_params?.amount as number,
+                credit_rate: +data?.payment?.model_params?.credit_rate as number,
+                non_credit_rate: +data?.payment?.model_params?.non_credit_rate as number,
+                base_amount: +data?.payment?.model_params?.base_amount as number,
+                additional_per_person: +data?.payment?.model_params?.additional_per_person as number,
+                base_people: +data?.payment?.model_params?.base_people as number,
+                per_person_amount: +data?.payment?.model_params?.per_person_amount as number,
               },
-            }
+            },
+          }
           : null),
       };
 
@@ -164,6 +164,10 @@ export const CreateSessionPageView = () => {
       }
     } catch (error) {
       console.log(error);
+    } finally {
+      handleOpenModal("ONSUCCESS");
+      methods.reset()
+      console.log(methods.getValues())
     }
   });
 
@@ -234,6 +238,7 @@ export const CreateSessionPageView = () => {
           onConfirm={() => {
             methods.reset();
             handleOpenModal("ONSUCCESS");
+            window.location.reload()
           }}
           cancelText="Session List"
           confirmText="Create More"
