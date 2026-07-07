@@ -115,7 +115,7 @@ export const CreateDiscountVoucherPage = () => {
                           className="w-full px-4 py-4 border-2 border-gray-200 rounded-lg text-gray-999  placeholder-gray-400 focus:outline-none focus:border-brand-500 transition-colors h-[42px]"
                           placeholder="Type here.."
                           {...field}
-                          // className="w-auto min-w-[388px]"
+                        // className="w-auto min-w-[388px]"
                         />
                       </FormControl>
                       <FormMessage />
@@ -136,7 +136,7 @@ export const CreateDiscountVoucherPage = () => {
                           className="w-full px-4 py-4 border-2 border-gray-200 rounded-lg text-gray-999   placeholder-gray-400 focus:outline-none focus:border-brand-500 transition-colors h-[42px]"
                           placeholder="Type here.."
                           value={field.value.toUpperCase()}
-                          // className="w-auto min-w-[388px]"
+                        // className="w-auto min-w-[388px]"
                         />
                       </FormControl>
                       <FormMessage />
@@ -243,7 +243,7 @@ export const CreateDiscountVoucherPage = () => {
                           onBlur={field.onBlur}
                           value={isFixed ? formatCurrency(field.value || 0) : `${field.value} %`}
 
-                          // className="w-auto min-w-[388px]"
+                        // className="w-auto min-w-[388px]"
                         />
                       </FormControl>
                       <FormMessage />
@@ -277,7 +277,7 @@ export const CreateDiscountVoucherPage = () => {
                           onBlur={field.onBlur}
                           value={field.value ? formatCurrency(field.value) : ""}
 
-                          // className="w-auto min-w-[388px]"
+                        // className="w-auto min-w-[388px]"
                         />
                       </FormControl>
                       <FormMessage />
@@ -313,7 +313,7 @@ export const CreateDiscountVoucherPage = () => {
                             onBlur={field.onBlur}
                             value={field.value ? formatCurrency(field.value) : ""}
 
-                            // className="w-auto min-w-[388px]"
+                          // className="w-auto min-w-[388px]"
                           />
                         </FormControl>
                         <FormMessage />
@@ -354,7 +354,7 @@ export const CreateDiscountVoucherPage = () => {
                             field.onChange(numericValue);
                           }}
                           onBlur={field.onBlur}
-                          // className="w-auto min-w-[388px]"
+                        // className="w-auto min-w-[388px]"
                         />
                       </FormControl>
                       <FormMessage />
@@ -449,7 +449,7 @@ export const CreateDiscountVoucherPage = () => {
                           allowFutureDates
                           onDateRangeChange={(e) => {
                             field.onChange(e);
-                            console.log(e, field);
+
                           }}
                           startDate={field.value}
                         />

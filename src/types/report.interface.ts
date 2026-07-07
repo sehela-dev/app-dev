@@ -113,6 +113,7 @@ export type TGenerateReportOutstandingCredit = (data: IGenerateReportOutstanding
 
 export interface IParamsCashFlowReport extends ICommonParams {
   branch?: string;
+  date?: string;
 }
 export interface ICashFlowResponse {
   date: string;
