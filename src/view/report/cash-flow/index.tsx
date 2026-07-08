@@ -9,7 +9,7 @@ import { useGetClassFlowReport } from "@/hooks/api/queries/admin/report/outstand
 import { defaultDate, formatCurrency, formatDateHelper } from "@/lib/helper";
 import { ICashFlowByPaymentMethod, ICashFlowTransaction } from "@/types/report.interface";
 import { ArrowLeftRight, CircleDollarSign, Loader2, RefreshCcw, TicketX } from "lucide-react";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { Select, SelectItem, SelectGroup, SelectContent, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { DateRangePicker } from "@/components/base/date-range-picker";
 import { Button } from "@/components/ui/button";
@@ -67,6 +67,11 @@ export const CashFlowView = () => {
     },
   ];
 
+  const branchLabel = useMemo(() => {
+    return selectedBranch ? SEHELA_BRANCH.find((a) => a.value === selectedBranch)?.label : ""
+  }, [selectedBranch])
+
+
   const cashFlowTable = [
     {
       id: "payment_method",
@@ -110,13 +115,14 @@ export const CashFlowView = () => {
     <div className="flex flex-col gap-4 pt-4">
       <div className="flex flex-row gap-4 w-full items-center w-full">
         <div className="flex w-full items-center gap-4">
-          <h3 className="text-3xl font-semibold w-full">Cash Flow</h3>
+          <h3 className="text-3xl font-semibold w-full">Cash Flow {selectedBranch ? `| ${branchLabel}` : ""} </h3>
           <div className="flex flex-row items-center gap-4">
             <div className="flex min-w-[200px]">
               <Select
                 value={selectedBranch}
                 onValueChange={(e) => {
                   setSelectedBranch(e);
+
                 }}
               >
                 <SelectTrigger className="w-full px-4 py-4 border-2 border-gray-200 rounded-lg text-gray-999  placeholder-gray-400 focus:outline-none focus:border-brand-500 transition-colors h-[42px]">
@@ -164,138 +170,140 @@ export const CashFlowView = () => {
           )}
         </div>
       </div>
+      <div>
 
-      {
-        isLoading ? (
-          <div className="flex items-center justify-center py-6">
-            <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
-          </div>
-        ) : (
-          <div className="flex flex-col gap-4">
-            <div className="flex flex-flex-row items-center justify-between gap-8">
-              <CardRevenueComponent
-                icon={
-                  <CircleDollarSign
-                    style={{
-                      color: "var(--color-gray-400)",
-                    }}
-                    size={18}
-                  />
-                }
-                title="Total Collected"
-                amount={formatCurrency(data?.data?.summary.collected)}
-              // percentage={20}
-              />
-
-              <CardRevenueComponent
-                icon={
-                  <ArrowLeftRight
-                    style={{
-                      color: "var(--color-gray-400)",
-                    }}
-                    size={18}
-                  />
-                }
-                title="Total Transaction"
-                amount={String(data?.data?.summary?.collected_count)}
-              // percentage={20}
-              />
-              <CardRevenueComponent
-                icon={
-                  <TicketX
-                    style={{
-                      color: "var(--color-gray-400)",
-                    }}
-                    size={18}
-                  />
-                }
-                title="Total Refunded"
-                amount={formatCurrency(data?.data?.summary?.refund)}
-              // percentage={20}
-              />
+        {
+          isLoading ? (
+            <div className="flex items-center justify-center py-6">
+              <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
             </div>
-
-            <div className="space-y-8">
-              <div className="grid grid-cols-2  gap-6">
-                {/* Payment Method Breakdown */}
-                <Card className="">
-                  <CardHeader>
-                    <CardTitle>Payment Method Breakdown</CardTitle>
-                    <CardDescription>Distribution by payment method</CardDescription>
-                  </CardHeader>
-                  <CardContent className="flex justify-center">
-                    <CustomTable headers={cashFlowTable} data={data?.data?.by_payment_method ?? []} />
-                  </CardContent>
-                </Card>
-
-                {/* Payment Methods Summary */}
-                <Card className="">
-                  <CardHeader>
-                    <CardTitle>Payment Methods Summary</CardTitle>
-                    <CardDescription>Breakdown by method and count</CardDescription>
-                  </CardHeader>
-                  <CardContent className="space-y-4">
-                    {data?.data?.by_payment_method.map((method) => {
-                      const percentage = ((method.collected / data?.data?.summary?.collected) * 100).toFixed(1);
-                      return (
-                        <div key={method.payment_method} className="space-y-2">
-                          <div className="flex items-center justify-between">
-                            <div className="flex items-center gap-3">
-                              <div
-                                className="w-3 h-3 rounded-full"
-                                style={{
-                                  backgroundColor: COLORS[method.payment_method as keyof typeof COLORS],
-                                }}
-                              />
-                              <span className="font-medium text-gray-700 capitalize">{method.payment_method}</span>
-                            </div>
-                            <span className="text-sm text-gray-600 capitalize">{method.payment_method} transactions</span>
-                          </div>
-                          <div className="flex items-center justify-between">
-                            <div className="w-full bg-gray-200 rounded-full h-2 mr-3">
-                              <div
-                                className="h-2 rounded-full transition-all"
-                                style={{
-                                  width: `${percentage}%`,
-                                  backgroundColor: COLORS[method.payment_method as keyof typeof COLORS],
-                                }}
-                              />
-                            </div>
-                            <span className="text-sm font-semibold text-gray-900 min-w-fit">{percentage}%</span>
-                          </div>
-                          <div className="text-sm text-gray-600">Rp {(method.collected / 1000000).toFixed(2)}M</div>
-                        </div>
-                      );
-                    })}
-                  </CardContent>
-                </Card>
-              </div>
-            </div>
-            <Card>
-              <CardHeader>
-                <CardTitle>
-                  <h3 className="text-xl text-brand-999 font-medium">Latest Payments</h3>
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <CustomTable headers={headers} data={data?.data?.transactions ?? []} />
-                <CustomPagination
-                  onPageChange={(e) => {
-                    setPage(e);
-                  }}
-                  currentPage={page}
-                  showTotal
-                  hasPrevPage={data?.pagination?.has_prev}
-                  hasNextPage={data?.pagination?.has_next}
-                  totalItems={data?.pagination?.total_items as number}
-                  totalPages={data?.pagination?.total_pages as number}
-                  limit={limit}
+          ) : (
+            <div className="flex flex-col gap-4">
+              <div className="flex flex-flex-row items-center justify-between gap-8">
+                <CardRevenueComponent
+                  icon={
+                    <CircleDollarSign
+                      style={{
+                        color: "var(--color-gray-400)",
+                      }}
+                      size={18}
+                    />
+                  }
+                  title="Total Collected"
+                  amount={formatCurrency(data?.data?.summary.collected)}
+                // percentage={20}
                 />
-              </CardContent>
-            </Card>
-          </div>
-        )
-      }
-    </div >
+
+                <CardRevenueComponent
+                  icon={
+                    <ArrowLeftRight
+                      style={{
+                        color: "var(--color-gray-400)",
+                      }}
+                      size={18}
+                    />
+                  }
+                  title="Total Transaction"
+                  amount={String(data?.data?.summary?.collected_count)}
+                // percentage={20}
+                />
+                <CardRevenueComponent
+                  icon={
+                    <TicketX
+                      style={{
+                        color: "var(--color-gray-400)",
+                      }}
+                      size={18}
+                    />
+                  }
+                  title="Total Refunded"
+                  amount={formatCurrency(data?.data?.summary?.refund)}
+                // percentage={20}
+                />
+              </div>
+
+              <div className="space-y-8">
+                <div className="grid grid-cols-2  gap-6">
+                  {/* Payment Method Breakdown */}
+                  <Card className="">
+                    <CardHeader>
+                      <CardTitle>Payment Method Breakdown</CardTitle>
+                      <CardDescription>Distribution by payment method</CardDescription>
+                    </CardHeader>
+                    <CardContent className="flex justify-center">
+                      <CustomTable headers={cashFlowTable} data={data?.data?.by_payment_method ?? []} />
+                    </CardContent>
+                  </Card>
+
+                  {/* Payment Methods Summary */}
+                  <Card className="">
+                    <CardHeader>
+                      <CardTitle>Payment Methods Summary</CardTitle>
+                      <CardDescription>Breakdown by method and count</CardDescription>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                      {data?.data?.by_payment_method.map((method) => {
+                        const percentage = ((method.collected / data?.data?.summary?.collected) * 100).toFixed(1);
+                        return (
+                          <div key={method.payment_method} className="space-y-2">
+                            <div className="flex items-center justify-between">
+                              <div className="flex items-center gap-3">
+                                <div
+                                  className="w-3 h-3 rounded-full"
+                                  style={{
+                                    backgroundColor: COLORS[method.payment_method as keyof typeof COLORS],
+                                  }}
+                                />
+                                <span className="font-medium text-gray-700 capitalize">{method.payment_method}</span>
+                              </div>
+                              <span className="text-sm text-gray-600 capitalize">{method.payment_method} transactions</span>
+                            </div>
+                            <div className="flex items-center justify-between">
+                              <div className="w-full bg-gray-200 rounded-full h-2 mr-3">
+                                <div
+                                  className="h-2 rounded-full transition-all"
+                                  style={{
+                                    width: `${percentage}%`,
+                                    backgroundColor: COLORS[method.payment_method as keyof typeof COLORS],
+                                  }}
+                                />
+                              </div>
+                              <span className="text-sm font-semibold text-gray-900 min-w-fit">{percentage}%</span>
+                            </div>
+                            <div className="text-sm text-gray-600">Rp {(method.collected / 1000000).toFixed(2)}M</div>
+                          </div>
+                        );
+                      })}
+                    </CardContent>
+                  </Card>
+                </div>
+              </div>
+              <Card>
+                <CardHeader>
+                  <CardTitle>
+                    <h3 className="text-xl text-brand-999 font-medium">Latest Payments</h3>
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <CustomTable headers={headers} data={data?.data?.transactions ?? []} />
+                  <CustomPagination
+                    onPageChange={(e) => {
+                      setPage(e);
+                    }}
+                    currentPage={page}
+                    showTotal
+                    hasPrevPage={data?.pagination?.has_prev}
+                    hasNextPage={data?.pagination?.has_next}
+                    totalItems={data?.pagination?.total_items as number}
+                    totalPages={data?.pagination?.total_pages as number}
+                    limit={limit}
+                  />
+                </CardContent>
+              </Card>
+            </div>
+          )
+        }
+      </div >
+    </div>
   );
 };
