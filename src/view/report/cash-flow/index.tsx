@@ -26,7 +26,8 @@ export const CashFlowView = () => {
   const [page, setPage] = useState(1);
   const [limit, setLimit] = useState(10);
   const [selectedBranch, setSelectedBranch] = useState("");
-  const [selectedDate, setSelectedDate] = useState<string | null>(null)
+  const [selectedDate, setSelectedDate] = useState<string | null>(null);
+  const [datePickerKey, setDatePickerKey] = useState(0);
 
   const { data, isLoading, refetch } = useGetClassFlowReport({ page, limit, date: selectedDate as string, branch: selectedBranch });
 
@@ -99,8 +100,8 @@ export const CashFlowView = () => {
     },
   ];
 
-  const handleChangeDate = (startDate: string,) => {
-    setSelectedDate(startDate)
+  const handleChangeDate = (startDate: string) => {
+    setSelectedDate(startDate);
   };
 
 
@@ -135,20 +136,20 @@ export const CashFlowView = () => {
             </div>
             <div className="min-w-[200px]">
               <DateRangePicker
+                key={datePickerKey}
                 mode="single"
                 onDateRangeChange={(e) => {
-                  handleChangeDate(e)
-
+                  handleChangeDate(e);
                 }}
                 allowPastDates
                 allowFutureDates={false}
-
               />
             </div>
             <div className="flex">
               <Button variant={"default"} onClick={() => {
-                setSelectedDate("")
-                setSelectedBranch("")
+                setSelectedDate("");
+                setSelectedBranch("");
+                setDatePickerKey((k) => k + 1);
               }}>
                 <RefreshCcw /> Reset
               </Button>
