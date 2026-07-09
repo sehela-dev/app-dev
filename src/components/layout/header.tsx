@@ -76,7 +76,7 @@ Logout
         variant="outline"
         aria-label="Toggle menu"
       >
-        {isOpen ? <X color="var(--color-gray-50)" size={20} /> : <Menu color="var(--color-gray-50)" size={20} />}
+        {isOpen ? <X color="var(--color-brand-500)" size={20} /> : <Menu color="var(--color-brand-500)" size={20} />}
       </Button>
 
       {/* Mobile Menu Overlay */}
@@ -90,9 +90,8 @@ Logout
 
       {/* Mobile Menu Panel */}
       <div
-        className={`fixed top-[58px] left-0 right-0 bg-brand-50 shadow-lg z-40 transition-all duration-300 ease-out max-w-[414px] mx-auto ${
-          isOpen ? "max-h-96 opacity-100" : "max-h-0 opacity-0 overflow-hidden"
-        }`}
+        className={`fixed top-[58px] left-0 right-0 bg-brand-50 shadow-lg z-40 transition-all duration-300 ease-out max-w-[414px] mx-auto ${isOpen ? "max-h-96 opacity-100" : "max-h-0 opacity-0 overflow-hidden"
+          }`}
       >
         <nav className="flex flex-col p-4 gap-2">
           {menu.map((item, index: number) => (

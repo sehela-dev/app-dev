@@ -87,19 +87,21 @@ export const MySessionsPage = () => {
           ) : (data?.data?.length as number) > 0 ? (
             <div className="flex flex-col gap-4">
               <ScrollArea>
-                {data?.data?.map((item) => (
-                  <CheckoutSessionCardComponent
-                    key={item.id}
-                    duration={getDurationInMinutes(item?.class_session?.start_datetime, item?.class_session?.end_datetime)}
-                    location={item?.class_session?.location_address}
-                    date={formatDateHelper(item.class_session.start_datetime, "EEEE, dd MMM yyyy")}
-                    time={formatDateHelper(item?.class_session?.start_datetime, "H:mm")}
-                    title={item?.class_session?.session_name}
-                    instructor={item?.class_session?.instructor_name}
-                    isCancelled={item?.class_session?.status === "canceled"}
-                    onClick={() => onClickMySessionDetail(item?.id)}
-                  />
-                ))}
+                <div className="flex flex-col gap-4">
+                  {data?.data?.map((item) => (
+                    <CheckoutSessionCardComponent
+                      key={item.id}
+                      duration={getDurationInMinutes(item?.class_session?.start_datetime, item?.class_session?.end_datetime)}
+                      location={item?.class_session?.location_address}
+                      date={formatDateHelper(item.class_session.start_datetime, "EEEE, dd MMM yyyy")}
+                      time={formatDateHelper(item?.class_session?.start_datetime, "H:mm")}
+                      title={item?.class_session?.session_name}
+                      instructor={item?.class_session?.instructor_name}
+                      isCancelled={item?.class_session?.status === "cancelled"}
+                      onClick={() => onClickMySessionDetail(item?.id)}
+                    />
+                  ))}
+                </div>
               </ScrollArea>
               <CustomPagination
                 onPageChange={(e) => {

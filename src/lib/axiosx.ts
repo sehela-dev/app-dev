@@ -1,6 +1,7 @@
 import axios from "axios";
 import { toast } from "sonner";
 import { SECRET_KEY, validationStatus, AUTH_KEY, MAIN_API_URL } from "./config";
+import { clearAllSessions, clearSession, getActiveRole, getRoleStorageKey, getSession } from "./auth-storage";
 
 const jwtPrefix = "Bearer";
 export const axiosx = (auth?: boolean, params?: string, type?: string) => {
@@ -67,45 +68,11 @@ export const axiosx = (auth?: boolean, params?: string, type?: string) => {
   return instance;
 };
 
-type AuthRole = "admin" | "user" | "instructor" | null;
-
-const safeParse = (raw: string | null) => {
-  if (!raw) return {};
-  try {
-    return JSON.parse(raw);
-  } catch {
-    return {};
-  }
-};
-
-const getAuthRole = (): AuthRole => {
-  if (typeof window === "undefined") return null;
-
-  const admin = safeParse(window.localStorage.getItem("admin"));
-  if (admin?.access_token) return "admin";
-
-  const instructor = safeParse(window.localStorage.getItem("instructor"));
-  if (instructor?.access_token) return "instructor";
-
-  const user = safeParse(window.localStorage.getItem("user"));
-  if (user?.access_token) return "user";
-
-  return null;
-};
-
 const getToken = () => {
-  if (typeof window === "undefined") return null;
-
-  const admin = safeParse(window.localStorage.getItem("admin"));
-  if (admin?.access_token) return admin.access_token;
-
-  const instructor = safeParse(window.localStorage.getItem("instructor"));
-  if (instructor?.access_token) return instructor.access_token;
-
-  const user = safeParse(window.localStorage.getItem("user"));
-  if (user?.access_token) return user.access_token;
-
-  return null;
+  const role = getActiveRole();
+  if (!role) return null;
+  const session = getSession<{ access_token?: string }>(role);
+  return session?.access_token ?? null;
 };
 
 // const getAdminToken = () => {
@@ -122,9 +89,16 @@ const getToken = () => {
 export const clearToken = () => {
   if (typeof window === "undefined") return;
 
-  window.localStorage.removeItem("admin");
-  window.localStorage.removeItem("user");
-  window.localStorage.removeItem("instructor");
+  const role = getActiveRole();
+  if (role) {
+    clearSession(role);
+  } else {
+    // fallback: clear everything if we cannot determine active role
+    clearAllSessions();
+    window.localStorage.removeItem("admin");
+    window.localStorage.removeItem("user");
+    window.localStorage.removeItem("instructor");
+  }
 
   toast.error(validationStatus("401" as string), {
     id: "error",
@@ -149,33 +123,17 @@ export const clearToken = () => {
 };
 
 const getRefreshToken = () => {
-  if (typeof window === "undefined") return null;
-
-  const admin = safeParse(window.localStorage.getItem("admin"));
-  if (admin?.refresh_token) return admin.refresh_token;
-
-  const instructor = safeParse(window.localStorage.getItem("instructor"));
-  if (instructor?.refresh_token) return instructor.refresh_token;
-
-  const user = safeParse(window.localStorage.getItem("user"));
-  if (user?.refresh_token) return user.refresh_token;
-
-  return null;
+  const role = getActiveRole();
+  if (!role) return null;
+  const session = getSession<{ refresh_token?: string }>(role);
+  return session?.refresh_token ?? null;
 };
 
 const updateAccessToken = (newToken: string) => {
-  const role = getAuthRole();
+  const role = getActiveRole();
   if (!role) return;
-
-  const data = safeParse(window.localStorage.getItem(role));
-
-  window.localStorage.setItem(
-    role,
-    JSON.stringify({
-      ...data,
-      access_token: newToken,
-    }),
-  );
+  const data = getSession<Record<string, unknown> & { access_token?: string }>(role) ?? {};
+  window.localStorage.setItem(getRoleStorageKey(role), JSON.stringify({ ...data, access_token: newToken }));
 };
 const refreshAccessToken = async () => {
   const refreshToken = getRefreshToken();
