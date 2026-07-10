@@ -321,3 +321,7 @@ export function getDurationInMinutes(startTime: string, endTime: string): string
 
   return String(diffMinutes);
 }
+
+export function snakeToSpace(str: string) {
+  return str.replace(/_/g, " ");
+}

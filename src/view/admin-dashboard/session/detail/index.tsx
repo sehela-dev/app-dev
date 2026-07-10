@@ -16,19 +16,21 @@ import { defaultDate, formatCurrency, formatDateHelper } from "@/lib/helper";
 import { cn } from "@/lib/utils";
 import { IParticipantsSession, ISessionItem } from "@/types/class-sessions.interface";
 import { IAttendanceStatus } from "@/types/orders.interface";
-import { BellRing, Ellipsis, File, Loader2, PenIcon } from "lucide-react";
+import { BellRing, Ellipsis, File, Loader2, PenIcon, X } from "lucide-react";
 import { useParams, useRouter } from "next/navigation";
 import { useState } from "react";
 import { CardSession } from "../../enrol-students";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { BaseDialogConfirmation } from "@/components/general/dialog-confirnation";
+import { Input } from "@/components/ui/input";
+import { CancelSessionComponent } from "@/components/page";
 
 export const SessionDetailPage = () => {
   const router = useRouter();
   const params = useParams();
   const { id } = params;
-  const { data, isLoading } = useGetSessionDetail(id as string);
+  const { data, isLoading, refetch: refetchSessionDetail } = useGetSessionDetail(id as string);
   const [page, setPage] = useState(1);
   const [openDialog, setOpenDialog] = useState(false);
   // resechedule
@@ -46,6 +48,7 @@ export const SessionDetailPage = () => {
   const [rescheduleNotes, setRescheduleNotes] = useState("");
   const [selectedRow, setSelectedRow] = useState<string | null>(null);
   const [openCancel, setOpenCancel] = useState(false);
+  const [openCancelSession, setOpenCancelSession] = useState(false);
   const [selectedDataCancel, setSelectedDataCancel] = useState<string | null>(null);
 
   const { mutateAsync: rescheduleSession } = useRescheduleSession();
@@ -162,6 +165,8 @@ export const SessionDetailPage = () => {
     },
   ];
 
+
+
   const handleCloseDialog = () => {
     setOpenDialog(false);
     setPageSession(1);
@@ -271,6 +276,8 @@ export const SessionDetailPage = () => {
             <p className="text-sm text-gray-500">Review all session details and make updates as needed</p>
           </div>
           <div className="flex flex-row items-center gap-2">
+
+
             <div>
               <Button variant={"outline"}>
                 <File /> Export
@@ -281,6 +288,14 @@ export const SessionDetailPage = () => {
                 <PenIcon /> Edit
               </Button>
             </div>
+            {
+              data?.data?.status === 'scheduled' || data?.data?.status === 'ongoing' ?
+                <div>
+                  <Button variant={"destructive"} onClick={() => setOpenCancelSession(true)}>
+                    <X /> Cancel Session
+                  </Button>
+                </div> : <></>
+            }
           </div>
         </div>
         <Divider className="my-2" />
@@ -492,7 +507,17 @@ export const SessionDetailPage = () => {
         <BaseDialogConfirmation open={openReminder} title="Send Reminder to all participants?" subtitle="Participants will be receive email according this session" onConfirm={onRemindAll} confirmText="Remind All" onCancel={() => setOpenReminder(false)} image="warning-1" />
       }
 
+      <CancelSessionComponent
+        open={openCancelSession}
+        id={id as string}
+        onClose={() => setOpenCancelSession(false)}
+        onSuccess={() => {
+          refetch();
+          refetchSessionDetail();
+        }}
+      />
 
-    </Card>
+
+    </Card >
   );
 };

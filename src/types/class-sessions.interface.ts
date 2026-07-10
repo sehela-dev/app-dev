@@ -98,3 +98,82 @@ export type TSessionDetailData = (id: string) => Promise<IResponseData<ISessionI
 export type TSessionBookings = ({ id, page, limit }: { id: string; page: number; limit: number }) => Promise<IResponseData<IParticipantsSession[]>>;
 export type TCreateSessionData = (data: ICreateSessionPaylaod) => Promise<IResponseData<ISessionItem>>;
 export type TEditSessionData = ({ id, data }: { id: string; data: ICreateSessionPaylaod }) => Promise<IResponseData<ISessionItem>>;
+
+export interface ICancelationListResponse {
+  mode: string;
+  session: ISessionCancelation;
+  active_bookings_count: number;
+  bookings: IBookingList[];
+}
+
+export interface ISessionCancelation {
+  id: string;
+  session_name: string;
+  start_datetime: string;
+  status: string;
+  type: string;
+  place: string;
+  class_id: string;
+  capacity: number;
+}
+
+export interface IBookingList {
+  booking_id: string;
+  user_id?: string;
+  customer_name: string;
+  customer_phone?: string;
+  customer_email?: string;
+  booking_status: string;
+  payment_method: string;
+  price_idr: number;
+  revenue_idr: number;
+  credits_used: number;
+  credit_unit_value_idr?: number;
+  package_purchase_id?: string;
+  source_platform?: string;
+  package?: IPackage;
+  package_days_remaining?: number;
+  package_expired: boolean;
+  credit_return_warning?: string;
+  suggested_refund_type: string;
+  valid_refund_types: string[];
+}
+
+export interface IPackage {
+  id: string;
+  status: string;
+  expires_at: string;
+  credit_package: ICreditPackage;
+}
+
+export interface ICreditPackage {
+  id: string;
+  name: string;
+  session_type_restriction: string[];
+  place_restriction?: string[];
+  class_ids_restriction: any;
+}
+
+export type TCancelationBookings = (id: string) => Promise<IResponseData<ICancelationListResponse>>;
+
+export interface IBookingRefundOverride {
+  refund_type: string;
+  refund_amount_idr?: number;
+  refund_validity_days?: number;
+}
+
+export interface ICancelSessionPayload {
+  confirm: boolean;
+  cancel_reason: string;
+  default_refund_type: string;
+  refund_validity_days: number;
+  booking_overrides: Record<string, IBookingRefundOverride>;
+}
+
+export type TConfirmCancelSession = ({
+  id,
+  data,
+}: {
+  id: string;
+  data: ICancelSessionPayload;
+}) => Promise<IResponseData<ICancelationListResponse>>;

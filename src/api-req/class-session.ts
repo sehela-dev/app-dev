@@ -7,7 +7,16 @@ import {
   TDetailClassCategory,
   TEditClassCategory,
 } from "@/types/class-category.interface";
-import { TCreateSessionData, TEditSessionData, TSessionBookings, TSessionDetailData, TSessionListData } from "@/types/class-sessions.interface";
+import {
+  ICancelationListResponse,
+  TCancelationBookings,
+  TConfirmCancelSession,
+  TCreateSessionData,
+  TEditSessionData,
+  TSessionBookings,
+  TSessionDetailData,
+  TSessionListData,
+} from "@/types/class-sessions.interface";
 
 export const getSessions: TSessionListData = async ({ page, limit, search, payment_method, status, startDate, endDate }) => {
   const res = await axiosx(true).get(`${MAIN_API_URL}/classes/sessions`, {
@@ -84,7 +93,17 @@ export const deleteSession: TSessionDetailData = async (id) => {
   return res.data;
 };
 
-export const sendReminderAll = async (data:string) =>{
+export const sendReminderAll = async (data: string) => {
   const res = await axiosx(true).post(`${MAIN_API_URL}/classes/sessions/${data}/send-reminder`, data);
-  return res.data
-}
+  return res.data;
+};
+
+export const cancelSessionPreview: TCancelationBookings = async (data) => {
+  const res = await axiosx(true).post(`${MAIN_API_URL}/admin/sessions/${data}/cancel`);
+  return res.data;
+};
+
+export const confirmCancelSession: TConfirmCancelSession = async ({ id, data }) => {
+  const res = await axiosx(true).post(`${MAIN_API_URL}/admin/sessions/${id}/cancel`, data);
+  return res.data;
+};
