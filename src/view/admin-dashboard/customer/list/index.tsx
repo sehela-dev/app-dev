@@ -7,12 +7,13 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { SearchInput } from "@/components/ui/search-input";
-import { useEditCustomer } from "@/hooks/api/mutations/admin";
+import { useEditCustomer, useResendRegistrationEmail } from "@/hooks/api/mutations/admin";
 import { useDeleteCustomer } from "@/hooks/api/mutations/admin/use-delete-customer";
 import { useGetCustomers } from "@/hooks/api/queries/admin/customers";
+import { IBodyResendEmailRegistration } from "@/types/customers.interface";
 import { ICustomerData } from "@/types/orders.interface";
 
-import { CirclePlus, Ellipsis, ListFilter } from "lucide-react";
+import { CirclePlus, Ellipsis, ListFilter, Mail } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 
@@ -46,6 +47,7 @@ export const CustomersPage = () => {
   });
   const [selectedData, setSelectedData] = useState<ICustomerData | null>(null);
   const [openNotif, setOpenNotif] = useState(false);
+  const { mutateAsync: resend } = useResendRegistrationEmail();
 
   const [openDialogConfirm, setOpenDialogConfirm] = useState(false);
   const onDelete = (data: ICustomerData | null) => {
@@ -53,6 +55,17 @@ export const CustomersPage = () => {
     setSelectedData(data);
   };
   const { mutateAsync } = useEditCustomer();
+
+  const onResendEmail = async (data: IBodyResendEmailRegistration) => {
+    try {
+      const res = resend(data);
+      if (res) {
+        console.log(res);
+      }
+    } catch (error) {
+      console.log(error);
+    }
+  };
 
   const headers = [
     {
@@ -86,6 +99,15 @@ export const CustomersPage = () => {
       text: "Status",
       value: (row: ICustomerData) => <p className={row?.is_active ? "text-green-400" : "text-red-500"}>{row.is_active ? "Active" : "Inactive"}</p>,
     },
+    // {
+    //   id: "resend-regristration",
+    //   text: "Resend Email",
+    //   value: (row: ICustomerData) => (
+    //     <Button onClick={() => onResendEmail({ email: row.email })} size={"sm"}>
+    //       <Mail />
+    //     </Button>
+    //   ),
+    // },
   ];
 
   const numberOptions = {
@@ -104,9 +126,10 @@ export const CustomersPage = () => {
             <Ellipsis />
           </Button>
         </DropdownMenuTrigger>
-        <DropdownMenuContent align="end" className="w-32">
+        <DropdownMenuContent align="end" className="w-40">
           <DropdownMenuItem onClick={() => router.push(`member/${row.id}/edit`)}>Edit</DropdownMenuItem>
           <DropdownMenuItem onClick={() => router.push(`member/${row.id}`)}>View Details</DropdownMenuItem>
+          <DropdownMenuItem onClick={() => onResendEmail({ email: row.email })}>Send Registration Link</DropdownMenuItem>
           {/* <DropdownMenuItem>Set as Inactive</DropdownMenuItem> */}
           <DropdownMenuItem variant="destructive" className="" onClick={() => onDelete(row)}>
             Set as Inactive
@@ -117,6 +140,7 @@ export const CustomersPage = () => {
   };
 
   const handleSearch = (e: string) => {
+    setPage(1);
     setSearch(e);
   };
 
@@ -182,16 +206,16 @@ export const CustomersPage = () => {
         </CardContent>
         <CardFooter className="flex w-full">
           <CustomPagination
-            onPageChange={(e) => setPage(e)}
+            onPageChange={(e) => {
+              setPage(e);
+            }}
             currentPage={page}
             showTotal
-            // nextPage={data?.pagination?.}
-            hasNextPage={data?.pagination?.has_next}
             hasPrevPage={data?.pagination?.has_prev}
-            // previousPage={data?.pagination?.previousPage}
+            hasNextPage={data?.pagination?.has_next}
             totalItems={data?.pagination?.total_items as number}
             totalPages={data?.pagination?.total_pages as number}
-            limit={10}
+            limit={limit}
           />
         </CardFooter>
       </Card>

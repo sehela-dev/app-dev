@@ -9,6 +9,7 @@ import {
   TDeleteCustomer,
   TEditCustomer,
   TGetUserWallet,
+  TResendRegistrationEmail,
 } from "@/types/customers.interface";
 
 export const getCustomers: TCustomerData = async ({ page, limit, status, search }) => {
@@ -69,5 +70,10 @@ export const getCustomerTrx: TCustomerTrx = async ({ id, page, limit }) => {
       page_size: limit,
     },
   });
+  return res.data;
+};
+
+export const resendRegistrationEmail: TResendRegistrationEmail = async (data) => {
+  const res = await axiosx(true).post(`${MAIN_API_URL}/admin/resend-registration-email`, data);
   return res.data;
 };

@@ -181,3 +181,8 @@ export type TDeleteCustomer = (id: string) => Promise<IResponseData<IResponseCus
 export type TCustomerActivity = (params: ICustomerActivityParams) => Promise<IResponseData<ICustomerActvity[]>>;
 
 export type TCustomerTrx = ({ id, page, limit }: ICustomerActivityParams) => Promise<IResponseData<ICustomerTrx[]>>;
+
+export interface IBodyResendEmailRegistration {
+  email: string;
+}
+export type TResendRegistrationEmail = (data: IBodyResendEmailRegistration) => Promise<IResponseData<unknown>>;

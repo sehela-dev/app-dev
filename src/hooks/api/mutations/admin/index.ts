@@ -21,4 +21,5 @@ export * from "./use-reschedule-session";
 export * from "./use-generate-outstanding-report";
 export * from "./use-cancel-booking";
 export * from "./use-edit-customer";
-export * from './use-send-reminder-session'
+export * from "./use-send-reminder-session";
+export * from "./use-resend-registration-email";
