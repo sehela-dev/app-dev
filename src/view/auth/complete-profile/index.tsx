@@ -14,17 +14,17 @@ import { FormProvider, useForm } from "react-hook-form";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
 import Image from "next/image";
-import { useMemo, useRef } from "react";
+import { useMemo, useRef, useState } from "react";
 import { previewURLHelper } from "@/lib/helper";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useUpdateProfile } from "@/hooks/api/mutations/customers";
 import { Divider } from "@/components/ui/divider";
 import { useRouter } from "next/navigation";
 import { useGetProfile } from "@/hooks/api/queries/customer/profile";
-import { useJwtToken } from "@/hooks";
 import { IAuthSignUpPaylaod } from "@/types/customer-app/auth-customer.interface";
 import { Textarea } from "@/components/ui/textarea";
 import { Loader2 } from "lucide-react";
+import { TncDialog } from "@/components/general/tnc-dialog";
 
 const defaultValues = {
   email: "",
@@ -46,6 +46,7 @@ const resolver = zodResolver(authSignUpSchema);
 export const CompleteProfilePageView = () => {
   const router = useRouter();
   const { data: profileUser, isLoading } = useGetProfile();
+  const [tncDialogOpen, setTncDialogOpen] = useState(false);
 
   const values = useMemo(() => {
     if (!profileUser?.data) return defaultValues;
@@ -66,9 +67,15 @@ export const CompleteProfilePageView = () => {
 
   const methods = useForm<AuthSignUpFormValues>({ defaultValues, resolver, mode: "all", values });
 
-  const { control, handleSubmit } = methods;
+  const { control, handleSubmit, setValue } = methods;
   const inputRef = useRef<HTMLInputElement>(null);
   const { mutateAsync } = useUpdateProfile();
+
+  const openTncDialog = (e?: React.MouseEvent) => {
+    e?.preventDefault();
+    e?.stopPropagation();
+    setTncDialogOpen(true);
+  };
 
   const onSubmit = handleSubmit(async (data) => {
     try {
@@ -384,29 +391,44 @@ export const CompleteProfilePageView = () => {
                   render={({ field }) => (
                     <FormItem className="flex flex-row items-start">
                       <FormControl>
-                        <Checkbox id="tnc" checked={field.value} onCheckedChange={field.onChange} className="mt-1" />
+                        <Checkbox
+                          id="tnc"
+                          checked={field.value}
+                          onCheckedChange={(checked) => {
+                            if (checked) {
+                              setTncDialogOpen(true);
+                              return;
+                            }
+                            field.onChange(false);
+                          }}
+                          className="mt-1"
+                        />
                       </FormControl>
 
                       <FormLabel htmlFor="tnc" className="cursor-pointer text-brand-500 font-normal text-sm">
                         <p className="text-sm">
                           I confirm that I have read and accept the{" "}
-                          <a className="font-semibold text-sm underline" href="/tnc">
-                            Term and Conditions{" "}
-                          </a>{" "}
+                          <button
+                            type="button"
+                            className="font-semibold text-sm underline"
+                            onClick={openTncDialog}
+                          >
+                            Term and Conditions
+                          </button>{" "}
                           and the{" "}
-                          <a className="font-semibold text-sm underline" href="/policy">
+                          <button
+                            type="button"
+                            className="font-semibold text-sm underline"
+                            onClick={openTncDialog}
+                          >
                             Privacy Policy
-                          </a>{" "}
+                          </button>
                         </p>
                       </FormLabel>
                     </FormItem>
                   )}
                 />
               </div>
-
-              {/* Password Field */}
-
-              {/* Forgot Password */}
 
               {/* Login Button */}
               <div className="flex w-full flex-col gap-2">
@@ -425,11 +447,11 @@ export const CompleteProfilePageView = () => {
             </form>
           </FormProvider>
 
-          {/* Divider */}
-
-          {/* Google Login */}
-
-          {/* Sign Up Link */}
+          <TncDialog
+            open={tncDialogOpen}
+            onOpenChange={setTncDialogOpen}
+            onAccept={() => setValue("tnc_agreed", true, { shouldValidate: true, shouldDirty: true })}
+          />
         </div>
       </div>
     </div>
