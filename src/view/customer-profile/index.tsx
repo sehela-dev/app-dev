@@ -96,9 +96,9 @@ export const ProfilePageView = () => {
 
       <div className=" pt-6">
         <div className="flex flex-col gap-2 ">
-          <MenuItem icon={<Gem />} name="My Credits" action={() => router.push("/profile/my-credits")} />
-          <MenuItem icon={<RefreshCcw />} name="Refunded" action={() => router.push("/profile/purchase-history/refuded")} />
-          <MenuItem icon={<ShoppingBag />} name="Purchase History" action={() => router.push("/profile/purchase-history")} />
+          {/* <MenuItem icon={<Gem />} name="My Credits" action={() => router.push("/profile/my-credits")} /> */}
+          {/* <MenuItem icon={<RefreshCcw />} name="Refunded" action={() => router.push("/profile/purchase-history/refuded")} /> */}
+          {/* <MenuItem icon={<ShoppingBag />} name="Purchase History" action={() => router.push("/profile/purchase-history")} /> */}
           <MenuItem icon={<SquarePen />} name="Edit Profile" action={() => router.push("/profile/update")} />
         </div>
         <Divider className="mb-4" />

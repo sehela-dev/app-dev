@@ -1,7 +1,7 @@
 import axios from "axios";
 import { toast } from "sonner";
 import { SECRET_KEY, validationStatus, AUTH_KEY, MAIN_API_URL } from "./config";
-import { clearAllSessions, clearSession, getActiveRole, getRoleStorageKey, getSession } from "./auth-storage";
+import { AuthRole, clearAllSessions, clearSession, getActiveRole, getRoleStorageKey, getSession } from "./auth-storage";
 
 const jwtPrefix = "Bearer";
 export const axiosx = (auth?: boolean, params?: string, type?: string) => {
@@ -68,8 +68,18 @@ export const axiosx = (auth?: boolean, params?: string, type?: string) => {
   return instance;
 };
 
+const resolveAuthRole = (): AuthRole | null => {
+  if (typeof window !== "undefined") {
+    const path = window.location.pathname;
+    if (path.startsWith("/admin") || path === "/admin-login") return "admin";
+    return "user";
+  }
+
+  return getActiveRole();
+};
+
 const getToken = () => {
-  const role = getActiveRole();
+  const role = resolveAuthRole();
   if (!role) return null;
   const session = getSession<{ access_token?: string }>(role);
   return session?.access_token ?? null;
@@ -89,7 +99,7 @@ const getToken = () => {
 export const clearToken = () => {
   if (typeof window === "undefined") return;
 
-  const role = getActiveRole();
+  const role = resolveAuthRole();
   if (role) {
     clearSession(role);
   } else {
@@ -123,14 +133,14 @@ export const clearToken = () => {
 };
 
 const getRefreshToken = () => {
-  const role = getActiveRole();
+  const role = resolveAuthRole();
   if (!role) return null;
   const session = getSession<{ refresh_token?: string }>(role);
   return session?.refresh_token ?? null;
 };
 
 const updateAccessToken = (newToken: string) => {
-  const role = getActiveRole();
+  const role = resolveAuthRole();
   if (!role) return;
   const data = getSession<Record<string, unknown> & { access_token?: string }>(role) ?? {};
   window.localStorage.setItem(getRoleStorageKey(role), JSON.stringify({ ...data, access_token: newToken }));
