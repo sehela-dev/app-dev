@@ -12,11 +12,11 @@ import { SearchInput } from "@/components/ui/search-input";
 import { useDebounce } from "@/hooks";
 import { useCancelBooking, useChangeAttendanceStatus, useRescheduleSession, useSendReminderSession } from "@/hooks/api/mutations/admin";
 import { useGetSessionBookings, useGetSessionDetail, useGetSessions } from "@/hooks/api/queries/admin/class-session";
-import { defaultDate, formatCurrency, formatDateHelper } from "@/lib/helper";
+import { defaultDate, formatCurrency, formatDateHelper, reminderMessage, sendReminder } from "@/lib/helper";
 import { cn } from "@/lib/utils";
 import { IParticipantsSession, ISessionItem } from "@/types/class-sessions.interface";
 import { IAttendanceStatus } from "@/types/orders.interface";
-import { BellRing, Ellipsis, File, Loader2, PenIcon } from "lucide-react";
+import { BellRing, BellRingIcon, Ellipsis, File, Loader2, PenIcon, Send } from "lucide-react";
 import { useParams, useRouter } from "next/navigation";
 import { useState } from "react";
 import { CardSession } from "../../enrol-students";
@@ -138,6 +138,17 @@ export const SessionDetailPage = () => {
       id: "medical_notes",
       text: "Medical Notes",
       value: (row: IParticipantsSession) => <p>{row?.medical_notes ?? "-"}</p>,
+    },
+    {
+      id: "reminder",
+      text: "Send Reminder",
+      value: (row: IParticipantsSession) => <div className="flex w-full items-center">
+        <Button className="w-8 h-8" onClick={() => {
+          const msg = reminderMessage(row.customer_name, data?.data?.session_name as string, `${data?.data?.time_start} - ${data?.data?.time_end}`, `${data?.data?.location}`)
+          sendReminder(row?.customer_phone, msg)
+        }} disabled={data?.data?.status === 'ended'}><BellRing /></Button>
+      </div>
+
     },
 
     {
@@ -348,7 +359,7 @@ export const SessionDetailPage = () => {
           <div className="flex flex-col gap-4">
             <div className="flex flex-row items-center justify-between">
               <h4 className="text-sm font-semibold">Participants</h4>
-              {data?.data?.status !== 'canceled' && data?.data?.status !== 'ended' &&
+              {/* {data?.data?.status !== 'canceled' && data?.data?.status !== 'ended' &&
                 <div>
                   <Button onClick={() => {
                     onClickReminder()
@@ -356,7 +367,7 @@ export const SessionDetailPage = () => {
                     <BellRing /> Remind All
                   </Button>
                 </div>
-              }
+              } */}
 
             </div>
             <div className="flex flex-col gap-2">

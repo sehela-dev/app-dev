@@ -321,3 +321,46 @@ export function getDurationInMinutes(startTime: string, endTime: string): string
 
   return String(diffMinutes);
 }
+
+// export const reminderMessage = (name: string, session: string, schedule: string, studio: string) => {
+//   const msg = `Hi kak *${name}*! Kami ingin mengingatkan bahwa Kakak terdaftar di kelas  *${session.toUpperCase()}*  *${schedule}* di *${studio}*, yang akan dimulai dalam 60 menit!
+
+// Mohon hadir 10 menit sebelum jadwal kelas sehingga Kakak dapat mempersiapkan diri di studio.
+// Pastikan Kakak sudah melakukan registrasi di meja resepsionis sebelum masuk kelas Kami ingatkan kembali, maksimal waktu keterlambatan untuk mengikuti kelas adalah 10 menit setelah kelas dimulai.
+
+// Untuk matras tersedia di dalam studio dan harap merapikan kembali setelah pemakain
+// Terima kasih dan sampai jumpa :)`;
+//   return msg;
+// };
+
+// export const sendReminder = (phone: string, msg: string) => {
+//   const url = `https://wa.me/${phone}?text=${encodeURIComponent(msg)}`;
+//   window.open(url, "_blank");
+// };
+
+export const reminderMessage = (name: string, session: string, schedule: string, studio: string) => {
+  return `Hi Kak *${name.toUpperCase()}*!
+
+Kami ingin mengingatkan bahwa Kakak terdaftar di kelas:
+
+*${session.toUpperCase()}*
+*${schedule}*
+*${studio}*
+
+Kelas akan dimulai dalam 60 menit.
+
+Mohon hadir 10 menit sebelum jadwal kelas agar Kakak memiliki waktu untuk mempersiapkan diri di studio.
+
+Jangan lupa melakukan registrasi di meja resepsionis sebelum masuk ke kelas.
+
+Kami ingatkan kembali bahwa batas maksimal keterlambatan untuk mengikuti kelas adalah 10 menit setelah kelas dimulai.
+
+Matras tersedia di dalam studio. Mohon dirapikan kembali setelah digunakan.
+
+Terima kasih dan sampai jumpa! :)`;
+};
+
+export const sendReminder = (phone: string, msg: string) => {
+  const url = `https://wa.me/${phone}?text=${encodeURIComponent(msg)}`;
+  window.open(url, "_blank");
+};
