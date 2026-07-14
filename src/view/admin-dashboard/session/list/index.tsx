@@ -149,7 +149,7 @@ export const SessionListPage = () => {
           ) : (
             can("session:delete") && (
               <DropdownMenuItem variant="destructive" className="" onClick={() => onDelete(row.id)}>
-                Delete
+                Cancel Session
               </DropdownMenuItem>
             )
           )}
@@ -269,11 +269,11 @@ export const SessionListPage = () => {
           image="trash-1"
           onCancel={() => onDelete("")}
           open={openDialogConfirm}
-          title="Delete Session?"
-          subtitle="Some participants have paid for this session. Deleting it will affect their bookings. Continue?"
+          title="Cancel Session?"
+          subtitle="Some participants have paid for this session. Cancelling it will affect their bookings. Continue?"
           onConfirm={onConfirmDelete}
           cancelText="Cancel"
-          confirmText="Delete & Refund"
+          confirmText="Proceed & Refund"
         />
       )}
       {openNotif && (

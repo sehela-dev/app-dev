@@ -146,7 +146,7 @@ export const SessionDetailPage = () => {
         <Button className="w-8 h-8" onClick={() => {
           const msg = reminderMessage(row.customer_name, data?.data?.session_name as string, `${data?.data?.time_start} - ${data?.data?.time_end}`, `${data?.data?.location}`)
           sendReminder(row?.customer_phone, msg)
-        }} disabled={data?.data?.status === 'ended'}><BellRing /></Button>
+        }} disabled={data?.data?.status === 'ended' || data?.data?.status === 'cancelled'}><BellRing /></Button>
       </div>
 
     },
@@ -282,11 +282,11 @@ export const SessionDetailPage = () => {
             <p className="text-sm text-gray-500">Review all session details and make updates as needed</p>
           </div>
           <div className="flex flex-row items-center gap-2">
-            <div>
+            {/* <div>
               <Button variant={"outline"}>
                 <File /> Export
               </Button>
-            </div>
+            </div> */}
             <div>
               <Button onClick={() => router.push(`${id}/edit`)}>
                 <PenIcon /> Edit
