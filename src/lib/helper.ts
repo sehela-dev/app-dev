@@ -364,3 +364,15 @@ export const sendReminder = (phone: string, msg: string) => {
   const url = `https://wa.me/${phone}?text=${encodeURIComponent(msg)}`;
   window.open(url, "_blank");
 };
+
+export const checkIsinHour = (time: string): boolean => {
+  const [hours, minutes] = time.split(":").map(Number);
+  if (Number.isNaN(hours) || Number.isNaN(minutes)) return false;
+
+  const now = new Date();
+  const nowMinutes = now.getHours() * 60 + now.getMinutes();
+  const targetMinutes = hours * 60 + minutes;
+  const diffMinutes = nowMinutes - targetMinutes;
+
+  return diffMinutes >= 0 && diffMinutes <= 60;
+};

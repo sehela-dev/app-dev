@@ -9,7 +9,7 @@ import { Divider } from "@/components/ui/divider";
 import { SearchInput } from "@/components/ui/search-input";
 import { useDebounce } from "@/hooks";
 import { useGetSessions } from "@/hooks/api/queries/admin/class-session";
-import { defaultDate, formatDateHelper } from "@/lib/helper";
+import { checkIsinHour, defaultDate, formatDateHelper } from "@/lib/helper";
 import { cn } from "@/lib/utils";
 import { ISessionItem } from "@/types/class-sessions.interface";
 import { Calendar, Clock, Loader2, User, Users } from "lucide-react";
@@ -20,6 +20,7 @@ import { useBookingSession } from "@/hooks/api/mutations/admin";
 import { OrderCustomerSectionComponent } from "@/components/page/orders";
 import { useAdminPermission } from "@/hooks/use-role-access";
 import { Badge } from "@/components/ui/badge";
+import { toast } from "sonner";
 
 const enrollmentType = [
   {
@@ -80,6 +81,10 @@ export const EnrollStudentView = () => {
     setSelectedSession((prev) => (prev?.id === data.id ? null : data));
     selectSession(data);
   };
+  const onAdminEnrollPastTime = (endTime: string) => {
+
+
+  }
   useEffect(() => {
     if (sessionData) {
       handleScroll();
@@ -93,13 +98,13 @@ export const EnrollStudentView = () => {
         ...(tabs === "credit"
           ? { user_id: customerData?.id as string, payment_method: "credits", package_purchase_id: customerData?.package?.package_purchase_id }
           : {
-              third_party_id: customerData?.third_party?.id,
-              booking_id: customerData?.booking_id,
-              ...(customerData?.id ? { user_id: customerData?.id as string } : null),
-              customer_name: customerData?.name,
-              customer_phone: customerData?.phone,
-              customer_email: customerData?.email,
-            }),
+            third_party_id: customerData?.third_party?.id,
+            booking_id: customerData?.booking_id,
+            ...(customerData?.id ? { user_id: customerData?.id as string } : null),
+            customer_name: customerData?.name,
+            customer_phone: customerData?.phone,
+            customer_email: customerData?.email,
+          }),
         status: "paid",
 
         // ...(customerData?.package?.package_purchase_id ? {})
@@ -188,8 +193,14 @@ export const EnrollStudentView = () => {
                           isManager
                             ? () => onSelectSession(item)
                             : item.status === "scheduled" || item.status === "ongoing"
-                            ? () => onSelectSession(item)
-                            : () => {}
+                              ? () => onSelectSession(item)
+                              : checkIsinHour(item.time_end) ? () => onSelectSession(item) : () => {
+                                return toast.error("Warning!", {
+                                  id: "warning",
+                                  description: "As admin you can only enroll finished class in within One Hour range!",
+                                  position: "top-center",
+                                });
+                              }
                         }
                         isSelected={item.id === sessionData?.id}
                         status={item.status}
@@ -339,9 +350,12 @@ interface IProps {
   isSelected?: boolean;
   status?: string;
   onSelect?: () => void;
+  endTime?: string;
 }
 export const CardSession = (props: IProps) => {
   const { isManager } = useAdminPermission();
+
+
   return (
     <Card
       className={cn("gap-1 border-2 hover:bg-brand-100 hover:border-brand-500 cursor-pointer", {
