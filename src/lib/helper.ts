@@ -379,4 +379,3 @@ export const checkIsinHour = (endDateTime: string | Date): boolean => {
 
   return now >= endMs && now <= oneHourAfterEnd;
 };
-

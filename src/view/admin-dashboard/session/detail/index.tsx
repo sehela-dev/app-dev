@@ -145,7 +145,7 @@ export const SessionDetailPage = () => {
       value: (row: IParticipantsSession) => <div className="flex w-full items-center">
         <Button className="w-8 h-8" onClick={() => {
           const msg = reminderMessage(row.customer_name, data?.data?.session_name as string, `${data?.data?.time_start} - ${data?.data?.time_end}`, `${data?.data?.location}`)
-          sendReminder(row?.customer_phone, msg)
+          sendReminder(row?.customer_phone.trim(), msg)
         }} disabled={data?.data?.status === 'ended' || data?.data?.status === 'cancelled'}><BellRing /></Button>
       </div>
 
