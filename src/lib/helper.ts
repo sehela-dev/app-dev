@@ -365,14 +365,18 @@ export const sendReminder = (phone: string, msg: string) => {
   window.open(url, "_blank");
 };
 
-export const checkIsinHour = (time: string): boolean => {
-  const [hours, minutes] = time.split(":").map(Number);
-  if (Number.isNaN(hours) || Number.isNaN(minutes)) return false;
+/**
+ * True when now is at/after session end and still within 1 hour after end.
+ * Past that window → enrollment should not proceed.
+ */
+export const checkIsinHour = (endDateTime: string | Date): boolean => {
+  const end = typeof endDateTime === "string" ? new Date(endDateTime) : endDateTime;
+  if (Number.isNaN(end.getTime())) return false;
 
-  const now = new Date();
-  const nowMinutes = now.getHours() * 60 + now.getMinutes();
-  const targetMinutes = hours * 60 + minutes;
-  const diffMinutes = nowMinutes - targetMinutes;
+  const now = Date.now();
+  const endMs = end.getTime();
+  const oneHourAfterEnd = endMs + 60 * 60 * 1000;
 
-  return diffMinutes >= 0 && diffMinutes <= 60;
+  return now >= endMs && now <= oneHourAfterEnd;
 };
+

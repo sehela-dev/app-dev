@@ -20,7 +20,6 @@ import { useBookingSession } from "@/hooks/api/mutations/admin";
 import { OrderCustomerSectionComponent } from "@/components/page/orders";
 import { useAdminPermission } from "@/hooks/use-role-access";
 import { Badge } from "@/components/ui/badge";
-import { toast } from "sonner";
 
 const enrollmentType = [
   {
@@ -81,10 +80,15 @@ export const EnrollStudentView = () => {
     setSelectedSession((prev) => (prev?.id === data.id ? null : data));
     selectSession(data);
   };
-  const onAdminEnrollPastTime = (endTime: string) => {
 
+  const canSelectSession = (item: ISessionItem) => {
+    if (item.status === "cancelled" || item.status === "canceled") return false;
+    if (isManager) return true;
+    if (item.status === "scheduled" || item.status === "ongoing") return true;
+    if (item.status === "ended") return checkIsinHour(item.end_datetime);
+    return false;
+  };
 
-  }
   useEffect(() => {
     if (sessionData) {
       handleScroll();
@@ -189,21 +193,10 @@ export const EnrollStudentView = () => {
                         time={`${item.time_start} - ${item.time_end}`}
                         slot={item.slots_display}
                         title={`[${item?.class?.class_name}] - ${item.session_name}`}
-                        onSelect={
-                          isManager
-                            ? () => onSelectSession(item)
-                            : item.status === "scheduled" || item.status === "ongoing"
-                              ? () => onSelectSession(item)
-                              : checkIsinHour(item.time_end) ? () => onSelectSession(item) : () => {
-                                return toast.error("Warning!", {
-                                  id: "warning",
-                                  description: "As admin you can only enroll finished class in within One Hour range!",
-                                  position: "top-center",
-                                });
-                              }
-                        }
+                        onSelect={canSelectSession(item) ? () => onSelectSession(item) : undefined}
                         isSelected={item.id === sessionData?.id}
                         status={item.status}
+                        disabled={!canSelectSession(item)}
                       />
                     ))}
                   </div>
@@ -350,25 +343,28 @@ interface IProps {
   isSelected?: boolean;
   status?: string;
   onSelect?: () => void;
-  endTime?: string;
+  disabled?: boolean;
 }
 export const CardSession = (props: IProps) => {
-  const { isManager } = useAdminPermission();
-
+  const isCancelled = props.status === "cancelled" || props.status === "canceled";
+  const isDisabled = Boolean(props.disabled);
 
   return (
     <Card
       className={cn("gap-1 border-2 hover:bg-brand-100 hover:border-brand-500 cursor-pointer", {
         " bg-brand-100 border-brand-500": props.isSelected,
-        "cursor-not-allowed bg-gray-200 hover:bg-gray-200 hover:border-gray-200 opacity-45":
-          (props.status === "ended" || props?.status === "cancelled") && !isManager,
+        "cursor-not-allowed bg-gray-200 hover:bg-gray-200 hover:border-gray-200 opacity-45 pointer-events-none":
+          isDisabled,
       })}
-      onClick={props.onSelect}
+      onClick={isDisabled ? undefined : props.onSelect}
     >
       <CardHeader className="font-semibold">
         <div className="flex flex-col gap-2">
           <div className="">
-            <Badge className="capitalize text-xs" variant={props?.status === "ended" || props?.status === "canceled" ? "destructive" : "default"}>
+            <Badge
+              className="capitalize text-xs"
+              variant={props?.status === "ended" || isCancelled ? "destructive" : "default"}
+            >
               {props?.status}
             </Badge>
           </div>
