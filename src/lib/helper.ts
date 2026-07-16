@@ -361,7 +361,7 @@ Terima kasih dan sampai jumpa! :)`;
 };
 
 export const sendReminder = (phone: string, msg: string) => {
-  const url = `https://wa.me/${phone}?text=${encodeURIComponent(msg)}`;
+  const url = `https://wa.me/${normalizePhoneNumber(phone)}?text=${encodeURIComponent(msg)}`;
   window.open(url, "_blank");
 };
 
@@ -378,4 +378,21 @@ export const checkIsinHour = (endDateTime: string | Date): boolean => {
   const oneHourAfterEnd = endMs + 60 * 60 * 1000;
 
   return now >= endMs && now <= oneHourAfterEnd;
+};
+
+/**
+ * Normalize Indonesian phone numbers for wa.me links.
+ * Converts 08…, 8…, and +62… into 62… (digits only).
+ */
+export const normalizePhoneNumber = (phone: string): string => {
+  if (!phone) return "";
+
+  const digits = phone.replace(/\D/g, "");
+  if (!digits) return "";
+
+  if (digits.startsWith("62")) return digits;
+  if (digits.startsWith("0")) return `62${digits.slice(1)}`;
+  if (digits.startsWith("8")) return `62${digits}`;
+
+  return digits;
 };
