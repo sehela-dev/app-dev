@@ -429,124 +429,117 @@ export const DashboardPage = () => {
           </Card>
         </div>
         {/* product */}
-        <div className="flex flex-col gap-4 pt-8">
-          <div className="flex flex-col">
-            <h3 className="text-2xl font-semibold">Product Sales Perfomance</h3>
-            <p className="text-gray-400 text-sm">Track product sales by category including Sports Wear, Equipment, and Merchandise.</p>
-          </div>
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between w-full">
-              <h4 className="text-[20px] font-semibold">Product Overall Results</h4>
-              <div className="flex flex-row items-center gap-2">
-                {filterOption?.map((f) => (
-                  <div key={f.value}>
-                    <Button
-                      variant={selectedFilterProduct === f.value ? "default" : "ghost"}
-                      onClick={() => {
-                        setSelectedFilterProduct(f.value);
-                        setProductPagination(0);
-                      }}
-                    >
-                      {f.name}
-                    </Button>
-                  </div>
-                ))}
-              </div>
-            </CardHeader>
-            <CardContent className="flex flex-row items-start justify-between">
-              <div className="flex flex-col gap-4 w-[75%]">
-                <div className="flex flex-col gap-1">
-                  <p className="text-gray-500 ">Product Revenue</p>
-                  <div className="flex flex-row items-center gap-4">
-                    <p className="text-[36px] font-medium">{formatCurrency(dashboardOverViewProduct?.data?.summary?.all_time_total_idr)}</p>
-                    {/* <div className="flex flex-row items-center gap-1">
-                      <ArrowUpRight size={18} color={true ? "var(--color-green-400)" : "var(--color-red-500)"} />
-                      <p
-                        className={cn("text-sm", {
-                          "text-green-400": true,
-                          "text-red-500": false,
-                        })}
-                      >
-                        20%
-                      </p>
-                    </div> */}
-                  </div>
-                  <div className="text-gray-500 text-wrap  flex-wrap max-w-[75%] ">
-                    <p className="w-full ">{categoryList?.temp.slice(0, 3)?.join(", ")}</p>
-                    {categoryList.moreClass > 0 && <span>, and {categoryList.moreClass} other category</span>}
-                  </div>
-
-                  {/* <p className="text-gray-500 capitalize text-wrap flex-wrap max-w-[75%] ">{classList?.join(", ")}</p> */}
-                </div>
-              </div>
-              <div className="min-h-[250px] h-[250px]">
-                <Separator
-                  orientation="vertical"
-                  style={{
-                    margin: "0 24px 0 0",
-                  }}
-                />
-              </div>
-
-              <div className="flex flex-col gap-2 w-full justify-between min-h-[250px]">
-                <div className="flex flex-col gap-2 w-full h-full">
-                  {c?.data[performacePagination]?.map((item: IOverallResultByClass) => (
-                    <Fragment key={item.category_id}>
-                      <div className="flex flex-row items-center justify-between w-full">
-                        <div className="flex flex-col w-full">
-                          <p className="text-sm font-medium">{item.category_name}</p>
-
-                          {/* <p className="text-xs text-gray-500">Last Month</p> */}
-                        </div>
-                        <div className="flex flex-row items-center w-full gap-4">
-                          {/* <div>..</div> */}
-                          <div className="flex flex-col gap-1 w-full justify-end text-right">
-                            <p className="font-medium">
-                              {formatCurrency(
-                                selectedFilter === "all" ? item.all_time_total_idr : (item.trends as any)[selectedFilter]?.revenue_idr ?? 0,
-                              )}
-                            </p>
-                            <div className="flex flex-row items-center justify-end text-right">
-                              <div>
-                                {(item.trends as any)[selectedFilter]?.percentage_change > 0 ? (
-                                  <ArrowUpRight color="var(--color-green-500)" size={18} />
-                                ) : (
-                                  <ArrowDownRight color="var(--color-red-500)" size={18} />
-                                )}
-                              </div>
-                              <p
-                                className={cn("text-sm font-medium text-red-500", {
-                                  "text-green-400": (item.trends as any)[selectedFilter]?.percentage_change >= 1,
-                                  "text-red-500": (item.trends as any)[selectedFilter]?.percentage_change <= 0,
-                                })}
-                              >
-                                {(item.trends as any)[selectedFilter]?.percentage_change ?? 0}%
-                              </p>
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                      <Divider className="w-full" />
-                    </Fragment>
-                  ))}
-                </div>
-                <div className="flex flex-row justify-center items-center gap-2">
-                  <div>
-                    <Button variant={"outline"} size={"icon"} onClick={() => handlePaginationProduct("-")}>
-                      <ChevronLeft />
-                    </Button>
-                  </div>
-                  <div>
-                    <Button variant={"outline"} size={"icon"} onClick={() => handlePaginationProduct("+")}>
-                      <ChevronRight />
-                    </Button>
-                  </div>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
+  
       </div>
     </div>
   );
 };
+
+
+// <div className="flex flex-col gap-4 pt-8">
+// <div className="flex flex-col">
+//   <h3 className="text-2xl font-semibold">Product Sales Perfomance</h3>
+//   <p className="text-gray-400 text-sm">Track product sales by category including Sports Wear, Equipment, and Merchandise.</p>
+// </div>
+// <Card>
+//   <CardHeader className="flex flex-row items-center justify-between w-full">
+//     <h4 className="text-[20px] font-semibold">Product Overall Results</h4>
+//     <div className="flex flex-row items-center gap-2">
+//       {filterOption?.map((f) => (
+//         <div key={f.value}>
+//           <Button
+//             variant={selectedFilterProduct === f.value ? "default" : "ghost"}
+//             onClick={() => {
+//               setSelectedFilterProduct(f.value);
+//               setProductPagination(0);
+//             }}
+//           >
+//             {f.name}
+//           </Button>
+//         </div>
+//       ))}
+//     </div>
+//   </CardHeader>
+//   <CardContent className="flex flex-row items-start justify-between">
+//     <div className="flex flex-col gap-4 w-[75%]">
+//       <div className="flex flex-col gap-1">
+//         <p className="text-gray-500 ">Product Revenue</p>
+//         <div className="flex flex-row items-center gap-4">
+//           <p className="text-[36px] font-medium">{formatCurrency(dashboardOverViewProduct?.data?.summary?.all_time_total_idr)}</p>
+        
+//         </div>
+//         <div className="text-gray-500 text-wrap  flex-wrap max-w-[75%] ">
+//           <p className="w-full ">{categoryList?.temp.slice(0, 3)?.join(", ")}</p>
+//           {categoryList.moreClass > 0 && <span>, and {categoryList.moreClass} other category</span>}
+//         </div>
+
+//         {/* <p className="text-gray-500 capitalize text-wrap flex-wrap max-w-[75%] ">{classList?.join(", ")}</p> */}
+//       </div>
+//     </div>
+//     <div className="min-h-[250px] h-[250px]">
+//       <Separator
+//         orientation="vertical"
+//         style={{
+//           margin: "0 24px 0 0",
+//         }}
+//       />
+//     </div>
+
+//     <div className="flex flex-col gap-2 w-full justify-between min-h-[250px]">
+//       <div className="flex flex-col gap-2 w-full h-full">
+//         {c?.data[performacePagination]?.map((item: IOverallResultByClass) => (
+//           <Fragment key={item.category_id}>
+//             <div className="flex flex-row items-center justify-between w-full">
+//               <div className="flex flex-col w-full">
+//                 <p className="text-sm font-medium">{item.category_name}</p>
+
+//                 {/* <p className="text-xs text-gray-500">Last Month</p> */}
+//               </div>
+//               <div className="flex flex-row items-center w-full gap-4">
+//                 {/* <div>..</div> */}
+//                 <div className="flex flex-col gap-1 w-full justify-end text-right">
+//                   <p className="font-medium">
+//                     {formatCurrency(
+//                       selectedFilter === "all" ? item.all_time_total_idr : (item.trends as any)[selectedFilter]?.revenue_idr ?? 0,
+//                     )}
+//                   </p>
+//                   <div className="flex flex-row items-center justify-end text-right">
+//                     <div>
+//                       {(item.trends as any)[selectedFilter]?.percentage_change > 0 ? (
+//                         <ArrowUpRight color="var(--color-green-500)" size={18} />
+//                       ) : (
+//                         <ArrowDownRight color="var(--color-red-500)" size={18} />
+//                       )}
+//                     </div>
+//                     <p
+//                       className={cn("text-sm font-medium text-red-500", {
+//                         "text-green-400": (item.trends as any)[selectedFilter]?.percentage_change >= 1,
+//                         "text-red-500": (item.trends as any)[selectedFilter]?.percentage_change <= 0,
+//                       })}
+//                     >
+//                       {(item.trends as any)[selectedFilter]?.percentage_change ?? 0}%
+//                     </p>
+//                   </div>
+//                 </div>
+//               </div>
+//             </div>
+//             <Divider className="w-full" />
+//           </Fragment>
+//         ))}
+//       </div>
+//       <div className="flex flex-row justify-center items-center gap-2">
+//         <div>
+//           <Button variant={"outline"} size={"icon"} onClick={() => handlePaginationProduct("-")}>
+//             <ChevronLeft />
+//           </Button>
+//         </div>
+//         <div>
+//           <Button variant={"outline"} size={"icon"} onClick={() => handlePaginationProduct("+")}>
+//             <ChevronRight />
+//           </Button>
+//         </div>
+//       </div>
+//     </div>
+//   </CardContent>
+// </Card>
+// </div>
