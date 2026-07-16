@@ -89,7 +89,7 @@ export const CashFlowView = () => {
     },
     {
       id: "outstanding",
-      text: "Outstan :ding",
+      text: "Outstanding",
       value: (row: ICashFlowByPaymentMethod) => formatCurrency(row.outstanding),
     },
     {
@@ -187,7 +187,7 @@ export const CashFlowView = () => {
                 }
                 title="Total Collected"
                 amount={formatCurrency(data?.data?.summary.collected)}
-                // percentage={20}
+              // percentage={20}
               />
 
               <CardRevenueComponent
@@ -201,7 +201,7 @@ export const CashFlowView = () => {
                 }
                 title="Total Transaction"
                 amount={String(data?.data?.summary?.collected_count)}
-                // percentage={20}
+              // percentage={20}
               />
               <CardRevenueComponent
                 icon={
@@ -214,7 +214,7 @@ export const CashFlowView = () => {
                 }
                 title="Total Refunded"
                 amount={formatCurrency(data?.data?.summary?.refund)}
-                // percentage={20}
+              // percentage={20}
               />
             </div>
 

@@ -54,6 +54,7 @@ export interface IAuthSignUpPaylaod {
   photo_consent?: boolean;
   tnc_agreed?: boolean;
   phone?: string;
+  current_password?: string;
 }
 export interface IAuthSignUpResponse {
   message: string;

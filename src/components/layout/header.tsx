@@ -8,6 +8,7 @@ import { useAuthMember } from "@/context/member.ctx";
 
 export const MainHeaderComponent = () => {
   const { user, isAuthenticated } = useAuthMember();
+  
   return (
     <div className="bg-gray-50 min-h-[58px] sticky top-0 z-50 w-full shadow-subtle shrink-0 ">
       <div className="flex flex-row items-center justify-between w-full p-3">
@@ -15,12 +16,14 @@ export const MainHeaderComponent = () => {
           <LogoComponent className="w-[99px] h-[32px]" />
         </div>
         <div className="flex flex-row items-center gap-2">
-          <div className="flex">
-            <Button className="border-brand-50 text-brand-500 text-sm font-serif leading-[130%] font-extrabold rounded-lg" variant={"outline"}>
-              <Gem color="var(--color-brand-500)" />
-              {user?.profile?.overview?.credits_balance ?? 0} Credits
-            </Button>
-          </div>
+          {isAuthenticated && !user?.isAdmin && (
+            <div className="flex">
+              <Button className="border-brand-50 text-brand-500 text-sm font-serif leading-[130%] font-extrabold rounded-lg" variant={"outline"}>
+                <Gem color="var(--color-brand-500)" />
+                {user?.profile?.overview?.credits_balance ?? 0} Credits
+              </Button>
+            </div>
+          )}
 
           <div className="flex">
             <MobileMenu isLoggedIn={isAuthenticated} />
