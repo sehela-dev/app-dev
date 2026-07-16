@@ -140,7 +140,6 @@ export const CustomersPage = () => {
   };
 
   const handleSearch = (e: string) => {
-    setPage(1);
     setSearch(e);
   };
 
