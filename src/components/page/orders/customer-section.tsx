@@ -54,7 +54,7 @@ export const OrderCustomerSectionComponent = ({ enroll = false }: { enroll?: boo
   const { control, handleSubmit } = methods;
   const [tabCustomer, setTabCustomer] = useState("search");
 
-  const { data, isLoading, refetch } = useGetCustomers({ search: debounceSearch });
+  const { data, isLoading, refetch } = useGetCustomers({ search: debounceSearch, status: 'true' });
   const bookings = methods.watch("booking_id");
 
   const onSubmit = handleSubmit(async (data) => {
@@ -162,7 +162,7 @@ export const OrderCustomerSectionComponent = ({ enroll = false }: { enroll?: boo
                                   className="w-full px-4 py-4 border-2 border-gray-200 rounded-lg text-gray-999  placeholder-gray-400 focus:outline-none focus:border-brand-500 transition-colors h-[42px]"
                                   placeholder="Type here.."
                                   {...field}
-                                  // className="w-auto min-w-[388px]"
+                                // className="w-auto min-w-[388px]"
                                 />
                               </FormControl>
                               <FormMessage />
@@ -191,7 +191,7 @@ export const OrderCustomerSectionComponent = ({ enroll = false }: { enroll?: boo
                                   className="w-full px-4 py-4 border-2 border-gray-200 rounded-lg text-gray-999  placeholder-gray-400 focus:outline-none focus:border-brand-500 transition-colors h-[42px]"
                                   placeholder="Type here.."
                                   {...field}
-                                  // className="w-auto min-w-[388px]"
+                                // className="w-auto min-w-[388px]"
                                 />
                               </FormControl>
                               <FormMessage />
@@ -213,7 +213,7 @@ export const OrderCustomerSectionComponent = ({ enroll = false }: { enroll?: boo
                                   className="w-full px-4 py-4 border-2 border-gray-200 rounded-lg text-brand-999 placeholder-gray-400 focus:outline-none focus:border-brand-500 transition-colors h-[42px]"
                                   placeholder="Type here.."
                                   {...field}
-                                  // className="w-auto min-w-[388px]"
+                                // className="w-auto min-w-[388px]"
                                 />
                               </FormControl>
                               <FormMessage />
@@ -234,7 +234,7 @@ export const OrderCustomerSectionComponent = ({ enroll = false }: { enroll?: boo
                                   placeholder="Type here.."
                                   type="email"
                                   {...field}
-                                  // className="w-auto min-w-[388px]"
+                                // className="w-auto min-w-[388px]"
                                 />
                               </FormControl>
                               <FormMessage />

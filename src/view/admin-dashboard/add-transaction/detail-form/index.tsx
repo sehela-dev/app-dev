@@ -69,7 +69,7 @@ export const DetailFormAddTransaction = () => {
     setSearch(e);
   };
 
-  const { data, isLoading, refetch } = useGetCustomers({ search: debounceSearch });
+  const { data, isLoading, refetch } = useGetCustomers({ search: debounceSearch, status: 'true' });
 
   const optionData = useCallback(() => {
     const custData = data?.data?.filter((item) => item.id !== customerData?.id);

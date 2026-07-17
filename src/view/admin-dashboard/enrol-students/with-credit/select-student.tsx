@@ -25,7 +25,7 @@ export const SelectStudentWithCreditComponent = ({ selectedSession }: IProps) =>
   const [search, setSearch] = useState("");
   const debounceSearch = useDebounce(search, 300);
 
-  const { data: customer, isLoading } = useGetCustomers({ page, limit, search: debounceSearch });
+  const { data: customer, isLoading } = useGetCustomers({ page, limit, search: debounceSearch, status: 'true' });
   const { data: walletCust, isLoading: loadingWallet } = useGetCustomerWallet({
     user: customerData?.id as string,
     session: selectedSession?.id as string,
