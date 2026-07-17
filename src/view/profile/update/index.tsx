@@ -1,5 +1,6 @@
 "use client";
 
+import { BaseDialogConfirmation } from "@/components/general/dialog-confirnation";
 import { PasswordInput } from "@/components/general/password-input";
 import { NavHeaderComponent } from "@/components/layout/header-checkout";
 import { Button } from "@/components/ui/button";
@@ -14,7 +15,7 @@ import { createFormData, normalizePhoneNumber, previewURLHelper } from "@/lib/he
 import { ACCEPTED_IMAGE_TYPES } from "@/resolver";
 import { Camera, ChevronRight } from "lucide-react";
 import Image from "next/image";
-import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useMemo, useRef, useState } from "react";
 import { FormProvider, useForm } from "react-hook-form";
 
@@ -25,12 +26,14 @@ const passwordInputClassName =
 
 export const UpdateProfilePage = () => {
   const inputRef = useRef<HTMLInputElement>(null);
-  const { profile, refetch } = useAuthMember();
+  const router = useRouter();
+  const { profile, refetch, logout } = useAuthMember();
   const { mutateAsync } = useUpdateProfile();
 
   const [photoFile, setPhotoFile] = useState<File | null>(null);
   const [sheetType, setSheetType] = useState<TSheetType>(null);
   const [open, setOpen] = useState(false);
+  const [openReloginDialog, setOpenReloginDialog] = useState(false);
 
   const acceptValue = useMemo(() => String(ACCEPTED_IMAGE_TYPES), []);
 
@@ -112,18 +115,34 @@ export const UpdateProfilePage = () => {
 
         res = await mutateAsync({
           current_password: data.current_password,
-          password: data.new_password,
+          new_password: data.new_password,
         });
+
+        if (res) {
+          handleCloseSheet();
+          setOpenReloginDialog(true);
+          return;
+        }
       }
 
       if (res) {
-        await refetch?.();
+        refetch?.();
         handleCloseSheet();
       }
-    } catch (error) {
+    } catch (error: any) {
+      if (error?.response?.data?.error?.code === 'INVALID_PASSWORD') {
+        methods.setError("current_password", { message: "Password Invalid!" });
+      }
+
       console.log(error);
     }
   });
+
+  const handleConfirmRelogin = () => {
+    setOpenReloginDialog(false);
+    logout();
+    router.push("/auth/login");
+  };
 
   const renderComponent = () => {
     switch (sheetType) {
@@ -421,6 +440,17 @@ export const UpdateProfilePage = () => {
           </form>
         </FormProvider>
       </Sheet>
+
+      <BaseDialogConfirmation
+        open={openReloginDialog}
+        image="warning-1"
+        title="Password updated successfully"
+        subtitle="For your security, please sign in again. Your current session will be replaced after you log in."
+        confirmText="Login again"
+        hideCancel
+        onCancel={() => { }}
+        onConfirm={handleConfirmRelogin}
+      />
     </div>
   );
 };

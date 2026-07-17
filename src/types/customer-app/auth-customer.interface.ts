@@ -55,6 +55,7 @@ export interface IAuthSignUpPaylaod {
   tnc_agreed?: boolean;
   phone?: string;
   current_password?: string;
+  new_password?: string;
 }
 export interface IAuthSignUpResponse {
   message: string;

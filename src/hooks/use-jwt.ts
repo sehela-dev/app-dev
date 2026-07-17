@@ -1,7 +1,7 @@
 import { useCallback } from "react";
-import { removeStorage, useLocalStorage } from "./use-local-storage";
+import { useLocalStorage } from "./use-local-storage";
 import { ILocalStorageData } from "@/types/auth/user.interface";
-import { getRoleStorageKey, setActiveRole } from "@/lib/auth-storage";
+import { clearSession, getRoleStorageKey, setActiveRole } from "@/lib/auth-storage";
 
 const defaultValues: ILocalStorageData = {
   access_token: "",
@@ -19,7 +19,10 @@ export const useJwtToken = () => {
     jwtAuth.setState(data);
   };
 
-  const resetJwt = useCallback(() => removeStorage(getRoleStorageKey("user")), []);
+  const resetJwt = useCallback(() => {
+    jwtAuth.resetState();
+    clearSession("user");
+  }, [jwtAuth.resetState]);
   const { access_token, refresh_token, expires_at, profile, isAdmin } = jwtAuth.state;
 
   return {
