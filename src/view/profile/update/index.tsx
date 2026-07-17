@@ -129,8 +129,9 @@ export const UpdateProfilePage = () => {
         refetch?.();
         handleCloseSheet();
       }
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (error: any) {
-      if (error?.response?.data?.error?.code === 'INVALID_PASSWORD') {
+      if (error?.response?.data?.error?.code === "INVALID_PASSWORD") {
         methods.setError("current_password", { message: "Password Invalid!" });
       }
 
@@ -448,7 +449,7 @@ export const UpdateProfilePage = () => {
         subtitle="For your security, please sign in again. Your current session will be replaced after you log in."
         confirmText="Login again"
         hideCancel
-        onCancel={() => { }}
+        onCancel={() => {}}
         onConfirm={handleConfirmRelogin}
       />
     </div>
