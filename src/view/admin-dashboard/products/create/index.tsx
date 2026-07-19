@@ -157,7 +157,7 @@ export const CreateProductPage = () => {
             </div>
             <div className="">
               <Button type="submit" disabled={!methods.formState.isValid}>
-                Create Instructor
+                Create Product
               </Button>
             </div>
           </div>

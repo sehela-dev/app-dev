@@ -16,13 +16,15 @@ import { defaultDate, formatCurrency, formatDateHelper, reminderMessage, sendRem
 import { cn } from "@/lib/utils";
 import { IParticipantsSession, ISessionItem } from "@/types/class-sessions.interface";
 import { IAttendanceStatus } from "@/types/orders.interface";
-import { BellRing, BellRingIcon, Ellipsis, File, Loader2, PenIcon, Send } from "lucide-react";
+import { BellRing, BellRingIcon, Copy, Ellipsis, File, Loader2, PenIcon, Send } from "lucide-react";
 import { useParams, useRouter } from "next/navigation";
 import { useState } from "react";
 import { CardSession } from "../../enrol-students";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { BaseDialogConfirmation } from "@/components/general/dialog-confirnation";
+import { toast } from "sonner";
+import { Badge } from "@/components/ui/badge";
 
 export const SessionDetailPage = () => {
   const router = useRouter();
@@ -61,8 +63,8 @@ export const SessionDetailPage = () => {
 
   const { mutateAsync, isPending } = useChangeAttendanceStatus();
   const { mutateAsync: cancelBooking } = useCancelBooking();
-  const [openReminder, setOpenReminder] = useState(false)
-  const { mutateAsync: remindAll } = useSendReminderSession()
+  const [openReminder, setOpenReminder] = useState(false);
+  const { mutateAsync: remindAll } = useSendReminderSession();
 
   const onConfirmAttendance = async (id: string, status: IAttendanceStatus) => {
     try {
@@ -94,17 +96,14 @@ export const SessionDetailPage = () => {
       const res = await cancelBooking(payload);
       if (res) {
         refetch();
-        setOpenCancel(false)
+        setOpenCancel(false);
         setSelectedDataCancel(null);
-
       }
     } catch (error) {
       console.log(error);
-    }
-    finally {
-      setOpenCancel(false)
-      setSelectedDataCancel(null)
-
+    } finally {
+      setOpenCancel(false);
+      setSelectedDataCancel(null);
     }
   };
 
@@ -112,7 +111,24 @@ export const SessionDetailPage = () => {
     {
       id: "customer_name",
       text: "Customer Name",
-      value: "customer_name",
+      value: (row: IParticipantsSession) => (
+        <div className="flex flex-row gap-2 w-full">
+          <p>{row?.customer_name}</p>
+          <Button
+            className="w-6 h-6"
+            variant={"outline"}
+            onClick={() => {
+              navigator.clipboard.writeText(row?.customer_name);
+              return toast.success("Name copied!", {
+                id: "error",
+                position: "top-center",
+              });
+            }}
+          >
+            <Copy />
+          </Button>
+        </div>
+      ),
     },
     {
       id: "customer_phone",
@@ -142,13 +158,25 @@ export const SessionDetailPage = () => {
     {
       id: "reminder",
       text: "Send Reminder",
-      value: (row: IParticipantsSession) => <div className="flex w-full items-center">
-        <Button className="w-8 h-8" onClick={() => {
-          const msg = reminderMessage(row.customer_name, data?.data?.session_name as string, `${data?.data?.time_start} - ${data?.data?.time_end}`, `${data?.data?.location}`)
-          sendReminder(row?.customer_phone.trim(), msg)
-        }} disabled={data?.data?.status === 'ended' || data?.data?.status === 'cancelled'}><BellRing /></Button>
-      </div>
-
+      value: (row: IParticipantsSession) => (
+        <div className="flex w-full items-center">
+          <Button
+            className="w-8 h-8"
+            onClick={() => {
+              const msg = reminderMessage(
+                row.customer_name,
+                data?.data?.session_name as string,
+                `${data?.data?.time_start} - ${data?.data?.time_end}`,
+                `${data?.data?.location}`,
+              );
+              sendReminder(row?.customer_phone.trim(), msg);
+            }}
+            disabled={data?.data?.status === "ended" || data?.data?.status === "cancelled"}
+          >
+            <BellRing />
+          </Button>
+        </div>
+      ),
     },
 
     {
@@ -184,23 +212,20 @@ export const SessionDetailPage = () => {
     setSearch("");
   };
   const onClickReminder = () => {
-    setOpenReminder(true)
-  }
+    setOpenReminder(true);
+  };
   const onRemindAll = async () => {
     try {
-      const res = await remindAll(id as string)
+      const res = await remindAll(id as string);
       if (res) {
-        console.log(res)
+        console.log(res);
       }
     } catch (err) {
-      console.log(err)
+      console.log(err);
+    } finally {
+      setOpenReminder(false);
     }
-    finally {
-      setOpenReminder(false)
-    }
-  }
-
-
+  };
 
   const {
     data: sessionList,
@@ -273,12 +298,27 @@ export const SessionDetailPage = () => {
         <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
       </div>
     );
+
   return (
     <Card>
       <CardHeader>
         <div className="flex flex-row items-center w-full justify-between">
           <div className="flex flex-col">
-            <h3 className="text-2xl font-semibold">Session Detail</h3>
+            <div className="flex flex-row items-center gap-4">
+              <h3 className="text-2xl font-semibold items-center">Session Detail</h3>
+              <Badge
+                className={cn("capitalize font-bold", {
+                  "text-green-500": data?.data?.status === "ongoing",
+                  "text-blue-500": data?.data?.status === "scheduled",
+                  "text-red-500": data?.data?.status === "ended",
+                  "text-yellow-500": data?.data?.status === "canceled",
+                })}
+                variant={"outline"}
+              >
+                {data?.data?.status}
+              </Badge>
+            </div>
+
             <p className="text-sm text-gray-500">Review all session details and make updates as needed</p>
           </div>
           <div className="flex flex-row items-center gap-2">
@@ -368,7 +408,6 @@ export const SessionDetailPage = () => {
                   </Button>
                 </div>
               } */}
-
             </div>
             <div className="flex flex-col gap-2">
               <CustomTable
@@ -499,11 +538,17 @@ export const SessionDetailPage = () => {
           />
         </div>
       </BaseDialogComponent>
-      {openReminder &&
-        <BaseDialogConfirmation open={openReminder} title="Send Reminder to all participants?" subtitle="Participants will be receive email according this session" onConfirm={onRemindAll} confirmText="Remind All" onCancel={() => setOpenReminder(false)} image="warning-1" />
-      }
-
-
+      {openReminder && (
+        <BaseDialogConfirmation
+          open={openReminder}
+          title="Send Reminder to all participants?"
+          subtitle="Participants will be receive email according this session"
+          onConfirm={onRemindAll}
+          confirmText="Remind All"
+          onCancel={() => setOpenReminder(false)}
+          image="warning-1"
+        />
+      )}
     </Card>
   );
 };

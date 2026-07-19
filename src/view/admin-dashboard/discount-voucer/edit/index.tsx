@@ -50,10 +50,10 @@ const defaultValues = {
   max_discount_idr: "0",
   usage_limit: "1",
   one_per_user: false,
-  valid_from: defaultDate().formattedToday,
+  valid_from: defaultDate().formattedToday ?? "",
   valid_time_from: "",
   valid_time_until: "",
-  valid_until: defaultDate().formattedOneMonthLater,
+  valid_until: defaultDate().formattedOneMonthLater ?? "",
 };
 
 export const EditDiscountVoucherPage = () => {
@@ -77,8 +77,8 @@ export const EditDiscountVoucherPage = () => {
       discount_type: detail?.data?.discount_type,
       discount_value: detail?.data?.discount_value,
       min_purchase_idr: detail?.data?.min_purchase_idr,
-      max_discount_idr: detail?.data?.max_discount_idr,
-      usage_limit: detail?.data?.usage_limit,
+      max_discount_idr: detail?.data?.max_discount_idr ?? "",
+      usage_limit: detail?.data?.usage_limit ?? "",
       one_per_user: detail?.data?.one_per_user,
       valid_from: detail?.data?.valid_from,
       valid_until: detail?.data?.valid_until,
