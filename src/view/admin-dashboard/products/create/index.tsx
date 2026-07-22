@@ -1,15 +1,18 @@
 "use client";
 
+import { CustomTable } from "@/components/general/custom-table";
 import { BaseDialogConfirmation } from "@/components/general/dialog-confirnation";
 import { PhotoUploadForm } from "@/components/general/photo-upload-form";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { BANK_LIST } from "@/constants/sample-data";
 import { useCreateInstructor } from "@/hooks/api/mutations/admin";
 import { DEFAULT_PASSWORD } from "@/lib/config";
+import { Ellipsis, Plus } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { FormProvider, useForm } from "react-hook-form";
@@ -43,6 +46,64 @@ export const CreateProductPage = () => {
 
   const handleOpenModal = (type: "SUCCESS" | "CANCEL") => {
     setOpen((prev) => ({ ...prev, [type]: !open[type] }));
+  };
+
+  const variantHeaders = [
+    {
+      id: "variant_name",
+      text: "Variant Name",
+      value: "variant_name",
+    },
+    {
+      id: "variant_desc",
+      text: "Variant Description",
+      value: "variant_desc",
+    },
+  ];
+
+  const headers = [
+    {
+      id: "variant_name",
+      text: "Variant Name",
+      value: "variant_name",
+    },
+    {
+      id: "variant_desc",
+      text: "Variant Description",
+      value: "variant_desc",
+    },
+  ];
+
+  const variantAction = {
+    text: "Action",
+    show: true,
+    render: () => (
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <Button variant="ghost" className="data-[state=open]:bg-muted text-muted-foreground flex size-8" size="icon">
+            <Ellipsis />
+          </Button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="end" className="w-32">
+          <DropdownMenuItem
+            onClick={() => {
+              // edit variant row
+            }}
+          >
+            Edit
+          </DropdownMenuItem>
+          <DropdownMenuItem
+            variant="destructive"
+            className=""
+            onClick={() => {
+              // delete row variant
+            }}
+          >
+            Delete
+          </DropdownMenuItem>
+        </DropdownMenuContent>
+      </DropdownMenu>
+    ),
   };
 
   return (
@@ -145,10 +206,38 @@ export const CreateProductPage = () => {
               </div>
             </CardContent>
           </Card>
-          {/* <Card>
-            <CardHeader></CardHeader>
-            <CardContent></CardContent>
-          </Card> */}
+          <Card>
+            <CardHeader>
+              <div className="flex flex-row items-center w-full justify-between">
+                <h2 className="text-lg font-semibold mb-4">Variants</h2>
+                <div className="flex">
+                  <Button
+                    size={"sm"}
+                    variant={"outline"}
+                    onClick={() => {
+                      // add popup to add  variants
+                    }}
+                  >
+                    <Plus />
+                    Add Variant
+                  </Button>
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent>
+              <CustomTable headers={variantHeaders} actionOptions={variantAction} />
+            </CardContent>
+          </Card>
+          <Card>
+            <CardHeader>
+              <div className="flex flex-row items-center w-full justify-between">
+                <h2 className="text-lg font-semibold mb-4">Detail Variant & Pricing</h2>
+              </div>
+            </CardHeader>
+            <CardContent>
+              <CustomTable headers={variantHeaders} actionOptions={variantAction} />
+            </CardContent>
+          </Card>
           <div className="flex w-full justify-end items-center gap-2">
             <div className="">
               <Button variant={"secondary"} type="button" onClick={() => handleOpenModal("CANCEL")}>
@@ -168,13 +257,14 @@ export const CreateProductPage = () => {
           image="success-add"
           onCancel={() => router.push("/admin/instructor")}
           open={open.SUCCESS}
-          title="Instructor Created Successfully"
+          title="Product Created Successfully"
           subtitle="Your new instructor has been successfully added."
           onConfirm={() => {
             methods.reset();
             handleOpenModal("SUCCESS");
+            window.location.reload();
           }}
-          cancelText="Instructor List"
+          cancelText="Product List"
           confirmText="Create More"
         />
       )}
