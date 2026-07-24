@@ -89,10 +89,16 @@ export const AddTransactionFOrm = () => {
       value: "instructor_name",
     },
     {
+      id: "time",
+      text: "Time",
+      value: (row: ISessionItem) => `${row.time_start} - ${row.time_end}`
+    },
+    {
       id: "date",
       text: "Date",
       value: (row: ISessionItem) => formatDateHelper(row.start_date, "dd/MM/yyyy"),
     },
+
     {
       id: "slot",
       text: "Slot",
