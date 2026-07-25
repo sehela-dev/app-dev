@@ -91,7 +91,7 @@ export const CompleteProfilePageView = () => {
         tnc_agreed: data?.tnc_agreed,
         phone: data?.phone,
       };
-      console.log(payload);
+
 
       const res = await mutateAsync(payload);
       if (res) {
@@ -144,7 +144,7 @@ export const CompleteProfilePageView = () => {
                           className="w-full px-4 py-4 border-2 border-gray-200 rounded-lg text-gray-600 placeholder-gray-400 focus:outline-none focus:border-brand-500 transition-colors h-[42px]"
                           placeholder="Type here..."
                           {...field}
-                          // className="w-auto min-w-[388px]"
+                        // className="w-auto min-w-[388px]"
                         />
                       </FormControl>
                       <FormMessage />
@@ -166,7 +166,7 @@ export const CompleteProfilePageView = () => {
                           placeholder="Type here..."
                           type="date"
                           {...field}
-                          // className="w-auto min-w-[388px]"
+                        // className="w-auto min-w-[388px]"
                         />
                       </FormControl>
                       <FormMessage />
@@ -219,7 +219,7 @@ export const CompleteProfilePageView = () => {
                           placeholder="mail@example.com"
                           readOnly
                           {...field}
-                          // className="w-auto min-w-[388px]"
+                        // className="w-auto min-w-[388px]"
                         />
                       </FormControl>
                       <FormMessage />
@@ -240,7 +240,7 @@ export const CompleteProfilePageView = () => {
                           className="w-full px-4 py-4 border-2 border-gray-200 rounded-lg text-gray-600 placeholder-gray-400 focus:outline-none focus:border-brand-500 transition-colors h-[42px]"
                           placeholder="0812xxxx"
                           {...field}
-                          // className="w-auto min-w-[388px]"
+                        // className="w-auto min-w-[388px]"
                         />
                       </FormControl>
                       <FormMessage />
@@ -258,7 +258,7 @@ export const CompleteProfilePageView = () => {
                           className="w-full px-4 py-4 border-2 border-gray-200 rounded-lg text-gray-600 placeholder-gray-400 focus:outline-none focus:border-brand-500 transition-colors h-[42px]"
                           placeholder="Type here..."
                           {...field}
-                          // className="w-auto min-w-[388px]"
+                        // className="w-auto min-w-[388px]"
                         />
                       </FormControl>
                       <FormMessage />
@@ -291,7 +291,7 @@ export const CompleteProfilePageView = () => {
                               hidden
                               accept={String(ACCEPTED_IMAGE_TYPES)}
                               onChange={(e) => field.onChange(e.target.files?.[0] || null)}
-                              // className="w-auto min-w-[388px]"
+                            // className="w-auto min-w-[388px]"
                             />
                             <div className="flex flex-col gap-2">
                               <Button className="text-sm" size={"sm"} type="button" onClick={() => inputRef.current?.click()}>

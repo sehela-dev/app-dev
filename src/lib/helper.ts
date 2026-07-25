@@ -168,14 +168,49 @@ export const createFormData = (values: any) => {
   const payload = new FormData();
 
   Object.entries(values).forEach(([key, value]: any) => {
-    if (value !== "") {
+    if (value === "" || value === null || value === undefined) return;
+
+    // Files
+    if (value instanceof File || value instanceof Blob) {
       payload.append(key, value);
+      return;
     }
+
+    // Arrays
+    if (Array.isArray(value)) {
+      if (value.length === 0) return;
+
+      // ✅ Handles your PhotoItem structure
+      if (value[0]?.file instanceof File) {
+        value.forEach((item) => payload.append(key, item.file));
+        return;
+      }
+
+      // Handles other file arrays
+      if (value[0] instanceof File) {
+        value.forEach((f) => payload.append(key, f));
+        return;
+      }
+
+      // Stringify objects (variants)
+      if (typeof value[0] === "object") {
+        payload.append(key, JSON.stringify(value));
+        return;
+      }
+    }
+
+    // Objects - stringify
+    if (typeof value === "object") {
+      payload.append(key, JSON.stringify(value));
+      return;
+    }
+
+    // Primitives
+    payload.append(key, String(value));
   });
 
   return payload;
 };
-
 export function bytesToMegabytes(bytes: number) {
   if (bytes === null || bytes === undefined) {
     return "N/A"; // Handle cases of null or undefined input

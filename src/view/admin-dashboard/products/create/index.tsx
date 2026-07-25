@@ -7,42 +7,135 @@ import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { BANK_LIST } from "@/constants/sample-data";
-import { useCreateInstructor } from "@/hooks/api/mutations/admin";
-import { DEFAULT_PASSWORD } from "@/lib/config";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
-import { FormProvider, useForm } from "react-hook-form";
-import Select from "react-select";
+import { useMemo, useState } from "react";
+import { FormProvider, useFieldArray, useForm } from "react-hook-form";
+import { Select as Selects, SelectItem, SelectGroup, SelectContent, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { useGetInventoryLocations, useGetProductCategories } from "@/hooks/api/queries/admin/products";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { Label } from "@/components/ui/label";
+import { Plus, Trash } from "lucide-react";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { CreateProductFormValues, ProductFormSchema } from "@/resolver";
+import { createFormData } from "@/lib/helper";
+import { useCreateProduct } from "@/hooks/api/mutations/admin";
+import Select from 'react-select'
+
+
+
+const defaultValuesVariant = {
+  variant_name: "",
+  sku: "",
+  price_idr: '',
+  inventory: [],  // Array of { location_id, stock_total }
+  location: []  // Array for multiple selections (temporary, not in final payload)
+}
+
+
 
 export const CreateProductPage = () => {
   const router = useRouter();
-  const methods = useForm();
-  const { control, handleSubmit } = methods;
+  const methods = useForm<CreateProductFormValues>({
+    defaultValues: {
+      category_id: "",
+      name: "",
+      description: "",
+      photos: [],
+      type: 'buy',
+      variants: [],
+    },
+    resolver: zodResolver(ProductFormSchema),
+    mode: 'all',
+  });
+  const { control, handleSubmit, watch } = methods;
+  const { fields, append, remove } = useFieldArray({ name: 'variants', control, keyName: 'id' })
   const [open, setOpen] = useState({
     SUCCESS: false,
     CANCEL: false,
   });
+  const { data: location, isLoading: locationLoading } = useGetInventoryLocations()
 
-  const { mutateAsync } = useCreateInstructor();
+  const locationOption = useMemo(() => {
+    return location?.data?.map((item) => ({
+      value: item.id,
+      label: item.name
+    }))
+  }, [location])
+
+  const { mutateAsync } = useCreateProduct()
+
+  const [category, setCategory] = useState("")
+  const { data: categoryList } = useGetProductCategories({ page: 1, limit: 999 })
+
+  // Watch the variants to track location changes
+  const variants = watch('variants');
 
   const onSubmit = handleSubmit(async (data) => {
-    // try {
-    //   const payload = {
-    //     ...data,
-    //     bank_name: data?.bank_name.label,
-    //   };
-    //   const res = await mutateAsync(payload);
-    //   if (res) {
-    //     handleOpenModal("SUCCESS");
-    //   }
-    // } catch (error) {
-    //   console.log(error);
-    // }
+
+
+
+    try {
+      const variants = data?.variants?.map((item) => ({
+        price_idr: parseInt(item.price_idr),
+        variant_name: item.variant_name,
+        sku: item?.sku,
+        inventory: item.inventory?.map((i) => ({
+          location_id: i.location_id,
+          stock_total: parseInt(i.stock_total)
+        }))
+      }))
+      const temp = {
+        ...data,
+        photos: data?.photos,
+        variants,
+      }
+      const payload = createFormData(temp)
+      // console.log(tem
+
+      // console.log("📤 FormData entries:");
+      // for (const [key, value] of payload.entries()) {
+      //   if (key === "photos") {
+      //     console.log(`${key}:`, value instanceof File ? `✅ File (${(value as File).name})` : `❌ Not a file: ${typeof value}`);
+      //   } else {
+      //     console.log(`${key}:`, typeof value === "string" && value.length > 100 ? value.substring(0, 50) + "..." : value);
+      //   }
+      // }
+      const res = await mutateAsync(payload)
+      if (res) {
+        handleOpenModal('SUCCESS')
+      }
+
+    } catch (e) {
+      console.log(e)
+    }
+
+
+
+
   });
 
   const handleOpenModal = (type: "SUCCESS" | "CANCEL") => {
     setOpen((prev) => ({ ...prev, [type]: !open[type] }));
+  };
+
+  // Helper function to update inventory array when locations change
+  const handleLocationChange = (index: number, selectedLocations: any[]) => {
+    const currentVariant = variants?.[index]
+    const currentInventory = currentVariant?.inventory ?? [];
+
+    // Create new inventory array based on selected locations
+    const updatedInventory = selectedLocations.map((loc: any) => {
+      // Keep existing stock_total value if location was already selected
+      const existingInventory = currentInventory.find((inv: any) => inv.location_id === loc.value);
+      return {
+        location_id: loc.value,
+        stock_total: existingInventory?.stock_total || ''
+      };
+    });
+
+    // Update both location and inventory in the form
+    methods.setValue(`variants.${index}.location`, selectedLocations);
+    methods.setValue(`variants.${index}.inventory`, updatedInventory);
   };
 
   return (
@@ -54,12 +147,12 @@ export const CreateProductPage = () => {
       <FormProvider {...methods}>
         <form onSubmit={onSubmit} className="flex flex-col gap-4">
           <Card>
-            <CardHeader className="font-medium">Basic Information</CardHeader>
+            <CardHeader className="font-medium">Product Information</CardHeader>
             <CardContent>
-              <div className="grid grid-cols-3 gap-2">
+              <div className="grid grid-cols-2 gap-2">
                 <FormField
+                  name="name"
                   control={control}
-                  name="full_name"
                   render={({ field }) => (
                     <FormItem className="flex flex-col">
                       <FormLabel className=" text-brand-999 font-medium text-sm" required>
@@ -70,7 +163,6 @@ export const CreateProductPage = () => {
                           className="w-full px-4 py-4 border-2 border-gray-200 rounded-lg text-gray-999  placeholder-gray-400 focus:outline-none focus:border-brand-500 transition-colors h-[42px]"
                           placeholder="Type here.."
                           {...field}
-                          // className="w-auto min-w-[388px]"
                         />
                       </FormControl>
                       <FormMessage />
@@ -79,20 +171,35 @@ export const CreateProductPage = () => {
                 />
                 <FormField
                   control={control}
-                  name="email"
+                  name="category_id"
                   render={({ field }) => (
                     <FormItem className="flex flex-col">
                       <FormLabel className=" text-brand-999 font-medium text-sm" required>
-                        Email
+                        Product Category
                       </FormLabel>
                       <FormControl>
-                        <Input
-                          className="w-full px-4 py-4 border-2 border-gray-200 rounded-lg text-gray-999  placeholder-gray-400 focus:outline-none focus:border-brand-500 transition-colors h-[42px]"
-                          placeholder="Type here.."
-                          type="email"
+                        <Selects
                           {...field}
-                          // className="w-auto min-w-[388px]"
-                        />
+                          value={field.value}
+                          defaultValue={field.value}
+                          onValueChange={(e) => {
+                            field.onChange(e);
+                            setCategory(e)
+                          }}
+                        >
+                          <SelectTrigger className="w-full px-4 py-4 border-2 border-gray-200 rounded-lg text-gray-999  placeholder-gray-400 focus:outline-none focus:border-brand-500 transition-colors h-[42px]">
+                            <SelectValue placeholder="Select Category" className="!text-gray-400" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectGroup>
+                              {categoryList?.data?.map((item) => (
+                                <SelectItem value={item.id} key={item.id}>
+                                  {item?.name}
+                                </SelectItem>
+                              ))}
+                            </SelectGroup>
+                          </SelectContent>
+                        </Selects>
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -100,22 +207,41 @@ export const CreateProductPage = () => {
                 />
                 <FormField
                   control={control}
-                  name="phone"
+                  name="type"
+                  defaultValue={"buy"}
                   render={({ field }) => (
                     <FormItem className="flex flex-col">
-                      <FormLabel className=" text-brand-999 font-medium text-sm">WhatsApp</FormLabel>
+                      <FormLabel className=" text-brand-999 font-medium text-sm" required>
+                        Product Type
+                      </FormLabel>
                       <FormControl>
-                        <Input
-                          className="w-full px-4 py-4 border-2 border-gray-200 rounded-lg text-gray-999  placeholder-gray-400 focus:outline-none focus:border-brand-500 transition-colors h-[42px]"
-                          placeholder="Type here.."
-                          {...field}
-                          // className="w-auto min-w-[388px]"
-                        />
+                        <RadioGroup
+                          defaultValue="buy"
+                          value={field.value}
+                          className="flex flex-row gap-3 items-center"
+                          onValueChange={(e) => {
+                            field.onChange(e);
+                          }}
+                        >
+                          <div className="flex items-center gap-3">
+                            <RadioGroupItem value="buy" id="place" />
+                            <Label htmlFor="r1" className="text-brand-999">
+                              For Sell
+                            </Label>
+                          </div>
+                          <div className="flex items-center gap-3">
+                            <RadioGroupItem value="rent" id="place" />
+                            <Label htmlFor="r1" className="text-brand-999">
+                              For Rent
+                            </Label>
+                          </div>
+                        </RadioGroup>
                       </FormControl>
                       <FormMessage />
                     </FormItem>
                   )}
                 />
+
               </div>
               <FormField
                 control={control}
@@ -145,10 +271,166 @@ export const CreateProductPage = () => {
               </div>
             </CardContent>
           </Card>
-          {/* <Card>
-            <CardHeader></CardHeader>
-            <CardContent></CardContent>
-          </Card> */}
+          <Card>
+            <CardHeader className="font-medium"><div className="flex flex-row items-center w-full justify-between">
+              <h3>Product Variant</h3>
+              <div className="flex">
+                <Button size={'sm'} variant={'secondary'} onClick={() => append({ ...defaultValuesVariant })}><Plus /> Add Variant</Button>
+              </div>
+            </div></CardHeader>
+            <CardContent>
+              <div className="flex flex-col gap-2">
+                {fields?.map((field, index) =>
+                  <Card key={field.id}>
+                    <CardHeader className="text-lg font-semibold"><div className="flex flex-row items-center justify-between">
+                      <p className="text-lg font-semibold">#{index + 1}</p>
+                      <div className="flex">
+                        <Button className="h-8 w-8" size={'sm'} variant={'destructive'} onClick={() => remove(index)}><Trash /></Button>
+                      </div>
+                    </div></CardHeader>
+                    <CardContent>
+                      <div className="grid grid-cols-2 gap-4">
+                        <FormField
+                          control={control}
+                          name={`variants.${index}.variant_name`}
+                          render={({ field }) => (
+                            <FormItem className="flex flex-col">
+                              <FormLabel className=" text-brand-999 font-medium text-sm" required>
+                                Variant Name
+                              </FormLabel>
+                              <FormControl>
+                                <Input
+                                  className="w-full px-4 py-4 border-2 border-gray-200 rounded-lg text-gray-999  placeholder-gray-400 focus:outline-none focus:border-brand-500 transition-colors h-[42px]"
+                                  placeholder="Type here.."
+                                  {...field}
+                                />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+
+                        <FormField
+                          control={control}
+                          name={`variants.${index}.sku`}
+                          render={({ field }) => (
+                            <FormItem className="flex flex-col">
+                              <FormLabel className=" text-brand-999 font-medium text-sm" required>
+                                SKU
+                              </FormLabel>
+                              <FormControl>
+                                <Input
+                                  className="w-full px-4 py-4 border-2 border-gray-200 rounded-lg text-gray-999  placeholder-gray-400 focus:outline-none focus:border-brand-500 transition-colors h-[42px]"
+                                  placeholder="Type here.."
+                                  {...field}
+                                />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                        <FormField
+                          control={control}
+                          name={`variants.${index}.price_idr`}
+                          render={({ field }) => (
+                            <FormItem className="flex flex-col">
+                              <FormLabel className=" text-brand-999 font-medium text-sm" required>
+                                Price
+                              </FormLabel>
+                              <FormControl>
+                                <Input
+                                  className="w-full px-4 py-4 border-2 border-gray-200 rounded-lg text-gray-999  placeholder-gray-400 focus:outline-none focus:border-brand-500 transition-colors h-[42px]"
+                                  placeholder="Type here.."
+                                  {...field}
+                                />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+
+                        {/* Branch Selection */}
+                        <FormField
+                          control={control}
+                          name={`variants.${index}.location`}
+                          render={({ field }) => (
+                            <FormItem className="flex flex-col">
+                              <FormLabel className=" text-brand-999 font-medium text-sm" required>
+                                Branch
+                              </FormLabel>
+                              <FormControl>
+                                <Select
+                                  defaultValue={field.value || []}
+                                  options={locationOption as never}
+                                  isLoading={locationLoading}
+                                  className="basic-multi-select"
+                                  classNames={{
+                                    control: () =>
+                                      "w-full !border-2 !border-gray-200 rounded-lg text-gray-999  focus:outline-none focus:border-brand-500 transition-colors h-[42px] !rounded-md !bg-transparent shadow-xs",
+                                    placeholder: () => "placeholder-gray-400",
+                                    singleValue: () => "text-brand-999",
+                                    input: () => "text-brand-999 bg-none",
+                                  }}
+                                  isMulti
+                                  onChange={(selectedOptions: any) => {
+                                    handleLocationChange(index, selectedOptions);
+                                  }}
+                                />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+
+                        {/* Dynamic Stock Inputs based on selected locations */}
+                        {variants?.length as number > 0 ? <>
+                          {variants?.[index]?.inventory && variants[index].inventory.length > 0 && (
+                            <div className="col-span-2">
+                              <div className="space-y-3 bg-gray-50 p-4 rounded-lg">
+                                <p className="text-sm font-medium text-brand-999">Stock per Branch</p>
+                                {variants[index].inventory.map((inventoryItem: any, inventoryIndex: number) => {
+                                  // Find location name for display
+                                  const locationName = locationOption?.find(
+                                    (loc: any) => loc.value === inventoryItem.location_id
+                                  )?.label || inventoryItem.location_id;
+
+                                  return (
+                                    <FormField
+                                      key={`${index}-inventory-${inventoryIndex}`}
+                                      control={control}
+                                      name={`variants.${index}.inventory.${inventoryIndex}.stock_total`}
+                                      render={({ field }) => (
+                                        <FormItem className="flex flex-col">
+                                          <FormLabel className="text-brand-999 font-medium text-sm">
+                                            Stock - {locationName}
+                                          </FormLabel>
+                                          <FormControl>
+                                            <Input
+                                              type="number"
+                                              className="w-full px-4 py-4 border-2 border-gray-200 rounded-lg text-gray-999 placeholder-gray-400 focus:outline-none focus:border-brand-500 transition-colors h-[42px]"
+                                              placeholder="Enter stock quantity"
+                                              {...field}
+                                            />
+                                          </FormControl>
+                                          <FormMessage />
+                                        </FormItem>
+                                      )}
+                                    />
+                                  );
+                                })}
+                              </div>
+                            </div>
+                          )}</> : <></>}
+
+
+                      </div>
+                    </CardContent>
+                  </Card>
+                )}
+              </div>
+
+            </CardContent>
+          </Card>
           <div className="flex w-full justify-end items-center gap-2">
             <div className="">
               <Button variant={"secondary"} type="button" onClick={() => handleOpenModal("CANCEL")}>
@@ -166,15 +448,16 @@ export const CreateProductPage = () => {
       {open.SUCCESS && (
         <BaseDialogConfirmation
           image="success-add"
-          onCancel={() => router.push("/admin/instructor")}
+          onCancel={() => router.push("/admin/products")}
           open={open.SUCCESS}
-          title="Instructor Created Successfully"
-          subtitle="Your new instructor has been successfully added."
+          title="Prodcut Created Successfully"
+          subtitle="Your new product has been successfully added."
           onConfirm={() => {
             methods.reset();
             handleOpenModal("SUCCESS");
+            window.location.reload()
           }}
-          cancelText="Instructor List"
+          cancelText="Product List"
           confirmText="Create More"
         />
       )}
@@ -183,9 +466,9 @@ export const CreateProductPage = () => {
           image="warning-1"
           onCancel={() => handleOpenModal("CANCEL")}
           open={open.CANCEL}
-          title="Instructor Not Saved"
+          title="Product Not Saved"
           subtitle="If you exit now, unsaved changes will be lost and cannot be recovered. Continue?"
-          onConfirm={() => router.push("/admin/instructor")}
+          onConfirm={() => router.push("/admin/products")}
           cancelText="Cancel"
           confirmText="Continue"
         />

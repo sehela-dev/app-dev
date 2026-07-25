@@ -41,31 +41,44 @@ export function PhotoUploadForm({ name, maxPhotos = 4, label = "Photo Product" }
   }, []);
 
   const processFiles = useCallback(
-    (files: FileList | null, currentPhotos: PhotoItem[]) => {
-      if (!files) return currentPhotos;
+    (files: FileList | null, currentPhotos: PhotoItem[], onComplete: (photos: PhotoItem[]) => void) => {
+      if (!files || files.length === 0) {
+        onComplete(currentPhotos);
+        return;
+      }
 
       const newPhotos = [...currentPhotos];
       const remainingSlots = maxPhotos - newPhotos.length;
-
-      Array.from(files)
+      const validFiles = Array.from(files)
         .slice(0, remainingSlots)
-        .forEach((file) => {
-          if (file.type.startsWith("image/")) {
-            const reader = new FileReader();
-            reader.onload = (e) => {
-              const preview = e.target?.result as string;
-              newPhotos.push({
-                id: generateId(),
-                file,
-                preview,
-                isCover: newPhotos.length === 0, // First photo is cover by default
-              });
-            };
-            reader.readAsDataURL(file);
-          }
-        });
+        .filter((file) => file.type.startsWith("image/"));
 
-      return newPhotos;
+      if (validFiles.length === 0) {
+        onComplete(newPhotos);
+        return;
+      }
+
+      let loadedCount = 0;
+
+      validFiles.forEach((file) => {
+        const reader = new FileReader();
+        reader.onload = (e) => {
+          const preview = e.target?.result as string;
+          newPhotos.push({
+            id: generateId(),
+            file,
+            preview,
+            isCover: newPhotos.length === 1, // First photo is cover by default
+          });
+
+          loadedCount++;
+          // Call onComplete once all files are loaded
+          if (loadedCount === validFiles.length) {
+            onComplete(newPhotos);
+          }
+        };
+        reader.readAsDataURL(file);
+      });
     },
     [maxPhotos],
   );
@@ -76,16 +89,14 @@ export function PhotoUploadForm({ name, maxPhotos = 4, label = "Photo Product" }
       e.stopPropagation();
       setDragActive(false);
 
-      const newPhotos = processFiles(e.dataTransfer.files, photos);
-      onChange(newPhotos);
+      processFiles(e.dataTransfer.files, photos, onChange);
     },
     [photos, processFiles],
   );
 
   const handleFileInput = useCallback(
     (e: React.ChangeEvent<HTMLInputElement>, onChange: any) => {
-      const newPhotos = processFiles(e.target.files, photos);
-      onChange(newPhotos);
+      processFiles(e.target.files, photos, onChange);
       e.target.value = ""; // Reset input
     },
     [photos, processFiles],
@@ -153,9 +164,8 @@ export function PhotoUploadForm({ name, maxPhotos = 4, label = "Photo Product" }
                 onDragLeave={handleDrag}
                 onDragOver={handleDrag}
                 onDrop={(e) => handleDrop(e, onChange)}
-                className={`relative w-[250px] h-[250px] rounded-lg border border-dashed transition-colors border-brand-400 ${
-                  dragActive ? "border-primary bg-primary/5" : "border-border bg-muted/30"
-                }`}
+                className={`relative w-[250px] h-[250px] rounded-lg border border-dashed transition-colors border-brand-400 ${dragActive ? "border-primary bg-primary/5" : "border-border bg-muted/30"
+                  }`}
               >
                 <input
                   type="file"
