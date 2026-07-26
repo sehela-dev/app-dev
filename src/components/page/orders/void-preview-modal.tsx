@@ -14,6 +14,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { AlertCircle, AlertTriangle, CheckCircle2, ChevronDown, ChevronUp, Loader2 } from 'lucide-react';
 import { useGetVoidPreview } from '@/hooks/api/queries/admin/orders';
 import { formatCurrency } from '@/lib/helper';
+import { Badge } from '@/components/ui/badge';
 
 
 export interface TransactionVoidDialogProps {
@@ -71,7 +72,8 @@ export const TransactionVoidDialog = ({
       <AlertDialogContent className="min-w-[55vw] max-h-[90vh] overflow-y-auto">
         <AlertDialogHeader>
           <AlertDialogTitle className="text-brand-500">
-            {step === 'preview' ? 'Preview Transaction Void' : 'Confirm Void Reason'}
+            {step === 'preview' ? 'Preview Transaction Void' : 'Confirm Void Reason'} {data?.data?.possible ?
+              <Badge>Voidable</Badge> : <Badge variant={'destructive'}>Non Voidable</Badge>}
           </AlertDialogTitle>
         </AlertDialogHeader>
         {isLoading ? <div className="flex items-center justify-center py-6">
@@ -236,8 +238,8 @@ const PreviewStep = ({
 
         {/* Packages */}
         {(data?.data.effects?.packages?.length ?? 0) > 0 && (
-          <EffectSection title={`Package Adjustments (${data.effects?.packages?.length})`}>
-            {data.effects?.packages?.map((pkg: any, i: number) => (
+          <EffectSection title={`Package Adjustments (${data?.data.effects?.packages?.length})`}>
+            {data?.data.effects?.packages?.map((pkg: any, i: number) => (
               <div key={i} className="text-sm space-y-1">
                 <div className="flex justify-between py-1">
                   <span className="text-muted-foreground">Status:</span>
