@@ -8,11 +8,9 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card";
 import { Divider } from "@/components/ui/divider";
-import { Select, SelectGroup, SelectValue, SelectTrigger, SelectContent, SelectItem } from "@/components/ui/select";
-import { MONTH_LIST, YEAR_LIST } from "@/constants/sample-data";
-import { useGetCustomerActivity, useGetCustomerDetail, useGetCustomerTrx } from "@/hooks/api/queries/admin/customers";
-import { defaultDate, formatCurrency, formatDateHelper } from "@/lib/helper";
-import { ICustomerActvity, ICustomerTrx } from "@/types/customers.interface";
+import { useGetCustomerActivity, useGetCustomerDetail, useGetCustomerTrx, useGetHistoricalPackagePurchases } from "@/hooks/api/queries/admin/customers";
+import { formatCurrency, formatDateHelper } from "@/lib/helper";
+import { ICustomerActvity, ICustomerTrx, IHistoricalPackagePurchase } from "@/types/customers.interface";
 import { Loader2, PenIcon } from "lucide-react";
 import { useParams, useRouter } from "next/navigation";
 import { useState } from "react";
@@ -21,6 +19,10 @@ const instructorTabs = [
   {
     value: "basic",
     name: "Information",
+  },
+  {
+    value: "credit-history",
+    name: "Credit History",
   },
   {
     value: "activity",
@@ -36,41 +38,42 @@ export const CustomerDetailPage = () => {
   const router = useRouter();
   const params = useParams();
   const { id } = params;
-  const [page, setPage] = useState(1);
-  const [selectPeriod, setSelectPeriod] = useState({
-    month: formatDateHelper(defaultDate().formattedToday, "M") as string,
-    year: formatDateHelper(defaultDate().formattedToday, "yyyy") as string,
-  });
+  const [tabs, setTabs] = useState("basic");
+  const [activityPage, setActivityPage] = useState(1);
+  const [transactionPage, setTransactionPage] = useState(1);
+  const [creditHistoryPage, setCreditHistoryPage] = useState(1);
   const [selectedRange, setSelectedRange] = useState<{ startDate?: string | null; endDate?: string | null }>({
     startDate: null,
     endDate: null,
   });
 
   const handleDateRangeChangeDual = (startDate?: string, endDate?: string) => {
-    setSelectedRange((prev) => ({ ...prev, startDate: startDate as string, endDate: endDate as string }));
-    refetch();
+    setSelectedRange({ startDate: startDate ?? null, endDate: endDate ?? null });
+    setActivityPage(1);
   };
   const { data, isLoading } = useGetCustomerDetail(id as string);
-  const {
-    data: activity,
-    isLoading: loadingActivity,
-    refetch,
-  } = useGetCustomerActivity({
+  const { data: activity, isLoading: loadingActivity } = useGetCustomerActivity({
     id: id as string,
     startDate: selectedRange.startDate as string,
     endDate: selectedRange.endDate as string,
-    page,
+    page: activityPage,
     limit: 10,
-  });
-
-  const [tabs, setTabs] = useState("basic");
-  const { data: trx, isLoading: loadingTrx } = useGetCustomerTrx({ id: id as string, page, limit: 10 }, tabs as string);
-
-  console.log(trx);
-
-  const handleSelectPeriode = (type: "month" | "year", data: string) => {
-    setSelectPeriod((prev) => ({ ...prev, [type]: data }));
-  };
+  }, tabs === "activity");
+  const { data: trx, isLoading: loadingTrx } = useGetCustomerTrx({ id: id as string, page: transactionPage, limit: 10 }, tabs === "trx");
+  const {
+    data: historicalPurchases,
+    isLoading: loadingHistoricalPurchases,
+    isError: historicalPurchasesError,
+    error: historicalPurchasesErrorDetail,
+    refetch: refetchHistoricalPurchases,
+  } = useGetHistoricalPackagePurchases(
+    {
+      userId: id as string,
+      page: creditHistoryPage,
+      pageSize: 20,
+    },
+    tabs === "credit-history",
+  );
 
   const headers = [
     {
@@ -158,6 +161,53 @@ export const CustomerDetailPage = () => {
     },
   ];
 
+  const historicalPurchaseHeaders = [
+    {
+      id: "package",
+      text: "Package",
+      value: (row: IHistoricalPackagePurchase) => (
+        <div className="flex flex-col gap-1">
+          <span>{row.credit_package?.name ?? "-"}</span>
+          <span className="text-xs text-gray-500">Per credit: {row.per_credit_value_idr === null ? "-" : formatCurrency(row.per_credit_value_idr)}</span>
+        </div>
+      ),
+    },
+    {
+      id: "purchased_at",
+      text: "Purchased Date",
+      value: (row: IHistoricalPackagePurchase) => (row.purchased_at ? formatDateHelper(row.purchased_at, "dd/MM/yyyy H:mm") : "-"),
+    },
+    {
+      id: "package_type",
+      text: "Package Type",
+      value: (row: IHistoricalPackagePurchase) => <p className="capitalize">{row.credit_package?.package_type ?? "-"}</p>,
+    },
+    {
+      id: "status",
+      text: "Status",
+      value: (row: IHistoricalPackagePurchase) => (
+        <Badge className="capitalize" variant={row.status === "paid" ? "default" : "destructive"}>
+          {row.status ?? "-"}
+        </Badge>
+      ),
+    },
+    {
+      id: "credits_remaining",
+      text: "Credits Remaining",
+      value: (row: IHistoricalPackagePurchase) => String(row.credits_remaining),
+    },
+    {
+      id: "credits_used",
+      text: "Credits Used",
+      value: (row: IHistoricalPackagePurchase) => String(row.credits_used),
+    },
+    {
+      id: "expires_at",
+      text: "Expired At",
+      value: (row: IHistoricalPackagePurchase) => (row.expires_at ? formatDateHelper(row.expires_at, "dd/MM/yyyy H:mm") : "-"),
+    },
+  ];
+
   if (isLoading)
     return (
       <div className="flex items-center justify-center py-6">
@@ -166,8 +216,10 @@ export const CustomerDetailPage = () => {
     );
   return (
     <div className="flex flex-col gap-4">
-      <div className="max-w-[25%]">
-        <GeneralTabComponent selecetedTab={tabs} setTab={setTabs} tabs={instructorTabs} />
+      <div className="w-full overflow-x-auto">
+        <div className="min-w-[640px]">
+          <GeneralTabComponent selecetedTab={tabs} setTab={setTabs} tabs={instructorTabs} />
+        </div>
       </div>
       {tabs === "basic" && (
         <Card>
@@ -257,48 +309,6 @@ export const CustomerDetailPage = () => {
                     allowFutureDates
                     allowPastDates
                   />
-                  {/* <div>
-                    <Select
-                      onValueChange={(e) => {
-                        handleSelectPeriode("year", e);
-                      }}
-                      value={selectPeriod.year as string}
-                    >
-                      <SelectTrigger className="w-full px-4 py-4 border-2 border-gray-200 rounded-lg text-gray-999  placeholder-gray-400 focus:outline-none focus:border-brand-500 transition-colors h-[42px]">
-                        <SelectValue placeholder="Select Month" className="!text-gray-400" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectGroup>
-                          {YEAR_LIST.map((item) => (
-                            <SelectItem value={String(item)} key={item}>
-                              {item}
-                            </SelectItem>
-                          ))}
-                        </SelectGroup>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div>
-                    <Select
-                      onValueChange={(e) => {
-                        handleSelectPeriode("month", e);
-                      }}
-                      value={selectPeriod.month as string}
-                    >
-                      <SelectTrigger className="w-full px-4 py-4 border-2 border-gray-200 rounded-lg text-gray-999  placeholder-gray-400 focus:outline-none focus:border-brand-500 transition-colors h-[42px]">
-                        <SelectValue placeholder="Select Month" className="!text-gray-400" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectGroup>
-                          {MONTH_LIST.map((item) => (
-                            <SelectItem value={String(item.value)} key={item.value}>
-                              {item.label}
-                            </SelectItem>
-                          ))}
-                        </SelectGroup>
-                      </SelectContent>
-                    </Select>
-                  </div> */}
                 </div>
               </div>
             </CardHeader>
@@ -308,9 +318,9 @@ export const CustomerDetailPage = () => {
             <CardFooter>
               <CustomPagination
                 onPageChange={(e) => {
-                  setPage(e);
+                  setActivityPage(e);
                 }}
-                currentPage={page}
+                currentPage={activityPage}
                 showTotal
                 hasPrevPage={activity?.pagination?.has_prev}
                 hasNextPage={activity?.pagination?.has_next}
@@ -340,17 +350,72 @@ export const CustomerDetailPage = () => {
             <CardFooter>
               <CustomPagination
                 onPageChange={(e) => {
-                  setPage(e);
+                  setTransactionPage(e);
                 }}
-                currentPage={page}
+                currentPage={transactionPage}
                 showTotal
-                hasPrevPage={activity?.pagination?.has_prev}
-                hasNextPage={activity?.pagination?.has_next}
-                totalItems={activity?.pagination?.total_items as number}
-                totalPages={activity?.pagination?.total_pages as number}
+                hasPrevPage={trx?.pagination?.has_prev}
+                hasNextPage={trx?.pagination?.has_next}
+                totalItems={trx?.pagination?.total_items as number}
+                totalPages={trx?.pagination?.total_pages as number}
                 limit={10}
               />
             </CardFooter>
+          </Card>
+        </div>
+      )}
+      {tabs === "credit-history" && (
+        <div className="flex flex-col gap-4 w-full">
+          <Card>
+            <CardHeader>
+              <div className="flex flex-col gap-1">
+                <h3 className="text-2xl text-brand-999 font-medium">Credit History</h3>
+                <p className="text-sm text-gray-500 max-w-[80%]">Historical credit package purchases for this member.</p>
+              </div>
+            </CardHeader>
+            <CardContent>
+              {loadingHistoricalPurchases ? (
+                <div className="flex items-center justify-center gap-2 py-10 text-sm text-gray-500">
+                  <Loader2 className="h-4 w-4 animate-spin" /> Loading credit history...
+                </div>
+              ) : historicalPurchasesError ? (
+                <div className="flex flex-col items-center gap-3 py-10 text-center">
+                  <p className="text-sm text-gray-500">
+                    {historicalPurchasesErrorDetail instanceof Error ? historicalPurchasesErrorDetail.message : "Unable to load credit history."}
+                  </p>
+                  <Button variant="outline" onClick={() => refetchHistoricalPurchases()}>
+                    Retry
+                  </Button>
+                </div>
+              ) : historicalPurchases?.data.length ? (
+                <CustomTable headers={historicalPurchaseHeaders} data={historicalPurchases.data} />
+              ) : (
+                <div className="flex flex-col items-center gap-3 py-10 text-center">
+                  <p className="text-sm text-gray-500">
+                    {creditHistoryPage === 1 ? "No historical credit purchases for this member." : "There are no historical credit purchases on this page."}
+                  </p>
+                  {creditHistoryPage > 1 && (
+                    <Button variant="outline" onClick={() => setCreditHistoryPage((currentPage) => currentPage - 1)}>
+                      Back to previous page
+                    </Button>
+                  )}
+                </div>
+              )}
+            </CardContent>
+            {!historicalPurchasesError && !loadingHistoricalPurchases && (
+              <CardFooter>
+                <CustomPagination
+                  onPageChange={setCreditHistoryPage}
+                  currentPage={creditHistoryPage}
+                  showTotal
+                  hasPrevPage={historicalPurchases?.pagination?.has_prev}
+                  hasNextPage={historicalPurchases?.pagination?.has_next}
+                  totalItems={historicalPurchases?.pagination?.total_items ?? 0}
+                  totalPages={historicalPurchases?.pagination?.total_pages}
+                  limit={20}
+                />
+              </CardFooter>
+            )}
           </Card>
         </div>
       )}

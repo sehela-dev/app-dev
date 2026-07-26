@@ -9,6 +9,7 @@ import {
   TDeleteCustomer,
   TEditCustomer,
   TGetUserWallet,
+  TGetHistoricalPackagePurchases,
   TResendRegistrationEmail,
 } from "@/types/customers.interface";
 
@@ -68,6 +69,18 @@ export const getCustomerTrx: TCustomerTrx = async ({ id, page, limit }) => {
     params: {
       page,
       page_size: limit,
+    },
+  });
+  return res.data;
+};
+
+export const getHistoricalPackagePurchases: TGetHistoricalPackagePurchases = async ({ userId, page, pageSize }) => {
+  const res = await axiosx(true).get(`${MAIN_API_URL}/admin/package-purchases`, {
+    params: {
+      user_id: userId,
+      lifecycle: "historical",
+      page,
+      page_size: pageSize,
     },
   });
   return res.data;

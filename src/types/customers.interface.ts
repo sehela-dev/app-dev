@@ -172,6 +172,47 @@ export interface ICustomerActivityParams extends ICommonParams {
   id: string;
 }
 
+export interface IHistoricalPackagePurchasesParams {
+  userId: string;
+  page: number;
+  pageSize: number;
+}
+
+export interface IHistoricalCreditPackage {
+  id: string;
+  name: string;
+  package_type: string | null;
+}
+
+export interface IHistoricalPackagePurchasePayment {
+  id: string;
+  payment_method: string | null;
+  status: string | null;
+  amount_idr: number | null;
+}
+
+export interface IHistoricalPackagePurchaseUser {
+  id: string;
+  full_name: string | null;
+  email: string | null;
+}
+
+export interface IHistoricalPackagePurchase {
+  id: string;
+  user_id: string;
+  credit_package_id: string | null;
+  payment_id: string | null;
+  status: string | null;
+  purchased_at: string;
+  expires_at: string | null;
+  credits_remaining: number;
+  credits_used: number;
+  per_credit_value_idr: number | null;
+  credit_package: IHistoricalCreditPackage | null;
+  payment: IHistoricalPackagePurchasePayment | null;
+  user: IHistoricalPackagePurchaseUser | null;
+}
+
 export type TCustomerData = (params: ICommonParams) => Promise<IResponseData<ICustomerData[]>>;
 export type TCreteateCustomerAdmin = (data: ICreateNewCustomerAdminPaylod) => Promise<IResponseData<IResponseCustomer>>;
 export type TCustomerDetail = (id: string) => Promise<IResponseData<IResponseCustomerDetail>>;
@@ -181,6 +222,9 @@ export type TDeleteCustomer = (id: string) => Promise<IResponseData<IResponseCus
 export type TCustomerActivity = (params: ICustomerActivityParams) => Promise<IResponseData<ICustomerActvity[]>>;
 
 export type TCustomerTrx = ({ id, page, limit }: ICustomerActivityParams) => Promise<IResponseData<ICustomerTrx[]>>;
+export type TGetHistoricalPackagePurchases = (
+  params: IHistoricalPackagePurchasesParams,
+) => Promise<IResponseData<IHistoricalPackagePurchase[]>>;
 
 export interface IBodyResendEmailRegistration {
   email: string;
