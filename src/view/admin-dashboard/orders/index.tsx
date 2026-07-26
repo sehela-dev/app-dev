@@ -1,28 +1,37 @@
 "use client";
 
 import { DateRangePicker } from "@/components/base/date-range-picker";
+import { BaseDialogComponent } from "@/components/general/base-dialog-component";
 import { buildNumber, CustomTable } from "@/components/general/custom-table";
 import { CustomPagination } from "@/components/general/pagination-component";
+import { TransactionVoidDialog } from "@/components/page/orders";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card";
 
 import { SearchInput } from "@/components/ui/search-input";
 
-import { useGetOrders } from "@/hooks/api/queries/admin/orders";
+import { useGetOrders, useGetVoidPreview } from "@/hooks/api/queries/admin/orders";
+import { useAdminPermission } from "@/hooks/use-role-access";
 
 import { defaultDate, formatCurrency, formatDateHelper } from "@/lib/helper";
 import { IOrderItem } from "@/types/orders.interface";
-import { CirclePlus, File, ListFilter, ReceiptText } from "lucide-react";
+import { Ban, ChevronDown, ChevronUp, CirclePlus, File, ListFilter, ReceiptText } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 
 export const OrdersPageView = () => {
+  const [selectTrx, setSelectTrx] = useState("")
+  const { isManager } = useAdminPermission()
   const router = useRouter();
   // const [selecetedTab, setSelectedTab] = useState("week");
   const [limit] = useState(10);
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState("");
+  const [openPreview, setOpenPreview] = useState(false)
+  const [selectedDisposition, setSelectedDisposition] = useState('refunded_externally');
+
+  const { data: voidData, isLoading: loadingVoid, refetch: refetchVoid } = useGetVoidPreview(selectTrx)
 
   const [selectedRange, setSelectedRange] = useState({
     from: defaultDate().formattedOneMonthAgo,
@@ -86,9 +95,23 @@ export const OrdersPageView = () => {
     text: "Action",
     show: true,
     render: (row: IOrderItem) => (
-      <Button variant={"outline"} onClick={() => router.push(`orders/${row?.id}`)}>
-        <ReceiptText />
-      </Button>
+      <div className="flex flex-row gap-2">
+
+        <Button variant={"outline"} onClick={() => router.push(`orders/${row?.id}`)}>
+          <ReceiptText />
+        </Button>
+        {
+          isManager && <Button variant={'destructive'} onClick={() => {
+            // set modal trus for preview void
+            setSelectTrx(row.id)
+            setOpenPreview(true)
+
+          }}>
+            <Ban />
+          </Button>
+        }
+
+      </div>
     ),
   };
   return (
@@ -153,6 +176,11 @@ export const OrdersPageView = () => {
           />
         </CardFooter>
       </Card>
+      <TransactionVoidDialog isOpen={openPreview} trxId={selectTrx} onClose={() => {
+        setOpenPreview(false)
+      }} />
+
     </div>
   );
 };
+

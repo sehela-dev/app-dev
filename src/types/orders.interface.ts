@@ -325,3 +325,72 @@ export type TRescheduleSessionCust = (data: IReschedulePaylaod) => Promise<IResp
 export type TSendEmailReceipt = (data: ISendEmailReceipt) => Promise<IResponseData<IResponseSendReceipt>>;
 
 export type TCancelBooking = (data: ICancelBooking) => Promise<IResponseData<unknown>>;
+
+//void preview
+
+export interface IVoidPreviewData {
+  found: boolean;
+  effects: IEffectsVoid;
+  payment: IVoidPayment;
+  blockers: any[];
+  possible: boolean;
+  warnings: any[];
+  preview_token: string;
+  already_voided: boolean;
+  financial_disposition: FinancialDisposition;
+  requires_rental_recovery_confirmation: boolean;
+}
+
+export interface IEffectsVoid {
+  orders: any[];
+  refund: Refund;
+  payment: Payment;
+  voucher: any;
+  bookings: any[];
+  packages: Package[];
+  inventory: any[];
+  reactivations: any[];
+  rental_releases: any[];
+  location_inventory: any[];
+}
+
+export interface Refund {
+  status: string;
+  amount_idr: number;
+  refund_type: string;
+  when_disposition: string;
+}
+
+export interface Payment {
+  to_status: string;
+  payment_id: string;
+  from_status: string;
+}
+
+export interface Package {
+  to_status: string;
+  root_purchase: boolean;
+  balance_before: number;
+  ledger_adjustment: number;
+  clear_pending_share: boolean;
+  package_purchase_id: string;
+  preserve_share_history: boolean;
+}
+
+export interface IVoidPayment {
+  id: string;
+  status: string;
+  order_id: string;
+  provider: string;
+  created_at: string;
+  payable_type: string;
+  gross_amount_idr: number;
+}
+
+export interface FinancialDisposition {
+  required: boolean;
+  amount_idr: number;
+  allowed_dispositions: string[];
+}
+
+export type TVoidPreview = (data: string) => Promise<IResponseData<IVoidPreviewData>>;
