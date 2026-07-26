@@ -29,9 +29,6 @@ export const OrdersPageView = () => {
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState("");
   const [openPreview, setOpenPreview] = useState(false);
-  const [selectedDisposition, setSelectedDisposition] = useState("refunded_externally");
-
-  const { data: voidData, isLoading: loadingVoid, refetch: refetchVoid } = useGetVoidPreview(selectTrx);
 
   const [selectedRange, setSelectedRange] = useState({
     from: defaultDate().formattedOneMonthAgo,
@@ -67,7 +64,7 @@ export const OrdersPageView = () => {
     },
     {
       id: "date_purchased",
-      text: "Date",
+      text: "Created Date",
       value: (row: IOrderItem) => formatDateHelper(row?.date_purchased as string, "EEEE, dd MMM yyyy, H:mm"),
     },
     {
