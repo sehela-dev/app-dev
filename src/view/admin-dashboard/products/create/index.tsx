@@ -19,11 +19,16 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { CreateProductFormValues, ProductFormSchema } from "@/resolver";
 import { createFormData } from "@/lib/helper";
 import { useCreateProduct } from "@/hooks/api/mutations/admin";
-import Select from 'react-select'
+import Select, { MultiValue } from "react-select";
 
+type ProductLocationOption = {
+  value: string;
+  label: string;
+};
 
+type ProductVariantFormValue = NonNullable<CreateProductFormValues["variants"]>[number];
 
-const defaultValuesVariant = {
+const defaultValuesVariant: ProductVariantFormValue = {
   variant_name: "",
   sku: "",
   price_idr: '',
@@ -55,11 +60,11 @@ export const CreateProductPage = () => {
   });
   const { data: location, isLoading: locationLoading } = useGetInventoryLocations()
 
-  const locationOption = useMemo(() => {
+  const locationOption = useMemo<ProductLocationOption[]>(() => {
     return location?.data?.map((item) => ({
       value: item.id,
       label: item.name
-    }))
+    })) ?? [];
   }, [location])
 
   const { mutateAsync } = useCreateProduct()
@@ -120,14 +125,14 @@ export const CreateProductPage = () => {
   };
 
   // Helper function to update inventory array when locations change
-  const handleLocationChange = (index: number, selectedLocations: any[]) => {
+  const handleLocationChange = (index: number, selectedLocations: MultiValue<ProductLocationOption>) => {
     const currentVariant = variants?.[index]
     const currentInventory = currentVariant?.inventory ?? [];
 
     // Create new inventory array based on selected locations
-    const updatedInventory = selectedLocations.map((loc: any) => {
+    const updatedInventory = selectedLocations.map((loc) => {
       // Keep existing stock_total value if location was already selected
-      const existingInventory = currentInventory.find((inv: any) => inv.location_id === loc.value);
+      const existingInventory = currentInventory.find((inv) => inv.location_id === loc.value);
       return {
         location_id: loc.value,
         stock_total: existingInventory?.stock_total || ''
@@ -135,7 +140,7 @@ export const CreateProductPage = () => {
     });
 
     // Update both location and inventory in the form
-    methods.setValue(`variants.${index}.location`, selectedLocations);
+    methods.setValue(`variants.${index}.location`, [...selectedLocations]);
     methods.setValue(`variants.${index}.inventory`, updatedInventory);
   };
 
@@ -362,7 +367,7 @@ export const CreateProductPage = () => {
                               <FormControl>
                                 <Select
                                   defaultValue={field.value || []}
-                                  options={locationOption as never}
+                                  options={locationOption}
                                   isLoading={locationLoading}
                                   className="basic-multi-select"
                                   classNames={{
@@ -373,7 +378,7 @@ export const CreateProductPage = () => {
                                     input: () => "text-brand-999 bg-none",
                                   }}
                                   isMulti
-                                  onChange={(selectedOptions: any) => {
+                                  onChange={(selectedOptions) => {
                                     handleLocationChange(index, selectedOptions);
                                   }}
                                 />
@@ -389,10 +394,10 @@ export const CreateProductPage = () => {
                             <div className="col-span-2">
                               <div className="space-y-3 bg-gray-50 p-4 rounded-lg">
                                 <p className="text-sm font-medium text-brand-999">Stock per Branch</p>
-                                {variants[index].inventory.map((inventoryItem: any, inventoryIndex: number) => {
+                                {variants[index].inventory.map((inventoryItem, inventoryIndex) => {
                                   // Find location name for display
                                   const locationName = locationOption?.find(
-                                    (loc: any) => loc.value === inventoryItem.location_id
+                                    (loc) => loc.value === inventoryItem.location_id
                                   )?.label || inventoryItem.location_id;
 
                                   return (
