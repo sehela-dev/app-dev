@@ -21,17 +21,17 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 
 export const OrdersPageView = () => {
-  const [selectTrx, setSelectTrx] = useState("")
-  const { isManager } = useAdminPermission()
+  const [selectTrx, setSelectTrx] = useState("");
+  const { isManager } = useAdminPermission();
   const router = useRouter();
   // const [selecetedTab, setSelectedTab] = useState("week");
   const [limit] = useState(10);
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState("");
-  const [openPreview, setOpenPreview] = useState(false)
-  const [selectedDisposition, setSelectedDisposition] = useState('refunded_externally');
+  const [openPreview, setOpenPreview] = useState(false);
+  const [selectedDisposition, setSelectedDisposition] = useState("refunded_externally");
 
-  const { data: voidData, isLoading: loadingVoid, refetch: refetchVoid } = useGetVoidPreview(selectTrx)
+  const { data: voidData, isLoading: loadingVoid, refetch: refetchVoid } = useGetVoidPreview(selectTrx);
 
   const [selectedRange, setSelectedRange] = useState({
     from: defaultDate().formattedOneMonthAgo,
@@ -42,7 +42,7 @@ export const OrdersPageView = () => {
     setSelectedRange((prev) => ({ ...prev, from: startDate, to: endDate ?? "" }));
   };
 
-  const { data, isLoading } = useGetOrders({ page, limit, search, startDate: selectedRange.from, endDate: selectedRange.to });
+  const { data, isLoading, refetch } = useGetOrders({ page, limit, search, startDate: selectedRange.from, endDate: selectedRange.to });
 
   const numberOptions = {
     text: "No",
@@ -96,21 +96,21 @@ export const OrdersPageView = () => {
     show: true,
     render: (row: IOrderItem) => (
       <div className="flex flex-row gap-2">
-
         <Button variant={"outline"} onClick={() => router.push(`orders/${row?.id}`)}>
           <ReceiptText />
         </Button>
-        {
-          isManager && <Button variant={'destructive'} onClick={() => {
-            // set modal trus for preview void
-            setSelectTrx(row.id)
-            setOpenPreview(true)
-
-          }}>
+        {isManager && (
+          <Button
+            variant={"destructive"}
+            onClick={() => {
+              // set modal trus for preview void
+              setSelectTrx(row.id);
+              setOpenPreview(true);
+            }}
+          >
             <Ban />
           </Button>
-        }
-
+        )}
       </div>
     ),
   };
@@ -176,11 +176,16 @@ export const OrdersPageView = () => {
           />
         </CardFooter>
       </Card>
-      <TransactionVoidDialog isOpen={openPreview} trxId={selectTrx} onClose={() => {
-        setOpenPreview(false)
-      }} />
-
+      {openPreview && (
+        <TransactionVoidDialog
+          isOpen={openPreview}
+          trxId={selectTrx}
+          onClose={() => {
+            setOpenPreview(false);
+          }}
+          refetchOrders={refetch}
+        />
+      )}
     </div>
   );
 };
-

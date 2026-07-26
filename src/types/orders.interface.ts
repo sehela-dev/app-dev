@@ -332,9 +332,9 @@ export interface IVoidPreviewData {
   found: boolean;
   effects: IEffectsVoid;
   payment: IVoidPayment;
-  blockers: any[];
+  blockers: unknown[];
   possible: boolean;
-  warnings: any[];
+  warnings: unknown[];
   preview_token: string;
   already_voided: boolean;
   financial_disposition: FinancialDisposition;
@@ -342,16 +342,16 @@ export interface IVoidPreviewData {
 }
 
 export interface IEffectsVoid {
-  orders: any[];
+  orders: unknown[];
   refund: Refund;
   payment: Payment;
-  voucher: any;
-  bookings: any[];
+  voucher: unknown;
+  bookings: unknown[];
   packages: Package[];
-  inventory: any[];
-  reactivations: any[];
-  rental_releases: any[];
-  location_inventory: any[];
+  inventory: unknown[];
+  reactivations: unknown[];
+  rental_releases: unknown[];
+  location_inventory: unknown[];
 }
 
 export interface Refund {
@@ -392,5 +392,13 @@ export interface FinancialDisposition {
   amount_idr: number;
   allowed_dispositions: string[];
 }
+export interface ICommitVoidTrx {
+  preview_token: string;
+  reason: string;
+  financial_disposition: string;
+  external_refrence?: string;
+  rental_recovery_confirmed?: boolean;
+}
 
 export type TVoidPreview = (data: string) => Promise<IResponseData<IVoidPreviewData>>;
+export type TCommitVoid = ({ id, payload }: { id: string; payload: ICommitVoidTrx }) => Promise<IResponseData<unknown>>;

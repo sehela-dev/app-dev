@@ -1,21 +1,17 @@
-'use client';
+/* eslint-disable @typescript-eslint/no-explicit-any */
+"use client";
 
-import React, { useState } from 'react';
-import { Button } from '@/components/ui/button';
-import {
-  AlertDialog,
-  AlertDialogContent,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from '@/components/ui/alert-dialog';
+import React, { useState } from "react";
+import { Button } from "@/components/ui/button";
+import { AlertDialog, AlertDialogContent, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 
-import { Textarea } from '@/components/ui/textarea';
-import { AlertCircle, AlertTriangle, CheckCircle2, ChevronDown, ChevronUp, Loader2 } from 'lucide-react';
-import { useGetVoidPreview } from '@/hooks/api/queries/admin/orders';
-import { formatCurrency } from '@/lib/helper';
-import { Badge } from '@/components/ui/badge';
-
+import { Textarea } from "@/components/ui/textarea";
+import { AlertCircle, AlertTriangle, CheckCircle2, ChevronDown, ChevronUp, Loader2 } from "lucide-react";
+import { useGetVoidPreview } from "@/hooks/api/queries/admin/orders";
+import { formatCurrency } from "@/lib/helper";
+import { Badge } from "@/components/ui/badge";
+import { useCommitVoidTrx } from "@/hooks/api/mutations/admin";
+import { Input } from "@/components/ui/input";
 
 export interface TransactionVoidDialogProps {
   isOpen: boolean;
@@ -23,43 +19,57 @@ export interface TransactionVoidDialogProps {
   onConfirm?: (reason: string, disposition: string) => void;
   isDisabled?: boolean;
 
-  trxId: string
+  trxId: string;
+  refetchOrders: () => void;
 }
 
-export const TransactionVoidDialog = ({
-  isOpen,
-  onClose,
-  onConfirm,
-  isDisabled = false,
-  trxId
+export const TransactionVoidDialog = ({ isOpen, onClose, onConfirm, isDisabled = false, trxId, refetchOrders }: TransactionVoidDialogProps) => {
+  const [step, setStep] = useState<"preview" | "reason">("preview");
+  const [reason, setReason] = useState("");
+  const [selectedDisposition, setSelectedDisposition] = useState("refunded_externally");
+  const [externalRefrence, setExternalRefrence] = useState("");
 
-}: TransactionVoidDialogProps) => {
-  const [step, setStep] = useState<'preview' | 'reason'>('preview');
-  const [reason, setReason] = useState('');
-  const [selectedDisposition, setSelectedDisposition] = useState('refunded_externally');
+  const { data, isLoading } = useGetVoidPreview(trxId);
 
-  const { data, isLoading, refetch } = useGetVoidPreview(trxId)
-
+  const { mutateAsync } = useCommitVoidTrx();
 
   const payment = data?.data?.payment || {};
 
   const handleProceedToReason = () => {
     if (data?.data?.possible && data?.data.blockers?.length === 0) {
-      setStep('reason');
+      setStep("reason");
     }
   };
 
-  const handleSubmitVoid = () => {
-    if (reason.trim() && onConfirm) {
-      onConfirm(reason, selectedDisposition);
-      resetForm();
+  const handleSubmitVoid = async () => {
+    try {
+      if (step === "reason") {
+        const payload = {
+          preview_token: data?.data?.preview_token as string,
+          reason: reason.trim(),
+          financial_disposition: selectedDisposition,
+          ...(selectedDisposition === "refunded_externally" ? { external_refrence: externalRefrence as string } : null),
+        };
+        const res = await mutateAsync({ id: trxId, payload });
+        if (res) {
+          console.log(res);
+          refetchOrders();
+        }
+      } else {
+        if (reason.trim() && onConfirm) {
+          onConfirm(reason, selectedDisposition);
+          resetForm();
+        }
+      }
+    } catch (error) {
+      console.log(error);
     }
   };
 
   const resetForm = () => {
-    setStep('preview');
-    setReason('');
-    setSelectedDisposition('refunded_externally');
+    setStep("preview");
+    setReason("");
+    setSelectedDisposition("refunded_externally");
   };
 
   const handleClose = () => {
@@ -72,67 +82,55 @@ export const TransactionVoidDialog = ({
       <AlertDialogContent className="min-w-[55vw] max-h-[90vh] overflow-y-auto">
         <AlertDialogHeader>
           <AlertDialogTitle className="text-brand-500">
-            {step === 'preview' ? 'Preview Transaction Void' : 'Confirm Void Reason'} {data?.data?.possible ?
-              <Badge>Voidable</Badge> : <Badge variant={'destructive'}>Non Voidable</Badge>}
+            {step === "preview" ? "Preview Transaction Void" : "Confirm Void Reason"}{" "}
+            {data?.data?.possible ? <Badge>Voidable</Badge> : <Badge variant={"destructive"}>Non Voidable</Badge>}
           </AlertDialogTitle>
         </AlertDialogHeader>
-        {isLoading ? <div className="flex items-center justify-center py-6">
-          <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
-        </div> : <>
-
-
-          <div className="space-y-6 py-4">
-            {step === 'preview' ? (
-              <PreviewStep
-                data={data}
-                payment={payment}
-                selectedDisposition={selectedDisposition}
-                onDispositionChange={setSelectedDisposition}
-              />
-            ) : (
-              <ReasonStep
-                reason={reason}
-                onReasonChange={setReason}
-                selectedDisposition={selectedDisposition}
-                onDispositionChange={setSelectedDisposition}
-                data={data}
-                payment={payment}
-              />
-            )}
+        {isLoading ? (
+          <div className="flex items-center justify-center py-6">
+            <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
           </div>
-
-          <AlertDialogFooter>
-            <div className="flex flex-row w-full gap-2.5">
-              <div className="w-full">
-                <Button
-                  type="button"
-                  variant="secondary"
-                  className="w-full"
-                  onClick={step === 'preview' ? handleClose : () => setStep('preview')}
-                >
-                  {step === 'preview' ? 'Cancel' : 'Back'}
-                </Button>
-              </div>
-              <div className="w-full">
-                <Button
-                  type="button"
-                  variant="destructive"
-                  className="w-full"
-                  onClick={step === 'preview' ? handleProceedToReason : handleSubmitVoid}
-                  disabled={
-                    isDisabled ||
-                    (step === 'preview'
-                      ? !data?.data?.possible || (data?.data?.blockers?.length ?? 0) > 0
-                      : !reason.trim())
-                  }
-                >
-                  {step === 'preview' ? 'Proceed to Void' : 'Confirm Void'}
-                </Button>
-              </div>
+        ) : (
+          <>
+            <div className="space-y-6 py-4">
+              {step === "preview" ? (
+                <PreviewStep data={data} payment={payment} selectedDisposition={selectedDisposition} onDispositionChange={setSelectedDisposition} />
+              ) : (
+                <ReasonStep
+                  reason={reason}
+                  onReasonChange={setReason}
+                  selectedDisposition={selectedDisposition}
+                  onDispositionChange={setSelectedDisposition}
+                  data={data}
+                  payment={payment}
+                  externalRefrence={externalRefrence}
+                  onExternalRefrenceChange={setExternalRefrence}
+                />
+              )}
             </div>
-          </AlertDialogFooter>
-        </>}
 
+            <AlertDialogFooter>
+              <div className="flex flex-row w-full gap-2.5">
+                <div className="w-full">
+                  <Button type="button" variant="secondary" className="w-full" onClick={step === "preview" ? handleClose : () => setStep("preview")}>
+                    {step === "preview" ? "Cancel" : "Back"}
+                  </Button>
+                </div>
+                <div className="w-full">
+                  <Button
+                    type="button"
+                    variant="destructive"
+                    className="w-full"
+                    onClick={step === "preview" ? handleProceedToReason : handleSubmitVoid}
+                    disabled={isDisabled || (step === "preview" ? !data?.data?.possible || (data?.data?.blockers?.length ?? 0) > 0 : !reason.trim())}
+                  >
+                    {step === "preview" ? "Proceed to Void" : "Confirm Void"}
+                  </Button>
+                </div>
+              </div>
+            </AlertDialogFooter>
+          </>
+        )}
       </AlertDialogContent>
     </AlertDialog>
   );
@@ -145,18 +143,13 @@ interface PreviewStepProps {
   onDispositionChange: (value: string) => void;
 }
 
-const PreviewStep = ({
-  data,
-  payment,
-  selectedDisposition,
-  onDispositionChange,
-}: PreviewStepProps) => {
+const PreviewStep = ({ data, payment, selectedDisposition, onDispositionChange }: PreviewStepProps) => {
   return (
     <>
       {/* Amount Summary */}
       <div className="bg-muted/50 rounded-lg p-4 border">
         <p className="text-sm text-muted-foreground">Transaction Amount</p>
-        <p className="text-3xl font-bold mt-1">IDR {payment.gross_amount_idr?.toLocaleString('id-ID')}</p>
+        <p className="text-3xl font-bold mt-1">IDR {payment.gross_amount_idr?.toLocaleString("id-ID")}</p>
         <p className="text-xs text-muted-foreground mt-2">{payment.order_id}</p>
       </div>
 
@@ -209,9 +202,7 @@ const PreviewStep = ({
             </div>
             <div className="flex justify-between py-1">
               <span className="text-muted-foreground">To:</span>
-              <span className="font-medium capitalize text-red-600">
-                {data?.data.effects?.payment?.to_status}
-              </span>
+              <span className="font-medium capitalize text-red-600">{data?.data.effects?.payment?.to_status}</span>
             </div>
           </div>
         </EffectSection>
@@ -221,13 +212,11 @@ const PreviewStep = ({
           <div className="space-y-2 text-sm">
             <div className="flex justify-between py-1">
               <span className="text-muted-foreground">Amount:</span>
-              <span className="font-medium">
-                {formatCurrency(data?.data.effects?.refund?.amount_idr)}
-              </span>
+              <span className="font-medium">{formatCurrency(data?.data.effects?.refund?.amount_idr)}</span>
             </div>
             <div className="flex justify-between py-1">
               <span className="text-muted-foreground">Type:</span>
-              <span className="font-medium capitalize">{data?.data.effects?.refund?.refund_type?.replace(/_/g, ' ')}</span>
+              <span className="font-medium capitalize">{data?.data.effects?.refund?.refund_type?.replace(/_/g, " ")}</span>
             </div>
             <div className="flex justify-between py-1">
               <span className="text-muted-foreground">Status:</span>
@@ -247,11 +236,14 @@ const PreviewStep = ({
                 </div>
                 <div className="flex justify-between py-1">
                   <span className="text-muted-foreground">Balance Change:</span>
-                  <span className="font-medium">{pkg.ledger_adjustment > 0 ? '+' : ''}{pkg.ledger_adjustment}</span>
+                  <span className="font-medium">
+                    {pkg.ledger_adjustment > 0 ? "+" : ""}
+                    {pkg.ledger_adjustment}
+                  </span>
                 </div>
                 <div className="flex justify-between py-1">
                   <span className="text-muted-foreground">Root Purchase:</span>
-                  <span className="font-medium">{pkg.root_purchase ? 'Yes' : 'No'}</span>
+                  <span className="font-medium">{pkg.root_purchase ? "Yes" : "No"}</span>
                 </div>
               </div>
             ))}
@@ -263,15 +255,10 @@ const PreviewStep = ({
       {data?.data.financial_disposition?.required && (
         <div className="border rounded-lg p-4 space-y-3">
           <h4 className="font-semibold">Financial Disposition Required</h4>
-          <p className="text-sm text-muted-foreground">
-            How to handle  {formatCurrency(data?.data.financial_disposition?.amount_idr)}?
-          </p>
+          <p className="text-sm text-muted-foreground">How to handle {formatCurrency(data?.data.financial_disposition?.amount_idr)}?</p>
           <div className="space-y-2">
             {data?.data.financial_disposition?.allowed_dispositions?.map((disp: string) => (
-              <label
-                key={disp}
-                className="flex items-center gap-3 p-3 border rounded hover:bg-muted cursor-pointer"
-              >
+              <label key={disp} className="flex items-center gap-3 p-3 border rounded hover:bg-muted cursor-pointer">
                 <input
                   type="radio"
                   name="disposition"
@@ -280,7 +267,7 @@ const PreviewStep = ({
                   onChange={(e) => onDispositionChange(e.target.value)}
                   className="w-4 h-4"
                 />
-                <span className="font-medium text-sm capitalize">{disp.replace(/_/g, ' ')}</span>
+                <span className="font-medium text-sm capitalize">{disp.replace(/_/g, " ")}</span>
               </label>
             ))}
           </div>
@@ -297,6 +284,8 @@ interface ReasonStepProps {
   onDispositionChange: (value: string) => void;
   data: any;
   payment: any;
+  externalRefrence: string;
+  onExternalRefrenceChange: (value: string) => void;
 }
 
 const ReasonStep = ({
@@ -306,6 +295,8 @@ const ReasonStep = ({
   onDispositionChange,
   data,
   payment,
+  externalRefrence,
+  onExternalRefrenceChange,
 }: ReasonStepProps) => {
   return (
     <>
@@ -329,10 +320,7 @@ const ReasonStep = ({
             <h4 className="font-semibold">Financial Disposition</h4>
             <div className="space-y-2">
               {data?.data.financial_disposition?.allowed_dispositions?.map((disp: string) => (
-                <label
-                  key={disp}
-                  className="flex items-center gap-3 p-3 border rounded hover:bg-muted cursor-pointer"
-                >
+                <label key={disp} className="flex items-center gap-3 p-3 border rounded hover:bg-muted cursor-pointer">
                   <input
                     type="radio"
                     name="disposition"
@@ -341,17 +329,31 @@ const ReasonStep = ({
                     onChange={(e) => onDispositionChange(e.target.value)}
                     className="w-4 h-4"
                   />
-                  <span className="font-medium text-sm capitalize">{disp.replace(/_/g, ' ')}</span>
+                  <span className="font-medium text-sm capitalize">{disp.replace(/_/g, " ")}</span>
                 </label>
               ))}
             </div>
           </div>
         )}
+        {selectedDisposition === "refunded_externally" && (
+          <div>
+            <label htmlFor="reason" className="block text-sm font-semibold mb-2">
+              Refrence Code
+            </label>
+            <Input
+              id="external-refrence"
+              value={externalRefrence}
+              onChange={(e) => onExternalRefrenceChange(e.target.value.slice(0, 500))}
+              placeholder="Enter the refrence code if any..."
+              className="resize-none"
+            />
+            <p className="text-xs text-muted-foreground mt-1">{reason.length}/500 characters</p>
+          </div>
+        )}
 
         <div className="bg-muted/50 rounded-lg p-3 text-sm">
           <p className="text-muted-foreground">
-            This action will void order {payment.order_id} for IDR{' '}
-            {payment.gross_amount_idr?.toLocaleString('id-ID')}
+            This action will void order {payment.order_id} for IDR {payment.gross_amount_idr?.toLocaleString("id-ID")}
           </p>
         </div>
       </div>
@@ -369,10 +371,7 @@ const EffectSection = ({ title, children }: EffectSectionProps) => {
 
   return (
     <div className="border rounded-lg overflow-hidden">
-      <button
-        onClick={() => setExpanded(!expanded)}
-        className="w-full flex items-center justify-between p-3 hover:bg-muted/50 transition-colors"
-      >
+      <button onClick={() => setExpanded(!expanded)} className="w-full flex items-center justify-between p-3 hover:bg-muted/50 transition-colors">
         <span className="font-medium text-sm">{title}</span>
         {expanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
       </button>

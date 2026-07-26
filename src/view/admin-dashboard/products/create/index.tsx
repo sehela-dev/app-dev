@@ -19,19 +19,15 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { CreateProductFormValues, ProductFormSchema } from "@/resolver";
 import { createFormData } from "@/lib/helper";
 import { useCreateProduct } from "@/hooks/api/mutations/admin";
-import Select from 'react-select'
-
-
+import Select from "react-select";
 
 const defaultValuesVariant = {
   variant_name: "",
   sku: "",
-  price_idr: '',
-  inventory: [],  // Array of { location_id, stock_total }
-  location: []  // Array for multiple selections (temporary, not in final payload)
-}
-
-
+  price_idr: "",
+  inventory: [], // Array of { location_id, stock_total }
+  location: [], // Array for multiple selections (temporary, not in final payload)
+};
 
 export const CreateProductPage = () => {
   const router = useRouter();
@@ -41,39 +37,36 @@ export const CreateProductPage = () => {
       name: "",
       description: "",
       photos: [],
-      type: 'buy',
+      type: "buy",
       variants: [],
     },
     resolver: zodResolver(ProductFormSchema),
-    mode: 'all',
+    mode: "all",
   });
   const { control, handleSubmit, watch } = methods;
-  const { fields, append, remove } = useFieldArray({ name: 'variants', control, keyName: 'id' })
+  const { fields, append, remove } = useFieldArray({ name: "variants", control, keyName: "id" });
   const [open, setOpen] = useState({
     SUCCESS: false,
     CANCEL: false,
   });
-  const { data: location, isLoading: locationLoading } = useGetInventoryLocations()
+  const { data: location, isLoading: locationLoading } = useGetInventoryLocations();
 
   const locationOption = useMemo(() => {
     return location?.data?.map((item) => ({
       value: item.id,
-      label: item.name
-    }))
-  }, [location])
+      label: item.name,
+    }));
+  }, [location]);
 
-  const { mutateAsync } = useCreateProduct()
+  const { mutateAsync } = useCreateProduct();
 
-  const [category, setCategory] = useState("")
-  const { data: categoryList } = useGetProductCategories({ page: 1, limit: 999 })
+  const [category, setCategory] = useState("");
+  const { data: categoryList } = useGetProductCategories({ page: 1, limit: 999 });
 
   // Watch the variants to track location changes
-  const variants = watch('variants');
+  const variants = watch("variants");
 
   const onSubmit = handleSubmit(async (data) => {
-
-
-
     try {
       const variants = data?.variants?.map((item) => ({
         price_idr: parseInt(item.price_idr),
@@ -81,16 +74,16 @@ export const CreateProductPage = () => {
         sku: item?.sku,
         inventory: item.inventory?.map((i) => ({
           location_id: i.location_id,
-          stock_total: parseInt(i.stock_total)
-        }))
-      }))
+          stock_total: parseInt(i.stock_total),
+        })),
+      }));
       const temp = {
         ...data,
-        is_rentable: data?.type === 'rent',
+        is_rentable: data?.type === "rent",
         photos: data?.photos,
         variants,
-      }
-      const payload = createFormData(temp)
+      };
+      const payload = createFormData(temp);
       // console.log(tem
 
       // console.log("📤 FormData entries:");
@@ -101,18 +94,13 @@ export const CreateProductPage = () => {
       //     console.log(`${key}:`, typeof value === "string" && value.length > 100 ? value.substring(0, 50) + "..." : value);
       //   }
       // }
-      const res = await mutateAsync(payload)
+      const res = await mutateAsync(payload);
       if (res) {
-        handleOpenModal('SUCCESS')
+        handleOpenModal("SUCCESS");
       }
-
     } catch (e) {
-      console.log(e)
+      console.log(e);
     }
-
-
-
-
   });
 
   const handleOpenModal = (type: "SUCCESS" | "CANCEL") => {
@@ -121,7 +109,7 @@ export const CreateProductPage = () => {
 
   // Helper function to update inventory array when locations change
   const handleLocationChange = (index: number, selectedLocations: any[]) => {
-    const currentVariant = variants?.[index]
+    const currentVariant = variants?.[index];
     const currentInventory = currentVariant?.inventory ?? [];
 
     // Create new inventory array based on selected locations
@@ -130,7 +118,7 @@ export const CreateProductPage = () => {
       const existingInventory = currentInventory.find((inv: any) => inv.location_id === loc.value);
       return {
         location_id: loc.value,
-        stock_total: existingInventory?.stock_total || ''
+        stock_total: existingInventory?.stock_total || "",
       };
     });
 
@@ -185,7 +173,7 @@ export const CreateProductPage = () => {
                           defaultValue={field.value}
                           onValueChange={(e) => {
                             field.onChange(e);
-                            setCategory(e)
+                            setCategory(e);
                           }}
                         >
                           <SelectTrigger className="w-full px-4 py-4 border-2 border-gray-200 rounded-lg text-gray-999  placeholder-gray-400 focus:outline-none focus:border-brand-500 transition-colors h-[42px]">
@@ -242,7 +230,6 @@ export const CreateProductPage = () => {
                     </FormItem>
                   )}
                 />
-
               </div>
               <FormField
                 control={control}
@@ -273,22 +260,30 @@ export const CreateProductPage = () => {
             </CardContent>
           </Card>
           <Card>
-            <CardHeader className="font-medium"><div className="flex flex-row items-center w-full justify-between">
-              <h3>Product Variant</h3>
-              <div className="flex">
-                <Button size={'sm'} variant={'secondary'} onClick={() => append({ ...defaultValuesVariant })}><Plus /> Add Variant</Button>
+            <CardHeader className="font-medium">
+              <div className="flex flex-row items-center w-full justify-between">
+                <h3>Product Variant</h3>
+                <div className="flex">
+                  <Button size={"sm"} variant={"secondary"} onClick={() => append({ ...defaultValuesVariant })}>
+                    <Plus /> Add Variant
+                  </Button>
+                </div>
               </div>
-            </div></CardHeader>
+            </CardHeader>
             <CardContent>
               <div className="flex flex-col gap-2">
-                {fields?.map((field, index) =>
+                {fields?.map((field, index) => (
                   <Card key={field.id}>
-                    <CardHeader className="text-lg font-semibold"><div className="flex flex-row items-center justify-between">
-                      <p className="text-lg font-semibold">#{index + 1}</p>
-                      <div className="flex">
-                        <Button className="h-8 w-8" size={'sm'} variant={'destructive'} onClick={() => remove(index)}><Trash /></Button>
+                    <CardHeader className="text-lg font-semibold">
+                      <div className="flex flex-row items-center justify-between">
+                        <p className="text-lg font-semibold">#{index + 1}</p>
+                        <div className="flex">
+                          <Button className="h-8 w-8" size={"sm"} variant={"destructive"} onClick={() => remove(index)}>
+                            <Trash />
+                          </Button>
+                        </div>
                       </div>
-                    </div></CardHeader>
+                    </CardHeader>
                     <CardContent>
                       <div className="grid grid-cols-2 gap-4">
                         <FormField
@@ -384,52 +379,51 @@ export const CreateProductPage = () => {
                         />
 
                         {/* Dynamic Stock Inputs based on selected locations */}
-                        {variants?.length as number > 0 ? <>
-                          {variants?.[index]?.inventory && variants[index].inventory.length > 0 && (
-                            <div className="col-span-2">
-                              <div className="space-y-3 bg-gray-50 p-4 rounded-lg">
-                                <p className="text-sm font-medium text-brand-999">Stock per Branch</p>
-                                {variants[index].inventory.map((inventoryItem: any, inventoryIndex: number) => {
-                                  // Find location name for display
-                                  const locationName = locationOption?.find(
-                                    (loc: any) => loc.value === inventoryItem.location_id
-                                  )?.label || inventoryItem.location_id;
+                        {(variants?.length as number) > 0 ? (
+                          <>
+                            {variants?.[index]?.inventory && variants[index].inventory.length > 0 && (
+                              <div className="col-span-2">
+                                <div className="space-y-3 bg-gray-50 p-4 rounded-lg">
+                                  <p className="text-sm font-medium text-brand-999">Stock per Branch</p>
+                                  {variants[index].inventory.map((inventoryItem: any, inventoryIndex: number) => {
+                                    // Find location name for display
+                                    const locationName =
+                                      locationOption?.find((loc: any) => loc.value === inventoryItem.location_id)?.label || inventoryItem.location_id;
 
-                                  return (
-                                    <FormField
-                                      key={`${index}-inventory-${inventoryIndex}`}
-                                      control={control}
-                                      name={`variants.${index}.inventory.${inventoryIndex}.stock_total`}
-                                      render={({ field }) => (
-                                        <FormItem className="flex flex-col">
-                                          <FormLabel className="text-brand-999 font-medium text-sm">
-                                            Stock - {locationName}
-                                          </FormLabel>
-                                          <FormControl>
-                                            <Input
-                                              type="number"
-                                              className="w-full px-4 py-4 border-2 border-gray-200 rounded-lg text-gray-999 placeholder-gray-400 focus:outline-none focus:border-brand-500 transition-colors h-[42px]"
-                                              placeholder="Enter stock quantity"
-                                              {...field}
-                                            />
-                                          </FormControl>
-                                          <FormMessage />
-                                        </FormItem>
-                                      )}
-                                    />
-                                  );
-                                })}
+                                    return (
+                                      <FormField
+                                        key={`${index}-inventory-${inventoryIndex}`}
+                                        control={control}
+                                        name={`variants.${index}.inventory.${inventoryIndex}.stock_total`}
+                                        render={({ field }) => (
+                                          <FormItem className="flex flex-col">
+                                            <FormLabel className="text-brand-999 font-medium text-sm">Stock - {locationName}</FormLabel>
+                                            <FormControl>
+                                              <Input
+                                                type="number"
+                                                className="w-full px-4 py-4 border-2 border-gray-200 rounded-lg text-gray-999 placeholder-gray-400 focus:outline-none focus:border-brand-500 transition-colors h-[42px]"
+                                                placeholder="Enter stock quantity"
+                                                {...field}
+                                              />
+                                            </FormControl>
+                                            <FormMessage />
+                                          </FormItem>
+                                        )}
+                                      />
+                                    );
+                                  })}
+                                </div>
                               </div>
-                            </div>
-                          )}</> : <></>}
-
-
+                            )}
+                          </>
+                        ) : (
+                          <></>
+                        )}
                       </div>
                     </CardContent>
                   </Card>
-                )}
+                ))}
               </div>
-
             </CardContent>
           </Card>
           <div className="flex w-full justify-end items-center gap-2">
@@ -456,7 +450,7 @@ export const CreateProductPage = () => {
           onConfirm={() => {
             methods.reset();
             handleOpenModal("SUCCESS");
-            window.location.reload()
+            window.location.reload();
           }}
           cancelText="Product List"
           confirmText="Create More"
