@@ -34,10 +34,10 @@ export const dataNavMarketPlace = [
     ],
   },
   {
-    title: "Products",
+    title: "Inventory",
     url: "#",
     icon: PackageSearch,
-    items: [{ title: "Products", url: "/admin/products", icon: PackageSearch, permission: "products:view" }],
+    items: [{ title: "Product Management", url: "/admin/products", icon: PackageSearch, permission: "products:view" }],
   },
   { title: "Discount Voucher", url: "/admin/discount-voucher", icon: Tag, permission: "voucher:view" },
   // { title: "Discounts", url: "#", icon: Tag },

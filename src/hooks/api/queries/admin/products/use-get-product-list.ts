@@ -1,8 +1,8 @@
 import { getProductList } from "@/api-req";
-import { ICommonParams } from "@/types/general.interface";
+import { IProductListParams } from "@/types/product.interface";
 import { useQuery } from "@tanstack/react-query";
 
-export const useGetProductList = (params: ICommonParams) =>
+export const useGetProductList = (params: IProductListParams) =>
   useQuery({
     queryKey: ["dashboard", "products", params],
     queryFn: () => getProductList(params),

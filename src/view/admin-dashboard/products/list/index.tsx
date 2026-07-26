@@ -1,9 +1,9 @@
 /* eslint-disable @next/next/no-img-element */
 "use client";
 
-import { DateRangePicker } from "@/components/base/date-range-picker";
 import { buildNumber, CustomTable } from "@/components/general/custom-table";
 import { CustomPagination } from "@/components/general/pagination-component";
+import { GeneralTabComponent } from "@/components/general/tabs-component";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card";
@@ -11,13 +11,11 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 
 import { SearchInput } from "@/components/ui/search-input";
 
-import { useGetOrders } from "@/hooks/api/queries/admin/orders";
 import { useGetProductList } from "@/hooks/api/queries/admin/products";
 
-import { defaultDate, formatCurrency, formatDateHelper } from "@/lib/helper";
-import { IOrderItem } from "@/types/orders.interface";
+import { formatDateHelper } from "@/lib/helper";
 import { IProductItemList } from "@/types/product.interface";
-import { CirclePlus, Ellipsis, File, ListFilter, ReceiptText } from "lucide-react";
+import { CirclePlus, Ellipsis, File, ListFilter } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 
@@ -36,23 +34,36 @@ import { useState } from "react";
 //   },
 // ];
 
+
+const tabOption = [
+  {
+    name: "For Sell",
+    value: "false",
+  },
+  {
+    name: "For Rent",
+    value: "true",
+  },
+];
+
 export const ProductListPage = () => {
   const router = useRouter();
   // const [selecetedTab, setSelectedTab] = useState("week");
   const [limit] = useState(10);
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState("");
+  const [tab, setTab] = useState("false")
 
-  const [selectedRange, setSelectedRange] = useState({
-    from: defaultDate().formattedOneMonthAgo,
-    to: defaultDate().formattedToday,
-  });
+  // const [selectedRange, setSelectedRange] = useState({
+  //   from: defaultDate().formattedOneMonthAgo,
+  //   to: defaultDate().formattedToday,
+  // });
 
-  const handleDateRangeChangeDual = (startDate: string, endDate?: string) => {
-    setSelectedRange((prev) => ({ ...prev, from: startDate, to: endDate ?? "" }));
-  };
+  // const handleDateRangeChangeDual = (startDate: string, endDate?: string) => {
+  //   setSelectedRange((prev) => ({ ...prev, from: startDate, to: endDate ?? "" }));
+  // };
 
-  const { data, isLoading } = useGetProductList({ page, limit, search });
+  const { data, isLoading } = useGetProductList({ page, limit, search, is_rentable: tab });
 
   const numberOptions = {
     text: "No",
@@ -65,25 +76,24 @@ export const ProductListPage = () => {
   };
 
   const headers = [
-    {
-      id: "cover",
-      text: "Cover",
-      value: (row: IProductItemList) => (
-        <div className="flex h-16 w-16 border border-gray-200 bg-gray-200 rounded-md">
-          <img src={row.photos?.[0]} alt={row.name} className="h-16 w-16" />
-        </div>
-      ),
-    },
+
     {
       id: "name",
       text: "Name",
-      value: "name",
+      value: (row: IProductItemList) => <div className="flex flex-row items-center gap-4">
+        <div className="flex h-16 w-16 border border-gray-200 bg-gray-200 rounded-md">
+          <img src={row.photos?.[0]} alt={row.name} className="h-16 w-16" />
+        </div>
+        <p>{row?.name}</p>
+      </div>,
     },
+
     {
       id: "category",
       text: "Category",
       value: (row: IProductItemList) => row?.category.name,
     },
+
     {
       id: "status",
       text: "Status",
@@ -94,9 +104,14 @@ export const ProductListPage = () => {
       ),
     },
     {
-      id: "stock",
-      text: "Stock",
-      value: "stock",
+      id: "variant_count",
+      text: "Variants",
+      value: "variant_count",
+    },
+    {
+      id: "total_stock",
+      text: "Total Stock",
+      value: "stock_total",
     },
     {
       id: "created_at",
@@ -117,9 +132,9 @@ export const ProductListPage = () => {
         <DropdownMenuContent align="end" className="w-32">
           <DropdownMenuItem onClick={() => alert(row.id)}>Edit</DropdownMenuItem>
           <DropdownMenuItem onClick={() => alert(row.id)}>Archive</DropdownMenuItem>
-          <DropdownMenuItem onClick={() => router.push(`instructor/${row.id}`)}>View Details</DropdownMenuItem>
+          <DropdownMenuItem onClick={() => router.push(`products/${row.id}`)}>View Details</DropdownMenuItem>
           <DropdownMenuItem>Set as Inactive</DropdownMenuItem>
-          <DropdownMenuItem variant="destructive" className="" onClick={() => {}}>
+          <DropdownMenuItem variant="destructive" className="" onClick={() => { }}>
             Delete
           </DropdownMenuItem>
         </DropdownMenuContent>
@@ -160,8 +175,20 @@ export const ProductListPage = () => {
             </div>
             <SearchInput className="border-brand-100" search={search} onSearch={handleSearch} />
           </div>
+
+
         </CardHeader>
+
         <CardContent>
+          <div className="max-w-auto">
+            <GeneralTabComponent
+              selecetedTab={tab}
+              setTab={(e) => {
+                setTab(e);
+              }}
+              tabs={tabOption}
+            />
+          </div>
           <CustomTable
             data={data?.data ?? []}
             headers={headers}

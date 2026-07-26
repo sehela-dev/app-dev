@@ -2,12 +2,14 @@ import { axiosx } from "@/lib/axiosx";
 import { MAIN_API_URL } from "@/lib/config";
 import { TCreateProduct, TInventoryLocations, TProductCategories, TProductItemList } from "@/types/product.interface";
 
-export const getProductList: TProductItemList = async ({ page, limit, search }) => {
+export const getProductList: TProductItemList = async ({ page, limit, search, view, is_rentable }) => {
   const res = await axiosx(true).get(`${MAIN_API_URL}/admin/products`, {
     params: {
       page,
       page_size: limit,
       ...(search ? { q: search } : null),
+      ...(view ? { view } : null),
+      ...(is_rentable ? { is_rentable } : null),
     },
   });
   return res.data;

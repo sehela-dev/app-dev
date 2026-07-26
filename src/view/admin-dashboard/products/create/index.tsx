@@ -86,6 +86,7 @@ export const CreateProductPage = () => {
       }))
       const temp = {
         ...data,
+        is_rentable: data?.type === 'rent',
         photos: data?.photos,
         variants,
       }
