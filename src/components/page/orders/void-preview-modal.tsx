@@ -54,6 +54,8 @@ export const TransactionVoidDialog = ({ isOpen, onClose, onConfirm, isDisabled =
         if (res) {
           console.log(res);
           refetchOrders();
+          setExternalRefrence("");
+          setReason("");
         }
       } else {
         if (reason.trim() && onConfirm) {
@@ -347,7 +349,7 @@ const ReasonStep = ({
               placeholder="Enter the refrence code if any..."
               className="resize-none"
             />
-            <p className="text-xs text-muted-foreground mt-1">{reason.length}/500 characters</p>
+            <p className="text-xs text-muted-foreground mt-1">{externalRefrence.length}/500 characters</p>
           </div>
         )}
 
