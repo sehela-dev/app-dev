@@ -81,6 +81,7 @@ export interface IProductListParams extends ICommonParams {
 }
 export type TProductItemList = (params: IProductListParams) => Promise<IResponseData<IProductItemList[] | IProductVariantItem[]>>;
 export type TCreateProduct = (paylaod: ICreateProductPaylaod | FormData) => Promise<IResponseData<never>>;
+export type TProductDetail = (id: string) => Promise<IResponseData<IProductItemList>>;
 // category
 
 export interface IProductCategory {
