@@ -25,6 +25,10 @@
 .DS_Store
 *.pem
 
+# local AI agent instructions and skills
+/AGENTS.md
+/.codex/skills/
+
 # debug
 npm-debug.log*
 yarn-debug.log*
