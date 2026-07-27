@@ -325,3 +325,80 @@ export type TRescheduleSessionCust = (data: IReschedulePaylaod) => Promise<IResp
 export type TSendEmailReceipt = (data: ISendEmailReceipt) => Promise<IResponseData<IResponseSendReceipt>>;
 
 export type TCancelBooking = (data: ICancelBooking) => Promise<IResponseData<unknown>>;
+
+//void preview
+
+export interface IVoidPreviewData {
+  found: boolean;
+  effects: IEffectsVoid;
+  payment: IVoidPayment;
+  blockers: unknown[];
+  possible: boolean;
+  warnings: unknown[];
+  preview_token: string;
+  already_voided: boolean;
+  financial_disposition: FinancialDisposition;
+  requires_rental_recovery_confirmation: boolean;
+}
+
+export interface IEffectsVoid {
+  orders: unknown[];
+  refund: Refund;
+  payment: Payment;
+  voucher: unknown;
+  bookings: unknown[];
+  packages: Package[];
+  inventory: unknown[];
+  reactivations: unknown[];
+  rental_releases: unknown[];
+  location_inventory: unknown[];
+}
+
+export interface Refund {
+  status: string;
+  amount_idr: number;
+  refund_type: string;
+  when_disposition: string;
+}
+
+export interface Payment {
+  to_status: string;
+  payment_id: string;
+  from_status: string;
+}
+
+export interface Package {
+  to_status: string;
+  root_purchase: boolean;
+  balance_before: number;
+  ledger_adjustment: number;
+  clear_pending_share: boolean;
+  package_purchase_id: string;
+  preserve_share_history: boolean;
+}
+
+export interface IVoidPayment {
+  id: string;
+  status: string;
+  order_id: string;
+  provider: string;
+  created_at: string;
+  payable_type: string;
+  gross_amount_idr: number;
+}
+
+export interface FinancialDisposition {
+  required: boolean;
+  amount_idr: number;
+  allowed_dispositions: string[];
+}
+export interface ICommitVoidTrx {
+  preview_token: string;
+  reason: string;
+  financial_disposition: string;
+  external_refrence?: string;
+  rental_recovery_confirmed?: boolean;
+}
+
+export type TVoidPreview = (data: string) => Promise<IResponseData<IVoidPreviewData>>;
+export type TCommitVoid = ({ id, payload }: { id: string; payload: ICommitVoidTrx }) => Promise<IResponseData<unknown>>;
