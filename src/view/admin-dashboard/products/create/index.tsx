@@ -1,3 +1,5 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
+
 "use client";
 
 import { BaseDialogConfirmation } from "@/components/general/dialog-confirnation";
@@ -60,7 +62,7 @@ export const CreateProductPage = () => {
 
   const { mutateAsync } = useCreateProduct();
 
-  const [category, setCategory] = useState("");
+  const [_, setCategory] = useState("");
   const { data: categoryList } = useGetProductCategories({ page: 1, limit: 999 });
 
   // Watch the variants to track location changes
