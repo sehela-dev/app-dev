@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card";
 import { Divider } from "@/components/ui/divider";
 import { useGetCustomerActivity, useGetCustomerDetail, useGetCustomerTrx, useGetHistoricalPackagePurchases } from "@/hooks/api/queries/admin/customers";
+import { useAdminPermission } from "@/hooks/use-role-access";
 import { formatCurrency, formatDateHelper } from "@/lib/helper";
 import { ICustomerActvity, ICustomerTrx, IHistoricalPackagePurchase } from "@/types/customers.interface";
 import { Loader2, PenIcon } from "lucide-react";
@@ -38,6 +39,7 @@ export const CustomerDetailPage = () => {
   const router = useRouter();
   const params = useParams();
   const { id } = params;
+  const { isManager } = useAdminPermission();
   const [tabs, setTabs] = useState("basic");
   const [activityPage, setActivityPage] = useState(1);
   const [transactionPage, setTransactionPage] = useState(1);
@@ -167,7 +169,9 @@ export const CustomerDetailPage = () => {
       text: "Package",
       value: (row: IHistoricalPackagePurchase) => (
         <div className="flex flex-col gap-1">
-          <span>{row.credit_package?.name ?? "-"}</span>
+          <Button variant="link" className="h-auto justify-start p-0 text-left text-brand-500" onClick={() => router.push(`/admin/member/${id}/credit-packages/${row.id}`)}>
+            {row.credit_package?.name ?? "-"}
+          </Button>
           <span className="text-xs text-gray-500">Per credit: {row.per_credit_value_idr === null ? "-" : formatCurrency(row.per_credit_value_idr)}</span>
         </div>
       ),
@@ -278,6 +282,13 @@ export const CustomerDetailPage = () => {
                             </div>
                           </div>
                         </CardContent>
+                        {isManager && (
+                          <CardFooter className="p-0 pt-3">
+                            <Button variant="outline" size="sm" onClick={() => router.push(`/admin/member/${id}/credit-packages/${item.package_purchase_id}`)}>
+                              Manage
+                            </Button>
+                          </CardFooter>
+                        )}
                       </Card>
                     ))
                   ) : (

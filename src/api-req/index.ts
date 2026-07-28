@@ -7,3 +7,4 @@ export * from "./credit-package";
 export * from "./discounts";
 export * from "./products";
 export * from "./dashboard";
+export * from "./package-purchase";
