@@ -14,8 +14,12 @@ export interface IProductItemList {
   category: ICategoryProduct;
   variant_count: number;
   stock_total: number;
+  stock_available: number;
+  stock: number;
+
   stock_rented: number;
   stock_available_to_rent: number;
+  variants?: IProductVariantItem[];
 }
 
 export interface IProductVariantItem {
@@ -29,6 +33,7 @@ export interface IProductVariantItem {
   stock: number;
   stock_total: number;
   stock_rented: number;
+  stock_available: number;
   stock_available_to_rent: number;
   inventory: IInventory[];
   is_active: boolean;
@@ -43,6 +48,8 @@ export interface IInventory {
   location_id: string;
   stock_total: number;
   stock_rented: number;
+  stock_available: number;
+  stock: number;
   product_variant_id: string;
   stock_available_to_rent: number;
 }
@@ -81,6 +88,7 @@ export interface IProductListParams extends ICommonParams {
 }
 export type TProductItemList = (params: IProductListParams) => Promise<IResponseData<IProductItemList[] | IProductVariantItem[]>>;
 export type TCreateProduct = (paylaod: ICreateProductPaylaod | FormData) => Promise<IResponseData<never>>;
+export type TProductDetail = (id: string) => Promise<IResponseData<IProductItemList>>;
 // category
 
 export interface IProductCategory {

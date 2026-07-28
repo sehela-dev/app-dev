@@ -1,11 +1,11 @@
 "use client";
 import { AdminPermissionGuard } from "@/layout/admin/admin-permission-guard";
-import { OrdersPageView } from "@/view/admin-dashboard/orders";
+import { ProductDetailView } from "@/view/admin-dashboard/products/detail";
 
 export default function Page() {
   return (
     <AdminPermissionGuard permission="products:view">
-      <OrdersPageView />
+      <ProductDetailView />
     </AdminPermissionGuard>
   );
 }

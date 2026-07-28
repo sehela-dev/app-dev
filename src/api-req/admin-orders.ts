@@ -5,12 +5,14 @@ import {
   TBookingsSession,
   TCancelBooking,
   TChangeAttendanceStatus,
+  TCommitVoid,
   TCreateManualOrder,
   TOrderDetail,
   TOrderList,
   TRescheduleSessionCust,
   TSendEmailReceipt,
   TThirdPartyApp,
+  TVoidPreview,
 } from "@/types/orders.interface";
 import { TAddNewGuest } from "@/types/user.type";
 
@@ -94,5 +96,16 @@ export const sendReceiptByEmail: TSendEmailReceipt = async (data) => {
   const res = await axiosx(true).post(`${MAIN_API_URL}/admin/transactions/${data?.id}/send-receipt`, {
     recipient_email: data?.recipient_email,
   });
+  return res.data;
+};
+
+// void transaction
+export const getTrxVoidPreview: TVoidPreview = async (data) => {
+  const res = await axiosx(true).get(`${MAIN_API_URL}/admin/transactions/${data}/void-preview`);
+  return res.data;
+};
+
+export const commitVoidTrx: TCommitVoid = async ({ id, payload }) => {
+  const res = await axiosx(true).post(`${MAIN_API_URL}/admin/transactions/${id}/void`, payload);
   return res.data;
 };

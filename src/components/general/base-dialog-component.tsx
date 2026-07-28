@@ -28,7 +28,7 @@ export const BaseDialogComponent = ({
   onCloseText = "Cancel",
 }: IProps) => {
   return (
-    <AlertDialog open={isOpen}>
+    <AlertDialog open={isOpen} >
       <AlertDialogContent className="min-w-[55vw] font-serif">
         <AlertDialogHeader>
           <AlertDialogTitle className="text-brand-500">{title}</AlertDialogTitle>

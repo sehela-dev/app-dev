@@ -69,7 +69,7 @@ export const DetailFormAddTransaction = () => {
     setSearch(e);
   };
 
-  const { data, isLoading, refetch } = useGetCustomers({ search: debounceSearch, status: 'true' });
+  const { data, isLoading, refetch } = useGetCustomers({ search: debounceSearch, status: "true" });
 
   const optionData = useCallback(() => {
     const custData = data?.data?.filter((item) => item.id !== customerData?.id);
@@ -132,8 +132,8 @@ export const DetailFormAddTransaction = () => {
           package_id: item.id as string,
           ...(item.badge === "Sharing"
             ? {
-              share_with_user_id: item.share_with_user_id,
-            }
+                share_with_user_id: item.share_with_user_id,
+              }
             : null),
         });
       }
@@ -152,15 +152,15 @@ export const DetailFormAddTransaction = () => {
 
       ...(selectedPaymentMethod === "transfer"
         ? {
-          transfer_details: {
-            account_name_from: nameFrom as string,
-            account_bank_from: selectedBank?.label as string,
-            account_bank_to: selectedBankTo?.label as string,
-          },
-        }
+            transfer_details: {
+              account_name_from: nameFrom as string,
+              account_bank_from: selectedBank?.label as string,
+              account_bank_to: selectedBankTo?.label as string,
+            },
+          }
         : {
-          branch: selectedBranch?.value as string
-        }),
+            branch: selectedBranch?.value as string,
+          }),
       user_id: customerData?.id as string,
       ...(discountData ? { voucher_code: selectedVoucher?.code } : null),
     };
@@ -515,8 +515,8 @@ export const DetailFormAddTransaction = () => {
                           {!discountData
                             ? formatCurrency(0)
                             : discountData?.discount_type === "percentage"
-                              ? `${formatCurrency(discountData?.calculated_discount)} (${discountData?.discount_value}%)`
-                              : formatCurrency(discountData?.discount_value)}
+                            ? `${formatCurrency(discountData?.calculated_discount)} (${discountData?.discount_value}%)`
+                            : formatCurrency(discountData?.discount_value)}
                         </p>
                       </div>
                     </div>
@@ -606,7 +606,7 @@ export const DetailFormAddTransaction = () => {
                               setNameFrom(e.target.value);
                             }}
 
-                          // className="w-auto min-w-[388px]"
+                            // className="w-auto min-w-[388px]"
                           />
                         </div>
 
@@ -629,26 +629,28 @@ export const DetailFormAddTransaction = () => {
                           />
                         </div>
                       </div>
-                    ) : <>
-                      <div className="flex flex-col gap-1 mt-2">
-                        <Label className="text-gray-500">Branch</Label>
-                        <Select
-                          options={SEHELA_BRANCH as never}
-                          className="basic-multi-select "
-                          classNames={{
-                            control: () =>
-                              "w-full !border-2 !border-gray-200 rounded-lg text-gray-999  focus:outline-none focus:border-brand-500 transition-colors h-[42px] !rounded-md !bg-transparent shadow-xs",
-                            placeholder: () => "placeholder-gray-400",
-                            singleValue: () => "text-brand-999",
-                            input: () => "text-brand-999 bg-none",
-                          }}
-                          onChange={(e) => {
-                            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                            setSelectedBranch(e as any);
-                          }}
-                        />
-                      </div>
-                    </>}
+                    ) : (
+                      <>
+                        <div className="flex flex-col gap-1 mt-2">
+                          <Label className="text-gray-500">Branch</Label>
+                          <Select
+                            options={SEHELA_BRANCH as never}
+                            className="basic-multi-select "
+                            classNames={{
+                              control: () =>
+                                "w-full !border-2 !border-gray-200 rounded-lg text-gray-999  focus:outline-none focus:border-brand-500 transition-colors h-[42px] !rounded-md !bg-transparent shadow-xs",
+                              placeholder: () => "placeholder-gray-400",
+                              singleValue: () => "text-brand-999",
+                              input: () => "text-brand-999 bg-none",
+                            }}
+                            onChange={(e) => {
+                              // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                              setSelectedBranch(e as any);
+                            }}
+                          />
+                        </div>
+                      </>
+                    )}
 
                     {/* {selectedPaymentMethod === "bank_transfer" &&} */}
                   </div>

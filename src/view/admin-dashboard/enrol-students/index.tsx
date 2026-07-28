@@ -102,13 +102,13 @@ export const EnrollStudentView = () => {
         ...(tabs === "credit"
           ? { user_id: customerData?.id as string, payment_method: "credits", package_purchase_id: customerData?.package?.package_purchase_id }
           : {
-            third_party_id: customerData?.third_party?.id,
-            booking_id: customerData?.booking_id,
-            ...(customerData?.id ? { user_id: customerData?.id as string } : null),
-            customer_name: customerData?.name,
-            customer_phone: customerData?.phone,
-            customer_email: customerData?.email,
-          }),
+              third_party_id: customerData?.third_party?.id,
+              booking_id: customerData?.booking_id,
+              ...(customerData?.id ? { user_id: customerData?.id as string } : null),
+              customer_name: customerData?.name,
+              customer_phone: customerData?.phone,
+              customer_email: customerData?.email,
+            }),
         status: "paid",
 
         // ...(customerData?.package?.package_purchase_id ? {})
@@ -353,18 +353,14 @@ export const CardSession = (props: IProps) => {
     <Card
       className={cn("gap-1 border-2 hover:bg-brand-100 hover:border-brand-500 cursor-pointer", {
         " bg-brand-100 border-brand-500": props.isSelected,
-        "cursor-not-allowed bg-gray-200 hover:bg-gray-200 hover:border-gray-200 opacity-45 pointer-events-none":
-          isDisabled,
+        "cursor-not-allowed bg-gray-200 hover:bg-gray-200 hover:border-gray-200 opacity-45 pointer-events-none": isDisabled,
       })}
       onClick={isDisabled ? undefined : props.onSelect}
     >
       <CardHeader className="font-semibold">
         <div className="flex flex-col gap-2">
           <div className="">
-            <Badge
-              className="capitalize text-xs"
-              variant={props?.status === "ended" || isCancelled ? "destructive" : "default"}
-            >
+            <Badge className="capitalize text-xs" variant={props?.status === "ended" || isCancelled ? "destructive" : "default"}>
               {props?.status}
             </Badge>
           </div>
