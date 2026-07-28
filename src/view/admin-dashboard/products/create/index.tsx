@@ -21,9 +21,12 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { CreateProductFormValues, ProductFormSchema } from "@/resolver";
 import { createFormData } from "@/lib/helper";
 import { useCreateProduct } from "@/hooks/api/mutations/admin";
-import Select from "react-select";
+import Select, { MultiValue } from "react-select";
 
-const defaultValuesVariant = {
+
+type ProductVariantFormValue = NonNullable<CreateProductFormValues["variants"]>[number];
+
+const defaultValuesVariant: ProductVariantFormValue = {
   variant_name: "",
   sku: "",
   price_idr: "",
@@ -115,9 +118,9 @@ export const CreateProductPage = () => {
     const currentInventory = currentVariant?.inventory ?? [];
 
     // Create new inventory array based on selected locations
-    const updatedInventory = selectedLocations.map((loc: any) => {
+    const updatedInventory = selectedLocations.map((loc) => {
       // Keep existing stock_total value if location was already selected
-      const existingInventory = currentInventory.find((inv: any) => inv.location_id === loc.value);
+      const existingInventory = currentInventory.find((inv) => inv.location_id === loc.value);
       return {
         location_id: loc.value,
         stock_total: existingInventory?.stock_total || "",
@@ -125,7 +128,7 @@ export const CreateProductPage = () => {
     });
 
     // Update both location and inventory in the form
-    methods.setValue(`variants.${index}.location`, selectedLocations);
+    methods.setValue(`variants.${index}.location`, [...selectedLocations]);
     methods.setValue(`variants.${index}.inventory`, updatedInventory);
   };
 
@@ -359,7 +362,7 @@ export const CreateProductPage = () => {
                               <FormControl>
                                 <Select
                                   defaultValue={field.value || []}
-                                  options={locationOption as never}
+                                  options={locationOption}
                                   isLoading={locationLoading}
                                   className="basic-multi-select"
                                   classNames={{

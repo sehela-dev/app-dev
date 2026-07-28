@@ -24,4 +24,5 @@ export * from "./use-edit-customer";
 export * from "./use-send-reminder-session";
 export * from "./use-resend-registration-email";
 export * from "./use-create-product";
+export * from "./use-package-purchase-actions";
 export * from "./use-commit-void-trx";

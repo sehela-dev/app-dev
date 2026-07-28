@@ -12,6 +12,7 @@
 
 # testing
 /coverage
+/.playwright-mcp
 
 # next.js
 /.next/
@@ -23,6 +24,10 @@
 # misc
 .DS_Store
 *.pem
+
+# local AI agent instructions and skills
+/AGENTS.md
+/.codex/skills/
 
 # debug
 npm-debug.log*
