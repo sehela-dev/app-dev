@@ -62,8 +62,8 @@ export const CreateProductPage = () => {
 
   const { mutateAsync } = useCreateProduct();
 
-  const [_, setCategory] = useState("");
-  const { data: categoryList } = useGetProductCategories({ page: 1, limit: 999 });
+  const [_, setCategory] = useState("")
+  const { data: categoryList } = useGetProductCategories({ page: 1, limit: 999 })
 
   // Watch the variants to track location changes
   const variants = watch("variants");
