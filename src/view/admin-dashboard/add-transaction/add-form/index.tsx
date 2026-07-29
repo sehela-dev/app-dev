@@ -20,6 +20,8 @@ import { CustomPagination } from "@/components/general/pagination-component";
 import { DateRangePicker } from "@/components/base/date-range-picker";
 import { useDebounce } from "@/hooks";
 import { useAdminPermission } from "@/hooks/use-role-access";
+import { ProductSectionTabComponent } from "@/components/page/orders/product-section";
+import { RentProductSectionTabComponent } from "@/components/page/orders/rent-product-section";
 
 const tableTabOption = [
   {
@@ -30,14 +32,14 @@ const tableTabOption = [
     value: "credit_package",
     name: "Credit Package",
   },
-  // {
-  //   value: "buy_product",
-  //   name: "Buy Product",
-  // },
-  // {
-  //   value: "rent_product",
-  //   name: "Rent Product",
-  // },
+  {
+    value: "buy_product",
+    name: "Buy Product",
+  },
+  {
+    value: "rent_product",
+    name: "Rent Product",
+  },
 ];
 
 export const AddTransactionFOrm = () => {
@@ -281,6 +283,8 @@ export const AddTransactionFOrm = () => {
             </Card>
           )}
           {tableTab === "credit_package" && <CreditPackageTabComponent />}
+          {tableTab === "buy_product" && <ProductSectionTabComponent />}
+          {tableTab === "rent_product" && <RentProductSectionTabComponent />}
         </div>
       </div>
       <OrdersCartComponent customerData={customerData} cartItems={cartItems} />

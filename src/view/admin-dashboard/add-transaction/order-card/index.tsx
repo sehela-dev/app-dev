@@ -11,6 +11,7 @@ import { formatCurrency } from "@/lib/helper";
 import { IAdminCartItemData, ICustomerData } from "@/types/orders.interface";
 
 import { ScrollArea } from "@radix-ui/react-scroll-area";
+import { MapPin } from "lucide-react";
 
 import { Fragment, useMemo, useState } from "react";
 
@@ -21,6 +22,7 @@ interface IOrderCartProps {
 
 export const OrdersCartComponent = ({ customerData, cartItems }: IOrderCartProps) => {
   const { updateStepper, clearCart, addCustomer } = useAdminManualTransaction();
+
 
   const [open, setOpen] = useState(false);
   const totalPrice = useMemo(() => {
@@ -90,6 +92,7 @@ export const OrdersCartComponent = ({ customerData, cartItems }: IOrderCartProps
                         <div>
                           <p className="text-brand-999 font-medium text-sm">{item.name}</p>
                           <p className="text-gray-500 font-medium text-sm">{item.description}</p>
+                          {item?.type === 'buy_product' || item.type === 'rent_product' ? <Badge><MapPin />{item.location_name}</Badge> : ""}
                         </div>
                         {item.badge && (
                           <Badge className="border bg-brand-100 min-w-[18px] h-[18px] text-[10px] border-brand-400 !p-1.5 ">{item.badge}</Badge>
