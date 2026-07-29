@@ -6,20 +6,17 @@ import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card"
 
 import { SearchInput } from "@/components/ui/search-input";
 import { useAdminManualTransaction } from "@/context/admin/add-transaction.ctx";
-import { defaultDate, formatCurrency, formatDateHelper } from "@/lib/helper";
-import { cn } from "@/lib/utils";
+import { formatCurrency } from "@/lib/helper";
 
 import { useState } from "react";
 
-import { ISessionItem } from "@/types/class-sessions.interface";
 import { CustomPagination } from "@/components/general/pagination-component";
-import { DateRangePicker } from "@/components/base/date-range-picker";
 import { useDebounce } from "@/hooks";
 import { useGetCreditPackage } from "@/hooks/api/queries/admin/credit-package";
 import { ICreditPackageItem } from "@/types/credit-package.interface";
 
 export const CreditPackageTabComponent = () => {
-  const { cartItems, addItem, removeItem, updateQuantity, customerData } = useAdminManualTransaction();
+  const { cartItems, addItem, removeItem, updateQuantity } = useAdminManualTransaction();
 
   const [limit] = useState(10);
   const [page, setPage] = useState(1);
@@ -43,9 +40,9 @@ export const CreditPackageTabComponent = () => {
     search: debounceClass,
   });
 
-  const handleDateRangeChangeDual = (startDate: string, endDate?: string) => {
-    setSelectedRange((prev) => ({ ...prev, from: startDate, to: endDate ?? "" }));
-  };
+  // const handleDateRangeChangeDual = (startDate: string, endDate?: string) => {
+  //   setSelectedRange((prev) => ({ ...prev, from: startDate, to: endDate ?? "" }));
+  // };
 
   // alwasy match/check cart data and table data for quantity
   const headers = [

@@ -110,8 +110,8 @@ export const ProductListPage = () => {
     },
     {
       id: "total_stock",
-      text: "Total Stock",
-      value: "stock_total",
+      text: "Stock Available",
+      value: "stock_available",
     },
     {
       id: "created_at",

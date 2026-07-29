@@ -18,7 +18,7 @@ import { useRouter } from "next/navigation";
 import { useApplyDiscountVoucher } from "@/hooks/api/mutations/admin";
 import { IApplyDiscountResponse, IVouchersListItem } from "@/types/discount-voucher.interface";
 import { DiscountSelectComponent } from "@/components/page/orders/discount-code-select";
-import { Plus, UserPlus2, Users2, XIcon } from "lucide-react";
+import { MapPin, Plus, UserPlus2, Users2, XIcon } from "lucide-react";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
@@ -28,6 +28,7 @@ import { BaseDialogComponent } from "@/components/general/base-dialog-component"
 import { useDebounce } from "@/hooks";
 import { useGetCustomers } from "@/hooks/api/queries/admin/customers";
 import { ICustomerData } from "@/types/customers.interface";
+import { parseProductCartItemId } from "@/components/page/orders/product-section";
 
 export const PAYMENT_METHODS = [
   {
@@ -63,7 +64,8 @@ export const DetailFormAddTransaction = () => {
   const [selectedUser, setSelectedUser] = useState<ICustomerData | null>(null);
   const [selectedUsers, setSelectedUsers] = useState<ICustomerData[]>([]);
   const [openSessionSharing, setOpenSessionSharing] = useState(false);
-  console.log(cartItems);
+
+
 
   const onSearch = (e: string) => {
     setSearch(e);
@@ -124,16 +126,16 @@ export const DetailFormAddTransaction = () => {
         });
       } else if (item.type === "buy_product" || item.type === "rent_product") {
         products.push({
-          variant_id: item.id as string,
-          quantity: item.quantity,
+          variant_id: parseProductCartItemId(item?.id as string).variantId, quantity: item.quantity,
+          location_id: item.location_id as string,
         });
       } else if (item.type === "packages") {
         packages.push({
           package_id: item.id as string,
           ...(item.badge === "Sharing"
             ? {
-                share_with_user_id: item.share_with_user_id,
-              }
+              share_with_user_id: item.share_with_user_id,
+            }
             : null),
         });
       }
@@ -145,6 +147,7 @@ export const DetailFormAddTransaction = () => {
       customer_phone: customerData?.phone as string,
       sessions: sessions ?? [],
       products: products ?? [],
+      ...(products?.length as number > 0 ? { location_id: products?.[0].location_id } : null),
       packages: packages ?? [],
       notes: "Combined purchase",
       status: "paid",
@@ -152,18 +155,20 @@ export const DetailFormAddTransaction = () => {
 
       ...(selectedPaymentMethod === "transfer"
         ? {
-            transfer_details: {
-              account_name_from: nameFrom as string,
-              account_bank_from: selectedBank?.label as string,
-              account_bank_to: selectedBankTo?.label as string,
-            },
-          }
+          transfer_details: {
+            account_name_from: nameFrom as string,
+            account_bank_from: selectedBank?.label as string,
+            account_bank_to: selectedBankTo?.label as string,
+          },
+        }
         : {
-            branch: selectedBranch?.value as string,
-          }),
+          branch: selectedBranch?.value as string,
+        }),
       user_id: customerData?.id as string,
       ...(discountData ? { voucher_code: selectedVoucher?.code } : null),
     };
+    // console.log(payload)
+    // return
 
     try {
       const res = await mutateAsync(payload);
@@ -311,6 +316,7 @@ export const DetailFormAddTransaction = () => {
                       <p className="text-gray-500 font-medium text-sm col-span-4">Item</p>
                       <p className="text-gray-500 font-medium text-sm col-span-1">Type</p>
                       <p className="text-gray-500 font-medium text-sm col-span-2">Share with</p>
+
                       <p className="text-gray-500 font-medium text-sm col-span-1 text-center flex justify-center items-center">Action</p>
                       <p className="text-gray-500 font-medium text-sm text-right col-span-1">Price & Qty</p>
                     </div>
@@ -323,10 +329,14 @@ export const DetailFormAddTransaction = () => {
                               <div className="col-span-4 items-center">
                                 <p className="text-brand-999 font-medium text-sm">{item.name}</p>
                                 {item?.description && <p className="text-gray-500 font-medium text-sm">{item.description}</p>}
+
+                                {item?.type === "buy_product" || item?.type === 'rent_product' ? <Badge><MapPin />{item.location_name}</Badge> : ""}
+
                                 {/* <p className="text-sm font-semibold text-brand-200 flex-1">
                               {item?.variant?.map((v: { name: string; value: string }) => v.value).join(", ")}
                             </p> */}
                               </div>
+
                               <p className="text-brand-999 font-medium text-sm col-span-1 flex flex-col">
                                 {item.badge ? (
                                   <Badge className="border bg-brand-100 min-w-[18px] h-[18px] text-[10px] border-brand-400 !p-1.5 ">
@@ -422,6 +432,8 @@ export const DetailFormAddTransaction = () => {
                                   ""
                                 )}
                               </div>
+
+
                               <div className="text-brand-999 font-medium text-sm text-center col-span-1">
                                 {" "}
                                 <div className="flex flex-row gap-2 items-center justify-center">
@@ -515,8 +527,8 @@ export const DetailFormAddTransaction = () => {
                           {!discountData
                             ? formatCurrency(0)
                             : discountData?.discount_type === "percentage"
-                            ? `${formatCurrency(discountData?.calculated_discount)} (${discountData?.discount_value}%)`
-                            : formatCurrency(discountData?.discount_value)}
+                              ? `${formatCurrency(discountData?.calculated_discount)} (${discountData?.discount_value}%)`
+                              : formatCurrency(discountData?.discount_value)}
                         </p>
                       </div>
                     </div>
@@ -606,7 +618,7 @@ export const DetailFormAddTransaction = () => {
                               setNameFrom(e.target.value);
                             }}
 
-                            // className="w-auto min-w-[388px]"
+                          // className="w-auto min-w-[388px]"
                           />
                         </div>
 

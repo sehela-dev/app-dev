@@ -38,6 +38,8 @@ export interface IAdminCartItemData {
   subtotal: number;
   type?: string;
   share_with_user_id?: string;
+  location_id?: string;
+  location_name?: string;
   share_with_user_ids?: string[];
   share_with_users?:
     | {
@@ -132,6 +134,7 @@ export interface IPackages {
 export interface IProduct {
   variant_id: string;
   quantity: number;
+  location_id: string;
 }
 
 // creatae new manual trx
