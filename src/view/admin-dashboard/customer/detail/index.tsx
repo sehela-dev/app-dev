@@ -16,6 +16,7 @@ import { Loader2, PenIcon } from "lucide-react";
 import { useParams, useRouter } from "next/navigation";
 import { useState } from "react";
 
+
 const instructorTabs = [
   {
     value: "basic",
@@ -34,6 +35,7 @@ const instructorTabs = [
     name: "Transaction",
   },
 ];
+
 
 export const CustomerDetailPage = () => {
   const router = useRouter();
@@ -169,7 +171,7 @@ export const CustomerDetailPage = () => {
       text: "Package",
       value: (row: IHistoricalPackagePurchase) => (
         <div className="flex flex-col gap-1">
-          <Button variant="link" className="h-auto justify-start p-0 text-left text-brand-500" onClick={() => router.push(`/admin/member/${id}/credit-packages/${row.id}`)}>
+          <Button variant="link" className="h-auto justify-start p-0 text-left text-brand-500" onClick={() => isManager ? router.push(`/admin/member/${id}/credit-packages/${row.id}`) : () => { }}>
             {row.credit_package?.name ?? "-"}
           </Button>
           <span className="text-xs text-gray-500">Per credit: {row.per_credit_value_idr === null ? "-" : formatCurrency(row.per_credit_value_idr)}</span>
