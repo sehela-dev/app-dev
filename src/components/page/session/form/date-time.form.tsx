@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Select as Selects, SelectItem, SelectGroup, SelectContent, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { useAdminPermission } from "@/hooks/use-role-access";
 
 import { FormProvider, useFormContext } from "react-hook-form";
 
@@ -30,6 +31,7 @@ const RECURRING_TYPE = [
   },
 ];
 export const SessionDateTimeFormComponent = ({ start_date, isEdit = false }: IProps) => {
+  const { isManager } = useAdminPermission();
   const methods = useFormContext();
   const { control } = methods;
   const isRecurring = methods.watch("is_recurring");
@@ -52,11 +54,10 @@ export const SessionDateTimeFormComponent = ({ start_date, isEdit = false }: IPr
                     <DateRangePicker
                       {...field}
                       mode="single"
-                      allowPastDates={false}
+                      allowPastDates={!!isManager}
                       allowFutureDates
                       onDateRangeChange={(e) => {
                         field.onChange(e);
-
                       }}
                       startDate={start_date ?? field.value}
                     />

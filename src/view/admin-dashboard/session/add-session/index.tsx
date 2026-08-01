@@ -164,10 +164,6 @@ export const CreateSessionPageView = () => {
       }
     } catch (error) {
       console.log(error);
-    } finally {
-      handleOpenModal("ONSUCCESS");
-      methods.reset();
-      console.log(methods.getValues());
     }
   });
 
