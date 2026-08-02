@@ -486,6 +486,9 @@ export const InventoryCardComponent = ({ variant }: IProps) => {
                       <p className="text-xs text-muted-foreground">Total</p>
                       <p className="font-semibold text-foreground">{inv.stock_total}</p>
                     </div>
+                    <div>
+                      <Button>Update Stock</Button>
+                    </div>
                   </div>
                 </div>
               ))}
