@@ -1,6 +1,13 @@
 import { axiosx } from "@/lib/axiosx";
 import { MAIN_API_URL } from "@/lib/config";
-import { TCreateProduct, TInventoryLocations, TProductCategories, TProductDetail, TProductItemList } from "@/types/product.interface";
+import {
+  TAddNewVariants,
+  TCreateProduct,
+  TInventoryLocations,
+  TProductCategories,
+  TProductDetail,
+  TProductItemList,
+} from "@/types/product.interface";
 
 export const getProductList: TProductItemList = async ({ page, limit, search, view, is_rentable }) => {
   const res = await axiosx(true).get(`${MAIN_API_URL}/admin/products`, {
@@ -46,5 +53,11 @@ export const getInventoryLocations: TInventoryLocations = async (data) => {
       ...(data?.product_id ? { product_id: data?.product_id } : null),
     },
   });
+  return res.data;
+};
+
+// add variants
+export const addNewVariants: TAddNewVariants = async ({ data, id }) => {
+  const res = await axiosx(true).post(`${MAIN_API_URL}/admin/products/${id}/variants`, data);
   return res.data;
 };

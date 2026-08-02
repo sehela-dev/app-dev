@@ -1,7 +1,7 @@
 "use client";
 
+import { BackButtonComponent } from "@/components/general/back-button";
 import { BaseDialogConfirmation } from "@/components/general/dialog-confirnation";
-import { InstructorPaymentModelForm } from "@/components/page/instructor-payment/form";
 import {
   OveridePaymentModelForm,
   SessionBasicInfoFormComponent,
@@ -10,15 +10,13 @@ import {
   SessionPricingFormComponent,
 } from "@/components/page/session/form";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { useEditSession } from "@/hooks/api/mutations/admin";
 import { useGetSessionDetail } from "@/hooks/api/queries/admin/class-session";
 
-import { ICreateSessionPaylaod } from "@/types/class-sessions.interface";
 import { Loader2 } from "lucide-react";
 import { useParams, useRouter } from "next/navigation";
 
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 
 import { FormProvider, useForm } from "react-hook-form";
 
@@ -266,10 +264,12 @@ export const EditSessionPage = () => {
     );
   return (
     <div className="flex flex-col gap-4 w-full">
-      <div className="flex flex-col gap-2">
-        <h3 className="text-3xl font-semibold">Edit Session - {data?.data?.session_name}</h3>
-        <p className="text-gray-500">Fill in the details to edit a session</p>
-      </div>
+      <BackButtonComponent>
+        <div className="flex flex-col gap-2">
+          <h3 className="text-3xl font-semibold">Edit Session - {data?.data?.session_name}</h3>
+          <p className="text-gray-500">Fill in the details to edit a session</p>
+        </div>
+      </BackButtonComponent>
       <FormProvider {...methods}>
         <form onSubmit={onSubmit}>
           <div className="flex flex-col gap-4">

@@ -1,6 +1,7 @@
 "use client";
 
 import { DateRangePicker } from "@/components/base/date-range-picker";
+import { BackButtonComponent } from "@/components/general/back-button";
 import { CustomTable } from "@/components/general/custom-table";
 import { CustomPagination } from "@/components/general/pagination-component";
 import { GeneralTabComponent } from "@/components/general/tabs-component";
@@ -8,14 +9,18 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card";
 import { Divider } from "@/components/ui/divider";
-import { useGetCustomerActivity, useGetCustomerDetail, useGetCustomerTrx, useGetHistoricalPackagePurchases } from "@/hooks/api/queries/admin/customers";
+import {
+  useGetCustomerActivity,
+  useGetCustomerDetail,
+  useGetCustomerTrx,
+  useGetHistoricalPackagePurchases,
+} from "@/hooks/api/queries/admin/customers";
 import { useAdminPermission } from "@/hooks/use-role-access";
 import { formatCurrency, formatDateHelper } from "@/lib/helper";
 import { ICustomerActvity, ICustomerTrx, IHistoricalPackagePurchase } from "@/types/customers.interface";
 import { Loader2, PenIcon } from "lucide-react";
 import { useParams, useRouter } from "next/navigation";
 import { useState } from "react";
-
 
 const instructorTabs = [
   {
@@ -36,7 +41,6 @@ const instructorTabs = [
   },
 ];
 
-
 export const CustomerDetailPage = () => {
   const router = useRouter();
   const params = useParams();
@@ -56,13 +60,16 @@ export const CustomerDetailPage = () => {
     setActivityPage(1);
   };
   const { data, isLoading } = useGetCustomerDetail(id as string);
-  const { data: activity, isLoading: loadingActivity } = useGetCustomerActivity({
-    id: id as string,
-    startDate: selectedRange.startDate as string,
-    endDate: selectedRange.endDate as string,
-    page: activityPage,
-    limit: 10,
-  }, tabs === "activity");
+  const { data: activity, isLoading: loadingActivity } = useGetCustomerActivity(
+    {
+      id: id as string,
+      startDate: selectedRange.startDate as string,
+      endDate: selectedRange.endDate as string,
+      page: activityPage,
+      limit: 10,
+    },
+    tabs === "activity",
+  );
   const { data: trx, isLoading: loadingTrx } = useGetCustomerTrx({ id: id as string, page: transactionPage, limit: 10 }, tabs === "trx");
   const {
     data: historicalPurchases,
@@ -171,10 +178,16 @@ export const CustomerDetailPage = () => {
       text: "Package",
       value: (row: IHistoricalPackagePurchase) => (
         <div className="flex flex-col gap-1">
-          <Button variant="link" className="h-auto justify-start p-0 text-left text-brand-500" onClick={() => isManager ? router.push(`/admin/member/${id}/credit-packages/${row.id}`) : () => { }}>
+          <Button
+            variant="link"
+            className="h-auto justify-start p-0 text-left text-brand-500"
+            onClick={() => (isManager ? router.push(`/admin/member/${id}/credit-packages/${row.id}`) : () => {})}
+          >
             {row.credit_package?.name ?? "-"}
           </Button>
-          <span className="text-xs text-gray-500">Per credit: {row.per_credit_value_idr === null ? "-" : formatCurrency(row.per_credit_value_idr)}</span>
+          <span className="text-xs text-gray-500">
+            Per credit: {row.per_credit_value_idr === null ? "-" : formatCurrency(row.per_credit_value_idr)}
+          </span>
         </div>
       ),
     },
@@ -231,10 +244,13 @@ export const CustomerDetailPage = () => {
         <Card>
           <CardHeader>
             <div className="flex flex-row items-center w-full justify-between">
-              <div className="flex flex-col">
-                <h3 className="text-2xl font-semibold">Member Information</h3>
-                <p className="text-sm text-gray-500">Review and manage essential member data to ensure service accuracy.</p>
-              </div>
+              <BackButtonComponent>
+                <div className="flex flex-col">
+                  <h3 className="text-2xl font-semibold">Member Information</h3>
+                  <p className="text-sm text-gray-500">Review and manage essential member data to ensure service accuracy.</p>
+                </div>
+              </BackButtonComponent>
+
               <div className="flex flex-row items-center gap-2">
                 <div>
                   <Button onClick={() => router.push(`${id}/edit`)}>
@@ -286,7 +302,11 @@ export const CustomerDetailPage = () => {
                         </CardContent>
                         {isManager && (
                           <CardFooter className="p-0 pt-3">
-                            <Button variant="outline" size="sm" onClick={() => router.push(`/admin/member/${id}/credit-packages/${item.package_purchase_id}`)}>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => router.push(`/admin/member/${id}/credit-packages/${item.package_purchase_id}`)}
+                            >
                               Manage
                             </Button>
                           </CardFooter>
@@ -309,10 +329,12 @@ export const CustomerDetailPage = () => {
           <Card>
             <CardHeader>
               <div className="flex flex-row items-center w-full justify-between">
-                <div className="flex flex-col gap-1">
-                  <h3 className="text-2xl text-brand-999 font-medium">Members Sessions History</h3>
-                  <p className="text-sm text-gray-500 max-w-[80%]">Monitor member activity, attendance, and payment status</p>
-                </div>
+                <BackButtonComponent>
+                  <div className="flex flex-col gap-1">
+                    <h3 className="text-2xl text-brand-999 font-medium">Members Sessions History</h3>
+                    <p className="text-sm text-gray-500 max-w-[80%]">Monitor member activity, attendance, and payment status</p>
+                  </div>
+                </BackButtonComponent>
                 <div className="flex flex-row items-center gap-4">
                   <DateRangePicker
                     mode="range"
@@ -350,10 +372,12 @@ export const CustomerDetailPage = () => {
           <Card>
             <CardHeader>
               <div className="flex flex-row items-center w-full justify-between">
-                <div className="flex flex-col gap-1">
-                  <h3 className="text-2xl text-brand-999 font-medium">Members Transaction History</h3>
-                  <p className="text-sm text-gray-500 max-w-[80%]">Monitor member transaction status</p>
-                </div>
+                <BackButtonComponent>
+                  <div className="flex flex-col gap-1">
+                    <h3 className="text-2xl text-brand-999 font-medium">Members Transaction History</h3>
+                    <p className="text-sm text-gray-500 max-w-[80%]">Monitor member transaction status</p>
+                  </div>
+                </BackButtonComponent>
                 <div className="flex flex-row items-center gap-4"></div>
               </div>
             </CardHeader>
@@ -381,10 +405,12 @@ export const CustomerDetailPage = () => {
         <div className="flex flex-col gap-4 w-full">
           <Card>
             <CardHeader>
-              <div className="flex flex-col gap-1">
-                <h3 className="text-2xl text-brand-999 font-medium">Credit History</h3>
-                <p className="text-sm text-gray-500 max-w-[80%]">Historical credit package purchases for this member.</p>
-              </div>
+              <BackButtonComponent>
+                <div className="flex flex-col gap-1">
+                  <h3 className="text-2xl text-brand-999 font-medium">Credit History</h3>
+                  <p className="text-sm text-gray-500 max-w-[80%]">Historical credit package purchases for this member.</p>
+                </div>
+              </BackButtonComponent>
             </CardHeader>
             <CardContent>
               {loadingHistoricalPurchases ? (
@@ -405,7 +431,9 @@ export const CustomerDetailPage = () => {
               ) : (
                 <div className="flex flex-col items-center gap-3 py-10 text-center">
                   <p className="text-sm text-gray-500">
-                    {creditHistoryPage === 1 ? "No historical credit purchases for this member." : "There are no historical credit purchases on this page."}
+                    {creditHistoryPage === 1
+                      ? "No historical credit purchases for this member."
+                      : "There are no historical credit purchases on this page."}
                   </p>
                   {creditHistoryPage > 1 && (
                     <Button variant="outline" onClick={() => setCreditHistoryPage((currentPage) => currentPage - 1)}>

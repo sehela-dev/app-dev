@@ -1,11 +1,12 @@
 "use client";
 
+import { BackButtonComponent } from "@/components/general/back-button";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { useCreateCustomer } from "@/hooks/api/mutations/admin";
-import { DEFAULT_PASSWORD } from "@/lib/config";
+
 import { FormProvider, useForm } from "react-hook-form";
 
 const defaultValues = {
@@ -38,10 +39,12 @@ export const CreateMemberPage = () => {
   });
   return (
     <div className="flex flex-col gap-4">
-      <div className="flex flex-col">
-        <h3 className="text-2xl font-semibold">Create Member</h3>
-        <p className="text-sm text-gray-500">Set up a new member account and keep their information organized for easy tracking.</p>
-      </div>
+      <BackButtonComponent>
+        <div className="flex flex-col">
+          <h3 className="text-2xl font-semibold">Create Member</h3>
+          <p className="text-sm text-gray-500">Set up a new member account and keep their information organized for easy tracking.</p>
+        </div>
+      </BackButtonComponent>
 
       <Card>
         <CardHeader className="font-semibold ">Basic Information</CardHeader>

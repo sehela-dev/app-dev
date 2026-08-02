@@ -1,5 +1,6 @@
 "use client";
 
+import { BackButtonComponent } from "@/components/general/back-button";
 import { BaseDialogConfirmation } from "@/components/general/dialog-confirnation";
 import {
   OveridePaymentModelForm,
@@ -9,12 +10,10 @@ import {
   SessionPricingFormComponent,
 } from "@/components/page/session/form";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { useCreateNewSession } from "@/hooks/api/mutations/admin";
-import { defaultDate } from "@/lib/helper";
 import { ICreateSessionPaylaod } from "@/types/class-sessions.interface";
 import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 
 import { FormProvider, useForm } from "react-hook-form";
 
@@ -176,10 +175,13 @@ export const CreateSessionPageView = () => {
 
   return (
     <div className="flex flex-col gap-4 w-full">
-      <div className="flex flex-col gap-2">
-        <h3 className="text-3xl font-semibold">Create Session</h3>
-        <p className="text-gray-500">Fill in the details to create a new session</p>
-      </div>
+      <BackButtonComponent page="/admin/session">
+        <div className="flex flex-col gap-2">
+          <h3 className="text-3xl font-semibold">Create Session</h3>
+          <p className="text-gray-500">Fill in the details to create a new session</p>
+        </div>
+      </BackButtonComponent>
+
       <FormProvider {...methods}>
         <form onSubmit={onSubmit}>
           <div className="flex flex-col gap-4">

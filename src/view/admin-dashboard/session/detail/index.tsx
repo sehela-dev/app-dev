@@ -16,7 +16,7 @@ import { defaultDate, formatCurrency, formatDateHelper, reminderMessage, sendRem
 import { cn } from "@/lib/utils";
 import { IParticipantsSession, ISessionItem } from "@/types/class-sessions.interface";
 import { IAttendanceStatus } from "@/types/orders.interface";
-import { BellRing, BellRingIcon, Copy, Ellipsis, File, Loader2, PenIcon, Send } from "lucide-react";
+import { BellRing, Copy, Ellipsis, Loader2, PenIcon } from "lucide-react";
 import { useParams, useRouter } from "next/navigation";
 import { useState } from "react";
 import { CardSession } from "../../enrol-students";
@@ -25,6 +25,7 @@ import { Label } from "@/components/ui/label";
 import { BaseDialogConfirmation } from "@/components/general/dialog-confirnation";
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
+import { BackButtonComponent } from "@/components/general/back-button";
 
 export const SessionDetailPage = () => {
   const router = useRouter();
@@ -303,24 +304,27 @@ export const SessionDetailPage = () => {
     <Card>
       <CardHeader>
         <div className="flex flex-row items-center w-full justify-between">
-          <div className="flex flex-col">
-            <div className="flex flex-row items-center gap-4">
-              <h3 className="text-2xl font-semibold items-center">Session Detail</h3>
-              <Badge
-                className={cn("capitalize font-bold", {
-                  "text-green-500": data?.data?.status === "ongoing",
-                  "text-blue-500": data?.data?.status === "scheduled",
-                  "text-red-500": data?.data?.status === "ended",
-                  "text-yellow-500": data?.data?.status === "canceled",
-                })}
-                variant={"outline"}
-              >
-                {data?.data?.status}
-              </Badge>
-            </div>
+          <BackButtonComponent page="/admin/session">
+            <div className="flex flex-col">
+              <div className="flex flex-row items-center gap-4">
+                <h3 className="text-2xl font-semibold items-center">Session Detail</h3>
+                <Badge
+                  className={cn("capitalize font-bold", {
+                    "text-green-500": data?.data?.status === "ongoing",
+                    "text-blue-500": data?.data?.status === "scheduled",
+                    "text-red-500": data?.data?.status === "ended",
+                    "text-yellow-500": data?.data?.status === "canceled",
+                  })}
+                  variant={"outline"}
+                >
+                  {data?.data?.status}
+                </Badge>
+              </div>
 
-            <p className="text-sm text-gray-500">Review all session details and make updates as needed</p>
-          </div>
+              <p className="text-sm text-gray-500">Review all session details and make updates as needed</p>
+            </div>
+          </BackButtonComponent>
+
           <div className="flex flex-row items-center gap-2">
             {/* <div>
               <Button variant={"outline"}>

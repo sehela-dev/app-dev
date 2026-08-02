@@ -80,6 +80,10 @@ export interface IProductVariantsItem {
   sku: string;
   price: string | number;
   stock: string | number;
+  inventory?: {
+    location_id: string;
+    stock_total: string | number;
+  }[];
 }
 
 export interface IProductListParams extends ICommonParams {
@@ -118,4 +122,17 @@ export interface IInventoryLocationResponse {
   updated_at: string;
 }
 
+export interface IVariantsPayload {
+  variants: {
+    variant_name: string;
+    sku: string;
+    inventory: {
+      location_id: string;
+      stock_total: string | number;
+    }[];
+    price_idr: string | number;
+  }[];
+}
+
 export type TInventoryLocations = (data?: IParamsInventory) => Promise<IResponseData<IInventoryLocationResponse[]>>;
+export type TAddNewVariants = ({ data, id }: { data: IVariantsPayload; id: string }) => Promise<IResponseData<unknown>>;

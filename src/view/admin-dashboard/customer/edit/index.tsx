@@ -1,9 +1,9 @@
 "use client";
+import { BackButtonComponent } from "@/components/general/back-button";
 import { BaseDialogConfirmation } from "@/components/general/dialog-confirnation";
 import { Button } from "@/components/ui/button";
-import { Card, CardHeader } from "@/components/ui/card";
-import { Checkbox } from "@/components/ui/checkbox";
-import { FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+import { Card } from "@/components/ui/card";
+import { FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { useEditCustomer } from "@/hooks/api/mutations/admin";
 import { useGetCustomerDetail } from "@/hooks/api/queries/admin/customers";
@@ -77,10 +77,12 @@ export const EditMemberPage = () => {
 
   return (
     <div className="flex flex-col gap-4">
-      <div className="flex flex-col">
-        <h3 className="text-2xl font-semibold">Edit Member</h3>
-        <p className="text-sm text-gray-500">Set up a new member account and keep their information organized for easy tracking.</p>
-      </div>
+      <BackButtonComponent>
+        <div className="flex flex-col">
+          <h3 className="text-2xl font-semibold">Edit Member</h3>
+          <p className="text-sm text-gray-500">Set up a new member account and keep their information organized for easy tracking.</p>
+        </div>
+      </BackButtonComponent>
 
       <Card className="p-8 border-gray-200">
         <FormProvider {...methods}>
