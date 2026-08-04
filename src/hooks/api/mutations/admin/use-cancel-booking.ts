@@ -37,7 +37,7 @@ const useConfig = () => {
   const onSuccess = useCallback((data: any) => {
     toast.success("Success!", {
       id: "sucess",
-      description: "User has been enrolled!",
+      description: "Cancel booking successfully!",
       position: "top-center",
     });
   }, []);
