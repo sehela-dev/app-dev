@@ -335,9 +335,15 @@ export interface IVoidPreviewData {
   found: boolean;
   effects: IEffectsVoid;
   payment: IVoidPayment;
-  blockers: unknown[];
+  blockers?: {
+    code: string;
+    message: string;
+  }[];
   possible: boolean;
-  warnings: unknown[];
+  warnings?: {
+    code: string;
+    message: string;
+  }[];
   preview_token: string;
   already_voided: boolean;
   financial_disposition: FinancialDisposition;

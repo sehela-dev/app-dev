@@ -12,6 +12,7 @@ import { formatCurrency } from "@/lib/helper";
 import { Badge } from "@/components/ui/badge";
 import { useCommitVoidTrx } from "@/hooks/api/mutations/admin";
 import { Input } from "@/components/ui/input";
+import { IVoidPreviewData } from "@/types/orders.interface";
 
 export interface TransactionVoidDialogProps {
   isOpen: boolean;
@@ -139,13 +140,16 @@ export const TransactionVoidDialog = ({ isOpen, onClose, onConfirm, isDisabled =
 };
 
 interface PreviewStepProps {
-  data: any;
+  data: {
+    data: IVoidPreviewData
+  };
   payment: any;
   selectedDisposition: string;
   onDispositionChange: (value: string) => void;
 }
 
 const PreviewStep = ({ data, payment, selectedDisposition, onDispositionChange }: PreviewStepProps) => {
+  console.log(data)
   return (
     <>
       {/* Amount Summary */}
@@ -156,15 +160,19 @@ const PreviewStep = ({ data, payment, selectedDisposition, onDispositionChange }
       </div>
 
       {/* Blockers */}
-      {(data.blockers?.length ?? 0) > 0 && (
+      {(data?.data.blockers?.length ?? 0) > 0 && (
         <div className="border-l-4 border-red-500 bg-red-500/10 rounded p-4">
           <div className="flex gap-3">
             <AlertCircle className="w-5 h-5 text-red-600 flex-shrink-0 mt-0.5" />
             <div>
               <h4 className="font-semibold text-red-900">Blockers</h4>
               <ul className="mt-2 space-y-1 text-sm text-red-800">
-                {data.blockers?.map((b: string, i: number) => (
-                  <li key={i}>• {b}</li>
+                {data?.data.blockers?.map((b, i) => (
+                  <li key={i} className="flex flex-row items-start gap-2">•<div>
+                    <p className="text-md font-semibold">{b.code}</p>
+                    <p className="text-sm font-normal">{b.message}</p>
+                  </div>
+                  </li>
                 ))}
               </ul>
             </div>
@@ -173,15 +181,19 @@ const PreviewStep = ({ data, payment, selectedDisposition, onDispositionChange }
       )}
 
       {/* Warnings */}
-      {(data.warnings?.length ?? 0) > 0 && (
+      {(data?.data.warnings?.length ?? 0) > 0 && (
         <div className="border-l-4 border-yellow-500 bg-yellow-500/10 rounded p-4">
           <div className="flex gap-3">
             <AlertTriangle className="w-5 h-5 text-yellow-600 flex-shrink-0 mt-0.5" />
             <div>
               <h4 className="font-semibold text-yellow-900">Warnings</h4>
               <ul className="mt-2 space-y-1 text-sm text-yellow-800">
-                {data.warnings?.map((w: string, i: number) => (
-                  <li key={i}>• {w}</li>
+                {data?.data.warnings?.map((w, i) => (
+                  <li key={i} className="flex flex-row items-start gap-2">•<div>
+                    <p className="text-md font-semibold">{w.code}</p>
+                    <p className="text-sm font-normal">{w.message}</p>
+                  </div>
+                  </li>
                 ))}
               </ul>
             </div>
