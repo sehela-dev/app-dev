@@ -7,6 +7,7 @@ import {
   TProductCategories,
   TProductDetail,
   TProductItemList,
+  TUpdateSingleVariant,
 } from "@/types/product.interface";
 
 export const getProductList: TProductItemList = async ({ page, limit, search, view, is_rentable }) => {
@@ -59,5 +60,11 @@ export const getInventoryLocations: TInventoryLocations = async (data) => {
 // add variants
 export const addNewVariants: TAddNewVariants = async ({ data, id }) => {
   const res = await axiosx(true).post(`${MAIN_API_URL}/admin/products/${id}/variants`, data);
+  return res.data;
+};
+
+// update single variant
+export const updateSingleVariant: TUpdateSingleVariant = async ({ id, idVar, data }) => {
+  const res = await axiosx(true).patch(`${MAIN_API_URL}/admin/products/${id}/variants/${idVar}`, data);
   return res.data;
 };

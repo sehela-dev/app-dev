@@ -123,16 +123,26 @@ export interface IInventoryLocationResponse {
 }
 
 export interface IVariantsPayload {
-  variants: {
-    variant_name: string;
-    sku: string;
-    inventory: {
-      location_id: string;
-      stock_total: string | number;
-    }[];
-    price_idr: string | number;
+  variants: IVariantItemPayload[];
+}
+
+export interface IVariantItemPayload {
+  variant_name: string;
+  sku: string;
+  inventory: {
+    location_id: string;
+    stock_total: string | number;
+  }[];
+  price_idr: string | number;
+}
+
+export interface IUpdateStockVariant {
+  inventory: {
+    location_id: string;
+    stock_total: number | string;
   }[];
 }
 
 export type TInventoryLocations = (data?: IParamsInventory) => Promise<IResponseData<IInventoryLocationResponse[]>>;
 export type TAddNewVariants = ({ data, id }: { data: IVariantsPayload; id: string }) => Promise<IResponseData<unknown>>;
+export type TUpdateSingleVariant = ({ id, idVar, data }: { id: string; idVar: string; data: IUpdateStockVariant }) => Promise<IResponseData<unknown>>;
