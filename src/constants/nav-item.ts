@@ -10,6 +10,7 @@ import {
   Tag,
   DollarSign,
   ChartNoAxesCombined,
+  MapPin,
 } from "lucide-react";
 
 export const dataNavMain = [
@@ -31,6 +32,7 @@ export const dataNavMarketPlace = [
       { title: "Classes", url: "/admin/class", icon: CalendarCheck, permission: "class:view" },
       { title: "Sessions", url: "/admin/session", icon: CalendarCheck, permission: "session:view" },
       { title: "Instructor", url: "/admin/instructor", icon: Users, permission: "instructor:view" },
+      { title: "Locations", url: "/admin/locations", icon: MapPin, permission: "locations:view" },
     ],
   },
   {
