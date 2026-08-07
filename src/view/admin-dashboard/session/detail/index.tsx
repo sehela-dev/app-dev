@@ -16,9 +16,9 @@ import { defaultDate, formatCurrency, formatDateHelper, reminderMessage, sendRem
 import { cn } from "@/lib/utils";
 import { IParticipantsSession, ISessionItem } from "@/types/class-sessions.interface";
 import { IAttendanceStatus } from "@/types/orders.interface";
-import { BellRing, Copy, Ellipsis, Loader2, PenIcon } from "lucide-react";
+import { ArrowLeftRight, Ban, Banknote, BellRing, Copy, Ellipsis, Loader2, LucideIcon, PenIcon, WalletCards } from "lucide-react";
 import { useParams, useRouter } from "next/navigation";
-import { useState } from "react";
+import React, { useState } from "react";
 import { CardSession } from "../../enrol-students";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
@@ -27,13 +27,54 @@ import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
 import { BackButtonComponent } from "@/components/general/back-button";
 
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { Input } from "@/components/ui/input";
+import { useAdminPermission } from "@/hooks/use-role-access";
+type RefundType = "none" | "credit_return" | "credit_issue_new" | "manual_external"
+
+const refundOptions: {
+  value: RefundType
+  title: string
+  description: string
+  icon: React.ReactElement
+}[] = [
+    {
+      value: "none",
+      title: "No refund",
+      description: "For no-shows or policy violations",
+      icon: <Ban />,
+    },
+    {
+      value: "credit_return",
+      title: "Return package credits",
+      description: "Restore the credit to the original package",
+      icon: <ArrowLeftRight />,
+    },
+    {
+      value: "credit_issue_new",
+      title: "Issue new credits",
+      description: "Create fresh credits with an expiry date",
+      icon: <WalletCards />,
+    },
+    {
+      value: "manual_external",
+      title: "External cash refund",
+      description: "Record a refund handled outside the platform",
+      icon: <Banknote />,
+    },
+  ]
+
+
 export const SessionDetailPage = () => {
   const router = useRouter();
+  const { isManager } = useAdminPermission()
   const params = useParams();
   const { id } = params;
   const { data, isLoading } = useGetSessionDetail(id as string);
   const [page, setPage] = useState(1);
   const [openDialog, setOpenDialog] = useState(false);
+  const [validityDays, setValidityDays] = useState(15)
+  const [refundAmount, setRefundAmount] = useState(0)
   // resechedule
   const [limit] = useState(6);
   const [pageSession, setPageSession] = useState(1);
@@ -49,6 +90,7 @@ export const SessionDetailPage = () => {
   const [rescheduleNotes, setRescheduleNotes] = useState("");
   const [selectedRow, setSelectedRow] = useState<string | null>(null);
   const [openCancel, setOpenCancel] = useState(false);
+  const [refundType, setRefundTYpe] = useState("none")
   const [selectedDataCancel, setSelectedDataCancel] = useState<string | null>(null);
 
   const { mutateAsync: rescheduleSession } = useRescheduleSession();
@@ -90,15 +132,24 @@ export const SessionDetailPage = () => {
     try {
       const payload = {
         id: selectedDataCancel as string,
-        refund_type: "credit_issue_new",
-        cancel_reason: rescheduleNotes,
-        refund_validity_days: 30,
+        refund_type: refundType,
+        cancel_reason: rescheduleNotes.trim(),
+        ...(refundType === "credit_issue_new" && {
+          refund_validity_days: Number(validityDays),
+        }),
+        ...(refundType === "manual_external" && {
+          refund_amount_idr: Number(refundAmount),
+        }),
       };
       const res = await cancelBooking(payload);
       if (res) {
         refetch();
         setOpenCancel(false);
         setSelectedDataCancel(null);
+        setRescheduleNotes("")
+        setRefundTYpe("none")
+        setValidityDays(15)
+        setRefundAmount(0)
       }
     } catch (error) {
       console.log(error);
@@ -267,9 +318,12 @@ export const SessionDetailPage = () => {
           >
             Reschedule
           </DropdownMenuItem>
-          <DropdownMenuItem onClick={() => onTriggerCancel(row.id)} className="text-red-500" disabled={isPending}>
-            Cancel Booking
-          </DropdownMenuItem>
+          {(row.attendance_status === 'attended' && isManager) || !row.attendance_status ?
+            <DropdownMenuItem onClick={() => onTriggerCancel(row.id)} className="text-red-500" disabled={isPending}>
+              Cancel Booking
+            </DropdownMenuItem> : ""
+          }
+
         </DropdownMenuContent>
       </DropdownMenu>
     ),
@@ -439,120 +493,191 @@ export const SessionDetailPage = () => {
           </div>
         </div>
       </CardContent>
-      <BaseDialogComponent
-        title="Reschedule"
-        isOpen={openDialog}
-        btnConfirm="Proceed"
-        onClose={() => {
-          handleCloseDialog();
-        }}
-        onConfirm={onResheduleSession}
-      >
-        <div className="flex flex-col gap-2">
-          <SearchInput className="border-brand-100" search={search} onSearch={handleSearch} />
-          <div className="flex flex-row items-center gap-4">
-            <div className="w-full flex flex-col gap-1">
-              <p className="text-sm font-medium">Date From</p>
-              <DateRangePicker
-                mode="single"
-                onDateRangeChange={(e) => handleDateRangeChangeDual(e)}
-                startDate={selectedRange.from}
-                allowFutureDates
-                allowPastDates={false}
-              />
-            </div>
-            <div className="w-full">
-              <p className="text-sm font-medium">Date to</p>
-              <DateRangePicker
-                mode="single"
-                onDateRangeChange={(e) => handleDateRangeChangeDual(selectedRange.from, e)}
-                startDate={selectedRange.to}
-                allowFutureDates
-                allowPastDates={false}
-              />
-            </div>
-          </div>
-          <div className="w-full flex-col gap-2">
-            {loadingSessionReschedule ? (
-              <div className="flex items-center justify-center py-6">
-                <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+      {openDialog &&
+        <BaseDialogComponent
+          title="Reschedule"
+          isOpen={openDialog}
+          btnConfirm="Proceed"
+          onClose={() => {
+            handleCloseDialog();
+          }}
+          onConfirm={onResheduleSession}
+        >
+          <div className="flex flex-col gap-2">
+            <SearchInput className="border-brand-100" search={search} onSearch={handleSearch} />
+            <div className="flex flex-row items-center gap-4">
+              <div className="w-full flex flex-col gap-1">
+                <p className="text-sm font-medium">Date From</p>
+                <DateRangePicker
+                  mode="single"
+                  onDateRangeChange={(e) => handleDateRangeChangeDual(e)}
+                  startDate={selectedRange.from}
+                  allowFutureDates
+                  allowPastDates={false}
+                />
               </div>
-            ) : (sessionList?.data?.length as number) > 0 ? (
-              <div className="grid grid-cols-3 gap-2 pt-2">
-                {sessionList?.data?.map((item) =>
-                  item.id !== id ? (
-                    <CardSession
-                      key={item.id}
-                      date={formatDateHelper(item.start_datetime, "dd/MM/yyyy")}
-                      instructor={item.instructor_name}
-                      time={`${item.time_start} - ${item.time_end}`}
-                      slot={item.slots_display}
-                      title={`[${item?.class?.class_name}] - ${item.session_name}`}
-                      onSelect={() => setSelectedSession(item)}
-                      isSelected={item.id === selectedSession?.id}
-                    />
-                  ) : null,
-                )}
+              <div className="w-full">
+                <p className="text-sm font-medium">Date to</p>
+                <DateRangePicker
+                  mode="single"
+                  onDateRangeChange={(e) => handleDateRangeChangeDual(selectedRange.from, e)}
+                  startDate={selectedRange.to}
+                  allowFutureDates
+                  allowPastDates={false}
+                />
               </div>
-            ) : (
-              <div className="italic flex flex-row items-center justify-center w-full">No Data Found</div>
+            </div>
+            <div className="w-full flex-col gap-2">
+              {loadingSessionReschedule ? (
+                <div className="flex items-center justify-center py-6">
+                  <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+                </div>
+              ) : (sessionList?.data?.length as number) > 0 ? (
+                <div className="grid grid-cols-3 gap-2 pt-2">
+                  {sessionList?.data?.map((item) =>
+                    item.id !== id ? (
+                      <CardSession
+                        key={item.id}
+                        date={formatDateHelper(item.start_datetime, "dd/MM/yyyy")}
+                        instructor={item.instructor_name}
+                        time={`${item.time_start} - ${item.time_end}`}
+                        slot={item.slots_display}
+                        title={`[${item?.class?.class_name}] - ${item.session_name}`}
+                        onSelect={() => setSelectedSession(item)}
+                        isSelected={item.id === selectedSession?.id}
+                      />
+                    ) : null,
+                  )}
+                </div>
+              ) : (
+                <div className="italic flex flex-row items-center justify-center w-full">No Data Found</div>
+              )}
+            </div>
+            <CustomPagination
+              onPageChange={(e) => {
+                setPageSession(e);
+              }}
+              currentPage={pageSession}
+              showTotal
+              hasPrevPage={sessionList?.pagination?.has_prev}
+              hasNextPage={sessionList?.pagination?.has_next}
+              totalItems={sessionList?.pagination?.total_items as number}
+              totalPages={sessionList?.pagination?.total_pages as number}
+              limit={limit}
+            />
+            {selectedSession && (
+              <div className="flex flex-col gap-2">
+                <Label>Notes</Label>
+                <Textarea
+                  className="w-full px-4 py-4 border-2 border-gray-200 rounded-lg text-gray-999  placeholder-gray-400 focus:outline-none focus:border-brand-500 transition-colors h-[42px]"
+                  placeholder="Type here.."
+                  onChange={(e) => setRescheduleNotes(e.target.value)}
+                />
+              </div>
             )}
           </div>
-          <CustomPagination
-            onPageChange={(e) => {
-              setPageSession(e);
-            }}
-            currentPage={pageSession}
-            showTotal
-            hasPrevPage={sessionList?.pagination?.has_prev}
-            hasNextPage={sessionList?.pagination?.has_next}
-            totalItems={sessionList?.pagination?.total_items as number}
-            totalPages={sessionList?.pagination?.total_pages as number}
-            limit={limit}
-          />
-          {selectedSession && (
+        </BaseDialogComponent>
+      }
+      {openCancel &&
+
+        <BaseDialogComponent
+          isOpen={openCancel}
+          title="Cancel Booking"
+          buttonTriggerText="Cancel Booking"
+          onConfirm={onCancelBooking}
+          btnConfirm="Cancel Booking"
+          onClose={() => {
+            setOpenCancel(false);
+            setRefundTYpe("none")
+            setValidityDays(15)
+            setRefundAmount(0)
+            setRescheduleNotes("")
+          }}
+        >
+
+          <RadioGroup value={refundType} onValueChange={(v) => setRefundTYpe(v)}>
+            <div className="grid grid-cols-2 gap-2">
+              {refundOptions?.map((option) => (
+                <div key={option.value} className={cn("flex items-center space-x-2 border border-brand-400 rounded-xl p-4", {
+                  "border-2 bg-brand-50": refundType === option.value
+                })}>
+                  <RadioGroupItem value={option.value} id={option.value} />
+                  <Label htmlFor={option.value} className="text-sm font-medium text-brand-999 cursor-pointer">
+                    <div className="flex flex-row items-center gap-4">
+                      {option.icon}
+                      <div className="flex flex-col gap-2">
+                        <p className="font-bold text-xl">{option.title}</p>
+                        <p className="font-normal">{option.description}</p>
+                      </div>
+                    </div>
+
+                  </Label>
+                </div>
+              ))}
+            </div>
+          </RadioGroup>
+
+          {refundType === "credit_issue_new" && (
             <div className="flex flex-col gap-2">
-              <Label>Notes</Label>
-              <Textarea
-                className="w-full px-4 py-4 border-2 border-gray-200 rounded-lg text-gray-999  placeholder-gray-400 focus:outline-none focus:border-brand-500 transition-colors h-[42px]"
-                placeholder="Type here.."
-                onChange={(e) => setRescheduleNotes(e.target.value)}
-              />
+              <Label htmlFor="validity-days">Credit validity</Label>
+              <div className="flex items-center gap-2">
+                <Input
+                  id="validity-days"
+                  type="number"
+                  min="1"
+                  value={validityDays}
+                  onChange={(event) => setValidityDays(parseInt(event.target.value))}
+                  className="max-w-32"
+                />
+                <span className="text-sm text-muted-foreground">days from cancellation</span>
+              </div>
             </div>
           )}
-        </div>
-      </BaseDialogComponent>
 
-      <BaseDialogComponent
-        isOpen={openCancel}
-        title="Cancel Booking"
-        buttonTriggerText="Cancel Booking"
-        onConfirm={onCancelBooking}
-        btnConfirm="Cancel Booking"
-        onClose={() => {
-          setOpenCancel(false);
-        }}
-      >
-        <div className="flex flex-col gap-2">
-          <Label>Notes</Label>
-          <Textarea
-            className="w-full px-4 py-4 border-2 border-gray-200 rounded-lg text-gray-999  placeholder-gray-400 focus:outline-none focus:border-brand-500 transition-colors h-[42px]"
-            placeholder="Type here.."
-            onChange={(e) => setRescheduleNotes(e.target.value)}
+          {refundType === "manual_external" && (
+            <div className="flex flex-col gap-2">
+              <Label htmlFor="refund-amount">Refund amount</Label>
+              <div className="flex items-center gap-2">
+                <span className="text-sm text-muted-foreground">IDR</span>
+                <Input
+                  id="refund-amount"
+                  type="number"
+                  min="1"
+                  placeholder="150000"
+                  value={refundAmount}
+                  defaultValue={data?.data?.price_idr ?? ""}
+                  onChange={(event) => setRefundAmount(parseInt(event.target.value))}
+                />
+              </div>
+            </div>
+          )}
+
+
+
+
+          <div className="flex flex-col gap-2">
+            <Label>Notes</Label>
+            <Textarea
+              className="w-full px-4 py-4 border-2 border-gray-200 rounded-lg text-gray-999  placeholder-gray-400 focus:outline-none focus:border-brand-500 transition-colors h-[42px]"
+              placeholder="Type here.."
+              onChange={(e) => setRescheduleNotes(e.target.value)}
+            />
+          </div>
+        </BaseDialogComponent>
+      }
+      {
+        openReminder && (
+          <BaseDialogConfirmation
+            open={openReminder}
+            title="Send Reminder to all participants?"
+            subtitle="Participants will be receive email according this session"
+            onConfirm={onRemindAll}
+            confirmText="Remind All"
+            onCancel={() => setOpenReminder(false)}
+            image="warning-1"
           />
-        </div>
-      </BaseDialogComponent>
-      {openReminder && (
-        <BaseDialogConfirmation
-          open={openReminder}
-          title="Send Reminder to all participants?"
-          subtitle="Participants will be receive email according this session"
-          onConfirm={onRemindAll}
-          confirmText="Remind All"
-          onCancel={() => setOpenReminder(false)}
-          image="warning-1"
-        />
-      )}
-    </Card>
+        )
+      }
+    </Card >
   );
 };
