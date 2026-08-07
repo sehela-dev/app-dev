@@ -140,7 +140,7 @@ export const TransactionVoidDialog = ({ isOpen, onClose, onConfirm, isDisabled =
 };
 
 interface PreviewStepProps {
-  data: {
+  data?: {
     data: IVoidPreviewData
   };
   payment: any;
@@ -149,7 +149,7 @@ interface PreviewStepProps {
 }
 
 const PreviewStep = ({ data, payment, selectedDisposition, onDispositionChange }: PreviewStepProps) => {
-  console.log(data)
+
   return (
     <>
       {/* Amount Summary */}
