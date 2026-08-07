@@ -1,4 +1,5 @@
 "use client";
+import { TransactionVoidDialog } from "@/components/page/orders";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
@@ -6,16 +7,19 @@ import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { useSendReceiptEmail } from "@/hooks/api/mutations/admin/use-send-receipt-email";
 
 import { useGetOrderDetail } from "@/hooks/api/queries/admin/orders";
+import { useAdminPermission } from "@/hooks/use-role-access";
 import { formatCurrency, formatDateHelper } from "@/lib/helper";
-import { Loader2, Mail } from "lucide-react";
+import { Ban, Loader2, Mail } from "lucide-react";
 import { useParams } from "next/navigation";
 
-import { Fragment } from "react";
+import { Fragment, useState } from "react";
 
 export const OrderReceiptPage = () => {
+  const { isManager } = useAdminPermission()
   const params = useParams();
   const { id } = params;
-  const { data, isLoading } = useGetOrderDetail(id as string);
+  const [openVoid, setOpenVoid] = useState(false)
+  const { data, isLoading, refetch } = useGetOrderDetail(id as string);
 
   const { mutateAsync, isPending } = useSendReceiptEmail();
   const onSendEmail = async () => {
@@ -168,11 +172,28 @@ export const OrderReceiptPage = () => {
         </CardContent>
       </Card>
       <div className="flex flex-row gap-2 pt-4">
+        {isManager &&
+
+          <div className="flex w-full">
+            <Button className="w-full !rounded-[10px]"
+              variant={"destructive"}
+              onClick={() => {
+                // set modal trus for preview void
+
+                setOpenVoid(true);
+              }}
+            >
+              <Ban /> Void Transaction
+            </Button>
+          </div>
+        }
+
         <div className="flex w-full">
           <Button className="w-full !rounded-[10px]" onClick={onSendEmail} disabled={!!isPending}>
             <Mail className="w-4 h-4" /> Send Receipt via Email
           </Button>
         </div>
+
         {/* <div className="flex w-full">
           <Button className="w-full text-brand-999" variant={"secondary"}>
             Export PDF
@@ -182,6 +203,16 @@ export const OrderReceiptPage = () => {
           <Button className="w-full">Print</Button>
         </div> */}
       </div>
+      {openVoid && (
+        <TransactionVoidDialog
+          isOpen={openVoid}
+          trxId={id as string}
+          onClose={() => {
+            setOpenVoid(false);
+          }}
+          refetchOrders={refetch}
+        />
+      )}
     </div>
   );
 };
