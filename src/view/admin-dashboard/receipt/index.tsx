@@ -132,6 +132,12 @@ export const OrderReceiptPage = () => {
                     <div>
                       <p className="text-brand-999 font-medium text-sm">{item.name}</p>
                       <p className="text-gray-500 font-medium text-sm">{item.variant}</p>
+                      {item.shared_with && <div className="flex flex-col gap-1">
+                        <span className="text-[10px] font-normal text-gray-500">Shared with: </span >
+                        <Badge variant={'secondary'} className="cursor-pointer" onClick={() => {
+                          window.open(`/admin/member/${item.shared_with?.user_id}`, "_blank")
+                        }}>{item.shared_with.name}</Badge>
+                      </div>}
                     </div>
                     <div className="flex flex-row gap-2 justify-end items-center">
                       {/* {item.badge && (
@@ -169,8 +175,8 @@ export const OrderReceiptPage = () => {
               </div>
             </div>
           </div>
-        </CardContent>
-      </Card>
+        </CardContent >
+      </Card >
       <div className="flex flex-row gap-2 pt-4">
         {isManager &&
 
@@ -203,16 +209,18 @@ export const OrderReceiptPage = () => {
           <Button className="w-full">Print</Button>
         </div> */}
       </div>
-      {openVoid && (
-        <TransactionVoidDialog
-          isOpen={openVoid}
-          trxId={id as string}
-          onClose={() => {
-            setOpenVoid(false);
-          }}
-          refetchOrders={refetch}
-        />
-      )}
-    </div>
+      {
+        openVoid && (
+          <TransactionVoidDialog
+            isOpen={openVoid}
+            trxId={id as string}
+            onClose={() => {
+              setOpenVoid(false);
+            }}
+            refetchOrders={refetch}
+          />
+        )
+      }
+    </div >
   );
 };

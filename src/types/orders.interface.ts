@@ -104,6 +104,10 @@ export interface IOrderedItem {
     user_id: string;
     name: string;
   }[];
+  shared_with?: {
+    name: string;
+    user_id: string;
+  };
 }
 
 export interface IAddTransactionPayload {
