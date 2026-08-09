@@ -14,7 +14,7 @@ import { FormProvider, useForm } from "react-hook-form";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
 import Image from "next/image";
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { previewURLHelper } from "@/lib/helper";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useUpdateProfile } from "@/hooks/api/mutations/customers";
@@ -23,8 +23,9 @@ import { useRouter } from "next/navigation";
 import { useGetProfile } from "@/hooks/api/queries/customer/profile";
 import { IAuthSignUpPaylaod } from "@/types/customer-app/auth-customer.interface";
 import { Textarea } from "@/components/ui/textarea";
-import { Loader2 } from "lucide-react";
+import { Loader2, TriangleAlert } from "lucide-react";
 import { TncDialog } from "@/components/general/tnc-dialog";
+import { useJwtToken } from "@/hooks";
 
 const defaultValues = {
   email: "",
@@ -45,8 +46,20 @@ const resolver = zodResolver(authSignUpSchema);
 
 export const CompleteProfilePageView = () => {
   const router = useRouter();
-  const { data: profileUser, isLoading } = useGetProfile();
+  const { resetJwt } = useJwtToken();
+  const { data: profileUser, isLoading, isError, refetch } = useGetProfile();
   const [tncDialogOpen, setTncDialogOpen] = useState(false);
+
+  useEffect(() => {
+    if (profileUser?.data?.is_profile_complete) {
+      router.replace("/");
+    }
+  }, [profileUser, router]);
+
+  const goToLogin = () => {
+    resetJwt();
+    router.replace("/auth/login");
+  };
 
   const values = useMemo(() => {
     if (!profileUser?.data) return defaultValues;
@@ -99,13 +112,52 @@ export const CompleteProfilePageView = () => {
       }
     } catch (error) {
       console.log(error);
+      if ((error as { response?: { status?: number } })?.response?.status === 401 || (error as { response?: { status?: number } })?.response?.status === 403) {
+        goToLogin();
+      }
     }
   });
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center py-6">
-        <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+      <div className="flex flex-col items-center w-full space-y-12 font-serif">
+        <div className="pt-12 flex justify-center items-center w-full mx-auto max-w-[361px]">
+          <LogoComponent className="w-[99px] h-[32px]" />
+        </div>
+        <div className="flex items-center justify-center py-6">
+          <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+        </div>
+      </div>
+    );
+  }
+
+  if (isError || (!isLoading && !profileUser?.data)) {
+    return (
+      <div className="flex flex-col items-center w-full space-y-12 font-serif">
+        <div className="pt-12 flex justify-center items-center w-full mx-auto max-w-[361px]">
+          <LogoComponent className="w-[99px] h-[32px]" />
+        </div>
+        <div className="w-full mx-auto max-w-[361px] px-6">
+          <div className="bg-white mx-auto w-full px-6 rounded-md pt-10 pb-6 flex flex-col items-center text-center gap-4">
+            <TriangleAlert className="h-10 w-10 text-brand-400" />
+            <div className="space-y-1">
+              <h3 className="text-2xl font-bold text-brand-500 leading-tight">Unable to load</h3>
+              <p className="text-sm font-normal text-brand-400 leading-tight">
+                We couldn&apos;t load your profile. Your session may have expired. Please log in again to continue.
+              </p>
+            </div>
+            <Button
+              variant="outline"
+              className="w-full max-h-[42px] min-h-[42px] text-sm"
+              onClick={() => refetch()}
+            >
+              Try Again
+            </Button>
+            <Button className="w-full max-h-[42px] min-h-[42px] text-sm" onClick={goToLogin}>
+              Back to Login
+            </Button>
+          </div>
+        </div>
       </div>
     );
   }
