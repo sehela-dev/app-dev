@@ -50,7 +50,7 @@ export const CustomerDetailPage = () => {
   const [activityPage, setActivityPage] = useState(1);
   const [transactionPage, setTransactionPage] = useState(1);
   const [creditHistoryPage, setCreditHistoryPage] = useState(1);
-  const [activitySort, setActivitySort] = useState<{ key?: string; direction?: "asc" | "desc" }>({ key: 'booked_at', direction: 'desc' });
+  const [activitySort, setActivitySort] = useState<{ key?: string; direction?: "asc" | "desc" }>();
   const [selectedRange, setSelectedRange] = useState<{ startDate?: string | null; endDate?: string | null }>({
     startDate: null,
     endDate: null,
@@ -68,8 +68,8 @@ export const CustomerDetailPage = () => {
       endDate: selectedRange.endDate as string,
       page: activityPage,
       limit: 10,
-      sort_by: activitySort?.key,
-      order: activitySort?.direction,
+      sort_by: activitySort?.key ?? "booked_at",
+      order: activitySort?.direction ?? "desc",
     },
     tabs === "activity",
   );
