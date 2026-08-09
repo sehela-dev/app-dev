@@ -1,5 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { useCallback } from "react";
+import { useCallback, useState } from "react";
+import { ArrowDown, ArrowUp, ChevronsUpDown } from "lucide-react";
 
 import { Checkbox } from "../ui/checkbox";
 
@@ -32,7 +33,19 @@ export const CustomTable = (props: TableContentProps) => {
     objectKey,
     selectedData,
     isMultiple,
+    setSort,
   } = props;
+
+  // Handle sort state (sorting itself is done by the API)
+  const [sortState, setSortState] = useState<{ key?: string; direction?: "asc" | "desc" }>({});
+
+  const handleSort = (key: string) => {
+    if (!setSort) return;
+    const next: { key: string; direction: "asc" | "desc" } =
+      sortState.key === key && sortState.direction === "asc" ? { key, direction: "desc" } : { key, direction: "asc" };
+    setSortState(next);
+    setSort(next);
+  };
 
   // Handle row selection
   const handleRowSelect = (row: Record<string, unknown>) => {
@@ -74,19 +87,41 @@ export const CustomTable = (props: TableContentProps) => {
             {numberOptions?.show && <TableHead className="w-2">{numberOptions?.text}</TableHead>}
 
             {/* Table headers */}
-            {headers?.map((head) => (
-              <TableHead
-                key={head.id}
-                style={{
-                  width: head.width || "fit-content",
+            {headers?.map((head) => {
+              const sortKey = head.sortKey ?? head.id;
+              return (
+                <TableHead
+                  key={head.id}
+                  style={{
+                    width: head.width || "fit-content",
 
-                  whiteSpace: head.whiteSpace as "normal" | "nowrap" | "pre" | "pre-wrap" | "pre-line" | "break-spaces" | undefined,
-                }}
-                className={` ${head.span ? `col-span-${head.span}` : ""} ${!head.width ? "w-fit" : ""} `}
-              >
-                {head.text}
-              </TableHead>
-            ))}
+                    whiteSpace: head.whiteSpace as "normal" | "nowrap" | "pre" | "pre-wrap" | "pre-line" | "break-spaces" | undefined,
+                  }}
+                  className={` ${head.span ? `col-span-${head.span}` : ""} ${!head.width ? "w-fit" : ""} `}
+                >
+                  {head.sortable ? (
+                    <div
+                      className={`flex items-center gap-1 ${setSort ? "cursor-pointer select-none" : ""}`}
+                      onClick={() => head.sortable && handleSort(sortKey)}
+                    >
+                      {head.text}
+                      {setSort &&
+                        (sortState.key === sortKey ? (
+                          sortState.direction === "asc" ? (
+                            <ArrowUp className="h-3.5 w-3.5 text-sobat-primary" />
+                          ) : (
+                            <ArrowDown className="h-3.5 w-3.5 text-sobat-primary" />
+                          )
+                        ) : (
+                          <ChevronsUpDown className="h-3.5 w-3.5 text-gray-300" />
+                        ))}
+                    </div>
+                  ) : (
+                    head.text
+                  )}
+                </TableHead>
+              );
+            })}
 
             {/* Action column header */}
             {actionOptions?.show && <TableHead className="w-fit">{actionOptions?.text || "Actions"}</TableHead>}

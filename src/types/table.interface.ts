@@ -5,11 +5,18 @@ export interface TableRowContent<T = any> {
   id: string;
   text: string | any;
   sort?: "asc" | "desc";
+  sortable?: boolean;
+  sortKey?: string;
   isSkipSort?: boolean;
   value: keyof T | ((row: T, index: number) => string | React.ReactElement);
   span?: number;
   width?: number | string;
   whiteSpace?: string;
+}
+
+export interface TableSortState {
+  key?: string;
+  direction?: "asc" | "desc";
 }
 export interface TableActionsProps<T = any> {
   show?: boolean;
@@ -33,8 +40,8 @@ export interface TableContentProps<T = any> {
   showCheckbox?: boolean;
   onSelectAllRows?: any;
   showDeleteAllRows?: boolean;
-  sort?: string;
-  setSort?: any;
+  sort?: TableSortState;
+  setSort?: (sort: TableSortState) => void;
   emptyState?: React.ReactElement;
   onDelete?: (id: any) => void;
   onEdit?: (id: any) => void;
