@@ -50,6 +50,7 @@ export const CustomerDetailPage = () => {
   const [activityPage, setActivityPage] = useState(1);
   const [transactionPage, setTransactionPage] = useState(1);
   const [creditHistoryPage, setCreditHistoryPage] = useState(1);
+  const [activitySort, setActivitySort] = useState<{ key?: string; direction?: "asc" | "desc" }>({ key: 'booked_at', direction: 'desc' });
   const [selectedRange, setSelectedRange] = useState<{ startDate?: string | null; endDate?: string | null }>({
     startDate: null,
     endDate: null,
@@ -67,6 +68,8 @@ export const CustomerDetailPage = () => {
       endDate: selectedRange.endDate as string,
       page: activityPage,
       limit: 10,
+      sort_by: activitySort?.key,
+      order: activitySort?.direction,
     },
     tabs === "activity",
   );
@@ -90,7 +93,7 @@ export const CustomerDetailPage = () => {
     {
       id: "start_datetime",
       text: "Session Date & Time",
-      value: (row: ICustomerActvity) => formatDateHelper(row.start_datetime, "dd/MM/yyyy H:mm"),
+      value: (row: ICustomerActvity) => formatDateHelper(row.start_datetime, "dd/MM/yyyy HH:mm"),
     },
 
     {
@@ -103,6 +106,11 @@ export const CustomerDetailPage = () => {
       ),
     },
     {
+      id: "session_location",
+      text: "Locations",
+      value: "session_location",
+    },
+    {
       id: "class_name",
       text: "Class",
       value: "class_name",
@@ -113,11 +121,6 @@ export const CustomerDetailPage = () => {
       value: "instructor_name",
     },
     {
-      id: "booking_status",
-      text: "Status",
-      value: (row: ICustomerActvity) => <p className="capitalize">{row?.booking_status}</p>,
-    },
-    {
       id: "attendance",
       text: "Attendance",
       value: (row: ICustomerActvity) => (
@@ -126,8 +129,15 @@ export const CustomerDetailPage = () => {
     },
     {
       id: "payment_method",
-      text: "Paymnet",
-      value: (row: ICustomerActvity) => <p className="capitalize">{row?.payment_method}</p>,
+      text: "Payment",
+      value: (row: ICustomerActvity) => <p className="capitalize">{row?.payment_method} - {row.booking_source ?? ""}</p>,
+    },
+    {
+      id: "created_at",
+      text: "Created at",
+      sortable: true,
+      sortKey: "booked_at",
+      value: (row: ICustomerActvity) => formatDateHelper(row.booked_at, "dd/MM/yyyy HH:mm"),
     },
   ];
 
@@ -181,7 +191,7 @@ export const CustomerDetailPage = () => {
           <Button
             variant="link"
             className="h-auto justify-start p-0 text-left text-brand-500"
-            onClick={() => (isManager ? router.push(`/admin/member/${id}/credit-packages/${row.id}`) : () => {})}
+            onClick={() => (isManager ? router.push(`/admin/member/${id}/credit-packages/${row.id}`) : () => { })}
           >
             {row.credit_package?.name ?? "-"}
           </Button>
@@ -348,7 +358,7 @@ export const CustomerDetailPage = () => {
               </div>
             </CardHeader>
             <CardContent className="">
-              <CustomTable headers={headers} data={activity?.data ?? []} isLoading={loadingActivity} />
+              <CustomTable headers={headers} data={activity?.data ?? []} isLoading={loadingActivity} setSort={setActivitySort} />
             </CardContent>
             <CardFooter>
               <CustomPagination

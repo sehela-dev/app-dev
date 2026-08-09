@@ -52,13 +52,14 @@ export const getCustomerWallet: TGetUserWallet = async ({ user, session }) => {
   return res.data;
 };
 
-export const getCustomerActivity: TCustomerActivity = async ({ id, startDate, endDate, limit, page }) => {
+export const getCustomerActivity: TCustomerActivity = async ({ id, startDate, endDate, limit, page, sort_by, order }) => {
   const res = await axiosx(true).get(`${MAIN_API_URL}/admin/students/${id}/sessions`, {
     params: {
       page,
       page_size: limit,
       ...(startDate ? { start_date: startDate } : null),
       ...(endDate ? { end_date: endDate } : null),
+      ...(sort_by ? { sort_by, order } : null),
     },
   });
   return res.data;
