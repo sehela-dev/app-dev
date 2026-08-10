@@ -7,12 +7,12 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { SearchInput } from "@/components/ui/search-input";
-import { useDeleteInstructor } from "@/hooks/api/mutations/admin";
+import { useDeleteInstructor, useEditInstructor } from "@/hooks/api/mutations/admin";
 
 import { useGetInstructor } from "@/hooks/api/queries/admin/instructor";
 import { useAdminPermission } from "@/hooks/use-role-access";
 
-import { IInstructorData } from "@/types/instructor.interface";
+import { ICreateIntructorPayload, IInstructorData } from "@/types/instructor.interface";
 
 import { CirclePlus, Ellipsis, ListFilter } from "lucide-react";
 import { useRouter } from "next/navigation";
@@ -41,12 +41,15 @@ export const InstructorListPage = () => {
   const [search, setSearch] = useState("");
   const [selectedData, setSelectedData] = useState("");
   const [openDialogConfirm, setOpenDialogConfirm] = useState(false);
+  const [openDialogStatus, setOpenDialogStatus] = useState(false);
+  const [selectedStatusData, setSelectedStatusData] = useState<IInstructorData | null>(null);
   const [openNotif, setOpenNotif] = useState(false);
   const [tabs, setTabs] = useState("all");
 
   const { data, isLoading, refetch } = useGetInstructor({ page, limit, search, ...(tabs !== "all" ? { status: tabs } : null) });
 
   const { mutateAsync } = useDeleteInstructor();
+  const { mutateAsync: editInstructor } = useEditInstructor();
 
   const headers = [
     {
@@ -102,7 +105,9 @@ export const InstructorListPage = () => {
           {can("instructor:update") && <DropdownMenuItem onClick={() => router.push(`instructor/${row.id}/edit`)}>Edit</DropdownMenuItem>}
           {can("instructor:detail") && <DropdownMenuItem onClick={() => router.push(`instructor/${row.id}`)}>View Details</DropdownMenuItem>}
 
-          {/* <DropdownMenuItem>Set as Inactive</DropdownMenuItem> */}
+          {can("instructor:update") && (
+            <DropdownMenuItem onClick={() => onToggleStatus(row)}>{row?.status === "active" ? "Set as Inactive" : "Set as Active"}</DropdownMenuItem>
+          )}
           {can("instructor:delete") && (
             <DropdownMenuItem variant="destructive" className="" onClick={() => onDelete(row.id)}>
               Delete
@@ -128,6 +133,27 @@ export const InstructorListPage = () => {
       if (res) {
         setOpenNotif(true);
         onDelete("");
+        refetch();
+      }
+    } catch (error) {
+      console.log(error);
+    }
+  };
+
+  const onToggleStatus = (data: IInstructorData) => {
+    setSelectedStatusData(data);
+    setOpenDialogStatus(true);
+  };
+
+  const onConfirmToggleStatus = async () => {
+    try {
+      const payload = {
+        status: selectedStatusData?.status === "active" ? "inactive" : "active",
+      } as ICreateIntructorPayload;
+      const res = await editInstructor({ data: payload, id: selectedStatusData?.id as string });
+      if (res) {
+        setOpenDialogStatus(false);
+        setSelectedStatusData(null);
         refetch();
       }
     } catch (error) {
@@ -203,6 +229,21 @@ export const InstructorListPage = () => {
           onConfirm={onConfirmDelete}
           cancelText="Cancel"
           confirmText="Delete"
+        />
+      )}
+      {openDialogStatus && (
+        <BaseDialogConfirmation
+          image="warning-1"
+          onCancel={() => {
+            setOpenDialogStatus(false);
+            setSelectedStatusData(null);
+          }}
+          open={openDialogStatus}
+          title={`Set ${selectedStatusData?.status === "active" ? "Inactive" : "Active"} Instructor?`}
+          subtitle="The instructor status will be updated accordingly."
+          onConfirm={onConfirmToggleStatus}
+          cancelText="Cancel"
+          confirmText="Proceed"
         />
       )}
       {openNotif && (
