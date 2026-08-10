@@ -106,6 +106,7 @@ export const LocationListView = () => {
 
   const handleSearch = (e: string) => {
     setSearch(e);
+    setPage(1);
   };
 
   const onDelete = (id: string) => {

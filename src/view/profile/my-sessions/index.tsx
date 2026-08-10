@@ -48,6 +48,7 @@ export const MySessionsPage = () => {
 
   const handleSearch = (query: string) => {
     setSearch(query);
+    setPage(1);
   };
 
   const onExpoloreClass = () => {

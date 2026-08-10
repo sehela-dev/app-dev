@@ -160,6 +160,7 @@ export const SessionListPage = () => {
 
   const handleSearch = (e: string) => {
     setSearch(e);
+    setPage(1);
   };
 
   const handleDateRangeChangeDual = (startDate: string, endDate?: string) => {

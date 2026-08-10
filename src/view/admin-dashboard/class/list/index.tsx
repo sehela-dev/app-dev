@@ -146,6 +146,7 @@ export const ClassListView = () => {
 
   const handleSearch = (e: string) => {
     setSearch(e);
+    setPage(1);
   };
 
   const onConfirmDelete = async () => {

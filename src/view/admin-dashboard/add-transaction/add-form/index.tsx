@@ -58,6 +58,7 @@ export const AddTransactionFOrm = () => {
   });
   const handleSearch = (query: string) => {
     setSearch(query);
+    setPage(1);
   };
 
   const { data, isLoading } = useGetSessions({

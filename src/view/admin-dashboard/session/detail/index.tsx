@@ -97,6 +97,7 @@ export const SessionDetailPage = () => {
 
   const handleSearch = (query: string) => {
     setSearch(query);
+    setPage(1);
   };
 
   const handleDateRangeChangeDual = (startDate: string, endDate?: string) => {
