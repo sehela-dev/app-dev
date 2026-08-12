@@ -1,5 +1,3 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
-
 "use client";
 
 import { BaseDialogConfirmation } from "@/components/general/dialog-confirnation";
@@ -23,8 +21,8 @@ import { createFormData } from "@/lib/helper";
 import { useCreateProduct } from "@/hooks/api/mutations/admin";
 import Select, { MultiValue } from "react-select";
 
-
 type ProductVariantFormValue = NonNullable<CreateProductFormValues["variants"]>[number];
+type LocationOption = { value: string; label: string };
 
 const defaultValuesVariant: ProductVariantFormValue = {
   variant_name: "",
@@ -65,7 +63,6 @@ export const CreateProductPage = () => {
 
   const { mutateAsync } = useCreateProduct();
 
-  const [_, setCategory] = useState("")
   const { data: categoryList } = useGetProductCategories({ page: 1, limit: 999 })
 
   // Watch the variants to track location changes
@@ -113,7 +110,7 @@ export const CreateProductPage = () => {
   };
 
   // Helper function to update inventory array when locations change
-  const handleLocationChange = (index: number, selectedLocations: any[]) => {
+  const handleLocationChange = (index: number, selectedLocations: MultiValue<LocationOption>) => {
     const currentVariant = variants?.[index];
     const currentInventory = currentVariant?.inventory ?? [];
 
@@ -178,7 +175,6 @@ export const CreateProductPage = () => {
                           defaultValue={field.value}
                           onValueChange={(e) => {
                             field.onChange(e);
-                            setCategory(e);
                           }}
                         >
                           <SelectTrigger className="w-full px-4 py-4 border-2 border-gray-200 rounded-lg text-gray-999  placeholder-gray-400 focus:outline-none focus:border-brand-500 transition-colors h-[42px]">
@@ -373,7 +369,7 @@ export const CreateProductPage = () => {
                                     input: () => "text-brand-999 bg-none",
                                   }}
                                   isMulti
-                                  onChange={(selectedOptions: any) => {
+                                  onChange={(selectedOptions: MultiValue<LocationOption>) => {
                                     handleLocationChange(index, selectedOptions);
                                   }}
                                 />
@@ -390,10 +386,10 @@ export const CreateProductPage = () => {
                               <div className="col-span-2">
                                 <div className="space-y-3 bg-gray-50 p-4 rounded-lg">
                                   <p className="text-sm font-medium text-brand-999">Stock per Branch</p>
-                                  {variants[index].inventory.map((inventoryItem: any, inventoryIndex: number) => {
+                                  {variants[index].inventory.map((inventoryItem, inventoryIndex: number) => {
                                     // Find location name for display
                                     const locationName =
-                                      locationOption?.find((loc: any) => loc.value === inventoryItem.location_id)?.label || inventoryItem.location_id;
+                                      locationOption?.find((loc: LocationOption) => loc.value === inventoryItem.location_id)?.label || inventoryItem.location_id;
 
                                     return (
                                       <FormField

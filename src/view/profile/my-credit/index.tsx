@@ -4,9 +4,10 @@ import { GeneralTabComponent } from "@/components/general/tabs-component";
 import { NavHeaderComponent } from "@/components/layout/header-checkout";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { useAuthMember } from "@/context/member.ctx";
 import { useGetMyCredits } from "@/hooks/api/queries/customer/profile";
 import { formatDateHelper } from "@/lib/helper";
-import { Clock, GemIcon, Loader2 } from "lucide-react";
+import { Clock, GemIcon, Loader2, Ticket } from "lucide-react";
 import Image from "next/image";
 import { useState } from "react";
 
@@ -15,13 +16,15 @@ const tabs = [
     name: "Active Credit",
     value: "active",
   },
-  {
-    name: "Expired Credit",
-    value: "expired",
-  },
+  // {
+  //   name: "Expired Credit",
+  //   value: "expired",
+  // },
 ];
 
 export const MyCreditsView = () => {
+  const { profile } = useAuthMember();
+
   const [selecetedTab, setSelectedTab] = useState("active");
   const { data, isLoading, refetch } = useGetMyCredits();
 
@@ -34,7 +37,7 @@ export const MyCreditsView = () => {
 
   return (
     <div className="flex flex-col w-full font-serif h-full text-brand-500">
-      <NavHeaderComponent title="My Credit" />
+      <NavHeaderComponent title="My Credits" />
 
       <div className="flex flex-col gap-4 px-4">
         <div className="mx-auto w-full mt-4">
@@ -42,11 +45,18 @@ export const MyCreditsView = () => {
             <p className="text-xl font-semibold text-gray-50">Total Credits</p>
             <div className="flex flex-row items-center gap-1">
               <GemIcon size={24} color="var(--color-gray-50)" />
-              <p className="text-[32px] text-gray-50 font-semibold leading-[110%]">21</p>
+              <p className="text-[32px] text-gray-50 font-semibold leading-[110%]">{profile?.overview?.credits_balance}</p>
             </div>
             <p className="text-sm text-gray-50">Active Credits Available</p>
             <div className="flex w-full">
-              <Button className="bg-gray-50 w-full text-brand-500">Topup Credit</Button>
+              <Button
+                className="bg-gray-50 w-full text-brand-500 hover:bg-brand-200"
+                onClick={() => {
+                  alert("Underdevelopment");
+                }}
+              >
+                Topup Credit
+              </Button>
             </div>
           </div>
         </div>
@@ -68,10 +78,11 @@ export const MyCreditsView = () => {
               {(data?.data?.length as number) > 0 ? (
                 data?.data?.map((item) => (
                   <MyCreditsCardsItem
-                    key={item.package_id}
+                    key={item.package_purchase_id}
                     amount={item.total_credits}
-                    desc={(item?.class_type_restriction as string) ?? ""}
+                    desc={(item?.package_description as string) ?? ""}
                     expDate={item?.expires_at}
+                    credit_used={`${item.credits_used}/${item.total_credits}`}
                   />
                 ))
               ) : (
@@ -89,9 +100,10 @@ interface IProps {
   amount: number;
   expDate: string;
   desc: string;
+  credit_used: string;
 }
 
-export const MyCreditsCardsItem = ({ amount, expDate, desc }: IProps) => {
+export const MyCreditsCardsItem = ({ amount, expDate, desc, credit_used }: IProps) => {
   return (
     <div className="bg-brand-00 border border-brand-500 flex flex-col w-full rounded-[12px] p-4 min-h-[104px] gap-3">
       <div className="flex flex-col gap-2">
@@ -100,13 +112,21 @@ export const MyCreditsCardsItem = ({ amount, expDate, desc }: IProps) => {
           <p className="font-semibold">{amount} Credit</p>
         </div>
       </div>
-      <p>Usable for: {desc ?? ""} </p>
+      <p>Description: {desc ?? ""} </p>
+      <div className="flex flex-row items-center w-full justify-between">
+        <div className="flex flex-row items-center gap-2">
+          <Ticket size={16} />
+          <p className="text-sm">Credit Used:</p>
+        </div>
+        <p className="text-sm">{credit_used}</p>
+      </div>
+
       <div className="flex flex-row items-center w-full justify-between">
         <div className="flex flex-row items-center gap-2">
           <Clock size={16} />
           <p className="text-sm">Expiration Date</p>
         </div>
-        <p className="text-sm">{formatDateHelper(expDate, "dd MMM yyyy")}</p>
+        <p className="text-sm">{expDate ? formatDateHelper(expDate, "dd MMM yyyy") : "Not active yet"}</p>
       </div>
     </div>
   );

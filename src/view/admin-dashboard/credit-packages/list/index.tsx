@@ -86,6 +86,7 @@ export const CreditPackagePageView = () => {
 
   const handleSearch = (query: string) => {
     setSearch(query);
+    setPage(1);
   };
 
   const headers = [

@@ -129,13 +129,15 @@ export interface ICustomerActvity {
   booking_id: string;
   session_id: string;
   session_name: string;
+  session_location: string;
   class_name: string;
   instructor_name: string;
   start_datetime: string;
   end_datetime: string;
   type: string;
   place: string;
-  location: string;
+  session_status: string;
+  session_type: string;
   booking_status: string;
   attendance_status: string;
   payment_method: string;
@@ -147,6 +149,7 @@ export interface ICustomerActvity {
   rescheduled_to_session_name: string;
   rescheduled_to_start_datetime: string;
   booked_at: string;
+  booking_source?: string;
 }
 
 export interface ICustomerTrx {
@@ -222,9 +225,7 @@ export type TDeleteCustomer = (id: string) => Promise<IResponseData<IResponseCus
 export type TCustomerActivity = (params: ICustomerActivityParams) => Promise<IResponseData<ICustomerActvity[]>>;
 
 export type TCustomerTrx = ({ id, page, limit }: ICustomerActivityParams) => Promise<IResponseData<ICustomerTrx[]>>;
-export type TGetHistoricalPackagePurchases = (
-  params: IHistoricalPackagePurchasesParams,
-) => Promise<IResponseData<IHistoricalPackagePurchase[]>>;
+export type TGetHistoricalPackagePurchases = (params: IHistoricalPackagePurchasesParams) => Promise<IResponseData<IHistoricalPackagePurchase[]>>;
 
 export interface IBodyResendEmailRegistration {
   email: string;

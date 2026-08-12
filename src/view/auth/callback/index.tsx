@@ -1,8 +1,9 @@
 "use client";
 import { LogoComponent } from "@/components/asset/logo";
+import { Button } from "@/components/ui/button";
 import { useJwtToken } from "@/hooks";
 import { useGetProfileCallback } from "@/hooks/api/queries/customer/profile";
-import { Loader2 } from "lucide-react";
+import { Loader2, TriangleAlert } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 
@@ -10,57 +11,61 @@ import { useEffect, useState } from "react";
 === TODO ===
 this page only store the token
 no fetching data
-
-
-
 */
+
+const parseHashTokens = () => {
+  if (typeof window === "undefined") return { access_token: "", refresh_token: "" };
+
+  const hash = window.location.hash;
+  if (!hash) return { access_token: "", refresh_token: "" };
+
+  const params = new URLSearchParams(hash.substring(1));
+  return {
+    access_token: (params.get("access_token") as string) ?? "",
+    refresh_token: (params.get("refresh_token") as string) ?? "",
+  };
+};
 
 export const AuthCallBackPage = () => {
   const router = useRouter();
-  const [token, setToken] = useState<{ access_token: string; refresh_token: string } | null>(null);
+  const { setJwtToken, resetJwt } = useJwtToken();
+  const [tokens, setTokens] = useState<{ access_token: string; refresh_token: string }>({ access_token: "", refresh_token: "" });
+  const [isReady, setIsReady] = useState(false);
 
-  const { setJwtToken } = useJwtToken();
+  const { data, isLoading, isError } = useGetProfileCallback(tokens?.access_token);
 
   useEffect(() => {
-    const hash = window.location.hash;
-    // console.log(hash);
+    setTokens(parseHashTokens());
+    setIsReady(true);
+  }, []);
 
-    if (hash) {
-      const params = new URLSearchParams(hash.substring(1));
-      const accessToken = params.get("access_token") as string;
-      const refreshToken = params.get("refresh_token") as string;
-
-      setToken({
-        access_token: accessToken,
-        refresh_token: refreshToken,
-      });
-
-      setJwtToken({
-        access_token: accessToken,
-      });
-
-      // optional but recommended — remove token from URL
-      // window.history.replaceState(null, "", "/callback");
-    } else {
-      router.push("/auth/login");
-      // toast.error("Link Expired!", {
-      //   id: "error",
-      //   position: "top-center",
-      // });
+  useEffect(() => {
+    // optional but recommended — remove token from URL
+    if (tokens.access_token) {
+      window.history.replaceState(null, "", "/auth/callback");
     }
-  }, [router]);
+  }, [tokens.access_token]);
 
-  const { data, isLoading } = useGetProfileCallback(token?.access_token as string);
+  useEffect(() => {
+    if (isError) {
+      // token in the link is invalid/expired → drop any stale session
+      resetJwt();
+    }
+  }, [isError, resetJwt]);
 
   useEffect(() => {
     if (!data?.data) return;
+
     if (!data?.data?.is_profile_complete) {
+      setJwtToken({
+        access_token: tokens?.access_token,
+        refresh_token: tokens?.refresh_token,
+      });
       router.push("/complete-profile");
     } else {
       setJwtToken({
-        access_token: token?.access_token as string,
-        refresh_token: token?.refresh_token as string,
-
+        access_token: tokens?.access_token,
+        refresh_token: tokens?.refresh_token,
         profile: {
           email: data?.data?.email,
           name: data?.data?.full_name,
@@ -70,9 +75,9 @@ export const AuthCallBackPage = () => {
       });
       router.replace("/");
     }
-  }, [data, router]);
+  }, [data, router, setJwtToken, tokens]);
 
-  if (isLoading)
+  if (isLoading) {
     return (
       <div className="flex flex-col items-center w-full space-y-12 font-serif">
         {/* Logo */}
@@ -88,4 +93,50 @@ export const AuthCallBackPage = () => {
         </div>
       </div>
     );
+  }
+
+  if (isError || (isReady && !tokens.access_token)) {
+    return (
+      <div className="flex flex-col items-center w-full space-y-12 font-serif">
+        {/* Logo */}
+        <div className="pt-12 flex justify-center">
+          <LogoComponent className="w-[99px] h-[32px]" />
+        </div>
+
+        {/* Main Content */}
+        <div className="w-full mx-auto max-w-[361px] px-6">
+          <div className="bg-white mx-auto w-full px-6 rounded-md pt-10 pb-6 flex flex-col items-center text-center gap-4">
+            <TriangleAlert className="h-10 w-10 text-brand-400" />
+            <div className="space-y-1">
+              <h3 className="text-2xl font-bold text-brand-500 leading-tight">Link Expired</h3>
+              <p className="text-sm font-normal text-brand-400 leading-tight">
+                This link is invalid or has expired. Please request a new link to continue.
+              </p>
+            </div>
+            <Button
+              className="w-full max-h-[42px] min-h-[42px] text-sm"
+              onClick={() => {
+                resetJwt();
+                router.push("/auth/sign-up");
+              }}
+            >
+              Sign Up
+            </Button>
+            <Button
+              variant="outline"
+              className="w-full max-h-[42px] min-h-[42px] text-sm"
+              onClick={() => {
+                resetJwt();
+                router.push("/auth/login");
+              }}
+            >
+              Back to Login
+            </Button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  return null;
 };

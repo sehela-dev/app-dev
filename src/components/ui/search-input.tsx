@@ -4,7 +4,7 @@ import type React from "react";
 
 import { Search } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { forwardRef, useEffect, useState } from "react";
+import { forwardRef, useEffect, useRef, useState } from "react";
 
 export interface SearchInputProps extends React.InputHTMLAttributes<HTMLInputElement> {
   onSearch?: (value: string) => void;
@@ -15,22 +15,30 @@ export interface SearchInputProps extends React.InputHTMLAttributes<HTMLInputEle
 const SearchInput = forwardRef<HTMLInputElement, SearchInputProps>(
   ({ className, onSearch, search, onKeyDown, placeholder = "Search here...", debounceMs = 300, ...props }, ref) => {
     const [internalValue, setInternalValue] = useState(search || "");
-
-    useEffect(() => {
-      if (onSearch && internalValue !== search) {
-        const timer = setTimeout(() => {
-          onSearch(internalValue);
-        }, debounceMs);
-
-        return () => clearTimeout(timer);
-      }
-    }, [internalValue, debounceMs, onSearch, search]);
+    const onSearchRef = useRef(onSearch);
+    onSearchRef.current = onSearch;
+    const mountedRef = useRef(false);
 
     useEffect(() => {
       if (search !== undefined) {
         setInternalValue(search);
       }
     }, [search]);
+
+    useEffect(() => {
+      if (!mountedRef.current) {
+        mountedRef.current = true;
+        return;
+      }
+
+      if (onSearchRef.current && internalValue !== search) {
+        const timer = setTimeout(() => {
+          onSearchRef.current?.(internalValue);
+        }, debounceMs);
+
+        return () => clearTimeout(timer);
+      }
+    }, [internalValue, debounceMs, search]);
 
     const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
       if (e.key === "Enter" && onSearch) {

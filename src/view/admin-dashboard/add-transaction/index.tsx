@@ -8,19 +8,20 @@ import { GeneralTabComponent } from "@/components/general/tabs-component";
 import { EnrollStudentView } from "../enrol-students";
 
 const tabOption = [
-  {
-    name: "Add Transaction",
-    value: "trx",
-  },
+
   {
     name: "Enroll Student",
     value: "enroll",
+  },
+  {
+    name: "Add Transaction",
+    value: "trx",
   },
 ];
 
 export const AddTransactionPage = () => {
   const { stepper } = useAdminManualTransaction();
-  const [tab, setTab] = useState("trx");
+  const [tab, setTab] = useState("enroll");
   return (
     <div className="flex flex-col gap-4">
       {stepper === 1 && (

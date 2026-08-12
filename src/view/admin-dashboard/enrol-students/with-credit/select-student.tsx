@@ -32,6 +32,7 @@ export const SelectStudentWithCreditComponent = ({ selectedSession }: IProps) =>
   });
   const handleSearch = (query: string) => {
     setSearch(query);
+    setPage(1);
   };
 
   return (

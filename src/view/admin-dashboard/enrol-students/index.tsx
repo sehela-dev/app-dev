@@ -56,6 +56,7 @@ export const EnrollStudentView = () => {
 
   const handleSearch = (query: string) => {
     setSearch(query);
+    setPage(1);
   };
 
   const [selectedRange, setSelectedRange] = useState<{ from: string | null; to: string | null }>({
