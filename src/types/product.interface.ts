@@ -61,6 +61,55 @@ export interface ILocation {
   is_active: boolean;
 }
 
+export interface IInventorySnapshotItem {
+  id: string;
+  product_variant_id: string;
+  location_id: string;
+  stock_total: number;
+  stock_rented: number;
+  stock_available: number;
+  stock_available_to_rent?: number;
+  created_at: string;
+  updated_at: string;
+  location: ILocation;
+  variant: {
+    id: string;
+    sku: string;
+    is_active: boolean;
+    price_idr: number;
+    product_id: string;
+    variant_name: string;
+    product: {
+      id: string;
+      name: string;
+      is_rentable: boolean;
+    };
+  };
+}
+
+export interface IInventoryParams extends ICommonParams {
+  location_id?: string;
+  variant_id?: string;
+}
+
+export interface IStockableVariant {
+  id: string;
+  product_id: string;
+  variant_name: string;
+  sku: string;
+  price_idr: number;
+  inventory: IStockableInventory[];
+}
+
+export interface IStockableInventory {
+  id: string;
+  location_id: string;
+  location?: ILocation;
+  stock_total: number;
+  stock_rented?: number;
+  stock_available?: number;
+}
+
 export interface ICategoryProduct {
   id: string;
   name: string;
@@ -143,6 +192,18 @@ export interface IUpdateStockVariant {
   }[];
 }
 
+export interface IInventoryAdjustmentPayload {
+  location_id: string;
+  quantity_delta: number;
+  reason: string;
+}
+
 export type TInventoryLocations = (data?: IParamsInventory) => Promise<IResponseData<IInventoryLocationResponse[]>>;
+export type TInventoryList = (params?: IInventoryParams) => Promise<IResponseData<IInventorySnapshotItem[]>>;
+export type TInventoryAdjustment = (data: {
+  variantId: string;
+  payload: IInventoryAdjustmentPayload;
+  idempotencyKey: string;
+}) => Promise<IResponseData<unknown>>;
 export type TAddNewVariants = ({ data, id }: { data: IVariantsPayload; id: string }) => Promise<IResponseData<unknown>>;
 export type TUpdateSingleVariant = ({ id, idVar, data }: { id: string; idVar: string; data: IUpdateStockVariant }) => Promise<IResponseData<unknown>>;

@@ -39,7 +39,10 @@ export const dataNavMarketPlace = [
     title: "Inventory",
     url: "#",
     icon: PackageSearch,
-    items: [{ title: "Product Management", url: "/admin/products", icon: PackageSearch, permission: "products:view" }],
+    items: [
+      { title: "Inventory Management", url: "/admin/inventory", icon: PackageSearch, permission: "inventory:view" },
+      { title: "Product Management", url: "/admin/products", icon: PackageSearch, permission: "products:view" },
+    ],
   },
   { title: "Discount Voucher", url: "/admin/discount-voucher", icon: Tag, permission: "voucher:view" },
   // { title: "Discounts", url: "#", icon: Tag },

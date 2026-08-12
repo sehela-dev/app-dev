@@ -3,6 +3,8 @@ import { MAIN_API_URL } from "@/lib/config";
 import {
   TAddNewVariants,
   TCreateProduct,
+  TInventoryAdjustment,
+  TInventoryList,
   TInventoryLocations,
   TProductCategories,
   TProductDetail,
@@ -57,6 +59,19 @@ export const getInventoryLocations: TInventoryLocations = async (data) => {
   return res.data;
 };
 
+// inventory snapshot
+export const getInventoryList: TInventoryList = async (params) => {
+  const res = await axiosx(true).get(`${MAIN_API_URL}/admin/inventory`, {
+    params: {
+      ...(params?.page ? { page: params.page } : null),
+      ...(params?.limit ? { page_size: params.limit } : null),
+      ...(params?.location_id ? { location_id: params.location_id } : null),
+      ...(params?.variant_id ? { variant_id: params.variant_id } : null),
+    },
+  });
+  return res.data;
+};
+
 // add variants
 export const addNewVariants: TAddNewVariants = async ({ data, id }) => {
   const res = await axiosx(true).post(`${MAIN_API_URL}/admin/products/${id}/variants`, data);
@@ -66,5 +81,17 @@ export const addNewVariants: TAddNewVariants = async ({ data, id }) => {
 // update single variant
 export const updateSingleVariant: TUpdateSingleVariant = async ({ id, idVar, data }) => {
   const res = await axiosx(true).patch(`${MAIN_API_URL}/admin/products/${id}/variants/${idVar}`, data);
+  return res.data;
+};
+
+// inventory adjustment (stock-in / stock-out with reason)
+export const adjustProductVariantInventory: TInventoryAdjustment = async ({ variantId, payload, idempotencyKey }) => {
+  const res = await axiosx(true).post(
+    `${MAIN_API_URL}/admin/product-variants/${variantId}/inventory-adjustments`,
+    payload,
+    {
+      headers: { "Idempotency-Key": idempotencyKey },
+    },
+  );
   return res.data;
 };

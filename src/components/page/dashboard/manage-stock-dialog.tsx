@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
 
 import { useState, useEffect } from "react";
@@ -8,10 +7,10 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Divider } from "@/components/ui/divider";
 import { BaseDialogComponent } from "@/components/general/base-dialog-component";
-import { Warehouse, AlertCircle, CheckCircle2 } from "lucide-react";
-import { IProductVariantItem, IInventory } from "@/types/product.interface";
+import { Warehouse, CheckCircle2 } from "lucide-react";
+import { IStockableVariant } from "@/types/product.interface";
 import { formatCurrency } from "@/lib/helper";
-import { useUpdateStock } from "@/hooks/api/mutations/admin/use-update-stock";
+import { useAdjustProductVariantInventory } from "@/hooks/api/mutations/admin/use-adjust-inventory-stock";
 
 interface StockChange {
   [key: string]: {
@@ -24,25 +23,24 @@ interface StockChange {
 }
 
 interface ManageStockDialogProps {
-  id: string;
   isOpen: boolean;
   onClose: () => void;
-  selectedVariant: IProductVariantItem | null;
-  // onSubmit: (updates: Array<{ location_id: string; stock_total: number }>) => Promise<void>;
+  selectedVariant: IStockableVariant | null;
+  onSuccess?: () => void;
 }
 
 export const ManageStockDialog = ({
-  id,
   isOpen,
   onClose,
   selectedVariant,
-  // onSubmit,
+  onSuccess,
 }: ManageStockDialogProps) => {
   const [stockChanges, setStockChanges] = useState<StockChange>({});
   const [reviewMode, setReviewMode] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [reason, setReason] = useState("");
 
-  const { mutateAsync } = useUpdateStock()
+  const { mutateAsync } = useAdjustProductVariantInventory()
 
   // Initialize stock changes when variant changes or dialog opens
   useEffect(() => {
@@ -58,6 +56,7 @@ export const ManageStockDialog = ({
         };
       });
       setStockChanges(initial);
+      setReason("");
     }
   }, [isOpen, selectedVariant]);
 
@@ -85,40 +84,43 @@ export const ManageStockDialog = ({
 
   const hasChanges = Object.values(stockChanges).some((change) => change.difference !== 0);
 
+  const hasInvalidStock = Object.values(stockChanges).some((change) => Number(change.newStock) < 0);
+
+  const hasNegativeStock = (change?: StockChange[string]) => Number(change?.newStock) < 0;
+
   const handleSubmit = async () => {
-    // const updates = Object.values(stockChanges).map((change) => ({
-    //   location_id: change.locationId,
-    //   stock_total: parseInt(String(change.newStock)) || 0,
-    // }));
-
-    // const payload = {
-    //   inventory: updates
-    // }
-
-
-    // console.log(payload);
-    // return
     if (!hasChanges) {
       onClose();
       return;
     }
 
+    if (hasInvalidStock) {
+      return;
+    }
+
+    if (!reason.trim()) {
+      return;
+    }
+
     try {
       setIsSubmitting(true);
-      const updates = Object.values(stockChanges).map((change) => ({
-        location_id: change.locationId,
-        stock_total: parseInt(String(change.newStock)) || 0,
-      }));
-      const payload = {
-        inventory: updates
+      const variantId = selectedVariant?.id as string;
+      const changedLocations = Object.values(stockChanges).filter((change) => change.difference !== 0);
+
+      for (const change of changedLocations) {
+        await mutateAsync({
+          variantId,
+          payload: {
+            location_id: change.locationId,
+            quantity_delta: change.difference,
+            reason: reason.trim(),
+          },
+          idempotencyKey: crypto.randomUUID(),
+        });
       }
 
-      const res = await mutateAsync({ id: id as string, data: payload, idVar: selectedVariant?.id as string })
-      if (res) {
-        console.log(res)
-        handleClose()
-      }
-      // handleClose();
+      onSuccess?.();
+      handleClose();
     } catch (error) {
       console.error("Error updating stock:", error);
     } finally {
@@ -129,6 +131,7 @@ export const ManageStockDialog = ({
   const handleClose = () => {
     setStockChanges({});
     setReviewMode(false);
+    setReason("");
     onClose();
   };
 
@@ -139,7 +142,8 @@ export const ManageStockDialog = ({
       onClose={handleClose}
       onCloseText="Cancel"
       btnConfirm={reviewMode ? "Confirm Update" : hasChanges ? "Review Changes" : "Done"}
-      onConfirm={reviewMode ? handleSubmit : () => setReviewMode(true)}
+      isDisabled={hasInvalidStock || (hasChanges && !reason.trim()) || isSubmitting}
+      onConfirm={reviewMode ? handleSubmit : hasChanges ? () => setReviewMode(true) : handleClose}
 
     >
       {!selectedVariant ? (
@@ -166,6 +170,24 @@ export const ManageStockDialog = ({
                 <Warehouse size={16} />
                 Update Stock by Location
               </h4>
+
+              <div className="grid grid-cols-12 gap-3 items-end">
+                <div className="col-span-12">
+                  <label className="text-xs font-medium text-muted-foreground block mb-1.5">
+                    Reason <span className="text-destructive">*</span>
+                  </label>
+                  <Input
+                    type="text"
+                    value={reason}
+                    onChange={(e) => setReason(e.target.value)}
+                    placeholder="e.g. restock, damaged, correction"
+                    className="h-[38px]"
+                  />
+                  {hasChanges && !reason.trim() && (
+                    <p className="text-xs text-destructive mt-1">Reason is required to adjust stock</p>
+                  )}
+                </div>
+              </div>
 
               {selectedVariant.inventory?.length === 0 ? (
                 <div className="text-center py-6 text-muted-foreground">
@@ -202,8 +224,11 @@ export const ManageStockDialog = ({
                                 value={change.newStock}
                                 onChange={(e) => handleStockChange(inv.id, e.target.value)}
                                 placeholder="0"
-                                className="h-[38px]"
+                                className={`h-[38px] ${hasNegativeStock(change) ? "border-red-500 focus:border-red-500 focus:ring-red-500" : ""}`}
                               />
+                              {hasNegativeStock(change) && (
+                                <p className="text-xs text-destructive mt-1">Stock cannot be negative</p>
+                              )}
                             </div>
 
                             {/* Difference Display */}

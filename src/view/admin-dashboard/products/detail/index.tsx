@@ -365,6 +365,7 @@ export const ProductDetailView = () => {
                                                 <FormControl>
                                                   <Input
                                                     type="number"
+                                                    min="0"
                                                     className="w-full px-4 py-4 border-2 border-gray-200 rounded-lg text-gray-999 placeholder-gray-400 focus:outline-none focus:border-brand-500 transition-colors h-[42px]"
                                                     placeholder="Enter stock quantity"
                                                     {...field}
@@ -415,7 +416,7 @@ export const ProductDetailView = () => {
             setSelectedVariant(null);
           }}
           selectedVariant={selectedVariant}
-          id={id as string}
+          onSuccess={refetch}
 
         />
       }
