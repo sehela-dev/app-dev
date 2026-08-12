@@ -2,6 +2,8 @@
 "use client";
 
 import { BaseDialogComponent } from "@/components/general/base-dialog-component";
+import { EditProductDialog } from "@/components/page/dashboard/edit-product-dialog";
+import { EditVariantDialog } from "@/components/page/dashboard/edit-variant-dialog";
 import { ManageStockDialog } from "@/components/page/dashboard/manage-stock-dialog";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -11,6 +13,7 @@ import { FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/comp
 import { Input } from "@/components/ui/input";
 import { useAddNewVariants } from "@/hooks/api/mutations/admin";
 import { useGetInventoryLocations, useGetProductDetail } from "@/hooks/api/queries/admin/products";
+import { useAdminPermission } from "@/hooks/use-role-access";
 import { formatCurrency } from "@/lib/helper";
 import { CreateProductFormValues, UpdateVariantsFormValues, variantSchema } from "@/resolver";
 import { IProductVariantItem } from "@/types/product.interface";
@@ -35,7 +38,10 @@ export const ProductDetailView = () => {
   const { id } = params;
   const [openAddVariant, setOpenAddVariant] = useState(false);
   const [openManageStock, setOpenManageStock] = useState(false);
+  const [openEditProduct, setOpenEditProduct] = useState(false);
+  const [openEditVariant, setOpenEditVariant] = useState(false);
   const [selectedVariant, setSelectedVariant] = useState<IProductVariantItem | null>(null);
+  const { isManager } = useAdminPermission();
   const methods = useForm<UpdateVariantsFormValues>({
     defaultValues: {
       variants: [{ ...defaultValuesVariant }],
@@ -136,7 +142,7 @@ export const ProductDetailView = () => {
               </Button>
             </div> */}
               <div>
-                <Button onClick={() => { }}>
+                <Button onClick={() => setOpenEditProduct(true)}>
                   <PenIcon /> Edit
                 </Button>
               </div>
@@ -166,12 +172,14 @@ export const ProductDetailView = () => {
             {/* photo */}
             <div className="flex flex-col gap-2 text-sm">
               <p className="font-semibold text-sm">Photo Product</p>
-              <div className="flex flex-row items-center gap-4 justify-between">
+              <div className="grid grid-cols-6 items-center ">
                 {Array.isArray(data?.data?.photos) &&
                   data?.data?.photos?.map((p, i) => (
-                    <div className="w-[250px] h-[250px] rounded-md relative" key={`${data?.data?.name}-${i}`}>
-                      <img src={p} alt={`${data?.data?.name}-${i}`} className="w-full h-full rounded-md" />
-                      {i === 0 && <div className="absolute bottom-2 right-2 bg-teal-600 text-white px-2 py-1 rounded text-xs font-medium">COVER</div>}
+                    <div className="w-full" key={`${data?.data?.name}-${i}`}>
+                      <div className="w-[250px] h-[250px] rounded-md relative" >
+                        <img src={p} alt={`${data?.data?.name}-${i}`} className="w-full h-full rounded-md object-cover" />
+                        {i === 0 && <div className="absolute bottom-2 right-2 bg-teal-600 text-white px-2 py-1 rounded text-xs font-medium">COVER</div>}
+                      </div>
                     </div>
                   ))}
               </div>
@@ -197,7 +205,15 @@ export const ProductDetailView = () => {
                     </div>
                   </div>
                   {data?.data?.variants?.map((v) => (
-                    <InventoryCardComponent variant={v} key={v.id} onOpenVariant={handleOpenManageStock} />
+                    <InventoryCardComponent
+                      variant={v}
+                      key={v.id}
+                      onOpenVariant={handleOpenManageStock}
+                      onEditVariant={(variant) => {
+                        setSelectedVariant(variant);
+                        setOpenEditVariant(true);
+                      }}
+                    />
                   ))}
                 </div>
               </div>
@@ -420,6 +436,29 @@ export const ProductDetailView = () => {
 
         />
       }
+
+      {openEditProduct &&
+        <EditProductDialog
+          isOpen={openEditProduct}
+          onClose={() => {
+            setOpenEditProduct(false);
+          }}
+          product={data?.data ?? null}
+          onSuccess={refetch}
+        />
+      }
+      {openEditVariant &&
+        <EditVariantDialog
+          isOpen={openEditVariant}
+          onClose={() => {
+            setOpenEditVariant(false);
+            setSelectedVariant(null);
+          }}
+          variant={selectedVariant}
+          isManager={isManager}
+          onSuccess={refetch}
+        />
+      }
     </div >
   );
 };
@@ -427,10 +466,12 @@ export const ProductDetailView = () => {
 interface IProps {
   variant: IProductVariantItem;
   onOpenVariant: (data: IProductVariantItem) => void;
+  onEditVariant: (data: IProductVariantItem) => void;
 }
 
-export const InventoryCardComponent = ({ variant, onOpenVariant }: IProps) => {
+export const InventoryCardComponent = ({ variant, onOpenVariant, onEditVariant }: IProps) => {
   const [open, setOpen] = useState(false);
+  const { isManager } = useAdminPermission()
   const getStockStatus = (available: number, total: number) => {
     if (available === 0) return "bg-red-500/10 text-red-400";
     if (available < total * 0.25) return "bg-yellow-500/10 text-yellow-400";
@@ -495,7 +536,13 @@ export const InventoryCardComponent = ({ variant, onOpenVariant }: IProps) => {
                 <MapPin size={16} />
                 Stock by Location
               </h4>
-              <div><Button variant="secondary" size={"sm"} onClick={() => onOpenVariant(variant)}><Warehouse />Manage Stock</Button></div>
+              <div className="flex flex-row items-center gap-2">
+
+                {isManager &&
+                  <div><Button variant="secondary" size={"sm"} onClick={() => onOpenVariant(variant)}><Warehouse />Manage Stock</Button></div>
+                }
+                <div><Button variant="default" size={"sm"} onClick={() => onEditVariant(variant)}><PenIcon />Edit Variant</Button></div>
+              </div>
 
             </div>
 

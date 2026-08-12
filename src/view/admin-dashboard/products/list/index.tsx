@@ -131,7 +131,6 @@ export const ProductListPage = () => {
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end" className="w-32">
-          <DropdownMenuItem onClick={() => alert(row.id)}>Edit</DropdownMenuItem>
           <DropdownMenuItem onClick={() => alert(row.id)}>Archive</DropdownMenuItem>
           <DropdownMenuItem onClick={() => router.push(`products/${row.id}`)}>View Details</DropdownMenuItem>
           <DropdownMenuItem>Set as Inactive</DropdownMenuItem>

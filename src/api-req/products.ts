@@ -9,7 +9,9 @@ import {
   TProductCategories,
   TProductDetail,
   TProductItemList,
+  TUpdateProduct,
   TUpdateSingleVariant,
+  TUpdateVariant,
 } from "@/types/product.interface";
 
 export const getProductList: TProductItemList = async ({ page, limit, search, view, is_rentable }) => {
@@ -80,6 +82,18 @@ export const addNewVariants: TAddNewVariants = async ({ data, id }) => {
 
 // update single variant
 export const updateSingleVariant: TUpdateSingleVariant = async ({ id, idVar, data }) => {
+  const res = await axiosx(true).patch(`${MAIN_API_URL}/admin/products/${id}/variants/${idVar}`, data);
+  return res.data;
+};
+
+// update product detail (name, category, description, photos)
+export const updateProduct: TUpdateProduct = async ({ id, payload }) => {
+  const res = await axiosx(true).patch(`${MAIN_API_URL}/admin/products/${id}`, payload);
+  return res.data;
+};
+
+// update variant detail (sku, name, price, and branch assignment for manager)
+export const updateVariantDetail: TUpdateVariant = async ({ id, idVar, data }) => {
   const res = await axiosx(true).patch(`${MAIN_API_URL}/admin/products/${id}/variants/${idVar}`, data);
   return res.data;
 };

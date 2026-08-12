@@ -81,8 +81,44 @@ export const variantSchema = z.object({
   ),
 });
 
+export const UpdateProductFormSchema = z.object({
+  name: z.string().min(1, "Name is required"),
+  category_id: z.string().min(1, "Category is required"),
+  description: z.string().min(1, "Description is required"),
+  photos: z.array(z.any()).optional(),
+});
+
+export const UpdateVariantSchema = z.object({
+  variant_name: z.string().min(1, "Variant name is required"),
+  sku: z.string().min(1, "SKU is required"),
+  price_idr: z
+    .string()
+    .min(1, "Price is required")
+    .refine((val) => !isNaN(Number(val)) && Number(val) > 0, {
+      message: "Price must be a valid positive number",
+    }),
+  inventory: z
+    .array(
+      z.object({
+        location_id: z.string().min(1, "Location ID is required"),
+        stock_total: z.any().optional(),
+      }),
+    )
+    .optional(),
+  location: z
+    .array(
+      z.object({
+        value: z.string(),
+        label: z.string(),
+      }),
+    )
+    .optional(), // Not sent to backend, only for UI
+});
+
 export type CreateProductFormValues = z.infer<typeof ProductFormSchema>;
 export type UpdateVariantsFormValues = z.infer<typeof variantSchema>;
+export type UpdateProductFormValues = z.infer<typeof UpdateProductFormSchema>;
+export type UpdateVariantFormValues = z.infer<typeof UpdateVariantSchema>;
 
 // price_idr: z
 // .string()

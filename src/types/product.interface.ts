@@ -207,3 +207,15 @@ export type TInventoryAdjustment = (data: {
 }) => Promise<IResponseData<unknown>>;
 export type TAddNewVariants = ({ data, id }: { data: IVariantsPayload; id: string }) => Promise<IResponseData<unknown>>;
 export type TUpdateSingleVariant = ({ id, idVar, data }: { id: string; idVar: string; data: IUpdateStockVariant }) => Promise<IResponseData<unknown>>;
+
+export interface IUpdateVariantItemPayload {
+  variant_name?: string;
+  sku?: string;
+  price_idr?: string | number;
+  inventory?: {
+    location_id: string;
+    stock_total: string | number;
+  }[];
+}
+export type TUpdateProduct = ({ id, payload }: { id: string; payload: FormData }) => Promise<IResponseData<unknown>>;
+export type TUpdateVariant = ({ id, idVar, data }: { id: string; idVar: string; data: IUpdateVariantItemPayload }) => Promise<IResponseData<unknown>>;

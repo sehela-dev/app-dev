@@ -28,6 +28,8 @@ export * from "./use-package-purchase-actions";
 export * from "./use-commit-void-trx";
 export * from "./use-add-variants";
 export * from "./use-update-stock";
+export * from "./use-update-product";
+export * from "./use-update-variant-detail";
 export * from "./use-adjust-inventory-stock";
 export * from "./use-create-location";
 export * from "./use-edit-location";
