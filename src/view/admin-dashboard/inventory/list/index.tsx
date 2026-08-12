@@ -112,11 +112,7 @@ export const InventoryListPage = () => {
       text: "Available",
       value: (row: IInventorySnapshotItem) => String(row.stock_available ?? 0),
     },
-    {
-      id: "stock_available_to_rent",
-      text: "Available to Rent",
-      value: (row: IInventorySnapshotItem) => String(row.stock_available_to_rent ?? 0),
-    },
+
     {
       id: "status",
       text: "Status",
@@ -132,7 +128,7 @@ export const InventoryListPage = () => {
     text: "Action",
     show: true,
     render: (row: IInventorySnapshotItem) => (
-      <Button variant="secondary" size="sm" onClick={() => handleManageStock(row)}>
+      <Button variant="default" size="sm" onClick={() => handleManageStock(row)}>
         <Warehouse /> Manage Stock
       </Button>
     ),
