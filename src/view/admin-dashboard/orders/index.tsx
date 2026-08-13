@@ -86,7 +86,8 @@ export const OrdersPageView = () => {
     {
       id: "status",
       text: "Status",
-      value: (row: IOrderItem) => <p className={row?.status === "paid" ? "text-green-400 uppercase" : "text-red-500 uppercasex"}>{row.status}</p>,
+      value: (row: IOrderItem) => <p className={`text-right text-sm capitalize font-semibold ${row?.status === "paid" ? `text-green-500` : row?.status === 'voided' ? 'text-violet-800' : `text-red-500`}`}>{row?.status}</p>
+
     },
   ];
   const actionOptions = {
@@ -97,7 +98,7 @@ export const OrdersPageView = () => {
         <Button variant={"outline"} onClick={() => router.push(`orders/${row?.id}`)}>
           <ReceiptText />
         </Button>
-        {isManager && (
+        {isManager && row.status !== 'voided' ? (
           <Button
             variant={"destructive"}
             onClick={() => {
@@ -108,7 +109,7 @@ export const OrdersPageView = () => {
           >
             <Ban />
           </Button>
-        )}
+        ) : null}
       </div>
     ),
   };

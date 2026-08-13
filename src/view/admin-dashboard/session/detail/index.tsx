@@ -16,7 +16,7 @@ import { defaultDate, formatCurrency, formatDateHelper, reminderMessage, sendRem
 import { cn } from "@/lib/utils";
 import { IParticipantsSession, ISessionItem } from "@/types/class-sessions.interface";
 import { IAttendanceStatus } from "@/types/orders.interface";
-import { ArrowLeftRight, Ban, Banknote, BellRing, Copy, Ellipsis, Loader2, LucideIcon, PenIcon, WalletCards } from "lucide-react";
+import { ArrowLeftRight, Ban, Banknote, BellRing, Copy, Ellipsis, Loader2, LucideIcon, PenIcon, RotateCcw, WalletCards, X } from "lucide-react";
 import { useParams, useRouter } from "next/navigation";
 import React, { useState } from "react";
 import { CardSession } from "../../enrol-students";
@@ -92,6 +92,7 @@ export const SessionDetailPage = () => {
   const [openCancel, setOpenCancel] = useState(false);
   const [refundType, setRefundTYpe] = useState("none")
   const [selectedDataCancel, setSelectedDataCancel] = useState<string | null>(null);
+  const [pendingAttendance, setPendingAttendance] = useState<{ id: string; status: IAttendanceStatus } | null>(null);
 
   const { mutateAsync: rescheduleSession } = useRescheduleSession();
 
@@ -123,6 +124,15 @@ export const SessionDetailPage = () => {
     } catch (error) {
       console.log(error);
     }
+  };
+
+  const onRequestAttendanceChange = (id: string, status: IAttendanceStatus) => {
+    setPendingAttendance({ id, status });
+  };
+  const onConfirmAttendanceChange = async () => {
+    if (!pendingAttendance) return;
+    await onConfirmAttendance(pendingAttendance.id, pendingAttendance.status);
+    setPendingAttendance(null);
   };
 
   const onTriggerCancel = (id: string) => {
@@ -285,8 +295,8 @@ export const SessionDetailPage = () => {
     isLoading: loadingSessionReschedule,
     refetch: refetchSession,
   } = useGetSessions({
-    page,
-    limit,
+    page: pageSession,
+    limit: 6,
     startDate: selectedRange.from,
     endDate: selectedRange.to,
     search: debounceClass,
@@ -305,10 +315,10 @@ export const SessionDetailPage = () => {
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end" className="w-32">
-          <DropdownMenuItem onClick={() => onConfirmAttendance(row.id, "attended")} disabled={isPending}>
+          <DropdownMenuItem onClick={() => onRequestAttendanceChange(row.id, "attended")} disabled={isPending}>
             Check In
           </DropdownMenuItem>
-          <DropdownMenuItem onClick={() => onConfirmAttendance(row.id, "no_show")} className="text-red-500" disabled={isPending}>
+          <DropdownMenuItem onClick={() => onRequestAttendanceChange(row.id, "no_show")} className="text-red-500" disabled={isPending}>
             No Show
           </DropdownMenuItem>
           <DropdownMenuItem
@@ -324,6 +334,9 @@ export const SessionDetailPage = () => {
               Cancel Booking
             </DropdownMenuItem> : ""
           }
+          {isManager ? <DropdownMenuItem onClick={() => onRequestAttendanceChange(row.id, null)} className="bg-secondary" disabled={isPending}>
+            <RotateCcw /> Reset
+          </DropdownMenuItem> : ""}
 
         </DropdownMenuContent>
       </DropdownMenu>
@@ -545,6 +558,8 @@ export const SessionDetailPage = () => {
                         slot={item.slots_display}
                         title={`[${item?.class?.class_name}] - ${item.session_name}`}
                         onSelect={() => setSelectedSession(item)}
+
+                        status={item.location}
                         isSelected={item.id === selectedSession?.id}
                       />
                     ) : null,
@@ -557,6 +572,7 @@ export const SessionDetailPage = () => {
             <CustomPagination
               onPageChange={(e) => {
                 setPageSession(e);
+
               }}
               currentPage={pageSession}
               showTotal
@@ -679,6 +695,29 @@ export const SessionDetailPage = () => {
           />
         )
       }
+      {pendingAttendance && (
+        <BaseDialogConfirmation
+          open={!!pendingAttendance}
+          title={
+            pendingAttendance.status === "attended"
+              ? "Confirm Check In"
+              : pendingAttendance.status === "no_show"
+                ? "Confirm No Show"
+                : "Confirm Reset Attendance"
+          }
+          subtitle={
+            pendingAttendance.status === "attended"
+              ? "Mark this participant as attended?"
+              : pendingAttendance.status === "no_show"
+                ? "Mark this participant as no show?"
+                : "Reset this participant's attendance status? This action cannot be undone."
+          }
+          onConfirm={onConfirmAttendanceChange}
+          confirmText={pendingAttendance.status ? "Confirm" : "Reset"}
+          onCancel={() => setPendingAttendance(null)}
+          image="warning-1"
+        />
+      )}
     </Card >
   );
 };

@@ -69,7 +69,7 @@ export const OrderReceiptPage = () => {
             </div>
             <div className="grid grid-cols-2">
               <p className="text-gray-500  text-sm">Status</p>
-              <p className={`text-right text-sm capitalize ${data?.data?.status ? `text-green-500` : `text-red-500`}`}>{data?.data?.status}</p>
+              <p className={`text-right text-sm capitalize ${data?.data?.status === "paid" ? `text-green-500` : data?.data?.status === 'voided' ? 'text-violet-800' : `text-red-500`}`}>{data?.data?.status}</p>
             </div>
             <div className="grid grid-cols-2">
               <p className="text-gray-500  text-sm">Date</p>
@@ -178,7 +178,7 @@ export const OrderReceiptPage = () => {
         </CardContent >
       </Card >
       <div className="flex flex-row gap-2 pt-4">
-        {isManager &&
+        {isManager && data?.data?.status !== 'voided' ?
 
           <div className="flex w-full">
             <Button className="w-full !rounded-[10px]"
@@ -191,7 +191,7 @@ export const OrderReceiptPage = () => {
             >
               <Ban /> Void Transaction
             </Button>
-          </div>
+          </div> : ""
         }
 
         <div className="flex w-full">
