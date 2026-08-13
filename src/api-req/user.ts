@@ -11,3 +11,8 @@ export const resfreshToken: TRefreshToken = async (data) => {
   const res = await axiosx(false).post(`${MAIN_API_URL}/auth/refresh`, data);
   return res.data;
 };
+
+export const adminChangePasswordRequest = async (data: { current_password: string; new_password: string }) => {
+  const res = await axiosx(true).post(`${MAIN_API_URL}/profile/update`, data);
+  return res.data;
+};

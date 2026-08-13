@@ -48,6 +48,7 @@ export const PERMISSIONS_ROLE = {
     "member:detail",
     "outstanding:view",
     "cash-flow:view",
+    "settings:view",
   ],
   admin: [
     "dashboard:view",
@@ -82,5 +83,6 @@ export const PERMISSIONS_ROLE = {
     "member:create",
     "member:detail",
     "cash-flow:view",
+    "settings:view",
   ],
 };

@@ -2,6 +2,7 @@
 
 import { buildNumber, CustomTable } from "@/components/general/custom-table";
 import { CustomPagination } from "@/components/general/pagination-component";
+import { GeneralTabComponent } from "@/components/general/tabs-component";
 import { ManageStockDialog } from "@/components/page/dashboard/manage-stock-dialog";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card";
@@ -10,8 +11,21 @@ import { IInventorySnapshotItem, IStockableVariant } from "@/types/product.inter
 import { PackageSearch, Warehouse } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import Select, { SingleValue } from "react-select";
+import { ProductRentalTabPage } from "../rental";
+
+const tabOptions = [
+  {
+    name: "Inventory",
+    value: "inventory",
+  },
+  {
+    name: "Product Rental",
+    value: "rental",
+  },
+];
 
 export const InventoryListPage = () => {
+  const [tab, setTab] = useState("inventory");
   const [limit] = useState(10);
   const [page, setPage] = useState(1);
   const [locationId, setLocationId] = useState<string>("");
@@ -136,8 +150,13 @@ export const InventoryListPage = () => {
 
   return (
     <div className="flex flex-col w-full h-full gap-2">
-      <Card className="rounded-lg border-brand-100">
-        <CardHeader className="flex flex-row w-full justify-between items-center">
+      <GeneralTabComponent selecetedTab={tab} setTab={setTab} tabs={tabOptions} />
+      {tab === "rental" ? (
+        <ProductRentalTabPage />
+      ) : (
+        <>
+          <Card className="rounded-lg border-brand-100">
+          <CardHeader className="flex flex-row w-full justify-between items-center">
           <div className="flex flex-col">
             <h3 className="text-brand-999 text-2xl font-semibold flex items-center gap-2">
               <PackageSearch size={24} />
@@ -190,18 +209,20 @@ export const InventoryListPage = () => {
           />
         </CardFooter>
       </Card>
-      {openManageStock && (
-        <ManageStockDialog
-          isOpen={openManageStock}
-          onClose={() => {
-            setOpenManageStock(false);
-            setSelectedVariant(null);
-          }}
-          selectedVariant={selectedVariant}
-          onSuccess={() => {
-            refetch();
-          }}
-        />
+          {openManageStock && (
+            <ManageStockDialog
+              isOpen={openManageStock}
+              onClose={() => {
+                setOpenManageStock(false);
+                setSelectedVariant(null);
+              }}
+              selectedVariant={selectedVariant}
+              onSuccess={() => {
+                refetch();
+              }}
+            />
+          )}
+        </>
       )}
     </div>
   );
