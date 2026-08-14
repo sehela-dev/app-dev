@@ -106,7 +106,11 @@ export interface IRentalDetail extends IRentalItem {
 
 export interface IRentalListParams extends ICommonParams {
   status?: string;
-  user_id?: string;
+  location_id?: string;
+  customer?: string;
+  payment_id?: string;
+  created_from?: string;
+  created_to?: string;
 }
 
 export interface IRentalReturnItemPayload {
@@ -121,8 +125,4 @@ export interface IReturnRentalPayload {
 
 export type TGetRentalList = (params: IRentalListParams) => Promise<IResponseData<IRentalItem[]>>;
 export type TGetRentalDetail = (id: string) => Promise<IResponseData<IRentalDetail>>;
-export type TReturnRental = (data: {
-  id: string;
-  payload: IReturnRentalPayload;
-  idempotencyKey: string;
-}) => Promise<IResponseData<unknown>>;
+export type TReturnRental = (data: { id: string; payload: IReturnRentalPayload; idempotencyKey: string }) => Promise<IResponseData<unknown>>;

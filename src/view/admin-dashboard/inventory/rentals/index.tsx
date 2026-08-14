@@ -6,12 +6,15 @@ import { RentalDetailDialog } from "@/components/page/rentals/rental-detail-dial
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card";
+import { SearchInput } from "@/components/ui/search-input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { useGetInventoryLocations } from "@/hooks/api/queries/admin/products";
 import { useGetRentals } from "@/hooks/api/queries/admin/rentals";
 import { IRentalItem, IRentalItemLine } from "@/types/rental.interface";
 import { ArrowUpRight, CalendarRange, Eye, MapPinIcon, PackageCheck } from "lucide-react";
 import Link from "next/link";
 import { useMemo, useState } from "react";
+import SelectSearch, { SingleValue } from "react-select";
 
 const STATUS_OPTIONS = [
   { value: "ongoing", label: "Ongoing" },
@@ -24,10 +27,24 @@ export const RentalRecordsPage = () => {
   const [limit] = useState(10);
   const [page, setPage] = useState(1);
   const [status, setStatus] = useState("");
+  const [locationId, setLocationId] = useState<string>("");
+  const [customer, setCustomer] = useState<string>("");
   const [selectedRentalId, setSelectedRentalId] = useState<string | null>(null);
   const [openDetail, setOpenDetail] = useState(false);
 
-  const { data, isLoading } = useGetRentals({ page, limit, status: status || undefined });
+  const { data: locations, isLoading: locationLoading } = useGetInventoryLocations();
+  const { data, isLoading } = useGetRentals({
+    page,
+    limit,
+    status: status || undefined,
+    ...(locationId ? { location_id: locationId } : null),
+    ...(customer ? { customer } : null),
+  });
+
+  const locationOption = useMemo(
+    () => (locations?.data ?? []).map((item) => ({ value: item.id, label: item.name })),
+    [locations],
+  );
 
   const rows = useMemo(() => (data?.data as IRentalItem[] | undefined) ?? [], [data]);
 
@@ -130,29 +147,62 @@ export const RentalRecordsPage = () => {
           </h3>
           <p className="text-sm text-gray-500 font-normal">View all product rental transactions</p>
         </div>
-        <div className="flex flex-row items-center gap-2 w-[260px]">
-          <Select
-            value={status}
-            onValueChange={(value) => {
-              setStatus(value === "all" ? "" : value);
-              setPage(1);
-            }}
-          >
-            <SelectTrigger className="w-full">
-              <div className="flex items-center gap-2">
-                <CalendarRange size={14} />
-                <SelectValue placeholder="Filter by status" />
-              </div>
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All Status</SelectItem>
-              {STATUS_OPTIONS.map((opt) => (
-                <SelectItem key={opt.value} value={opt.value}>
-                  {opt.label}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+        <div className="flex flex-row items-center gap-2">
+          <div className="w-[220px]">
+            <SearchInput
+              className="border-brand-100"
+              placeholder="Search customer..."
+              search={customer}
+              onSearch={(query) => {
+                setCustomer(query);
+                setPage(1);
+              }}
+            />
+          </div>
+          <div className="w-[200px]">
+            <SelectSearch
+              options={locationOption}
+              isLoading={locationLoading}
+              isClearable
+              placeholder="Filter by location"
+              className="text-sm"
+              classNames={{
+                control: () =>
+                  "!border-2 !border-gray-200 rounded-lg text-gray-999 focus:outline-none focus:border-brand-500 transition-colors h-[42px] !rounded-md !bg-transparent shadow-xs",
+                placeholder: () => "placeholder-gray-400",
+                singleValue: () => "text-brand-999",
+                input: () => "text-brand-999 bg-none",
+              }}
+              onChange={(selected: SingleValue<{ value: string; label: string }>) => {
+                setLocationId(selected?.value ?? "");
+                setPage(1);
+              }}
+            />
+          </div>
+          <div className="w-[200px]">
+            <Select
+              value={status}
+              onValueChange={(value) => {
+                setStatus(value === "all" ? "" : value);
+                setPage(1);
+              }}
+            >
+              <SelectTrigger className="w-full">
+                <div className="flex items-center gap-2">
+                  <CalendarRange size={14} />
+                  <SelectValue placeholder="Filter by status" />
+                </div>
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Status</SelectItem>
+                {STATUS_OPTIONS.map((opt) => (
+                  <SelectItem key={opt.value} value={opt.value}>
+                    {opt.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
         </div>
       </CardHeader>
       <CardContent>
