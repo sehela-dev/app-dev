@@ -34,3 +34,5 @@ export * from "./use-adjust-inventory-stock";
 export * from "./use-create-location";
 export * from "./use-edit-location";
 export * from "./use-delete-location";
+export * from "./use-admin-change-password";
+export * from "./use-return-rental";
