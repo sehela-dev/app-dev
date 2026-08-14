@@ -157,7 +157,11 @@ export const ProductMovementsTab = ({ productId, variants }: IProps) => {
       text: "Qty",
       value: (row: IProductMovement) => {
         const delta = Number(row.quantity_delta_rented ?? 0) !== 0 ? row.quantity_delta_rented : row.quantity_delta_total;
-        const value = Number(delta ?? 0);
+        const raw = Number(delta ?? 0);
+        const abs = Math.abs(raw);
+        const isReturn = ["rental_return", "rental_cancellation_release", "rental_void_release"].includes(row.movement_type);
+        const isCheckout = ["rental_checkout"].includes(row.movement_type);
+        const value = isReturn ? abs : isCheckout ? -abs : raw;
         return <span className={`font-semibold ${value >= 0 ? "text-emerald-500" : "text-red-500"}`}>{value >= 0 ? `+${value}` : `${value}`}</span>;
       },
     },
