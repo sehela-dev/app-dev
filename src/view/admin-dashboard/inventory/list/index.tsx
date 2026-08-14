@@ -11,7 +11,7 @@ import { IInventorySnapshotItem, IStockableVariant } from "@/types/product.inter
 import { PackageSearch, Warehouse } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import Select, { SingleValue } from "react-select";
-import { ProductRentalTabPage } from "../rental";
+import { RentalRecordsPage } from "../rentals";
 
 const tabOptions = [
   {
@@ -19,8 +19,8 @@ const tabOptions = [
     value: "inventory",
   },
   {
-    name: "Product Rental",
-    value: "rental",
+    name: "Rental Records",
+    value: "rental-records",
   },
 ];
 
@@ -92,6 +92,15 @@ export const InventoryListPage = () => {
       value: (row: IInventorySnapshotItem) => row.variant.product?.name ?? "-",
     },
     {
+      id: "type",
+      text: "Type",
+      value: (row: IInventorySnapshotItem) => (
+        <span className={`px-3 py-1 rounded-full text-xs font-medium w-fit ${row.variant.product?.is_rentable ? "bg-indigo-500/10 text-indigo-500" : "bg-emerald-500/10 text-emerald-500"}`}>
+          {row.variant.product?.is_rentable ? "Rent" : "Sell"}
+        </span>
+      ),
+    },
+    {
       id: "variant",
       text: "Variant",
       value: (row: IInventorySnapshotItem) => (
@@ -151,8 +160,8 @@ export const InventoryListPage = () => {
   return (
     <div className="flex flex-col w-full h-full gap-2">
       <GeneralTabComponent selecetedTab={tab} setTab={setTab} tabs={tabOptions} />
-      {tab === "rental" ? (
-        <ProductRentalTabPage />
+      {tab === "rental-records" ? (
+        <RentalRecordsPage />
       ) : (
         <>
           <Card className="rounded-lg border-brand-100">
