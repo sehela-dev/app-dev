@@ -9,6 +9,7 @@ import {
   TProductCategories,
   TProductDetail,
   TProductItemList,
+  TProductMovements,
   TUpdateProduct,
   TUpdateSingleVariant,
   TUpdateVariant,
@@ -36,6 +37,22 @@ export const createProduct: TCreateProduct = async (data) => {
 
 export const getProductDetail: TProductDetail = async (data) => {
   const res = await axiosx(true).get(`${MAIN_API_URL}/admin/products/${data}`);
+  return res.data;
+};
+
+// product movement history
+export const getProductMovements: TProductMovements = async (id, params) => {
+  const res = await axiosx(true).get(`${MAIN_API_URL}/admin/products/${id}/movements`, {
+    params: {
+      ...(params?.page ? { page: params.page } : null),
+      ...(params?.limit ? { page_size: params.limit } : null),
+      ...(params?.variant_id ? { variant_id: params.variant_id } : null),
+      ...(params?.location_id ? { location_id: params.location_id } : null),
+      ...(params?.reference_type ? { reference_type: params.reference_type } : null),
+      ...(params?.start_date ? { start_date: params.start_date } : null),
+      ...(params?.end_date ? { end_date: params.end_date } : null),
+    },
+  });
   return res.data;
 };
 

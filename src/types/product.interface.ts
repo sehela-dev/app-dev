@@ -92,6 +92,53 @@ export interface IInventoryParams extends ICommonParams {
   variant_id?: string;
 }
 
+export interface IProductMovement {
+  id: string;
+  product_variant_id: string;
+  location_id: string;
+  movement_type: string;
+  quantity_delta_total: number;
+  quantity_delta_rented: number;
+  reference_type: string;
+  reference_id?: string;
+  idempotency_key?: string;
+  actor_user_id?: string;
+  note?: string | null;
+  metadata?: Record<string, unknown>;
+  created_at: string;
+  variant: {
+    id: string;
+    variant_name: string;
+    sku: string;
+    price_idr: number;
+    is_active: boolean;
+    product: {
+      id: string;
+      name: string;
+      is_rentable: boolean;
+    };
+  };
+  location: {
+    id: string;
+    code: string;
+    name: string;
+    is_active: boolean;
+  };
+  actor: {
+    id: string;
+    full_name: string;
+    role: string;
+  } | null;
+}
+
+export interface IProductMovementsParams extends ICommonParams {
+  variant_id?: string;
+  location_id?: string;
+  reference_type?: string;
+  start_date?: string;
+  end_date?: string;
+}
+
 export interface IStockableVariant {
   id: string;
   product_id: string;
@@ -198,6 +245,7 @@ export interface IInventoryAdjustmentPayload {
   reason: string;
 }
 
+export type TProductMovements = (id: string, params?: IProductMovementsParams) => Promise<IResponseData<IProductMovement[]>>;
 export type TInventoryLocations = (data?: IParamsInventory) => Promise<IResponseData<IInventoryLocationResponse[]>>;
 export type TInventoryList = (params?: IInventoryParams) => Promise<IResponseData<IInventorySnapshotItem[]>>;
 export type TInventoryAdjustment = (data: {

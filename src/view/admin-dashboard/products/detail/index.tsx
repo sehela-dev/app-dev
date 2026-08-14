@@ -5,6 +5,8 @@ import { BaseDialogComponent } from "@/components/general/base-dialog-component"
 import { EditProductDialog } from "@/components/page/dashboard/edit-product-dialog";
 import { EditVariantDialog } from "@/components/page/dashboard/edit-variant-dialog";
 import { ManageStockDialog } from "@/components/page/dashboard/manage-stock-dialog";
+import { ProductMovementsTab } from "@/components/page/dashboard/product-movements-tab";
+import { GeneralTabComponent } from "@/components/general/tabs-component";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
@@ -33,9 +35,21 @@ const defaultValuesVariant: ProductVariantFormValue = {
   location: [], // Array for multiple selections (temporary, not in final payload)
 };
 
+const tabOptions = [
+  {
+    name: "Details",
+    value: "details",
+  },
+  {
+    name: "Movements",
+    value: "movements",
+  },
+];
+
 export const ProductDetailView = () => {
   const params = useParams();
   const { id } = params;
+  const [tab, setTab] = useState<string>("details");
   const [openAddVariant, setOpenAddVariant] = useState(false);
   const [openManageStock, setOpenManageStock] = useState(false);
   const [openEditProduct, setOpenEditProduct] = useState(false);
@@ -125,102 +139,120 @@ export const ProductDetailView = () => {
 
   return (
     <div className="flex flex-col gap-4">
-      <Card>
-        <CardHeader>
-          <div className="flex flex-row items-center w-full justify-between">
-            <div className="flex flex-col">
-              <div className="flex flex-row items-center gap-4">
-                <h3 className="text-2xl font-semibold items-center">Product Details</h3>
-                <Badge>{data?.data?.is_rentable ? "For Rent" : "For Sell"}</Badge>
+      <GeneralTabComponent selecetedTab={tab} setTab={setTab} tabs={tabOptions} />
+      {tab === "movements" ? (
+        <Card>
+          <CardHeader>
+            <div className="flex flex-row items-center w-full justify-between">
+              <div className="flex flex-col">
+                <h3 className="text-2xl font-semibold items-center">Movement History</h3>
+                <p className="text-sm text-gray-500">Historical stock movements across all variants of this product</p>
               </div>
-              <p className="text-sm text-gray-500">Review all session details and make updates as needed</p>
             </div>
-            <div className="flex flex-row items-center gap-2">
-              {/* <div>
+            <Divider className="my-2" />
+          </CardHeader>
+          <CardContent>
+            <ProductMovementsTab productId={id as string} variants={data?.data?.variants ?? []} />
+          </CardContent>
+        </Card>
+      ) : (
+        <Card>
+          <CardHeader>
+            <div className="flex flex-row items-center w-full justify-between">
+              <div className="flex flex-col">
+                <div className="flex flex-row items-center gap-4">
+                  <h3 className="text-2xl font-semibold items-center">Product Details</h3>
+                  <Badge>{data?.data?.is_rentable ? "For Rent" : "For Sell"}</Badge>
+                </div>
+                <p className="text-sm text-gray-500">Review all session details and make updates as needed</p>
+              </div>
+              <div className="flex flex-row items-center gap-2">
+                {/* <div>
               <Button variant={"outline"}>
                 <File /> Export
               </Button>
             </div> */}
-              <div>
-                <Button onClick={() => setOpenEditProduct(true)}>
-                  <PenIcon /> Edit
-                </Button>
-              </div>
-            </div>
-          </div>
-          <Divider className="my-2" />
-        </CardHeader>
-        <CardContent>
-          <div className="flex flex-col gap-2">
-            {/* basic information */}
-            <div className="flex flex-col gap-2 text-sm">
-              <p className="font-semibold text-sm">Basic Information</p>
-              <div className="grid grid-cols-12 gap-2">
-                <p className="text-gray-500 col-span-3">Product Name</p>
-                <p className="col-span-6">{data?.data?.name}</p>
-              </div>
-              <div className="grid grid-cols-12 gap-2">
-                <p className="text-gray-500 col-span-3">Product Category</p>
-                <p className="col-span-6">{data?.data?.category?.name}</p>
-              </div>
-              <div className="grid grid-cols-12 gap-2">
-                <p className="text-gray-500 col-span-3">Description</p>
-                <p className="col-span-6">{data?.data?.description}</p>
-              </div>
-            </div>
-            <Divider className="my-2" />
-            {/* photo */}
-            <div className="flex flex-col gap-2 text-sm">
-              <p className="font-semibold text-sm">Photo Product</p>
-              <div className="grid grid-cols-6 items-center ">
-                {Array.isArray(data?.data?.photos) &&
-                  data?.data?.photos?.map((p, i) => (
-                    <div className="w-full" key={`${data?.data?.name}-${i}`}>
-                      <div className="w-[250px] h-[250px] rounded-md relative" >
-                        <img src={p} alt={`${data?.data?.name}-${i}`} className="w-full h-full rounded-md object-cover" />
-                        {i === 0 && <div className="absolute bottom-2 right-2 bg-teal-600 text-white px-2 py-1 rounded text-xs font-medium">COVER</div>}
-                      </div>
-                    </div>
-                  ))}
-              </div>
-              <Divider className="my-2" />
-              <div className="flex flex-col gap-2 text-sm">
-                {/* <p className="font-semibold text-sm">Product Variant </p> */}
-
-                <div className="space-y-3">
-                  <div className="flex flex-row w-full justify-between">
-                    <h2 className="text-lg font-semibold text-foreground flex items-center gap-2">
-                      <Package size={20} />
-                      Variants & Inventory
-                    </h2>
-                    <div>
-                      <Button
-                        onClick={() => {
-                          setOpenAddVariant(true);
-                        }}
-                      >
-                        <Plus />
-                        Add Variants
-                      </Button>
-                    </div>
-                  </div>
-                  {data?.data?.variants?.map((v) => (
-                    <InventoryCardComponent
-                      variant={v}
-                      key={v.id}
-                      onOpenVariant={handleOpenManageStock}
-                      onEditVariant={(variant) => {
-                        setSelectedVariant(variant);
-                        setOpenEditVariant(true);
-                      }}
-                    />
-                  ))}
+                <div>
+                  <Button onClick={() => setOpenEditProduct(true)}>
+                    <PenIcon /> Edit
+                  </Button>
                 </div>
               </div>
             </div>
-          </div>
-        </CardContent>
-      </Card>
+            <Divider className="my-2" />
+          </CardHeader>
+          <CardContent>
+            <div className="flex flex-col gap-2">
+              {/* basic information */}
+              <div className="flex flex-col gap-2 text-sm">
+                <p className="font-semibold text-sm">Basic Information</p>
+                <div className="grid grid-cols-12 gap-2">
+                  <p className="text-gray-500 col-span-3">Product Name</p>
+                  <p className="col-span-6">{data?.data?.name}</p>
+                </div>
+                <div className="grid grid-cols-12 gap-2">
+                  <p className="text-gray-500 col-span-3">Product Category</p>
+                  <p className="col-span-6">{data?.data?.category?.name}</p>
+                </div>
+                <div className="grid grid-cols-12 gap-2">
+                  <p className="text-gray-500 col-span-3">Description</p>
+                  <p className="col-span-6">{data?.data?.description}</p>
+                </div>
+              </div>
+              <Divider className="my-2" />
+              {/* photo */}
+              <div className="flex flex-col gap-2 text-sm">
+                <p className="font-semibold text-sm">Photo Product</p>
+                <div className="grid grid-cols-6 items-center ">
+                  {Array.isArray(data?.data?.photos) &&
+                    data?.data?.photos?.map((p, i) => (
+                      <div className="w-full" key={`${data?.data?.name}-${i}`}>
+                        <div className="w-[250px] h-[250px] rounded-md relative" >
+                          <img src={p} alt={`${data?.data?.name}-${i}`} className="w-full h-full rounded-md object-cover" />
+                          {i === 0 && <div className="absolute bottom-2 right-2 bg-teal-600 text-white px-2 py-1 rounded text-xs font-medium">COVER</div>}
+                        </div>
+                      </div>
+                    ))}
+                </div>
+                <Divider className="my-2" />
+                <div className="flex flex-col gap-2 text-sm">
+                  {/* <p className="font-semibold text-sm">Product Variant </p> */}
+
+                  <div className="space-y-3">
+                    <div className="flex flex-row w-full justify-between">
+                      <h2 className="text-lg font-semibold text-foreground flex items-center gap-2">
+                        <Package size={20} />
+                        Variants & Inventory
+                      </h2>
+                      <div>
+                        <Button
+                          onClick={() => {
+                            setOpenAddVariant(true);
+                          }}
+                        >
+                          <Plus />
+                          Add Variants
+                        </Button>
+                      </div>
+                    </div>
+                    {data?.data?.variants?.map((v) => (
+                      <InventoryCardComponent
+                        variant={v}
+                        key={v.id}
+                        onOpenVariant={handleOpenManageStock}
+                        onEditVariant={(variant) => {
+                          setSelectedVariant(variant);
+                          setOpenEditVariant(true);
+                        }}
+                      />
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
       {openAddVariant &&
         <BaseDialogComponent
           title="Add Variant"
