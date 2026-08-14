@@ -106,7 +106,11 @@ export interface IRentalDetail extends IRentalItem {
 
 export interface IRentalListParams extends ICommonParams {
   status?: string;
-  user_id?: string;
+  location_id?: string;
+  customer?: string;
+  payment_id?: string;
+  created_from?: string;
+  created_to?: string;
 }
 
 export interface IRentalReturnItemPayload {

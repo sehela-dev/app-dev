@@ -8,13 +8,17 @@ import {
   TReturnRental,
 } from "@/types/rental.interface";
 
-export const getRentalList: TGetRentalList = async ({ page, limit, status, user_id }) => {
+export const getRentalList: TGetRentalList = async ({ page, limit, status, location_id, customer, payment_id, created_from, created_to }) => {
   const res = await axiosx(true).get(`${MAIN_API_URL}/admin/rentals`, {
     params: {
       page,
       page_size: limit,
       ...(status ? { status } : null),
-      ...(user_id ? { user_id } : null),
+      ...(location_id ? { location_id } : null),
+      ...(customer ? { customer } : null),
+      ...(payment_id ? { payment_id } : null),
+      ...(created_from ? { created_from } : null),
+      ...(created_to ? { created_to } : null),
     },
   });
   return res.data;
