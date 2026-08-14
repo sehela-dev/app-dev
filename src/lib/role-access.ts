@@ -52,6 +52,7 @@ export const PERMISSIONS_ROLE = {
     "admin:delete",
     "admin:detail",
     "admin:audit-log:view",
+    "audit-log:view",
     "outstanding:view",
     "cash-flow:view",
   ],
@@ -91,6 +92,7 @@ export const PERMISSIONS_ROLE = {
     "admin:update",
     "admin:detail",
     "admin:audit-log:view",
+    "audit-log:view",
     "cash-flow:view",
   ],
 };

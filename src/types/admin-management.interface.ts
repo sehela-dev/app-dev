@@ -91,3 +91,4 @@ export type TUpdateAdmin = (data: { id: string; data: IUpdateAdminPayload }) => 
 >;
 export type TDeactivateAdmin = (data: { id: string; reason?: string }) => Promise<IResponseData<{ deactivated: boolean; auth_user_id: string }>>;
 export type TGetAdminAuditLogs = (params: IAuditLogParams) => Promise<IAuditLogResponse>;
+export type TGetAuditLogs = (params: IAuditLogParams) => Promise<IAuditLogResponse>;

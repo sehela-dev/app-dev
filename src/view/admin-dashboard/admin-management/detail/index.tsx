@@ -1,9 +1,9 @@
 "use client";
 
 import { buildNumber, CustomTable } from "@/components/general/custom-table";
-import { BaseDialogComponent } from "@/components/general/base-dialog-component";
 import { CustomPagination } from "@/components/general/pagination-component";
 import { GeneralTabComponent } from "@/components/general/tabs-component";
+import { AuditLogDetailsComponent, getActionBadge } from "@/components/page/audit-log/audit-log-details";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Divider } from "@/components/ui/divider";
@@ -22,47 +22,6 @@ const detailTabs = [
   { value: "basic", name: "Information" },
   { value: "audit", name: "Audit Logs" },
 ];
-
-const ACTION_LABELS: Record<string, { label: string; variant: "default" | "secondary" | "destructive" | "outline" }> = {
-  admin_create: { label: "Created", variant: "default" },
-  admin_update: { label: "Updated", variant: "secondary" },
-  admin_deactivate: { label: "Deactivated", variant: "destructive" },
-};
-
-const FIELD_LABELS: Record<string, string> = {
-  full_name: "Full Name",
-  phone: "WhatsApp",
-  email: "Email",
-  role: "Role",
-  is_active: "Status",
-  password: "Password",
-};
-
-const formatFieldValue = (value: unknown): string => {
-  if (value === null || value === undefined || value === "") return "-";
-  if (typeof value === "boolean") return value ? "Active" : "Inactive";
-  if (value instanceof Object) return JSON.stringify(value);
-  return String(value);
-};
-
-const renderChanges = (before: Record<string, unknown> | null, after: Record<string, unknown> | null) => {
-  const keys = Array.from(new Set([...(before ? Object.keys(before) : []), ...(after ? Object.keys(after) : [])]));
-  const rows: { key: string; before: string; after: string }[] = [];
-  keys.forEach((key) => {
-    const beforeValue = before ? before[key] : undefined;
-    const afterValue = after ? after[key] : undefined;
-    if (beforeValue !== afterValue) {
-      rows.push({
-        key,
-        before: formatFieldValue(beforeValue),
-        after: formatFieldValue(afterValue),
-      });
-    }
-  });
-  return rows;
-};
-
-const ACTION_FALLBACK = { label: "Action", variant: "outline" as const };
 
 export const AdminManagementDetailPage = () => {
   const router = useRouter();
@@ -166,7 +125,7 @@ export const AdminManagementDetailPage = () => {
                     id: "action",
                     text: "Action",
                     value: (row: IAdminAuditLog) => {
-                      const config = ACTION_LABELS[row.action] ?? ACTION_FALLBACK;
+                      const config = getActionBadge(row.action);
                       return <Badge variant={config.variant}>{config.label}</Badge>;
                     },
                   },
@@ -232,72 +191,11 @@ export const AdminManagementDetailPage = () => {
           </CardContent>
         </Card>
       )}
-      {openChanges && selectedLog && (
-        <BaseDialogComponent
-          title="Audit Log Details"
-          isOpen={openChanges}
-          onClose={handleCloseChanges}
-          btnConfirm="Close"
-          onConfirm={handleCloseChanges}
-        >
-          <div className="flex flex-col gap-4">
-            <div className="grid grid-cols-12 gap-2 text-sm">
-              <div className="grid col-span-4 text-gray-500">Action</div>
-              <div className="grid col-span-8">
-                <Badge variant={ACTION_LABELS[selectedLog.action]?.variant ?? "outline"}>
-                  {ACTION_LABELS[selectedLog.action]?.label ?? selectedLog.action}
-                </Badge>
-              </div>
-              <div className="grid col-span-4 text-gray-500">Actor</div>
-              <div className="grid col-span-8">
-                <div className="flex flex-col">
-                  <span>{selectedLog.actor_name}</span>
-                  <span className="text-xs text-gray-500">{selectedLog.actor_auth_user_id}</span>
-                </div>
-              </div>
-              <div className="grid col-span-4 text-gray-500">Target</div>
-              <div className="grid col-span-8">
-                <div className="flex flex-col">
-                  <span>{selectedLog.target_name}</span>
-                  <span className="text-xs text-gray-500">{selectedLog.target_email}</span>
-                </div>
-              </div>
-              <div className="grid col-span-4 text-gray-500">Date</div>
-              <div className="grid col-span-8">{formatDateHelper(selectedLog.created_at, "dd/MM/yyyy HH:mm")}</div>
-              <div className="grid col-span-4 text-gray-500">Reason</div>
-              <div className="grid col-span-8">{selectedLog.reason ?? "-"}</div>
-            </div>
-            <Divider />
-            <div>
-              <h4 className="text-sm font-semibold mb-2">Changes</h4>
-              {renderChanges(selectedLog.before_data, selectedLog.after_data).length > 0 ? (
-                <div className="overflow-auto border rounded-lg">
-                  <table className="w-full text-sm">
-                    <thead>
-                      <tr className="bg-brand-50 text-gray-500">
-                        <th className="text-left p-3 font-medium">Field</th>
-                        <th className="text-left p-3 font-medium">Before</th>
-                        <th className="text-left p-3 font-medium">After</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {renderChanges(selectedLog.before_data, selectedLog.after_data).map((row) => (
-                        <tr key={row.key} className="border-t border-brand-100">
-                          <td className="p-3">{FIELD_LABELS[row.key] ?? row.key}</td>
-                          <td className="p-3 text-gray-500">{row.before}</td>
-                          <td className="p-3">{row.after}</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              ) : (
-                <p className="text-sm text-gray-500">No field changes recorded.</p>
-              )}
-            </div>
-          </div>
-        </BaseDialogComponent>
-      )}
+      <AuditLogDetailsComponent
+        isOpen={openChanges}
+        log={selectedLog}
+        onClose={handleCloseChanges}
+      />
     </div>
   );
 };

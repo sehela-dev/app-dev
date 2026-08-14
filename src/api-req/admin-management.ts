@@ -1,6 +1,6 @@
 import { axiosx } from "@/lib/axiosx";
 import { MAIN_API_URL } from "@/lib/config";
-import { IAdminProfile, TCreateAdmin, TDeactivateAdmin, TGetAdminAuditLogs, TGetAdmins, TUpdateAdmin } from "@/types/admin-management.interface";
+import { IAdminProfile, TCreateAdmin, TDeactivateAdmin, TGetAdminAuditLogs, TGetAdmins, TGetAuditLogs, TUpdateAdmin } from "@/types/admin-management.interface";
 
 export const getAdmins: TGetAdmins = async ({ page, page_size, q, role, is_active }) => {
   const res = await axiosx(true).get(`${MAIN_API_URL}/admin/admins`, {
@@ -43,6 +43,21 @@ export const getAdminAuditLogs: TGetAdminAuditLogs = async ({ id, page, page_siz
       page,
       page_size,
       ...(action ? { action } : null),
+      ...(start_date ? { start_date } : null),
+      ...(end_date ? { end_date } : null),
+    },
+  });
+  return res.data;
+};
+
+export const getAuditLogs: TGetAuditLogs = async ({ page, page_size, action, actor_id, target_id, start_date, end_date }) => {
+  const res = await axiosx(true).get(`${MAIN_API_URL}/admin/audit-logs`, {
+    params: {
+      page,
+      page_size,
+      ...(action ? { action } : null),
+      ...(actor_id ? { actor_id } : null),
+      ...(target_id ? { target_id } : null),
       ...(start_date ? { start_date } : null),
       ...(end_date ? { end_date } : null),
     },
