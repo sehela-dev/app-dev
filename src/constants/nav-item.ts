@@ -11,7 +11,8 @@ import {
   DollarSign,
   ChartNoAxesCombined,
   MapPin,
-  Settings,
+  UserCog,
+  History,
 } from "lucide-react";
 
 export const dataNavMain = [
@@ -48,7 +49,8 @@ export const dataNavMarketPlace = [
   { title: "Discount Voucher", url: "/admin/discount-voucher", icon: Tag, permission: "voucher:view" },
   // { title: "Discounts", url: "#", icon: Tag },
   { title: "Members", url: "/admin/member", icon: Users, permission: "member:view" },
-  { title: "Settings", url: "/admin/settings", icon: Settings, permission: "settings:view" },
+  { title: "Admin Management", url: "/admin/admins", icon: UserCog, permission: "admin:view" },
+  { title: "Audit Logs", url: "/admin/audit-logs", icon: History, permission: "audit-log:view" },
 ];
 
 export const dataNavReport = [

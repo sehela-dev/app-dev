@@ -9,3 +9,4 @@ export * from "./products";
 export * from "./rentals";
 export * from "./dashboard";
 export * from "./package-purchase";
+export * from "./admin-management";
