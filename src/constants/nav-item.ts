@@ -13,6 +13,7 @@ import {
   MapPin,
   UserCog,
   History,
+  Settings,
 } from "lucide-react";
 
 export const dataNavMain = [
@@ -51,6 +52,7 @@ export const dataNavMarketPlace = [
   { title: "Members", url: "/admin/member", icon: Users, permission: "member:view" },
   { title: "Admin Management", url: "/admin/admins", icon: UserCog, permission: "admin:view" },
   { title: "Audit Logs", url: "/admin/audit-logs", icon: History, permission: "audit-log:view" },
+  { title: "Settings", url: "/admin/settings", icon: Settings, permission: "settings:view" },
 ];
 
 export const dataNavReport = [
