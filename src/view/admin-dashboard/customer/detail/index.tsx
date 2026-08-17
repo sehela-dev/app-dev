@@ -93,6 +93,8 @@ export const CustomerDetailPage = () => {
     {
       id: "start_datetime",
       text: "Session Date & Time",
+      sortable: true,
+      sortKey: "session_start",
       value: (row: ICustomerActvity) => formatDateHelper(row.start_datetime, "dd/MM/yyyy HH:mm"),
     },
 
