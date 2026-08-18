@@ -79,6 +79,21 @@ export interface ICreateSessionPaylaod {
   payment?: IPaymentRule | null;
 }
 
+export interface IBookingPaidWith {
+  type: "credits" | "cash" | string;
+  credits_used?: number;
+  credit_unit_value_idr?: number;
+  revenue_idr?: number;
+  package_purchase_id?: string;
+  package_name?: string;
+  package_credits?: number;
+  package_price_idr?: number;
+  package_status?: string;
+  package_actual_amount_paid_idr?: number;
+  package_purchased_at?: string;
+  package_expires_at?: string | null;
+}
+
 export interface IParticipantsSession {
   id: string;
   user_id: string;
@@ -86,11 +101,15 @@ export interface IParticipantsSession {
   customer_phone: string;
   customer_email: string;
   booking_status: string;
-  attendance_status: string;
-  medical_notes: string;
-  photo_consent: string;
+  attendance_status: string | null;
+  payment_method: string;
+  payment_status?: string;
+  paid_with: IBookingPaidWith | null;
+  medical_notes: string | null;
+  photo_consent: boolean;
+  instagram_username: string | null;
+  rescheduled_to_booking_id: string | null;
   created_at: string;
-  instagram_username?: string;
 }
 
 export type TSessionListData = (data: ICommonParams) => Promise<IResponseData<ISessionItem[]>>;

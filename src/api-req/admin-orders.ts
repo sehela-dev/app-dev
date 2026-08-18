@@ -81,6 +81,7 @@ export const cancelBookingSession: TCancelBooking = async (data) => {
     refund_type: data?.refund_type,
     cancel_reason: data?.cancel_reason,
     refund_validity_days: data?.refund_validity_days,
+    ...(data?.refund_amount_idr ? { refund_amount_idr: data?.refund_amount_idr } : null),
   });
   return res.data;
 };

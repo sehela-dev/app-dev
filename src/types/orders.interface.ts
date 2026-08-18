@@ -262,6 +262,7 @@ export interface ICancelBooking {
   refund_type: string;
   cancel_reason: string;
   refund_validity_days?: string | number;
+  refund_amount_idr?: number;
 }
 
 export type IAttendanceStatus = "attended" | "no_show" | null;

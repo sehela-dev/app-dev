@@ -17,6 +17,7 @@ import { cn } from "@/lib/utils";
 import { IParticipantsSession, ISessionItem } from "@/types/class-sessions.interface";
 import { IAttendanceStatus } from "@/types/orders.interface";
 import { ArrowLeftRight, Ban, Banknote, BellRing, Copy, Ellipsis, Loader2, LucideIcon, PenIcon, RotateCcw, WalletCards, X } from "lucide-react";
+import { differenceInCalendarDays } from "date-fns";
 import { useParams, useRouter } from "next/navigation";
 import React, { useState } from "react";
 import { CardSession } from "../../enrol-students";
@@ -91,7 +92,7 @@ export const SessionDetailPage = () => {
   const [selectedRow, setSelectedRow] = useState<string | null>(null);
   const [openCancel, setOpenCancel] = useState(false);
   const [refundType, setRefundTYpe] = useState("none")
-  const [selectedDataCancel, setSelectedDataCancel] = useState<string | null>(null);
+  const [selectedDataCancel, setSelectedDataCancel] = useState<IParticipantsSession | null>(null);
   const [pendingAttendance, setPendingAttendance] = useState<{ id: string; status: IAttendanceStatus } | null>(null);
 
   const { mutateAsync: rescheduleSession } = useRescheduleSession();
@@ -135,14 +136,17 @@ export const SessionDetailPage = () => {
     setPendingAttendance(null);
   };
 
-  const onTriggerCancel = (id: string) => {
-    setSelectedDataCancel(id);
+  const onTriggerCancel = (row: IParticipantsSession) => {
+    setSelectedDataCancel(row);
+    setRefundAmount(row?.payment_method === "cash" ? (row?.paid_with?.revenue_idr ?? 0) : 0);
+    const packageExpiry = row?.paid_with?.package_expires_at;
+    setValidityDays(packageExpiry ? Math.max(differenceInCalendarDays(new Date(packageExpiry), new Date()), 0) : 15);
     setOpenCancel(true);
   };
   const onCancelBooking = async () => {
     try {
       const payload = {
-        id: selectedDataCancel as string,
+        id: selectedDataCancel?.id as string,
         refund_type: refundType,
         cancel_reason: rescheduleNotes.trim(),
         ...(refundType === "credit_issue_new" && {
@@ -329,8 +333,9 @@ export const SessionDetailPage = () => {
           >
             Reschedule
           </DropdownMenuItem>
-          {(row.attendance_status === 'attended' && isManager) || !row.attendance_status ?
-            <DropdownMenuItem onClick={() => onTriggerCancel(row.id)} className="text-red-500" disabled={isPending}>
+          {(row.booking_status !== "cancelled" && row.booking_status !== "canceled" && row.payment_status !== "voided") &&
+          ((row.attendance_status === 'attended' && isManager) || !row.attendance_status) ?
+            <DropdownMenuItem onClick={() => onTriggerCancel(row)} className="text-red-500" disabled={isPending}>
               Cancel Booking
             </DropdownMenuItem> : ""
           }
@@ -641,13 +646,19 @@ export const SessionDetailPage = () => {
                 <Input
                   id="validity-days"
                   type="number"
-                  min="1"
+                  min="0"
                   value={validityDays}
+                  readOnly={!!selectedDataCancel?.paid_with?.package_expires_at}
                   onChange={(event) => setValidityDays(parseInt(event.target.value))}
                   className="max-w-32"
                 />
                 <span className="text-sm text-muted-foreground">days from cancellation</span>
               </div>
+              {selectedDataCancel?.paid_with?.package_expires_at && (
+                <p className="text-xs text-muted-foreground">
+                  Expiry matches original package: {formatDateHelper(selectedDataCancel.paid_with.package_expires_at, "dd MMM yyyy")}
+                </p>
+              )}
             </div>
           )}
 
@@ -661,11 +672,14 @@ export const SessionDetailPage = () => {
                   type="number"
                   min="1"
                   placeholder="150000"
-                  value={refundAmount}
-                  defaultValue={data?.data?.price_idr ?? ""}
+                  value={refundAmount || ""}
+                  readOnly={selectedDataCancel?.payment_method === "cash"}
                   onChange={(event) => setRefundAmount(parseInt(event.target.value))}
                 />
               </div>
+              {selectedDataCancel?.payment_method === "cash" && (
+                <p className="text-xs text-muted-foreground">Refund amount is prefilled from the cash payment received.</p>
+              )}
             </div>
           )}
 

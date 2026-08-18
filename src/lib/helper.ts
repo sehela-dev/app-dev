@@ -3,6 +3,11 @@ import { IOverallResultByClass } from "@/types/dashboard.interface";
 import { addMonths, format, parseISO, subDays, subMonths } from "date-fns";
 import { id } from "date-fns/locale";
 
+export const TRANSACTION_TERMINAL_STATUSES = ["voided", "refunded", "cancelled", "canceled"] as const;
+
+export const isTransactionVoidable = (status?: string | null): boolean =>
+  !!status && !TRANSACTION_TERMINAL_STATUSES.includes(status.toLowerCase() as (typeof TRANSACTION_TERMINAL_STATUSES)[number]);
+
 export function formatCurrency(amount?: string | number, currencyCode = "IDR", locale = "id-ID") {
   // Create a new Intl.NumberFormat object
   const data = parseInt(amount as string);

@@ -14,7 +14,7 @@ import { SearchInput } from "@/components/ui/search-input";
 import { useGetOrders, useGetVoidPreview } from "@/hooks/api/queries/admin/orders";
 import { useAdminPermission } from "@/hooks/use-role-access";
 
-import { defaultDate, formatCurrency, formatDateHelper } from "@/lib/helper";
+import { defaultDate, formatCurrency, formatDateHelper, isTransactionVoidable } from "@/lib/helper";
 import { IOrderItem } from "@/types/orders.interface";
 import { Ban, ChevronDown, ChevronUp, CirclePlus, File, ListFilter, ReceiptText } from "lucide-react";
 import { useRouter } from "next/navigation";
@@ -98,7 +98,7 @@ export const OrdersPageView = () => {
         <Button variant={"outline"} onClick={() => router.push(`orders/${row?.id}`)}>
           <ReceiptText />
         </Button>
-        {isManager && row.status !== 'voided' ? (
+        {isManager && isTransactionVoidable(row.status) ? (
           <Button
             variant={"destructive"}
             onClick={() => {

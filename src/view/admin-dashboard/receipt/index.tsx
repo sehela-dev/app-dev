@@ -8,7 +8,7 @@ import { useSendReceiptEmail } from "@/hooks/api/mutations/admin/use-send-receip
 
 import { useGetOrderDetail } from "@/hooks/api/queries/admin/orders";
 import { useAdminPermission } from "@/hooks/use-role-access";
-import { formatCurrency, formatDateHelper } from "@/lib/helper";
+import { formatCurrency, formatDateHelper, isTransactionVoidable } from "@/lib/helper";
 import { Ban, Loader2, Mail } from "lucide-react";
 import { useParams } from "next/navigation";
 
@@ -178,7 +178,7 @@ export const OrderReceiptPage = () => {
         </CardContent >
       </Card >
       <div className="flex flex-row gap-2 pt-4">
-        {isManager && data?.data?.status !== 'voided' ?
+        {isManager && isTransactionVoidable(data?.data?.status) ?
 
           <div className="flex w-full">
             <Button className="w-full !rounded-[10px]"
