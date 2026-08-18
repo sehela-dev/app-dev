@@ -18,15 +18,13 @@ export const generateOutstandingReport: TGenerateReportOutstandingCredit = async
 };
 
 export const getCashFlowReport: TCashFlowReport = async (data) => {
-  const { branch, page, limit, date } = data;
+  const { branch, date, page, limit } = data;
   const res = await axiosx(true).get(`${MAIN_API_URL}/admin/reports/cash-movement`, {
     params: {
-      branch,
-      page,
-      page_size: limit,
-
       ...(date ? { date } : null),
       ...(branch === "all" ? null : { branch }),
+      page,
+      page_size: limit,
     },
   });
   return res.data;

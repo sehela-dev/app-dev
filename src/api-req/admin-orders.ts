@@ -16,17 +16,32 @@ import {
 } from "@/types/orders.interface";
 import { TAddNewGuest } from "@/types/user.type";
 
-export const getOrders: TOrderList = async ({ page, limit, search, payment_method, status, startDate, endDate }) => {
+export const getOrders: TOrderList = async ({
+  page,
+  limit,
+  search,
+  payment_method,
+  status,
+  movement_type,
+  type,
+  branch,
+  startDate,
+  endDate,
+  date,
+}) => {
   const res = await axiosx(true).get(`${MAIN_API_URL}/admin/transactions`, {
     params: {
       page,
       page_size: limit,
+      ...(date ? { date: date } : null),
       ...(startDate ? { start_date: startDate } : null),
       ...(endDate ? { end_date: endDate } : null),
       ...(search ? { q: search } : null),
       ...(payment_method ? { payment_method } : null),
       ...(status ? { status } : null),
-      ...(status ? { status } : null),
+      ...(movement_type ? { movement_type } : null),
+      ...(type ? { type } : null),
+      ...(branch ? { branch } : null),
     },
   });
   return res.data;

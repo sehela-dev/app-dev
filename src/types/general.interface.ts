@@ -17,8 +17,12 @@ export interface ICommonParams {
   search?: string;
   payment_method?: string;
   status?: string;
+  movement_type?: string;
+  branch?: string;
+  type?: string;
   startDate?: string;
   endDate?: string;
+  date?: string;
   sort_by?: string;
   order?: "asc" | "desc";
   is_active?: string | boolean;

@@ -51,13 +51,15 @@ export const dataNavMarketPlace = [
   { title: "Discount Voucher", url: "/admin/discount-voucher", icon: Tag, permission: "voucher:view" },
   // { title: "Discounts", url: "#", icon: Tag },
   { title: "Members", url: "/admin/member", icon: Users, permission: "member:view" },
-  { title: "Refund Management", url: "/admin/refunds", icon: Undo2, permission: "refund:view" },
-  { title: "Admin Management", url: "/admin/admins", icon: UserCog, permission: "admin:view" },
-  { title: "Audit Logs", url: "/admin/audit-logs", icon: History, permission: "audit-log:view" },
-  { title: "Settings", url: "/admin/settings", icon: Settings, permission: "settings:view" },
 ];
 
 export const dataNavReport = [
+  { title: "Refund Management", url: "/admin/refunds", icon: Undo2, permission: "refund:view" },
   { title: "Outstanding Credit", url: "/admin/report/outstanding-credit", icon: DollarSign, permission: "outstanding:view" }, // 🛍️ icon visual → Store sudah mewakili group
   { title: "Cash Flow", url: "/admin/report/cash-flow", icon: ChartNoAxesCombined, permission: "cash-flow:view" },
+];
+export const settingsNav = [
+  { title: "Admin Management", url: "/admin/admins", icon: UserCog, permission: "admin:view" },
+  { title: "Audit Logs", url: "/admin/audit-logs", icon: History, permission: "audit-log:view" },
+  { title: "Settings", url: "/admin/settings", icon: Settings, permission: "settings:view" },
 ];

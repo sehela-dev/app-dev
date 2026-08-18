@@ -12,6 +12,47 @@ export interface IOrderItem {
   price_formatted: string;
   status: string;
   id: string;
+  branch?: string;
+  transfer_details?: unknown;
+  detail?: IOrderDetail | null;
+}
+
+export interface IOrderDetailRefund {
+  refund_id?: string;
+  refund_type?: string;
+  refund_status?: string;
+  amount_idr?: number;
+  reason?: string | null;
+  requested_at?: string | null;
+  confirmed_at?: string | null;
+  reviewer_name?: string | null;
+  reviewer_note?: string | null;
+}
+
+export interface IOrderDetailBooking {
+  id?: string;
+  customer_name?: string;
+  customer_phone?: string;
+  customer_email?: string;
+  payment_method?: string;
+  booking_status?: string;
+  price_idr?: number;
+  revenue_idr?: number;
+  cancel_reason?: string | null;
+  canceled_at?: string | null;
+  session?: {
+    id?: string;
+    session_name?: string;
+    start_datetime?: string;
+    place?: string;
+    type?: string;
+  } | null;
+}
+
+export interface IOrderDetail {
+  booking?: IOrderDetailBooking | null;
+  refund?: IOrderDetailRefund | null;
+  refunds_count?: number;
 }
 
 export interface ICustomerData {

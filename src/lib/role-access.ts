@@ -93,8 +93,6 @@ export const PERMISSIONS_ROLE = {
     "member:create",
     "member:detail",
     "refund:view",
-    "refund:approve",
-    "refund:reject",
     "cash-flow:view",
     "settings:view",
   ],

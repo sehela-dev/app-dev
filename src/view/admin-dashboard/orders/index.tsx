@@ -1,9 +1,9 @@
 "use client";
 
 import { DateRangePicker } from "@/components/base/date-range-picker";
-import { BaseDialogComponent } from "@/components/general/base-dialog-component";
 import { buildNumber, CustomTable } from "@/components/general/custom-table";
 import { CustomPagination } from "@/components/general/pagination-component";
+import { GeneralTabComponent } from "@/components/general/tabs-component";
 import { TransactionVoidDialog } from "@/components/page/orders";
 
 import { Button } from "@/components/ui/button";
@@ -11,12 +11,12 @@ import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card"
 
 import { SearchInput } from "@/components/ui/search-input";
 
-import { useGetOrders, useGetVoidPreview } from "@/hooks/api/queries/admin/orders";
+import { useGetOrders } from "@/hooks/api/queries/admin/orders";
 import { useAdminPermission } from "@/hooks/use-role-access";
 
 import { defaultDate, formatCurrency, formatDateHelper, isTransactionVoidable } from "@/lib/helper";
 import { IOrderItem } from "@/types/orders.interface";
-import { Ban, ChevronDown, ChevronUp, CirclePlus, File, ListFilter, ReceiptText } from "lucide-react";
+import { Ban, CirclePlus, File, ListFilter, ReceiptText } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 
@@ -24,7 +24,7 @@ export const OrdersPageView = () => {
   const [selectTrx, setSelectTrx] = useState("");
   const { isManager } = useAdminPermission();
   const router = useRouter();
-  // const [selecetedTab, setSelectedTab] = useState("week");
+  const [statusTab, setStatusTab] = useState("all");
   const [limit] = useState(10);
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState("");
@@ -39,7 +39,20 @@ export const OrdersPageView = () => {
     setSelectedRange((prev) => ({ ...prev, from: startDate, to: endDate ?? "" }));
   };
 
-  const { data, isLoading, refetch } = useGetOrders({ page, limit, search, startDate: selectedRange.from, endDate: selectedRange.to });
+  const { data, isLoading, refetch } = useGetOrders({
+    page,
+    limit,
+    search,
+    startDate: selectedRange.from,
+    endDate: selectedRange.to,
+    status: statusTab === "all" ? undefined : statusTab,
+  });
+
+  const statusTabOptions = [
+    { value: "all", name: "All" },
+    { value: "voided", name: "Voided" },
+    { value: "refunded", name: "Refunded" },
+  ];
 
   const numberOptions = {
     text: "No",
@@ -86,8 +99,15 @@ export const OrdersPageView = () => {
     {
       id: "status",
       text: "Status",
-      value: (row: IOrderItem) => <p className={`text-right text-sm capitalize font-semibold ${row?.status === "paid" ? `text-green-500` : row?.status === 'voided' ? 'text-violet-800' : `text-red-500`}`}>{row?.status}</p>
-
+      value: (row: IOrderItem) => (
+        <p
+          className={`text-sm capitalize font-semibold ${
+            row?.status === "paid" ? `text-green-500` : row?.status === "voided" ? "text-violet-800" : `text-red-500`
+          }`}
+        >
+          {row?.status}
+        </p>
+      ),
     },
   ];
   const actionOptions = {
@@ -116,9 +136,18 @@ export const OrdersPageView = () => {
   return (
     <div className="flex flex-col w-full h-full gap-2">
       <div className="flex  w-full flex-row justify-between items-center">
-        <div>{/* <GeneralTabComponent tabs={tabOptions} selecetedTab={selecetedTab} setTab={setSelectedTab} /> */}</div>
+        <div>
+          <GeneralTabComponent
+            tabs={statusTabOptions}
+            selecetedTab={statusTab}
+            setTab={(value) => {
+              setStatusTab(value);
+              setPage(1);
+            }}
+          />
+        </div>
         <div className="flex flex-row items-center gap-2">
-          <div className="flex w-full">
+          {/* <div className="flex w-full">
             <Button variant={"outline"} className="text-brand-999 text-sm font-medium">
               <ListFilter /> Filter
             </Button>
@@ -127,7 +156,7 @@ export const OrdersPageView = () => {
             <Button variant={"outline"} className="text-brand-999 text-sm font-medium">
               <File /> Export
             </Button>
-          </div>{" "}
+          </div>{" "} */}
           <div className="flex w-full">
             <Button className=" text-sm font-medium" onClick={() => router.push("orders/add-transaction")}>
               <CirclePlus /> Add Transaction

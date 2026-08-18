@@ -7,7 +7,7 @@ import { NavMain } from "@/components/nav-main";
 
 import { NavUser } from "@/components/nav-user";
 import { Sidebar, SidebarContent, SidebarFooter, SidebarHeader, SidebarMenu, SidebarMenuButton, SidebarMenuItem } from "@/components/ui/sidebar";
-import { dataNavMain, dataNavMarketPlace, dataNavReport } from "@/constants/nav-item";
+import { dataNavMain, dataNavMarketPlace, dataNavReport, settingsNav } from "@/constants/nav-item";
 import { useAuthAdmin } from "@/context/admin/admin-context";
 import { useAdminPermission } from "@/hooks/use-role-access";
 import { filterNavItems } from "@/lib/helper";
@@ -19,6 +19,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
 
   const marketMenu = filterNavItems(dataNavMarketPlace, can);
   const reportMenu = filterNavItems(dataNavReport, can);
+  const settingsMenu = filterNavItems(settingsNav, can);
 
   return (
     <Sidebar className="top-(--header-height) h-[calc(100svh-var(--header-height))]! bg-brand-25" {...props}>
@@ -43,6 +44,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         {/* <NavMain items={dataNavMain} groupLabel="POS" /> */}
         <NavMain items={marketMenu} groupLabel="Marketplace" />
         {reportMenu?.length > 0 && <NavMain items={reportMenu} groupLabel="Report" />}
+        {settingsMenu?.length > 0 && <NavMain items={settingsMenu} groupLabel="Settings" />}
       </SidebarContent>
       <SidebarFooter>
         <NavUser user={user} />

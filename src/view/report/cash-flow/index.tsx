@@ -6,13 +6,14 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { SEHELA_BRANCH } from "@/constants/sample-data";
 import { useGetClassFlowReport } from "@/hooks/api/queries/admin/report/outstanding-credit";
-import { defaultDate, formatCurrency, formatDateHelper } from "@/lib/helper";
+import { formatCurrency, formatDateHelper } from "@/lib/helper";
 import { ICashFlowByPaymentMethod, ICashFlowTransaction } from "@/types/report.interface";
-import { ArrowLeftRight, CircleDollarSign, Loader2, RefreshCcw, TicketX } from "lucide-react";
+import { ArrowLeftRight, Ban, CircleDollarSign, Loader2, RefreshCcw, TicketX } from "lucide-react";
 import { useMemo, useState } from "react";
 import { Select, SelectItem, SelectGroup, SelectContent, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { DateRangePicker } from "@/components/base/date-range-picker";
 import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 
 const COLORS = {
   transfer: "#3b82f6",
@@ -22,14 +23,27 @@ const COLORS = {
   credits: "#337582",
 };
 
+const statusBadgeClass = (status?: string) => {
+  switch (status) {
+    case "paid":
+      return "border-green-200 bg-green-50 text-green-700";
+    case "voided":
+      return "border-violet-200 bg-violet-50 text-violet-700";
+    case "refunded":
+      return "border-red-200 bg-red-50 text-red-600";
+    default:
+      return "";
+  }
+};
+
 export const CashFlowView = () => {
   const [page, setPage] = useState(1);
-  const [limit, setLimit] = useState(10);
+  const [limit] = useState(10);
   const [selectedBranch, setSelectedBranch] = useState("");
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
   const [datePickerKey, setDatePickerKey] = useState(0);
 
-  const { data, isLoading, refetch } = useGetClassFlowReport({ page, limit, date: selectedDate as string, branch: selectedBranch });
+  const { data, isLoading } = useGetClassFlowReport({ page, limit, date: selectedDate as string, branch: selectedBranch });
 
   const headers = [
     {
@@ -51,17 +65,22 @@ export const CashFlowView = () => {
       text: "Payment Method",
       value: (row: ICashFlowTransaction) => <p className="capitalize">{row.payment_method}</p>,
     },
+    // {
+    //   id: "movement_type",
+    //   text: "Movement",
+    //   value: (row: ICashFlowTransaction) => <p className="capitalize">{row.movement_type}</p>,
+    // },
     {
       id: "created_at",
-      text: "Date",
-      value: (row: ICashFlowTransaction) => formatDateHelper(row.created_at, "dd MMM yyyy H:mm"),
+      text: "Created Date",
+      value: (row: ICashFlowTransaction) => formatDateHelper(row.created_at, "dd MMM yyyy HH:mm"),
     },
     {
       id: "status",
       text: "Status",
       value: (row: ICashFlowTransaction) => (
-        <Badge variant={"secondary"}>
-          <p className="capitalize">{row.status}</p>
+        <Badge variant="outline" className={cn("capitalize", statusBadgeClass(row.status))}>
+          {row.status}
         </Badge>
       ),
     },
@@ -98,6 +117,11 @@ export const CashFlowView = () => {
       value: (row: ICashFlowByPaymentMethod) => formatCurrency(row.refund),
     },
     {
+      id: "voided",
+      text: "Voided",
+      value: (row: ICashFlowByPaymentMethod) => formatCurrency(row.voided),
+    },
+    {
       id: "collected",
       text: "Collected",
       value: (row: ICashFlowByPaymentMethod) => formatCurrency(row.collected),
@@ -106,11 +130,12 @@ export const CashFlowView = () => {
 
   const handleChangeDate = (startDate: string) => {
     setSelectedDate(startDate);
+    setPage(1);
   };
 
   return (
     <div className="flex flex-col gap-4 pt-4">
-      <div className="flex flex-row gap-4 w-full items-center w-full">
+      <div className="flex flex-row gap-4 w-full items-center">
         <div className="flex w-full items-center gap-4">
           <h3 className="text-3xl font-semibold w-full">Cash Flow {selectedBranch ? `| ${branchLabel}` : ""} </h3>
           <div className="flex flex-row items-center gap-4">
@@ -119,6 +144,7 @@ export const CashFlowView = () => {
                 value={selectedBranch}
                 onValueChange={(e) => {
                   setSelectedBranch(e);
+                  setPage(1);
                 }}
               >
                 <SelectTrigger className="w-full px-4 py-4 border-2 border-gray-200 rounded-lg text-gray-999  placeholder-gray-400 focus:outline-none focus:border-brand-500 transition-colors h-[42px]">
@@ -152,6 +178,7 @@ export const CashFlowView = () => {
                 onClick={() => {
                   setSelectedDate("");
                   setSelectedBranch("");
+                  setPage(1);
                   setDatePickerKey((k) => k + 1);
                 }}
               >
@@ -187,7 +214,7 @@ export const CashFlowView = () => {
                 }
                 title="Total Collected"
                 amount={formatCurrency(data?.data?.summary.collected)}
-              // percentage={20}
+                // percentage={20}
               />
 
               <CardRevenueComponent
@@ -200,8 +227,8 @@ export const CashFlowView = () => {
                   />
                 }
                 title="Total Transaction"
-                amount={String(data?.data?.summary?.collected_count)}
-              // percentage={20}
+                amount={String(data?.data?.total_transactions ?? data?.data?.summary?.collected_count)}
+                // percentage={20}
               />
               <CardRevenueComponent
                 icon={
@@ -214,7 +241,20 @@ export const CashFlowView = () => {
                 }
                 title="Total Refunded"
                 amount={formatCurrency(data?.data?.summary?.refund)}
-              // percentage={20}
+                // percentage={20}
+              />
+              <CardRevenueComponent
+                icon={
+                  <Ban
+                    style={{
+                      color: "var(--color-gray-400)",
+                    }}
+                    size={18}
+                  />
+                }
+                title="Total Voided"
+                amount={formatCurrency(data?.data?.summary?.voided)}
+                // percentage={20}
               />
             </div>
 
@@ -287,10 +327,10 @@ export const CashFlowView = () => {
                     setPage(e);
                   }}
                   currentPage={page}
-                  hasPrevPage={data?.pagination?.has_prev}
-                  hasNextPage={data?.pagination?.has_next}
-                  totalItems={data?.pagination?.total_items as number}
-                  totalPages={data?.pagination?.total_pages as number}
+                  hasPrevPage={data?.data?.pagination?.has_prev}
+                  hasNextPage={data?.data?.pagination?.has_next}
+                  totalItems={data?.data?.pagination?.total_items as number}
+                  totalPages={data?.data?.pagination?.total_pages as number}
                   limit={limit}
                 />
               </CardContent>

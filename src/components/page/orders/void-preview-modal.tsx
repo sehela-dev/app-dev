@@ -13,6 +13,7 @@ import { Badge } from "@/components/ui/badge";
 import { useCommitVoidTrx } from "@/hooks/api/mutations/admin";
 import { Input } from "@/components/ui/input";
 import { IVoidPreviewData } from "@/types/orders.interface";
+import { useAdminPermission } from "@/hooks/use-role-access";
 
 export interface TransactionVoidDialogProps {
   isOpen: boolean;
@@ -25,6 +26,7 @@ export interface TransactionVoidDialogProps {
 }
 
 export const TransactionVoidDialog = ({ isOpen, onClose, onConfirm, isDisabled = false, trxId, refetchOrders }: TransactionVoidDialogProps) => {
+  const { isManager } = useAdminPermission();
   const [step, setStep] = useState<"preview" | "reason">("preview");
   const [reason, setReason] = useState("");
   const [selectedDisposition, setSelectedDisposition] = useState("refunded_externally");
@@ -37,12 +39,14 @@ export const TransactionVoidDialog = ({ isOpen, onClose, onConfirm, isDisabled =
   const payment = data?.data?.payment || {};
 
   const handleProceedToReason = () => {
+    if (!isManager) return;
     if (data?.data?.possible && data?.data.blockers?.length === 0) {
       setStep("reason");
     }
   };
 
   const handleSubmitVoid = async () => {
+    if (!isManager) return;
     try {
       if (step === "reason") {
         const payload = {
@@ -125,7 +129,7 @@ export const TransactionVoidDialog = ({ isOpen, onClose, onConfirm, isDisabled =
                     variant="destructive"
                     className="w-full"
                     onClick={step === "preview" ? handleProceedToReason : handleSubmitVoid}
-                    disabled={isDisabled || (step === "preview" ? !data?.data?.possible || (data?.data?.blockers?.length ?? 0) > 0 : !reason.trim())}
+                    disabled={!isManager || isDisabled || (step === "preview" ? !data?.data?.possible || (data?.data?.blockers?.length ?? 0) > 0 : !reason.trim())}
                   >
                     {step === "preview" ? "Proceed to Void" : "Confirm Void"}
                   </Button>
