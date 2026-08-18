@@ -1,11 +1,11 @@
 import { Suspense } from "react";
 
-import { BookClassView } from "@/view/book";
+import { SessionDetailView } from "@/view/book/sessions";
 
 export default function Home() {
   return (
     <Suspense fallback={null}>
-      <BookClassView />
+      <SessionDetailView />
     </Suspense>
   );
 }

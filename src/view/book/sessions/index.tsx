@@ -1,96 +1,288 @@
 "use client";
 
-import { StickyContainerComponent } from "@/components/layout";
-import { Button } from "@/components/ui/button";
-import { CalendarMinus2, Clock4, MapPin, Gem } from "lucide-react";
 import Image from "next/image";
-import { usePaymentMethodCtx } from "@/context/payment-method.ctx";
 import { useParams, useRouter } from "next/navigation";
+import {
+  CalendarMinus2,
+  ChevronLeft,
+  Clock4,
+  ExternalLink,
+  Gem,
+  Loader2,
+  MapPin,
+  Users,
+  Video,
+} from "lucide-react";
+
+import { StickyContainerComponent } from "@/components/layout";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { usePaymentMethodCtx } from "@/context/payment-method.ctx";
+import { useAuthMember } from "@/context/member.ctx";
+import { useGetPublicSession } from "@/hooks/api/queries/customer/public";
+import { formatDateHelper } from "@/lib/helper";
+import { getSessionLevelBadge, getSessionTypeBadge } from "@/utils/session-badge";
+import { getClassImage } from "@/utils/class-image";
+
+const getDuration = (start: string, end: string): string => {
+  const [sh, sm] = start.split(":").map(Number);
+  const [eh, em] = end.split(":").map(Number);
+  const total = eh * 60 + em - (sh * 60 + sm);
+  return total > 0 ? `${total} min` : "";
+};
+
+const InfoCard = ({
+  title,
+  icon,
+  children,
+}: {
+  title: string;
+  icon: React.ReactNode;
+  children: React.ReactNode;
+}) => (
+  <div className="rounded-xl border border-brand-100 bg-brand-25 p-4">
+    <div className="flex items-center gap-2">
+      {icon}
+      <h3 className="text-sm font-extrabold uppercase tracking-wider">{title}</h3>
+    </div>
+    <div className="mt-3 flex flex-col gap-3">{children}</div>
+  </div>
+);
+
+const InfoRow = ({ label, value }: { label: string; value: React.ReactNode }) => (
+  <div className="flex items-start justify-between gap-3">
+    <p className="text-sm text-brand-500/70">{label}</p>
+    <div className="text-right text-sm font-semibold">{value}</div>
+  </div>
+);
 
 export const SessionDetailView = () => {
   const router = useRouter();
   const { id } = useParams();
   const { onChangePaymentMethod } = usePaymentMethodCtx();
+  const { isAuthenticated, isAuthReady } = useAuthMember();
 
-  const onCheckoutSession = (data: "credit" | "cash") => {
-    onChangePaymentMethod(data);
+  const { data: session, isLoading, isError } = useGetPublicSession(typeof id === "string" ? id : undefined);
+
+  const onCheckoutSession = (paymentMethod: "credit" | "cash") => {
+    onChangePaymentMethod(paymentMethod);
     router.push(`/checkout/${id}`);
   };
 
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-dvh">
+        <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+      </div>
+    );
+  }
+
+  if (isError || !session) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-dvh px-6 text-center gap-4 font-serif text-brand-500">
+        <p className="font-semibold">{isError ? "Something went wrong while loading this session." : "Session not found."}</p>
+        <p className="text-sm text-brand-500/70">It may have started or is no longer available.</p>
+        <Button onClick={() => router.push("/book")}>Back to Book</Button>
+      </div>
+    );
+  }
+
+  const isOnline = session.place === "online";
+  const allowCredit = !!session.allow_credit && (session.price_credit_amount ?? 0) > 0;
+  const isFree = !session.price_idr && !allowCredit;
+  const bookedPercent = session.slots_total ? Math.min(100, (session.slots_booked / session.slots_total) * 100) : 0;
+  const duration = getDuration(session.time_start, session.time_end);
+  const levelBadge = getSessionLevelBadge(session.level);
+  const typeBadge = getSessionTypeBadge(session.type);
+
   return (
     <>
-      <div className="relative flex flex-col w-full gap-8 font-serif mx-auto pt-8  text-brand-500 mb-8">
-        <div className="flex w-full px-4 sm:px-8 flex-col gap-8 h-full ">
-          <div className="relative w-full  h-full mx-auto">
-            <Image src="/assets/book-page/yoga-class.png" alt="yoga-class" width={361} height={225} className="w-full h-full" objectFit="fill" />
-          </div>
+      <div className="flex w-full flex-col gap-6 px-4 pb-8 pt-6 font-serif text-brand-500">
+        {/* back */}
+        <button
+          onClick={() => router.back()}
+          className="flex items-center gap-1 text-sm font-semibold w-fit cursor-pointer hover:opacity-70"
+        >
+          <ChevronLeft size={18} /> Back
+        </button>
 
-          {/* title */}
-          <div className="flex flex-col gap-2">
-            <h2 className="text-[32px] font-extrabold leading-[110%]">Evening Flow with Sound Healing</h2>
-            {/* instructor name */}
-            <h4 className="font-semibold leading-[140%]">By Nanang Purwanto</h4>
+        {/* banner */}
+        <div className="relative w-full overflow-hidden rounded-xl border border-brand-100">
+          <Image
+            src={getClassImage(session.class_name)}
+            alt={session.session_name}
+            width={361}
+            height={200}
+            className="w-full object-cover"
+          />
+        </div>
+
+        {/* title */}
+        <div className="flex flex-col gap-2">
+          <div className="flex items-center gap-2">
+            <Badge className={`rounded-full text-xs ${typeBadge.className}`}>{typeBadge.label}</Badge>
+            {levelBadge && <Badge className={`rounded-full text-xs ${levelBadge.className}`}>{levelBadge.label}</Badge>}
           </div>
-          <div className="mt-8">
-            <h3 className="text-xl font-extrabold">Date & Place</h3>
-            <div className="flex flex-col gap-2 mt-4">
-              <div className="flex items-center gap-2">
-                <MapPin size={16} />
-                <p>TB Simatupang</p>
-              </div>
-              <div className="flex items-center gap-2">
-                <Clock4 size={16} />
-                <p>08:00 - 08:20 WIB</p>
-              </div>
-              <div className="flex items-center gap-2">
-                <CalendarMinus2 size={16} />
-                <p>Monday, 10 Aug 2025</p>
-              </div>
+          <h2 className="text-[28px] font-extrabold leading-[110%]">{session.session_name}</h2>
+          <p className="text-sm text-brand-500/70">{session.class_name}</p>
+        </div>
+
+        {/* Date & Time */}
+        <InfoCard title="Date & Time" icon={<CalendarMinus2 size={16} />}>
+          <InfoRow
+            label="Date"
+            value={formatDateHelper(session.start_date, "EEEE, dd MMM yyyy")}
+          />
+          <InfoRow
+            label="Time"
+            value={
+              <span>
+                {session.time_start} - {session.time_end} WIB{duration && <span className="text-brand-500/60"> · {duration}</span>}
+              </span>
+            }
+          />
+        </InfoCard>
+
+        {/* Place */}
+        <InfoCard title="Location" icon={isOnline ? <Video size={16} /> : <MapPin size={16} />}>
+          {isOnline ? (
+            <>
+              <InfoRow label="Place" value="Online session" />
+              {session.meeting_link ? (
+                <a
+                  href={session.meeting_link}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="flex items-center justify-center gap-2 rounded-xl border border-brand-100 bg-brand-00 py-2.5 text-sm font-bold hover:border-brand-500"
+                >
+                  <ExternalLink size={16} /> Open meeting link
+                </a>
+              ) : (
+                <p className="text-xs text-brand-500/60">Meeting link will be shared after booking.</p>
+              )}
+            </>
+          ) : (
+            <>
+              <InfoRow label="Place" value={session.location_name ?? "Offline"} />
+              {session.location_address && <InfoRow label="Address" value={session.location_address} />}
+              {session.location_maps_url && (
+                <a
+                  href={session.location_maps_url}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="flex items-center justify-center gap-2 rounded-xl border border-brand-100 bg-brand-00 py-2.5 text-sm font-bold hover:border-brand-500"
+                >
+                  <ExternalLink size={16} /> Open in Maps
+                </a>
+              )}
+            </>
+          )}
+        </InfoCard>
+
+        {/* Instructor */}
+        <InfoCard title="Instructor" icon={<Users size={16} />}>
+          <div className="flex items-center gap-3">
+            <div className="flex size-10 items-center justify-center rounded-full bg-brand-500 text-gray-50">
+              <Users size={18} />
+            </div>
+            <div className="flex flex-col">
+              <p className="text-sm font-bold">{session.instructor_name ?? "To be announced"}</p>
+              <p className="text-xs text-brand-500/70">Instructor</p>
             </div>
           </div>
-          <div className="mt-8">
-            <h3 className="text-xl font-extrabold">Description</h3>
-            <p className="font-normal mt-4">
-              Our approach is altruistic by nature and we are dedicated to the development of the participant and their future endeavors. OSY sees
-              yoga in a healing light that has many forms, and each member of our team is committed to being in service to our students. This is true
-              for all of our courses.
+        </InfoCard>
+
+        {/* Availability */}
+        <InfoCard title="Availability" icon={<Users size={16} />}>
+          <div className="flex items-center justify-between gap-3">
+            <p className="text-sm text-brand-500/70">
+              {session.slots_booked} of {session.slots_total} booked
             </p>
+            <Badge
+              className={
+                session.is_full
+                  ? "rounded-full bg-red-500/10 text-red-800 border-red-500/20 text-xs"
+                  : "rounded-full border-brand-100 bg-brand-500/10 text-xs"
+              }
+            >
+              {session.is_full ? "Fully booked" : `${session.slots_available} seats left`}
+            </Badge>
           </div>
-        </div>
+          <div className="h-1.5 w-full overflow-hidden rounded-full bg-brand-100">
+            <div className="h-full rounded-full bg-brand-500" style={{ width: `${bookedPercent}%` }} />
+          </div>
+        </InfoCard>
+
+        {/* Price */}
+        <InfoCard title="Price" icon={<Gem size={16} />}>
+          {isFree ? (
+            <p className="text-lg font-extrabold">Free</p>
+          ) : (
+            <>
+              {session.price_idr > 0 && <InfoRow label="Cash" value={`Rp ${session.price_idr.toLocaleString("id-ID")}`} />}
+              {allowCredit && (
+                <InfoRow
+                  label="Credit"
+                  value={
+                    <span className="flex items-center justify-end gap-1">
+                      <Gem size={15} /> {session.price_credit_amount} Credit
+                    </span>
+                  }
+                />
+              )}
+              {allowCredit && session.price_idr > 0 && (
+                <p className="text-xs text-brand-500/60">Pay with cash or credits — whichever suits you.</p>
+              )}
+            </>
+          )}
+        </InfoCard>
+
+        {/* Description */}
+        <InfoCard title="Description" icon={<Clock4 size={16} />}>
+          <p className="text-sm leading-[150%]">
+            {session.session_description ?? "No description available for this session."}
+          </p>
+        </InfoCard>
       </div>
+
       <StickyContainerComponent>
         <div className="flex flex-col gap-4 p-4 font-serif text-brand-500">
-          <Button variant={"ghost"} className="font-semibold w-full min-h-5.5">
-            Join Now
-          </Button>
-          <div className="flex flex-row items-center justify-between gap-4">
-            <div className="w-full">
-              <Button
-                className="font-extrabold h-12 w-full !bg-brand-50"
-                variant={"secondary"}
-                onClick={() => {
-                  onCheckoutSession("credit");
-                }}
-              >
-                <Gem /> 1 Credit
-              </Button>
-            </div>
-            <p className="font-normal text-xs">Or</p>
-            <div className="w-full">
-              <Button
-                className="font-extrabold !text-gray-50 h-12 w-full"
-                onClick={() => {
-                  onCheckoutSession("cash");
-                }}
-              >
-                Rp. 200.000
-              </Button>
-            </div>
-          </div>
-          {/* is waiting */}
-          <div className="w-full">
+          {!isAuthReady ? (
+            <Button className="h-12 w-full" disabled>
+              Loading...
+            </Button>
+          ) : session.is_full ? (
             <Button className="font-extrabold !text-gray-50 h-12 w-full">Waiting List</Button>
-          </div>
+          ) : !isAuthenticated ? (
+            <Button
+              className="font-extrabold !text-gray-50 h-12 w-full"
+              onClick={() => router.push("/auth/login")}
+            >
+              Join Now
+            </Button>
+          ) : (
+            <div className="flex flex-row items-center justify-between gap-4">
+              {allowCredit && (
+                <>
+                  <div className="w-full">
+                    <Button
+                      className="font-extrabold h-12 w-full !bg-brand-50"
+                      variant="secondary"
+                      onClick={() => onCheckoutSession("credit")}
+                    >
+                      <Gem /> {session.price_credit_amount} Credit
+                    </Button>
+                  </div>
+                  <p className="font-normal text-xs">Or</p>
+                </>
+              )}
+              <div className="w-full">
+                <Button className="font-extrabold !text-gray-50 h-12 w-full" onClick={() => onCheckoutSession("cash")}>
+                  {session.price_idr > 0 ? `Rp. ${session.price_idr.toLocaleString("id-ID")}` : "Free"}
+                </Button>
+              </div>
+            </div>
+          )}
         </div>
       </StickyContainerComponent>
     </>

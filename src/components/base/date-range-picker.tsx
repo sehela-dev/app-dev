@@ -228,7 +228,7 @@ export function DateRangePicker({
   return (
     <Popover open={isOpen} onOpenChange={setIsOpen}>
       <PopoverTrigger asChild className="justify-start ">
-        <Button variant={"outline"} className="flex items-center gap-2 px-4 py-2  rounded-lg  hover:bg-accent/50 transition-colors w-full ">
+        <Button variant={"outline"} className="flex items-center bg-none gap-2 px-4 py-2  rounded-lg  hover:bg-accent/50 transition-colors w-full ">
           <Calendar className="h-5 w-5 text-muted-foreground" />
           <span className="text-foreground font-medium">
             {mode === "single"
