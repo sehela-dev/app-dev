@@ -93,6 +93,8 @@ export const CustomerDetailPage = () => {
     {
       id: "start_datetime",
       text: "Session Date & Time",
+      sortable: true,
+      sortKey: "session_start",
       value: (row: ICustomerActvity) => formatDateHelper(row.start_datetime, "dd/MM/yyyy HH:mm"),
     },
 
@@ -130,7 +132,20 @@ export const CustomerDetailPage = () => {
     {
       id: "payment_method",
       text: "Payment",
-      value: (row: ICustomerActvity) => <p className="capitalize">{row?.payment_method} - {row.booking_source ?? ""}</p>,
+      value: (row: ICustomerActvity) => (
+        <p className="capitalize">
+          {row?.payment_method} - {row.booking_source ?? ""}
+        </p>
+      ),
+    },
+    {
+      id: "booking_status",
+      text: "Booking Status",
+      value: (row: ICustomerActvity) => (
+        <Badge variant={row?.booking_status === "canceled" ? "destructive" : "default"} className="capitalize">
+          {row.booking_status}
+        </Badge>
+      ),
     },
     {
       id: "created_at",
@@ -191,7 +206,7 @@ export const CustomerDetailPage = () => {
           <Button
             variant="link"
             className="h-auto justify-start p-0 text-left text-brand-500"
-            onClick={() => (isManager ? router.push(`/admin/member/${id}/credit-packages/${row.id}`) : () => { })}
+            onClick={() => (isManager ? router.push(`/admin/member/${id}/credit-packages/${row.id}`) : () => {})}
           >
             {row.credit_package?.name ?? "-"}
           </Button>

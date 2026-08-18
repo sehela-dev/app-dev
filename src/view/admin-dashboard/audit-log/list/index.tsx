@@ -111,7 +111,13 @@ export const AuditLogListPage = () => {
             <p className="text-sm text-gray-500">View the full audit trail of actions performed across the system.</p>
           </div>
           <div className="flex items-center gap-2">
-            <Select value={actionFilter} onValueChange={(e) => { setActionFilter(e); setPage(1); }}>
+            <Select
+              value={actionFilter}
+              onValueChange={(e) => {
+                setActionFilter(e);
+                setPage(1);
+              }}
+            >
               <SelectTrigger className="w-[180px]">
                 <SelectValue placeholder="Action" />
               </SelectTrigger>
@@ -124,14 +130,17 @@ export const AuditLogListPage = () => {
                 ))}
               </SelectContent>
             </Select>
-            <DateRangePicker
-              mode="range"
-              onDateRangeChange={handleDateRangeChange}
-              startDate={selectedRange?.startDate ?? undefined}
-              endDate={selectedRange?.endDate ?? undefined}
-              allowFutureDates
-              allowPastDates
-            />
+            <div>
+              <DateRangePicker
+                mode="range"
+                onDateRangeChange={handleDateRangeChange}
+                startDate={selectedRange?.startDate ?? undefined}
+                endDate={selectedRange?.endDate ?? undefined}
+                allowFutureDates={false}
+                allowPastDates
+              />
+            </div>
+
             <div>
               <Button variant={"outline"} className="text-brand-999 text-sm font-medium">
                 <ListFilter /> Filter

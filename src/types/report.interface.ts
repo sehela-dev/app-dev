@@ -1,5 +1,5 @@
-import { IResponseData } from "@/lib/config";
-import { ICommonParams, IPagination } from "./general.interface";
+import { IPagiantion, IResponseData } from "@/lib/config";
+import { ICommonParams } from "./general.interface";
 
 export interface ITableOutstandingReportResponse {
   period: IPeriod;
@@ -120,8 +120,9 @@ export interface ICashFlowResponse {
   branch: string;
   summary: ISummaryCashFlow;
   by_payment_method: ICashFlowByPaymentMethod[];
+  total_transactions: number;
   transactions: ICashFlowTransaction[];
-  pagination: IPagination;
+  pagination: IPagiantion;
 }
 
 export interface ISummaryCashFlow {
@@ -129,6 +130,8 @@ export interface ISummaryCashFlow {
   collected_count: number;
   refund: number;
   refund_count: number;
+  voided: number;
+  voided_count: number;
   outstanding: number;
   outstanding_count: number;
   net_movement: number;
@@ -138,6 +141,7 @@ export interface ICashFlowByPaymentMethod {
   payment_method: string;
   collected: number;
   refund: number;
+  voided: number;
   outstanding: number;
   net: number;
   transaction_count: number;
