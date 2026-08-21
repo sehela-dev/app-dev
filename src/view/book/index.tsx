@@ -66,7 +66,7 @@ export const BookClassView = () => {
           place={place}
           onBackToClasses={onBackToClasses}
           onDateChange={(d) => setParams({ date: d })}
-          onApplyFilters={(filters) => setParams({ instructor_id: filters.instructor_id, location_id: filters.location_id, place: filters.place })}
+          onApplyFilters={(key, value) => setParams({ [key]: value })}
           onClearFilters={onClearFilters}
         />
       )}
@@ -90,8 +90,17 @@ const ClassPicker = ({
   isError: boolean;
   onSelect: (id: string) => void;
 }) => {
+  const router = useRouter();
   const [search, setSearch] = useState("");
   const debouncedSearch = useDebounce(search, 300);
+
+  const handleBack = () => {
+    if (typeof window !== "undefined" && window.history.length > 1) {
+      router.back();
+    } else {
+      router.push("/");
+    }
+  };
 
   const filtered = useMemo(() => {
     const q = debouncedSearch.trim().toLowerCase();
@@ -101,6 +110,10 @@ const ClassPicker = ({
 
   return (
     <div className="flex w-full px-6 flex-col gap-8 h-full">
+      <button onClick={handleBack} className="flex items-center gap-2 text-sm font-semibold w-fit cursor-pointer hover:opacity-70">
+        <ChevronLeft size={18} /> Back
+      </button>
+
       <h2 className="text-brand-500 font-extrabold text-[32px]">Book Class</h2>
 
       <div className="flex flex-col gap-2.5 leading-[130%]">
@@ -167,7 +180,7 @@ const ClassSessions = ({
   place?: string;
   onBackToClasses: () => void;
   onDateChange: (date: string) => void;
-  onApplyFilters: (filters: { instructor_id?: string; location_id?: string; place?: string }) => void;
+  onApplyFilters: (key: "instructor_id" | "location_id" | "place", value?: string) => void;
   onClearFilters: () => void;
 }) => {
   const [filterResetKey, setFilterResetKey] = useState(0);

@@ -6,3 +6,4 @@ export * from "./use-update-profile";
 export * from "./use-auth-forgot-password";
 
 export * from "./use-reset-password";
+export * from "./use-create-booking";

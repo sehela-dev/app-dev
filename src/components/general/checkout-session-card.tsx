@@ -30,7 +30,7 @@ export const CheckoutSessionCardComponent = ({
         className={cn("bg-brand-500 text-gray-50 rounded-xl p-2  cursor-pointer hover:shadow-md border-none", {
           "bg-[#A14949]": isCancelled,
         })}
-        onClick={onClick ? onClick : () => {}}
+        onClick={onClick ? onClick : () => { }}
       >
         <div className="flex flex-row items-stretch gap-2.5">
           <div
@@ -39,7 +39,7 @@ export const CheckoutSessionCardComponent = ({
             })}
           >
             <p className="text-sm">{time} WIB</p>
-            <p className="text-sm">{duration} Min</p>
+            <p className="text-sm">{duration}</p>
           </div>
           {/* class info */}
           <div className="flex flex-col gap-2.5 px-2 justify-between">

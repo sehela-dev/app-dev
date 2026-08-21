@@ -16,13 +16,15 @@ interface IFilterValues {
   place?: string;
 }
 
+type FilterKey = keyof IFilterValues;
+
 interface ISessionFiltersProps {
   date?: string;
   instructorId?: string;
   locationId?: string;
   place?: string;
   onDateChange: (date: string) => void;
-  onChange: (filters: IFilterValues) => void;
+  onChange: (key: FilterKey, value: string | undefined) => void;
   onReset: () => void;
 }
 
@@ -34,8 +36,19 @@ const FORMATS = [
 
 export function SessionFilters({ date, instructorId, locationId, place, onDateChange, onChange, onReset }: ISessionFiltersProps) {
   const [open, setOpen] = useState(true);
-  const { data: instructorsData, isLoading: instructorsLoading } = useGetPublicInstructors({ page_size: 100 });
-  const { data: locationsData, isLoading: locationsLoading } = useGetPublicLocations({ page_size: 100 });
+  const [instructorSearch, setInstructorSearch] = useState("");
+  const [locationSearch, setLocationSearch] = useState("");
+
+  const {
+    data: instructorsData,
+    isLoading: instructorsLoading,
+    isFetching: instructorsFetching,
+  } = useGetPublicInstructors({ page_size: 15, q: instructorSearch.trim() || undefined });
+  const {
+    data: locationsData,
+    isLoading: locationsLoading,
+    isFetching: locationsFetching,
+  } = useGetPublicLocations({ page_size: 15, q: locationSearch.trim() || undefined });
 
   const instructorOptions = useMemo(
     () => (instructorsData?.data ?? []).map((item) => ({ value: item.id, label: item.full_name })),
@@ -90,7 +103,7 @@ export function SessionFilters({ date, instructorId, locationId, place, onDateCh
                     <button
                       key={fmt.id}
                       type="button"
-                      onClick={() => onChange({ place: fmt.id || undefined })}
+                      onClick={() => onChange("place", fmt.id || undefined)}
                       className={cn(
                         "rounded-full border px-3.5 py-1.5 text-sm font-semibold transition-colors cursor-pointer",
                         (place ?? "") === fmt.id
@@ -111,11 +124,13 @@ export function SessionFilters({ date, instructorId, locationId, place, onDateCh
                   <SelectSearch
                     options={instructorOptions}
                     value={instructorId}
-                    onValueChange={(value) => onChange({ instructor_id: value || undefined })}
+                    onValueChange={(value) => onChange("instructor_id", value || undefined)}
+                    searchValue={instructorSearch}
+                    onSearchChange={setInstructorSearch}
                     placeholder="Instructor"
                     searchPlaceholder="Search instructor..."
                     emptyMessage="No instructor found."
-                    loading={instructorsLoading}
+                    loading={instructorsLoading || instructorsFetching}
                     loadingMessage="Loading instructors..."
                     clearable
                     className="[&>span]:text-brand-500"
@@ -123,11 +138,13 @@ export function SessionFilters({ date, instructorId, locationId, place, onDateCh
                   <SelectSearch
                     options={locationOptions}
                     value={locationId}
-                    onValueChange={(value) => onChange({ location_id: value || undefined })}
+                    onValueChange={(value) => onChange("location_id", value || undefined)}
+                    searchValue={locationSearch}
+                    onSearchChange={setLocationSearch}
                     placeholder="Location"
                     searchPlaceholder="Search location..."
                     emptyMessage="No location found."
-                    loading={locationsLoading}
+                    loading={locationsLoading || locationsFetching}
                     loadingMessage="Loading locations..."
                     clearable
                     className="[&>span]:text-brand-500"

@@ -66,34 +66,43 @@ export function SelectSearch({
 
   const selectedOption = options.find((option) => option.value === value);
 
-  const handleSelect = (currentValue: string) => {
-    const newValue = currentValue === value ? "" : currentValue;
-    onValueChange?.(newValue);
-    setOpen(false);
-  };
-
   const handleClear = (e: React.MouseEvent) => {
+    e.preventDefault();
     e.stopPropagation();
     onValueChange?.("");
   };
 
   return (
     <Popover open={open} onOpenChange={setOpen}>
-      <PopoverTrigger asChild>
-        <Button
-          variant="outline"
-          role="combobox"
-          aria-expanded={open}
-          className={cn("w-full justify-between border-gray-200 shadow-sm", !value && "text-muted-foreground", className)}
-          disabled={disabled || loading}
-        >
-          <span className="truncate text-gray-300">{loading ? loadingMessage : selectedOption ? selectedOption.label : placeholder}</span>
-          <div className="flex items-center gap-1">
-            {clearable && value && !loading && <X className="h-4 w-4 shrink-0 opacity-50 hover:opacity-100" onClick={handleClear} />}
+      <div className="relative w-full">
+        <PopoverTrigger asChild>
+          <Button
+            variant="outline"
+            role="combobox"
+            aria-expanded={open}
+            className={cn(
+              "w-full justify-between border-gray-200 shadow-sm",
+              clearable && value && "pr-9",
+              !value && "text-muted-foreground",
+              className,
+            )}
+            disabled={disabled}
+          >
+            <span className="truncate text-gray-300">{loading ? loadingMessage : selectedOption ? selectedOption.label : placeholder}</span>
             <ChevronsUpDown className="h-4 w-4 shrink-0 opacity-50" />
-          </div>
-        </Button>
-      </PopoverTrigger>
+          </Button>
+        </PopoverTrigger>
+        {clearable && value && !loading && (
+          <button
+            type="button"
+            aria-label="Clear selection"
+            onClick={handleClear}
+            className="absolute right-8 top-1/2 -translate-y-1/2 flex size-5 items-center justify-center rounded-full text-gray-400 transition-colors hover:text-gray-700 cursor-pointer"
+          >
+            <X className="h-3.5 w-3.5" />
+          </button>
+        )}
+      </div>
       <PopoverContent className="w-(--radix-popover-trigger-width) p-0 border-brand-50">
         <Command className="bg-gray-50 border-brand-50">
           <CommandInput placeholder={searchPlaceholder} value={internalSearch} onValueChange={setInternalSearch} />

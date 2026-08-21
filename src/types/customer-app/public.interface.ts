@@ -62,6 +62,7 @@ export type TGetPublicInstructors = (params?: IPublicInstructorsParams) => Promi
 // ----------------------------------------------------------------------
 
 export interface IPublicLocationsParams {
+  q?: string;
   page?: number;
   page_size?: number;
 }

@@ -7,9 +7,9 @@ import { Button } from "@/components/ui/button";
 export const CheckoutCashSummarySessionView = () => {
   return (
     <>
-      <div className="flex flex-col w-full font-serif h-full text-brand-500">
+      <div className="flex flex-col w-full font-serif min-h-full text-brand-500">
         <NavHeaderComponent title="Summary" />
-        <div className="flex w-full px-4 sm:px-8 flex-col gap-4 h-auto  mt-4 overflow-auto">
+        <div className="flex w-full px-4 sm:px-8 flex-col gap-4 mt-4 pb-28">
           <div className="mt-4 flex flex-col gap-2.5 w-full">
             <h3 className="font-semibold">Order Detail</h3>
             <div className="flex flex-row items-center justify-between w-full text-sm">

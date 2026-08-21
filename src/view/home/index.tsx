@@ -2,6 +2,7 @@ import { LogoComponent } from "@/components/asset/logo";
 import { MainFooterComponent } from "@/components/layout";
 import { ArrowRight } from "lucide-react";
 import Image from "next/image";
+import Link from "next/link";
 
 export const HomeView = () => {
   return (
@@ -97,6 +98,12 @@ export const HomeView = () => {
             <p className="font-medium text-sm">Improve posture, core strength, and balance.</p>
           </div>
         </div>
+        <Link
+          href="/book"
+          className="mt-2.5 flex w-full items-center justify-center gap-2 rounded-xl bg-brand-500 px-4 py-3 font-serif font-semibold text-gray-50"
+        >
+          Book a Class <ArrowRight size={18} strokeWidth={1.5} />
+        </Link>
       </div>
 
       {/* badge */}

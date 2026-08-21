@@ -7,8 +7,9 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { useAuthMember } from "@/context/member.ctx";
 import { useGetMyCredits } from "@/hooks/api/queries/customer/profile";
 import { formatDateHelper } from "@/lib/helper";
-import { Clock, GemIcon, Loader2, Ticket } from "lucide-react";
+import { CalendarClock, GemIcon, Loader2, Plus, Ticket } from "lucide-react";
 import Image from "next/image";
+import { useRouter } from "next/navigation";
 import { useState } from "react";
 
 const tabs = [
@@ -23,6 +24,7 @@ const tabs = [
 ];
 
 export const MyCreditsView = () => {
+  const router = useRouter();
   const { profile } = useAuthMember();
 
   const [selecetedTab, setSelectedTab] = useState("active");
@@ -50,12 +52,11 @@ export const MyCreditsView = () => {
             <p className="text-sm text-gray-50">Active Credits Available</p>
             <div className="flex w-full">
               <Button
-                className="bg-gray-50 w-full text-brand-500 hover:bg-brand-200"
-                onClick={() => {
-                  alert("Underdevelopment");
-                }}
+                className="bg-gray-50 w-full gap-2 text-brand-500 hover:bg-brand-200 hover:shadow-md transition-shadow"
+                onClick={() => router.push("/topup-credit")}
               >
-                Topup Credit
+                <Plus size={16} strokeWidth={2.5} />
+                Top Up Credit
               </Button>
             </div>
           </div>
@@ -74,7 +75,7 @@ export const MyCreditsView = () => {
             />
           </div>
           <ScrollArea>
-            <div className="flex flex-col gap-4 w-full">
+            <div className="flex flex-col gap-3 w-full">
               {(data?.data?.length as number) > 0 ? (
                 data?.data?.map((item) => (
                   <MyCreditsCardsItem
@@ -105,28 +106,24 @@ interface IProps {
 
 export const MyCreditsCardsItem = ({ amount, expDate, desc, credit_used }: IProps) => {
   return (
-    <div className="bg-brand-00 border border-brand-500 flex flex-col w-full rounded-[12px] p-4 min-h-[104px] gap-3">
-      <div className="flex flex-col gap-2">
-        <div className="flex flex-row gap-1 items-center">
-          <GemIcon size={18} />
-          <p className="font-semibold">{amount} Credit</p>
-        </div>
-      </div>
-      <p>Description: {desc ?? ""} </p>
-      <div className="flex flex-row items-center w-full justify-between">
-        <div className="flex flex-row items-center gap-2">
-          <Ticket size={16} />
-          <p className="text-sm">Credit Used:</p>
-        </div>
-        <p className="text-sm">{credit_used}</p>
+    <div className="flex w-full items-center gap-2 rounded-lg border border-brand-100 bg-brand-25 px-3 py-2 text-brand-500">
+      <GemIcon size={15} className="shrink-0" />
+
+      <div className="flex min-w-0 flex-col gap-0.5">
+        <p className="flex items-baseline gap-1 leading-none">
+          <span className="text-sm font-bold">{amount}</span>
+          <span className="text-[10px] font-medium opacity-70">Credits</span>
+        </p>
+        {desc && <p className="truncate text-[10px] text-brand-500/60">{desc}</p>}
       </div>
 
-      <div className="flex flex-row items-center w-full justify-between">
-        <div className="flex flex-row items-center gap-2">
-          <Clock size={16} />
-          <p className="text-sm">Expiration Date</p>
-        </div>
-        <p className="text-sm">{expDate ? formatDateHelper(expDate, "dd MMM yyyy") : "Not active yet"}</p>
+      <div className="ml-auto flex shrink-0 items-center gap-2 text-[10px] text-brand-500/60">
+        <span className="flex items-center gap-1">
+          <Ticket size={11} className="shrink-0" /> {credit_used}
+        </span>
+        <span className="flex items-center gap-1">
+          <CalendarClock size={11} className="shrink-0" /> {expDate ? formatDateHelper(expDate, "dd MMM yyyy") : "—"}
+        </span>
       </div>
     </div>
   );
