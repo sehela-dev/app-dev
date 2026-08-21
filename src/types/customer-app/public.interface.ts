@@ -1,3 +1,5 @@
+import { IResponseData } from "@/lib/config";
+
 export interface IPublicPagination {
   page: number;
   page_size: number;
@@ -148,3 +150,26 @@ export interface IPublicSessionsResponse {
 export type TGetPublicSessions = (params?: IPublicSessionsParams) => Promise<IPublicSessionsResponse>;
 
 export type TGetPublicSession = (id: string) => Promise<IPublicSession>;
+
+// ----------------------------------------------------------------------
+// GET /public/bookings/:id
+// ----------------------------------------------------------------------
+
+export interface IPublicBookingDetail {
+  booking_id: string;
+  payment_id: string;
+  order_id: string;
+  amount_idr: number;
+  class_name: string;
+  start_datetime: string;
+  booking_status: string;
+  payment_status: string;
+  payment_method: string;
+  qris_image_url?: string;
+  payment_instructions?: string;
+  expires_at?: string;
+  snap_token?: string;
+  snap_redirect_url?: string;
+}
+
+export type TGetPublicBookingDetail = (id: string) => Promise<IResponseData<IPublicBookingDetail>>;

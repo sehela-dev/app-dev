@@ -28,9 +28,7 @@ export interface IEligibleCreditPackage {
   is_shared: boolean;
 }
 
-export type TEligibleCreditsResponse = (
-  params: IEligibleCreditsParams,
-) => Promise<IResponseData<IEligibleCreditPackage[]>>;
+export type TEligibleCreditsResponse = (params: IEligibleCreditsParams) => Promise<IResponseData<IEligibleCreditPackage[]>>;
 
 // ----------------------------------------------------------------------
 // POST /profile/bookings (credits path)
@@ -54,6 +52,49 @@ export interface ICreateBookingResponse {
   revenue_idr: number;
 }
 
-export type TCreateBooking = (
-  body: ICreateBookingRequest,
-) => Promise<IResponseData<ICreateBookingResponse>>;
+export type TCreateBooking = (body: ICreateBookingRequest) => Promise<IResponseData<ICreateBookingResponse>>;
+
+// ----------------------------------------------------------------------
+// POST /public/bookings (cash/drop-in path)
+// ----------------------------------------------------------------------
+
+export interface ICreatePublicBookingRequest {
+  class_session_id: string;
+  payment_method: "cash";
+}
+
+export interface ICreatePublicBookingResponse {
+  booking_id: string;
+  payment_id: string;
+  order_id: string;
+  amount_idr: number;
+  class_name: string;
+  start_datetime: string;
+  booking_status: string;
+  payment_status: string;
+  payment_method: string;
+  snap_token?: string;
+  snap_redirect_url?: string;
+  qris_image_url?: string;
+  payment_instructions?: string;
+  expires_at?: string;
+}
+
+export type TCreatePublicBooking = (body: ICreatePublicBookingRequest) => Promise<IResponseData<ICreatePublicBookingResponse>>;
+
+// ----------------------------------------------------------------------
+// POST /public/bookings/:booking_id/repay (retry payment)
+// ----------------------------------------------------------------------
+
+export interface IRepayBookingResponse {
+  booking_id: string;
+  payment_id: string;
+  order_id: string;
+  amount_idr?: number;
+  snap_token?: string;
+  snap_redirect_url?: string;
+  qris_image_url?: string;
+  expires_at?: string;
+}
+
+export type TRepayBooking = (bookingId: string) => Promise<IResponseData<IRepayBookingResponse>>;

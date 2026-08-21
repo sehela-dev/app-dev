@@ -1,9 +1,9 @@
 "use client";
 
-import { CheckoutSessionCardComponent } from "@/components/general/checkout-session-card";
 import { DialogSessionFilter } from "@/components/general/filter-dialog";
 import { CustomPagination } from "@/components/general/pagination-component";
 import { GeneralTabComponent } from "@/components/general/tabs-component";
+import { MySessionCardComponent } from "@/components/general/my-session-card";
 import { NavHeaderComponent } from "@/components/layout/header-checkout";
 import { Button } from "@/components/ui/button";
 
@@ -25,6 +25,10 @@ const tabs = [
   {
     name: "Upcoming",
     value: "upcoming",
+  },
+  {
+    name: "Pending Payment",
+    value: "pending_payment",
   },
   {
     name: "Canceled",
@@ -90,7 +94,7 @@ export const MySessionsPage = () => {
               <ScrollArea>
                 <div className="flex flex-col gap-4">
                   {data?.data?.map((item) => (
-                    <CheckoutSessionCardComponent
+                    <MySessionCardComponent
                       key={item.id}
                       duration={getDurationInMinutes(item?.class_session?.start_datetime, item?.class_session?.end_datetime)}
                       location={item?.class_session?.location_address}
@@ -98,7 +102,11 @@ export const MySessionsPage = () => {
                       time={formatDateHelper(item?.class_session?.start_datetime, "H:mm")}
                       title={item?.class_session?.session_name}
                       instructor={item?.class_session?.instructor_name}
-                      isCancelled={item?.class_session?.status === "cancelled"}
+                      bookingStatus={item.booking_status}
+                      paymentStatus={item.payment?.status ?? ""}
+                      paymentMethod={item.payment?.provider ?? ""}
+                      bookingId={item.id}
+                      classSessionId={item.class_session?.id}
                       onClick={() => onClickMySessionDetail(item?.id)}
                     />
                   ))}

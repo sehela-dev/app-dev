@@ -15,7 +15,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 import { usePaymentMethodCtx } from "@/context/payment-method.ctx";
-import { useCreateBooking } from "@/hooks/api/mutations/customers";
+import { useCreateBooking, useCreatePublicBooking } from "@/hooks/api/mutations/customers";
 import { useGetEligibleCredits, useGetMyCredits } from "@/hooks/api/queries/customer/profile";
 import { useGetPublicSession } from "@/hooks/api/queries/customer/public";
 import { formatDateHelper } from "@/lib/helper";
@@ -47,11 +47,10 @@ export const CheckoutSessionView = () => {
 
   const { data: session, isLoading, isError } = useGetPublicSession(typeof id === "string" ? id : undefined);
   const { data: creditsData, isLoading: creditsLoading } = useGetMyCredits();
-  const eligibleParams = session?.class_id
-    ? { class_id: session.class_id, session_type: session.type, place: session.place }
-    : undefined;
+  const eligibleParams = session?.class_id ? { class_id: session.class_id, session_type: session.type, place: session.place } : undefined;
   const { data: eligibleCreditsData, isLoading: eligibleLoading } = useGetEligibleCredits(eligibleParams);
   const { mutateAsync, isPending: bookingPending } = useCreateBooking();
+  const { mutateAsync: mutatePublicBooking, isPending: publicBookingPending } = useCreatePublicBooking();
 
   if (isLoading) {
     return (
@@ -74,9 +73,7 @@ export const CheckoutSessionView = () => {
   const allowCredit = !!session.allow_credit && (session.price_credit_amount ?? 0) > 0;
   const showCredit = paymentType === "credit" && allowCredit;
   const sessionCreditPrice = session.price_credit_amount ?? 1;
-  const availableCredits = eligibleParams
-    ? (eligibleCreditsData?.data ?? [])
-    : (creditsData?.data?.filter((item) => !item.is_expired) ?? []);
+  const availableCredits = eligibleParams ? eligibleCreditsData?.data ?? [] : creditsData?.data?.filter((item) => !item.is_expired) ?? [];
   const creditsListLoading = eligibleParams ? eligibleLoading : creditsLoading;
   const selectedPackage = availableCredits.find((item) => item.package_purchase_id === selectedCredit);
   const maxCredits = selectedPackage
@@ -108,6 +105,25 @@ export const CheckoutSessionView = () => {
       } catch {
         // error toast handled by the mutation config; user can retry with another package
       }
+    } else if (paymentType === "cash") {
+      try {
+        const response = await mutatePublicBooking({
+          class_session_id: session.id,
+          payment_method: "cash",
+        });
+        const bookingData = response.data;
+        if (bookingData?.snap_redirect_url) {
+          // Redirect to Midtrans payment page (QRIS/bank transfer/etc)
+          window.location.href = bookingData.snap_redirect_url;
+        } else if (bookingData?.booking_id) {
+          // Fallback to cash payment page
+          router.push(`/checkout/${id}/cash-payment?booking_id=${bookingData.booking_id}`);
+        } else {
+          router.push(`/checkout/${id}/success`);
+        }
+      } catch {
+        // error toast handled by the mutation config
+      }
     }
   };
 
@@ -135,9 +151,7 @@ export const CheckoutSessionView = () => {
                 {levelBadge && <Badge className={`rounded-full text-xs ${levelBadge.className}`}>{levelBadge.label}</Badge>}
               </div>
 
-              {session.session_description && (
-                <p className="text-sm leading-relaxed text-brand-500/80">{session.session_description}</p>
-              )}
+              {session.session_description && <p className="text-sm leading-relaxed text-brand-500/80">{session.session_description}</p>}
 
               <div className="h-px w-full bg-brand-100" />
 
@@ -152,7 +166,7 @@ export const CheckoutSessionView = () => {
                   <span className="flex items-center gap-1.5 text-brand-500/60">
                     {isOnline ? <Video size={14} className="shrink-0" /> : <MapPin size={14} className="shrink-0" />} Place
                   </span>
-                  <span className="font-semibold text-right">{isOnline ? "Online session" : (session.location_name ?? "Offline")}</span>
+                  <span className="font-semibold text-right">{isOnline ? "Online session" : session.location_name ?? "Offline"}</span>
                 </div>
                 {!isOnline && session.location_address && (
                   <div className="flex items-center justify-between gap-3">
@@ -274,8 +288,7 @@ export const CheckoutSessionView = () => {
                         </div>
                       </div>
                       <p className="text-xs text-brand-500/70">
-                        Using credits from {selectedPackage.package_name} ({selectedPackage.credits_remaining}{" "}
-                        remaining).
+                        Using credits from {selectedPackage.package_name} ({selectedPackage.credits_remaining} remaining).
                       </p>
                     </div>
                   )}
@@ -370,11 +383,11 @@ export const CheckoutSessionView = () => {
         <div className="flex w-full p-4">
           <Button
             className="w-full min-h-[48px]"
-            disabled={(showCredit && !selectedCredit) || bookingPending}
+            disabled={(showCredit && !selectedCredit) || bookingPending || publicBookingPending}
             onClick={handleProcessPayment}
           >
-            {bookingPending && <Loader2 className="h-4 w-4 animate-spin" />}
-            {bookingPending ? "Booking..." : "Process Payment"}
+            {(bookingPending || publicBookingPending) && <Loader2 className="h-4 w-4 animate-spin" />}
+            {bookingPending || publicBookingPending ? "Booking..." : "Process Payment"}
           </Button>
         </div>
       </StickyContainerComponent>

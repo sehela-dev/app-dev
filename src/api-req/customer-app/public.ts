@@ -5,6 +5,7 @@ import {
   IPublicInstructorsParams,
   IPublicLocationsParams,
   IPublicSessionsParams,
+  TGetPublicBookingDetail,
   TGetPublicClasses,
   TGetPublicInstructors,
   TGetPublicLocations,
@@ -35,6 +36,11 @@ export const getPublicSessions: TGetPublicSessions = async (params) => {
 export const getPublicSession: TGetPublicSession = async (id) => {
   const { data } = (await axiosx(false).get(`${MAIN_API_URL}/public/sessions/${id}`)).data;
   return data;
+};
+
+export const getPublicBookingDetail: TGetPublicBookingDetail = async (id) => {
+  const res = await axiosx(true).get(`${MAIN_API_URL}/public/bookings/${id}`);
+  return res.data;
 };
 
 export type { IPublicClassesParams, IPublicInstructorsParams, IPublicLocationsParams, IPublicSessionsParams };

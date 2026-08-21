@@ -11,6 +11,16 @@ export interface IMySessionItem {
   notes: string;
   created_at: string;
   class_session: IClassSession;
+  payment?: ISessionPayment;
+}
+
+export interface ISessionPayment {
+  payment_id: string;
+  order_id: string;
+  status: string;
+  provider: string;
+  snap_token: string | null;
+  snap_redirect_url: string | null;
 }
 
 export interface IClassSession {
@@ -57,6 +67,7 @@ export interface IMySessionDetail {
   canceled_at: string;
   notes: string;
   created_at: string;
+  payment?: ISessionPayment;
 }
 
 export type TMySession = (params: ICommonParams) => Promise<IResponseData<IMySessionItem[]>>;
