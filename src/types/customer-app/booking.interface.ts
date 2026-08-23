@@ -55,7 +55,7 @@ export interface ICreateBookingResponse {
 export type TCreateBooking = (body: ICreateBookingRequest) => Promise<IResponseData<ICreateBookingResponse>>;
 
 // ----------------------------------------------------------------------
-// POST /public/bookings (cash/drop-in path)
+// POST /profile/bookings (cash/drop-in path) - migrated from /public/bookings 2026-08
 // ----------------------------------------------------------------------
 
 export interface ICreatePublicBookingRequest {
@@ -83,7 +83,7 @@ export interface ICreatePublicBookingResponse {
 export type TCreatePublicBooking = (body: ICreatePublicBookingRequest) => Promise<IResponseData<ICreatePublicBookingResponse>>;
 
 // ----------------------------------------------------------------------
-// POST /public/bookings/:booking_id/repay (retry payment)
+// POST /profile/bookings/:booking_id/repay (retry payment) - migrated from /public
 // ----------------------------------------------------------------------
 
 export interface IRepayBookingResponse {

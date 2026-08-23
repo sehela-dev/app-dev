@@ -132,6 +132,17 @@ export interface IPublicSession {
   slots_available: number;
   is_full: boolean;
   status: string;
+  // booking/payment context when session is fetched with auth (or after creating booking)
+  snap_token?: string | null;
+  snap_redirect_url?: string | null;
+  booking_id?: string | null;
+  booking_status?: string | null;
+  payment_status?: string | null;
+  order_id?: string | null;
+  amount_idr?: number | null;
+  qris_image_url?: string | null;
+  payment_instructions?: string | null;
+  expires_at?: string | null;
 }
 
 export interface IPublicSessionsResponse {
@@ -152,7 +163,7 @@ export type TGetPublicSessions = (params?: IPublicSessionsParams) => Promise<IPu
 export type TGetPublicSession = (id: string) => Promise<IPublicSession>;
 
 // ----------------------------------------------------------------------
-// GET /public/bookings/:id
+// GET /profile/bookings/:id (migrated from /public/bookings/:id 2026-08)
 // ----------------------------------------------------------------------
 
 export interface IPublicBookingDetail {
@@ -160,6 +171,7 @@ export interface IPublicBookingDetail {
   payment_id: string;
   order_id: string;
   amount_idr: number;
+  price_idr: number;
   class_name: string;
   start_datetime: string;
   booking_status: string;

@@ -43,7 +43,7 @@ export const MySessionsPage = () => {
   const [search, setSearch] = useState("");
   const debounceSearch = useDebounce(search, 300);
 
-  const { data, isLoading, refetch } = useGetMySessions({
+  const { data, isLoading } = useGetMySessions({
     status: selecetedTab,
     page,
     limit: 8,
@@ -74,9 +74,9 @@ export const MySessionsPage = () => {
               tabs={tabs}
               selecetedTab={selecetedTab}
               setTab={(e) => {
+                if (e === selecetedTab) return;
                 setSelectedTab(e);
                 setPage(1);
-                refetch();
               }}
             />
             <div className="flex flex-row items-center justify-between gap-2">
@@ -99,7 +99,7 @@ export const MySessionsPage = () => {
                       duration={getDurationInMinutes(item?.class_session?.start_datetime, item?.class_session?.end_datetime)}
                       location={item?.class_session?.location_address}
                       date={formatDateHelper(item.class_session.start_datetime, "EEEE, dd MMM yyyy")}
-                      time={formatDateHelper(item?.class_session?.start_datetime, "H:mm")}
+                      time={formatDateHelper(item?.class_session?.start_datetime, "HH:mm")}
                       title={item?.class_session?.session_name}
                       instructor={item?.class_session?.instructor_name}
                       bookingStatus={item.booking_status}

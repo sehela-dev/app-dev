@@ -21,18 +21,24 @@ export const GeneralTabComponent = ({ tabs, selecetedTab, setTab, variant = "def
   // const router = useRouter();
   return (
     <Tabs defaultValue={selecetedTab} className="w-full">
-      <div className="flex w-full flex-row items-center justify-between">
+      <div className="flex w-full flex-row items-center justify-between overflow-hidden">
         <TabsList
           variant={variant}
-          className={cn("flex w-full items-center gap-2 p-2 duration-300 min-h-[40px]", {
-            "bg-brand-50": variant === "default",
-          })}
+          className={cn(
+            "flex w-full min-w-0 flex-nowrap items-center gap-1 overflow-x-auto p-1 duration-300 min-h-[40px] [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden",
+            {
+              "bg-brand-50": variant === "default",
+            }
+          )}
         >
           {tabs?.map((item) => (
             <TabsTrigger
-              className={clsx("min-w-[80px] min-h-[32px] cursor-pointer rounded-md p-2 font-medium text-gray-500 duration-300 w-fit px-8", {
-                "bg-brand-20 text-brand-999 ": selecetedTab === item.value && variant === "default",
-              })}
+              className={clsx(
+                "shrink-0 grow-0 basis-auto whitespace-nowrap min-w-fit min-h-[32px] cursor-pointer rounded-md p-2 font-medium text-gray-500 duration-300 px-4 !flex-none",
+                {
+                  "bg-brand-20 text-brand-999 ": selecetedTab === item.value && variant === "default",
+                }
+              )}
               value={item.value}
               key={item.value}
               onClick={() => {

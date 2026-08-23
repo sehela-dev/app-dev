@@ -8,7 +8,7 @@ import { useAuthMember } from "@/context/member.ctx";
 
 export const MainHeaderComponent = () => {
   const { user, isAuthenticated } = useAuthMember();
-  
+
   return (
     <div className="bg-gray-50 min-h-[58px] sticky top-0 z-50 w-full shadow-subtle shrink-0 ">
       <div className="flex flex-row items-center justify-between w-full p-3">
@@ -52,7 +52,7 @@ export const MobileMenu = ({ items = [], isLoggedIn }: MobileMenuProps) => {
 
   const userMenu = [
     { label: "Account Settings", href: "/profile" },
-    { label: "My Sessions", href: "/profile/sessions" },
+    { label: "My Sessions", href: "/profile/my-sessions" },
     { label: "About", href: "https://sehelaspace.com", external: true },
     { label: "Terms and Conditions", href: "/terms-and-conditions" },
     { label: "Logout", action: "logout", danger: true },

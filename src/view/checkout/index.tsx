@@ -48,8 +48,11 @@ export const CheckoutSessionView = () => {
   const { data: session, isLoading, isError } = useGetPublicSession(typeof id === "string" ? id : undefined);
   const { data: creditsData, isLoading: creditsLoading } = useGetMyCredits();
   const eligibleParams = session?.class_id ? { class_id: session.class_id, session_type: session.type, place: session.place } : undefined;
+
   const { data: eligibleCreditsData, isLoading: eligibleLoading } = useGetEligibleCredits(eligibleParams);
+  // usinf credit
   const { mutateAsync, isPending: bookingPending } = useCreateBooking();
+  // using cash
   const { mutateAsync: mutatePublicBooking, isPending: publicBookingPending } = useCreatePublicBooking();
 
   if (isLoading) {
@@ -109,15 +112,20 @@ export const CheckoutSessionView = () => {
       try {
         const response = await mutatePublicBooking({
           class_session_id: session.id,
-          payment_method: "cash",
+          payment_method: "midtrans",
         });
         const bookingData = response.data;
-        if (bookingData?.snap_redirect_url) {
-          // Redirect to Midtrans payment page (QRIS/bank transfer/etc)
-          window.location.href = bookingData.snap_redirect_url;
-        } else if (bookingData?.booking_id) {
-          // Fallback to cash payment page
-          router.push(`/checkout/${id}/cash-payment?booking_id=${bookingData.booking_id}`);
+        if (bookingData?.booking_id) {
+          // Always land on cash-payment page; open Midtrans in new tab if available
+          if (bookingData?.snap_redirect_url) {
+            const newTab = window.open(bookingData.snap_redirect_url, "_blank", "noopener,noreferrer");
+            // if popup blocked, cash-payment page will show fallback button via query param
+            void newTab;
+            const qs = new URLSearchParams({ booking_id: bookingData.booking_id, snap_redirect_url: bookingData.snap_redirect_url });
+            router.push(`/checkout/${id}/cash-payment?${qs.toString()}`);
+          } else {
+            router.push(`/checkout/${id}/cash-payment?booking_id=${bookingData.booking_id}`);
+          }
         } else {
           router.push(`/checkout/${id}/success`);
         }

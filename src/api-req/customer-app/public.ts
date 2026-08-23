@@ -39,7 +39,7 @@ export const getPublicSession: TGetPublicSession = async (id) => {
 };
 
 export const getPublicBookingDetail: TGetPublicBookingDetail = async (id) => {
-  const res = await axiosx(true).get(`${MAIN_API_URL}/public/bookings/${id}`);
+  const res = await axiosx(true).get(`${MAIN_API_URL}/profile/bookings/${id}`);
   return res.data;
 };
 

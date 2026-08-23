@@ -23,11 +23,11 @@ export const createBooking: TCreateBooking = async (body: ICreateBookingRequest)
 };
 
 export const createPublicBooking: TCreatePublicBooking = async (body: ICreatePublicBookingRequest) => {
-  const res = await axiosx(true).post(`${MAIN_API_URL}/public/bookings`, body);
+  const res = await axiosx(true).post(`${MAIN_API_URL}/profile/bookings`, body);
   return res.data;
 };
 
 export const repayBooking: TRepayBooking = async (bookingId: string) => {
-  const res = await axiosx(true).post(`${MAIN_API_URL}/public/bookings/${bookingId}/repay`);
+  const res = await axiosx(true).post(`${MAIN_API_URL}/profile/bookings/${bookingId}/repay`);
   return res.data;
 };
