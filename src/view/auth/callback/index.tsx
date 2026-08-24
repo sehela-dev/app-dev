@@ -2,7 +2,7 @@
 import { LogoComponent } from "@/components/asset/logo";
 import { Button } from "@/components/ui/button";
 import { useJwtToken } from "@/hooks";
-import { useGetProfileCallback } from "@/hooks/api/queries/customer/profile";
+import { useGetProfile, useGetProfileCallback } from "@/hooks/api/queries/customer/profile";
 import { Loader2, TriangleAlert } from "lucide-react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useState } from "react";
@@ -48,9 +48,12 @@ export const AuthCallBackPage = () => {
   const qpEmail = qp?.email ?? null;
   const isTokenCallback = !!qpToken && !!qpEmail; // 15m complete_profile token (no JWT)
 
-  const { setJwtToken, resetJwt } = useJwtToken();
+  const { setJwtToken, resetJwt, isHydrated, access_token: storedAccessToken } = useJwtToken();
   const [tokens, setTokens] = useState<{ access_token: string; refresh_token: string }>({ access_token: "", refresh_token: "" });
   const [isReady, setIsReady] = useState(false);
+
+  // If already have session in localStorage, use it to decide where to go (avoids "Link Expired" when hash empty)
+  const { data: storedProfile, isLoading: storedLoading } = useGetProfile(Boolean(storedAccessToken) && isHydrated && !isTokenCallback && !tokens.access_token);
 
   // Token path: redirect to /complete-profile with token+email (verify+countdown handled there)
   useEffect(() => {
@@ -110,6 +113,19 @@ export const AuthCallBackPage = () => {
     }
   }, [data, router, setJwtToken, tokens]);
 
+  // Already logged in via localStorage → skip hash check, go by profile complete flag
+  useEffect(() => {
+    if (isTokenCallback) return;
+    if (!isHydrated) return;
+    if (!storedAccessToken) return;
+    if (!storedProfile?.data) return;
+    if (!storedProfile.data.is_profile_complete) {
+      router.replace("/complete-profile");
+    } else {
+      router.replace("/");
+    }
+  }, [isHydrated, storedAccessToken, storedProfile, isTokenCallback, router]);
+
   if (isTokenCallback) {
     return (
       <div className="flex flex-col items-center w-full space-y-12 font-serif">
@@ -126,6 +142,39 @@ export const AuthCallBackPage = () => {
           <Button variant="outline" className="w-full" onClick={() => window.location.href = `/complete-profile?token=${encodeURIComponent(qpToken!)}&email=${encodeURIComponent(qpEmail!)}`}>
             Continue to Complete Profile
           </Button>
+        </div>
+      </div>
+    );
+  }
+
+  // localStorage session exists → show fetching while we decide
+  if (!isTokenCallback && isHydrated && storedAccessToken && storedLoading) {
+    return (
+      <div className="flex flex-col items-center w-full space-y-12 font-serif">
+        <div className="pt-12 flex justify-center">
+          <LogoComponent className="w-[99px] h-[32px]" />
+        </div>
+        <div>
+          <div className="flex flex-col items-center justify-center py-6">
+            <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+            <p className="text-brand-500">Fetching data...</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (!isHydrated) {
+    return (
+      <div className="flex flex-col items-center w-full space-y-12 font-serif">
+        <div className="pt-12 flex justify-center">
+          <LogoComponent className="w-[99px] h-[32px]" />
+        </div>
+        <div>
+          <div className="flex flex-col items-center justify-center py-6">
+            <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+            <p className="text-brand-500">Loading...</p>
+          </div>
         </div>
       </div>
     );
@@ -149,7 +198,7 @@ export const AuthCallBackPage = () => {
     );
   }
 
-  if (isError || (isReady && !tokens.access_token)) {
+  if (isError || (isReady && !tokens.access_token && !storedAccessToken && !isTokenCallback)) {
     return (
       <div className="flex flex-col items-center w-full space-y-12 font-serif">
         {/* Logo */}
