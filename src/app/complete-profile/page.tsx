@@ -1,6 +1,12 @@
-"use client";
 import { CompleteProfilePageView } from "@/view/auth/complete-profile";
+import { Suspense } from "react";
+
+export const dynamic = "force-dynamic";
 
 export default function Home() {
-  return <CompleteProfilePageView />;
+  return (
+    <Suspense fallback={null}>
+      <CompleteProfilePageView />
+    </Suspense>
+  );
 }

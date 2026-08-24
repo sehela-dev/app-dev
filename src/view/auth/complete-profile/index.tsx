@@ -8,7 +8,7 @@ import { PasswordInput } from "@/components/general/password-input";
 import { FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 
 import { Button } from "@/components/ui/button";
-import { ACCEPTED_IMAGE_TYPES, AuthSignUpFormValues, authSignUpSchema } from "@/resolver";
+import { ACCEPTED_IMAGE_TYPES, AuthSignUpFormValues, authSignUpSchema, completeProfileTokenSchema } from "@/resolver";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { FormProvider, useForm } from "react-hook-form";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
@@ -17,15 +17,18 @@ import Image from "next/image";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { previewURLHelper } from "@/lib/helper";
 import { Checkbox } from "@/components/ui/checkbox";
-import { useUpdateProfile } from "@/hooks/api/mutations/customers";
+import { useCompleteProfileWithToken, useUpdateProfile } from "@/hooks/api/mutations/customers";
 import { Divider } from "@/components/ui/divider";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useGetProfile } from "@/hooks/api/queries/customer/profile";
+import { useVerifyCompleteProfile } from "@/hooks/api/queries/customer/use-verify-complete-profile";
 import { IAuthSignUpPaylaod } from "@/types/customer-app/auth-customer.interface";
 import { Textarea } from "@/components/ui/textarea";
-import { Loader2, TriangleAlert } from "lucide-react";
+import { Loader2, TriangleAlert, Clock3 } from "lucide-react";
 import { TncDialog } from "@/components/general/tnc-dialog";
 import { useJwtToken } from "@/hooks";
+import { resendRegistration } from "@/api-req/customer-app/auth";
+import { toast } from "sonner";
 
 const defaultValues = {
   email: "",
@@ -38,30 +41,98 @@ const defaultValues = {
   photo: null,
   photo_consent: false,
   tnc_agreed: false,
-
   confirm_password: "",
   medical_notes: "",
 };
-const resolver = zodResolver(authSignUpSchema);
+// resolver is chosen per-mode inside component to allow optional password for token path
 
 export const CompleteProfilePageView = () => {
   const router = useRouter();
-  const { resetJwt } = useJwtToken();
-  const { data: profileUser, isLoading, isError, refetch } = useGetProfile();
+  const searchParams = useSearchParams();
+  const rawToken = searchParams.get("token") ?? searchParams.get("code");
+  const rawEmail = searchParams.get("email");
+  // also support direct window parse for cases where Next's useSearchParams lags
+  const fallback = typeof window !== "undefined" ? new URL(window.location.href).searchParams : null;
+  const token = rawToken ?? fallback?.get("token") ?? fallback?.get("code") ?? null;
+  const emailParam = rawEmail ?? fallback?.get("email") ?? null;
+  const isTokenMode = !!token && !!emailParam;
+
+  const { resetJwt, setJwtToken } = useJwtToken();
   const [tncDialogOpen, setTncDialogOpen] = useState(false);
 
+  // Token path verify (no JWT, 15m)
+  const {
+    data: verifyData,
+    isLoading: verifyLoading,
+    error: verifyError,
+    refetch: refetchVerify,
+  } = useVerifyCompleteProfile(emailParam, token, isTokenMode);
+
+  const verifyErrorCode = (verifyError as { response?: { data?: { error?: { code?: string } } } })?.response?.data?.error?.code;
+  const isInvalidToken = verifyErrorCode === "INVALID_TOKEN";
+
+  // countdown from expires_at
+  const expiresAt = (verifyData as { data?: { expires_at?: string } })?.data?.expires_at;
+  const [remainingSec, setRemainingSec] = useState<number | null>(null);
   useEffect(() => {
-    if (profileUser?.data?.is_profile_complete) {
-      router.replace("/");
-    }
-  }, [profileUser, router]);
+    if (!expiresAt || !isTokenMode) return;
+    const tick = () => {
+      const diff = Math.max(0, Math.floor((new Date(expiresAt).getTime() - Date.now()) / 1000));
+      setRemainingSec(diff);
+    };
+    tick();
+    const id = setInterval(tick, 1000);
+    return () => clearInterval(id);
+  }, [expiresAt, isTokenMode]);
+  const countdown = remainingSec !== null ? `${String(Math.floor(remainingSec / 60)).padStart(2, "0")}:${String(remainingSec % 60).padStart(2, "0")}` : null;
+  const isExpired = remainingSec === 0;
+
+  // JWT path
+  const { data: profileUser, isLoading, isError, refetch } = useGetProfile(!isTokenMode);
+
+  useEffect(() => {
+    if (!isTokenMode && profileUser?.data?.is_profile_complete) router.replace("/");
+  }, [profileUser, router, isTokenMode]);
+
+  useEffect(() => {
+    if (verifyErrorCode === "ALREADY_COMPLETED") router.replace("/");
+  }, [verifyErrorCode, router]);
 
   const goToLogin = () => {
     resetJwt();
     router.replace("/auth/login");
   };
 
+  const handleResend = async () => {
+    if (!emailParam) return;
+    try {
+      await resendRegistration({ email: emailParam });
+      toast.success("New link sent", { description: "Check your email for a new 15m link.", position: "top-center" });
+      refetchVerify();
+    } catch (e: unknown) {
+      const msg = (e as { response?: { data?: { error?: { message?: string } } } })?.response?.data?.error?.message ?? "Please try again later (60s throttle).";
+      toast.error("Resend failed", { description: msg, position: "top-center" });
+    }
+  };
+
   const values = useMemo(() => {
+    if (isTokenMode) {
+      const v = verifyData as { data?: { full_name?: string; email?: string } } | undefined;
+      return {
+        email: emailParam ?? "",
+        full_name: v?.data?.full_name ?? "",
+        password: "",
+        phone: "",
+        instagram_username: "",
+        gender: "",
+        date_of_birth: "",
+        photo: undefined,
+        photo_consent: false,
+        tnc_agreed: false,
+        confirm_password: "",
+        medical_notes: "",
+      };
+    }
     if (!profileUser?.data) return defaultValues;
     return {
       email: profileUser?.data?.email,
@@ -76,13 +147,16 @@ export const CompleteProfilePageView = () => {
       tnc_agreed: false,
       confirm_password: "",
     };
-  }, [profileUser]);
+  }, [profileUser, isTokenMode, emailParam, verifyData]);
 
-  const methods = useForm<AuthSignUpFormValues>({ defaultValues, resolver, mode: "all", values });
+  const resolver = isTokenMode ? zodResolver(completeProfileTokenSchema) : zodResolver(authSignUpSchema);
+  const methods = useForm<AuthSignUpFormValues>({ defaultValues, resolver: resolver as never, mode: "all", values });
 
   const { control, handleSubmit, setValue } = methods;
   const inputRef = useRef<HTMLInputElement>(null);
-  const { mutateAsync } = useUpdateProfile();
+  const { mutateAsync: jwtMutate, isPending: jwtPending } = useUpdateProfile();
+  const { mutateAsync: tokenMutate, isPending: tokenPending } = useCompleteProfileWithToken();
+  const isPending = isTokenMode ? tokenPending : jwtPending;
 
   const openTncDialog = (e?: React.MouseEvent) => {
     e?.preventDefault();
@@ -91,6 +165,46 @@ export const CompleteProfilePageView = () => {
   };
 
   const onSubmit = handleSubmit(async (data) => {
+    if (isTokenMode) {
+      if (!token || !emailParam) return;
+      if (isExpired) {
+        toast.error("Link expired", { description: "Link expired (15m), request a new one.", position: "top-center" });
+        return;
+      }
+      const payload = {
+        email: emailParam,
+        token,
+        full_name: data.full_name || undefined,
+        phone: data.phone || undefined,
+        instagram_username: data.instagram_username || undefined,
+        gender: data.gender || undefined,
+        date_of_birth: data.date_of_birth || undefined,
+        medical_notes: data.medical_notes || undefined,
+        photo_consent: data.photo_consent,
+        tnc_agreed: data.tnc_agreed,
+        ...(data.password ? { new_password: data.password } : {}),
+      };
+      try {
+        const res = (await tokenMutate(payload as never)) as { data?: { session?: { access_token: string; refresh_token: string; expires_in?: number; expires_at?: number } } };
+        const session = res?.data?.session;
+        if (session?.access_token) {
+          setJwtToken({
+            access_token: session.access_token,
+            refresh_token: session.refresh_token,
+            expires_in: session.expires_in,
+            expires_at: session.expires_at,
+          });
+          router.push("/");
+        } else {
+          toast.success("Profile completed", { description: "Done — please login.", position: "top-center" });
+          router.push("/auth/login");
+        }
+      } catch (error: unknown) {
+        const code = (error as { response?: { data?: { error?: { code?: string } } } })?.response?.data?.error?.code;
+        if (code === "ALREADY_COMPLETED") router.replace("/");
+      }
+      return;
+    }
     try {
       const payload: IAuthSignUpPaylaod = {
         email: data?.email,
@@ -104,12 +218,8 @@ export const CompleteProfilePageView = () => {
         tnc_agreed: data?.tnc_agreed,
         phone: data?.phone,
       };
-
-
-      const res = await mutateAsync(payload);
-      if (res) {
-        router.push("/");
-      }
+      const res = await jwtMutate(payload);
+      if (res) router.push("/");
     } catch (error) {
       console.log(error);
       if ((error as { response?: { status?: number } })?.response?.status === 401 || (error as { response?: { status?: number } })?.response?.status === 403) {
@@ -118,7 +228,50 @@ export const CompleteProfilePageView = () => {
     }
   });
 
-  if (isLoading) {
+  // Token mode loading / error states
+  if (isTokenMode) {
+    if (verifyLoading) {
+      return (
+        <div className="flex flex-col items-center w-full space-y-12 font-serif">
+          <div className="pt-12 flex justify-center items-center w-full mx-auto max-w-[361px]">
+            <LogoComponent className="w-[99px] h-[32px]" />
+          </div>
+          <div className="flex items-center justify-center py-6 gap-2">
+            <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+            <p className="text-brand-500 text-sm">Verifying link...</p>
+          </div>
+        </div>
+      );
+    }
+    if (isInvalidToken || isExpired) {
+      return (
+        <div className="flex flex-col items-center w-full space-y-12 font-serif">
+          <div className="pt-12 flex justify-center items-center w-full mx-auto max-w-[361px]">
+            <LogoComponent className="w-[99px] h-[32px]" />
+          </div>
+          <div className="w-full mx-auto max-w-[361px] px-6">
+            <div className="bg-white mx-auto w-full px-6 rounded-md pt-10 pb-6 flex flex-col items-center text-center gap-4">
+              <TriangleAlert className="h-10 w-10 text-brand-400" />
+              <div className="space-y-1">
+                <h3 className="text-2xl font-bold text-brand-500 leading-tight">Link Expired</h3>
+                <p className="text-sm font-normal text-brand-400 leading-tight">
+                  This link is invalid or has expired (15m). Request a new one — resend is throttled 60s.
+                </p>
+              </div>
+              <Button className="w-full max-h-[42px] min-h-[42px] text-sm" onClick={handleResend}>
+                Request New Link
+              </Button>
+              <Button variant="outline" className="w-full max-h-[42px] min-h-[42px] text-sm" onClick={() => router.push("/auth/login")}>
+                Back to Login
+              </Button>
+            </div>
+          </div>
+        </div>
+      );
+    }
+  }
+
+  if (!isTokenMode && isLoading) {
     return (
       <div className="flex flex-col items-center w-full space-y-12 font-serif">
         <div className="pt-12 flex justify-center items-center w-full mx-auto max-w-[361px]">
@@ -131,7 +284,7 @@ export const CompleteProfilePageView = () => {
     );
   }
 
-  if (isError || (!isLoading && !profileUser?.data)) {
+  if (!isTokenMode && (isError || (!isLoading && !profileUser?.data))) {
     return (
       <div className="flex flex-col items-center w-full space-y-12 font-serif">
         <div className="pt-12 flex justify-center items-center w-full mx-auto max-w-[361px]">
@@ -146,11 +299,7 @@ export const CompleteProfilePageView = () => {
                 We couldn&apos;t load your profile. Your session may have expired. Please log in again to continue.
               </p>
             </div>
-            <Button
-              variant="outline"
-              className="w-full max-h-[42px] min-h-[42px] text-sm"
-              onClick={() => refetch()}
-            >
+            <Button variant="outline" className="w-full max-h-[42px] min-h-[42px] text-sm" onClick={() => refetch()}>
               Try Again
             </Button>
             <Button className="w-full max-h-[42px] min-h-[42px] text-sm" onClick={goToLogin}>
@@ -164,24 +313,25 @@ export const CompleteProfilePageView = () => {
 
   return (
     <div className="flex flex-col items-center w-full space-y-12 font-serif">
-      {/* Logo */}
-      <div className="pt-12 flex justify-center   items-center w-full mx-auto max-w-[361px]">
+      <div className="pt-12 flex justify-center items-center w-full mx-auto max-w-[361px]">
         <LogoComponent className="w-[99px] h-[32px]" />
       </div>
 
-      {/* Main Content */}
-
-      <div className="w-full   mx-auto max-w-[361px]">
+      <div className="w-full mx-auto max-w-[361px]">
         <div className="bg-white mx-auto w-full px-6 rounded-md pt-10">
-          {/* Heading */}
           <div className="">
             <h3 className="text-3xl font-bold text-brand-500 leading-tight">Complete your Profile</h3>
             <h3 className="text-sm font-normal text-brand-400 leading-tight">Enter your information to complete your profile.</h3>
+            {isTokenMode && countdown && (
+              <div className="mt-3 flex items-center gap-2 text-sm font-medium text-brand-500 bg-brand-50 rounded-md px-3 py-2">
+                <Clock3 className="h-4 w-4" />
+                <span>Link expires in {countdown}</span>
+                <span className="text-xs text-brand-400 ml-auto">15m window</span>
+              </div>
+            )}
           </div>
           <FormProvider {...methods}>
-            {/* Form */}
             <form onSubmit={onSubmit} className="space-y-2 my-4">
-              {/* Email Field */}
               <div className="space-y-3">
                 <FormField
                   control={control}
@@ -196,7 +346,6 @@ export const CompleteProfilePageView = () => {
                           className="w-full px-4 py-4 border-2 border-gray-200 rounded-lg text-gray-600 placeholder-gray-400 focus:outline-none focus:border-brand-500 transition-colors h-[42px]"
                           placeholder="Type here..."
                           {...field}
-                        // className="w-auto min-w-[388px]"
                         />
                       </FormControl>
                       <FormMessage />
@@ -218,7 +367,6 @@ export const CompleteProfilePageView = () => {
                           placeholder="Type here..."
                           type="date"
                           {...field}
-                        // className="w-auto min-w-[388px]"
                         />
                       </FormControl>
                       <FormMessage />
@@ -238,9 +386,7 @@ export const CompleteProfilePageView = () => {
                           defaultValue="male"
                           value={field.value}
                           className="flex flex-row gap-3 items-center"
-                          onValueChange={(e) => {
-                            field.onChange(e);
-                          }}
+                          onValueChange={(e) => field.onChange(e)}
                         >
                           {["male", "female"].map((item) => (
                             <div className="flex items-center gap-3" key={item}>
@@ -271,7 +417,6 @@ export const CompleteProfilePageView = () => {
                           placeholder="mail@example.com"
                           readOnly
                           {...field}
-                        // className="w-auto min-w-[388px]"
                         />
                       </FormControl>
                       <FormMessage />
@@ -292,7 +437,6 @@ export const CompleteProfilePageView = () => {
                           className="w-full px-4 py-4 border-2 border-gray-200 rounded-lg text-gray-600 placeholder-gray-400 focus:outline-none focus:border-brand-500 transition-colors h-[42px]"
                           placeholder="0812xxxx"
                           {...field}
-                        // className="w-auto min-w-[388px]"
                         />
                       </FormControl>
                       <FormMessage />
@@ -310,60 +454,56 @@ export const CompleteProfilePageView = () => {
                           className="w-full px-4 py-4 border-2 border-gray-200 rounded-lg text-gray-600 placeholder-gray-400 focus:outline-none focus:border-brand-500 transition-colors h-[42px]"
                           placeholder="Type here..."
                           {...field}
-                        // className="w-auto min-w-[388px]"
                         />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
                   )}
                 />
-                <FormField
-                  control={control}
-                  name="photo"
-                  render={({ field }) => (
-                    <FormItem className="flex flex-col">
-                      <FormLabel className="font-serif text-brand-500 text-sm">Photo Profile</FormLabel>
-                      <FormControl>
-                        <div className="flex flex-row items-center gap-4">
-                          <div className="object-cover">
-                            <Image
-                              src={previewURLHelper(field.value)}
-                              alt="placeholder"
-                              width={75}
-                              height={75}
-                              className="min-w-[75px] min-h-[75px] rounded-full object-cover"
-                            />
-                          </div>
-                          <div className="flex flex-col gap-1">
-                            <Input
-                              className="w-full px-4 py-4 border-2 border-gray-200 rounded-lg text-gray-600 placeholder-gray-400 focus:outline-none focus:border-brand-500 transition-colors h-[42px]"
-                              placeholder="Type here..."
-                              ref={inputRef}
-                              type="file"
-                              hidden
-                              accept={String(ACCEPTED_IMAGE_TYPES)}
-                              onChange={(e) => field.onChange(e.target.files?.[0] || null)}
-                            // className="w-auto min-w-[388px]"
-                            />
-                            <div className="flex flex-col gap-2">
-                              <Button className="text-sm" size={"sm"} type="button" onClick={() => inputRef.current?.click()}>
-                                Choose File
-                              </Button>
-                              <FormDescription className="text-gray-500 !text-xs">Max File 2 Mb</FormDescription>
+                {!isTokenMode ? (
+                  <FormField
+                    control={control}
+                    name="photo"
+                    render={({ field }) => (
+                      <FormItem className="flex flex-col">
+                        <FormLabel className="font-serif text-brand-500 text-sm">Photo Profile</FormLabel>
+                        <FormControl>
+                          <div className="flex flex-row items-center gap-4">
+                            <div className="object-cover">
+                              <Image
+                                src={previewURLHelper(field.value)}
+                                alt="placeholder"
+                                width={75}
+                                height={75}
+                                className="min-w-[75px] min-h-[75px] rounded-full object-cover"
+                              />
+                            </div>
+                            <div className="flex flex-col gap-1">
+                              <Input
+                                className="w-full px-4 py-4 border-2 border-gray-200 rounded-lg text-gray-600 placeholder-gray-400 focus:outline-none focus:border-brand-500 transition-colors h-[42px]"
+                                placeholder="Type here..."
+                                ref={inputRef}
+                                type="file"
+                                hidden
+                                accept={String(ACCEPTED_IMAGE_TYPES)}
+                                onChange={(e) => field.onChange(e.target.files?.[0] || null)}
+                              />
+                              <div className="flex flex-col gap-2">
+                                <Button className="text-sm" size={"sm"} type="button" onClick={() => inputRef.current?.click()}>
+                                  Choose File
+                                </Button>
+                                <FormDescription className="text-gray-500 !text-xs">Max File 2 Mb</FormDescription>
+                              </div>
                             </div>
                           </div>
-                        </div>
-                        {/* <Input
-                          className="w-full px-4 py-4 border-2 border-gray-200 rounded-lg text-gray-600 placeholder-gray-400 focus:outline-none focus:border-brand-500 transition-colors h-[42px]"
-                          placeholder="Type here..."
-                          {...field}
-                          // className="w-auto min-w-[388px]"
-                        /> */}
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                ) : (
+                  <p className="text-xs text-brand-400 bg-gray-50 rounded px-3 py-2">Photo upload is available after completion in Profile — this link doesn&apos;t support files.</p>
+                )}
 
                 <FormField
                   control={control}
@@ -373,7 +513,7 @@ export const CompleteProfilePageView = () => {
                       <FormLabel className="font-serif text-brand-500 text-sm">Medical Notes</FormLabel>
                       <FormControl>
                         <Textarea
-                          className="w-full px-4 py-4 border-2 border-gray-200 rounded-lg text-gray-999  placeholder-gray-400 focus:outline-none focus:border-brand-500 transition-colors h-[42px]"
+                          className="w-full px-4 py-4 border-2 border-gray-200 rounded-lg text-gray-999 placeholder-gray-400 focus:outline-none focus:border-brand-500 transition-colors h-[42px]"
                           placeholder="Type here.."
                           {...field}
                         />
@@ -388,13 +528,13 @@ export const CompleteProfilePageView = () => {
                   name="password"
                   render={({ field }) => (
                     <FormItem className="flex flex-col">
-                      <FormLabel className="font-serif text-brand-500 text-sm" required>
-                        Password
+                      <FormLabel className="font-serif text-brand-500 text-sm" required={!isTokenMode}>
+                        Password {isTokenMode && <span className="font-normal text-brand-400">(optional, ≥8 chars)</span>}
                       </FormLabel>
                       <FormControl>
                         <PasswordInput
                           className="w-full px-4 py-4 border-2 border-gray-200 rounded-lg text-gray-600 placeholder-gray-400 focus:outline-none focus:border-brand-500 transition-colors h-[42px]"
-                          placeholder="Password"
+                          placeholder={isTokenMode ? "New password (optional)" : "Password"}
                           {...field}
                         />
                       </FormControl>
@@ -407,7 +547,7 @@ export const CompleteProfilePageView = () => {
                   name="confirm_password"
                   render={({ field }) => (
                     <FormItem className="flex flex-col">
-                      <FormLabel className="font-serif text-brand-500 text-sm" required>
+                      <FormLabel className="font-serif text-brand-500 text-sm" required={!isTokenMode}>
                         Confirm Password
                       </FormLabel>
                       <FormControl>
@@ -430,7 +570,6 @@ export const CompleteProfilePageView = () => {
                       <FormControl>
                         <Checkbox id="photo_consent" checked={field.value} onCheckedChange={field.onChange} className="mt-1" />
                       </FormControl>
-
                       <FormLabel htmlFor="photo_consent" className="cursor-pointer text-brand-500 font-normal text-sm">
                         I agree to allow Sehela Space to use my photo for social media purposes.
                       </FormLabel>
@@ -456,23 +595,14 @@ export const CompleteProfilePageView = () => {
                           className="mt-1"
                         />
                       </FormControl>
-
                       <FormLabel htmlFor="tnc" className="cursor-pointer text-brand-500 font-normal text-sm">
                         <p className="text-sm">
                           I confirm that I have read and accept the{" "}
-                          <button
-                            type="button"
-                            className="font-semibold text-sm underline"
-                            onClick={openTncDialog}
-                          >
+                          <button type="button" className="font-semibold text-sm underline" onClick={openTncDialog}>
                             Term and Conditions
                           </button>{" "}
                           and the{" "}
-                          <button
-                            type="button"
-                            className="font-semibold text-sm underline"
-                            onClick={openTncDialog}
-                          >
+                          <button type="button" className="font-semibold text-sm underline" onClick={openTncDialog}>
                             Privacy Policy
                           </button>
                         </p>
@@ -482,10 +612,9 @@ export const CompleteProfilePageView = () => {
                 />
               </div>
 
-              {/* Login Button */}
               <div className="flex w-full flex-col gap-2">
-                <Button type="submit" className="w-full max-h-[42px] min-h-[42px] text-sm">
-                  Complete your profile
+                <Button type="submit" className="w-full max-h-[42px] min-h-[42px] text-sm" disabled={isPending || (isTokenMode && isExpired)}>
+                  {isPending ? "Saving..." : "Complete your profile"}
                 </Button>
               </div>
               <div className="text-center space-y-4 mt-12 pb-2">

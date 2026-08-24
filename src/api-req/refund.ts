@@ -2,10 +2,11 @@ import { axiosx } from "@/lib/axiosx";
 import { MAIN_API_URL } from "@/lib/config";
 import { TGetRefundDetail, TGetRefunds, TReviewRefund } from "@/types/refund.interface";
 
-export const getRefunds: TGetRefunds = async ({ status = "all", page = 1, limit = 20 }) => {
+export const getRefunds: TGetRefunds = async ({ status = "all", movement_type = "all", page = 1, limit = 20 }) => {
   const res = await axiosx(true).get(`${MAIN_API_URL}/admin/refunds`, {
     params: {
       ...(status && status !== "all" ? { status } : null),
+      ...(movement_type && movement_type !== "all" ? { movement_type } : null),
       page,
       page_size: limit,
     },
