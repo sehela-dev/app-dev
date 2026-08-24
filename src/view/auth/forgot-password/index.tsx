@@ -4,33 +4,28 @@ import { Button } from "@/components/ui/button";
 import { FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { useAuthForgotPassword } from "@/hooks/api/mutations/customers";
+import { forgotPasswordSchema, ForgotPasswordFormValues } from "@/resolver";
+import { zodResolver } from "@hookform/resolvers/zod";
 import { ArrowLeft } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { FormProvider, useForm } from "react-hook-form";
 
-const defaultValues = {
+const defaultValues: ForgotPasswordFormValues = {
   email: "",
 };
 
 export const ForgotPasswordPageView = () => {
   const router = useRouter();
-  const methods = useForm({ defaultValues });
+  const methods = useForm<ForgotPasswordFormValues>({
+    defaultValues,
+    resolver: zodResolver(forgotPasswordSchema),
+  });
   const { control, handleSubmit } = methods;
 
-  const { mutateAsync } = useAuthForgotPassword();
+  const { mutateAsync, isPending } = useAuthForgotPassword();
 
   const onSubmit = handleSubmit(async (data) => {
-    try {
-      const paylaod = {
-        email: data?.email,
-      };
-      const res = await mutateAsync(paylaod);
-      if (res) {
-        console.log(res);
-      }
-    } catch (error) {
-      console.log(error);
-    }
+    await mutateAsync({ email: data.email.trim() });
   });
 
   return (
@@ -74,8 +69,8 @@ export const ForgotPasswordPageView = () => {
                   )}
                 />
                 <div className="flex w-full mt-4">
-                  <Button type="submit" className="w-full">
-                    Send
+                  <Button type="submit" className="w-full" disabled={isPending}>
+                    {isPending ? "Sending..." : "Send"}
                   </Button>
                 </div>
               </form>

@@ -64,3 +64,8 @@ export const resetPasswordSchema = z
     path: ["confirm_password"], // attach error to field
   });
 export type ResetPasswordFormValues = z.infer<typeof resetPasswordSchema>;
+
+export const forgotPasswordSchema = z.object({
+  email: z.string().min(1, { message: "Email is required" }).email({ message: "Invalid email" }),
+});
+export type ForgotPasswordFormValues = z.infer<typeof forgotPasswordSchema>;
