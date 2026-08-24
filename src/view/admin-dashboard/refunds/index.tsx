@@ -155,118 +155,118 @@ export const RefundManagementPageView = () => {
           </CollapsibleTrigger>
           <CollapsibleContent>
             <CardContent className="pt-0 space-y-4">
-          {/* Two filters explained */}
-          <div className="grid grid-cols-2 gap-3 text-xs">
-            <div className="rounded-lg border bg-brand-50/50 p-3">
-              <p className="font-semibold text-brand-900 flex items-center gap-1.5">
-                <span className="h-2 w-2 rounded-full bg-amber-500" /> Review Status
-              </p>
-              <p className="mt-1 text-muted-foreground">Did admin approve it?</p>
-              <div className="mt-2 flex flex-wrap gap-1.5">
-                <Badge variant="outline" className={cn("text-[11px]", refundStatusClass("requested"))}>
-                  Requested
-                </Badge>
-                <span className="text-muted-foreground text-[11px]">→ waiting for you</span>
+              {/* Two filters explained */}
+              <div className="grid grid-cols-2 gap-3 text-xs">
+                <div className="rounded-lg border bg-brand-50/50 p-3">
+                  <p className="font-semibold text-brand-900 flex items-center gap-1.5">
+                    <span className="h-2 w-2 rounded-full bg-amber-500" /> Review Status
+                  </p>
+                  <p className="mt-1 text-muted-foreground">Did admin approve it?</p>
+                  <div className="mt-2 flex flex-wrap gap-1.5">
+                    <Badge variant="outline" className={cn("text-[11px]", refundStatusClass("requested"))}>
+                      Requested
+                    </Badge>
+                    <span className="text-muted-foreground text-[11px]">→ waiting for you</span>
+                  </div>
+                  <div className="mt-1 flex flex-wrap gap-1.5">
+                    <Badge variant="outline" className={cn("text-[11px]", refundStatusClass("succeeded"))}>
+                      Approved
+                    </Badge>
+                    <Badge variant="outline" className={cn("text-[11px]", refundStatusClass("failed"))}>
+                      Rejected
+                    </Badge>
+                  </div>
+                </div>
+                <div className="rounded-lg border bg-blue-50/30 p-3">
+                  <p className="font-semibold text-brand-900 flex items-center gap-1.5">
+                    <span className="h-2 w-2 rounded-full bg-blue-500" /> Movement
+                  </p>
+                  <p className="mt-1 text-muted-foreground">What happened to the money?</p>
+                  <div className="mt-2 flex flex-wrap gap-1.5">
+                    <Badge variant="outline" className={cn("text-[11px]", movementTypeClass("outstanding"))}>
+                      outstanding
+                    </Badge>
+                    <Badge variant="outline" className={cn("text-[11px]", movementTypeClass("collected"))}>
+                      collected
+                    </Badge>
+                    <Badge variant="outline" className={cn("text-[11px]", movementTypeClass("refund"))}>
+                      refund
+                    </Badge>
+                    <Badge variant="outline" className={cn("text-[11px]", movementTypeClass("voided"))}>
+                      voided
+                    </Badge>
+                  </div>
+                </div>
               </div>
-              <div className="mt-1 flex flex-wrap gap-1.5">
-                <Badge variant="outline" className={cn("text-[11px]", refundStatusClass("succeeded"))}>
-                  Approved
-                </Badge>
-                <Badge variant="outline" className={cn("text-[11px]", refundStatusClass("failed"))}>
-                  Rejected
-                </Badge>
-              </div>
-            </div>
-            <div className="rounded-lg border bg-blue-50/30 p-3">
-              <p className="font-semibold text-brand-900 flex items-center gap-1.5">
-                <span className="h-2 w-2 rounded-full bg-blue-500" /> Movement
-              </p>
-              <p className="mt-1 text-muted-foreground">What happened to the money?</p>
-              <div className="mt-2 flex flex-wrap gap-1.5">
-                <Badge variant="outline" className={cn("text-[11px]", movementTypeClass("outstanding"))}>
-                  outstanding
-                </Badge>
-                <Badge variant="outline" className={cn("text-[11px]", movementTypeClass("collected"))}>
-                  collected
-                </Badge>
-                <Badge variant="outline" className={cn("text-[11px]", movementTypeClass("refund"))}>
-                  refund
-                </Badge>
-                <Badge variant="outline" className={cn("text-[11px]", movementTypeClass("voided"))}>
-                  voided
-                </Badge>
-              </div>
-            </div>
-          </div>
 
-          {/* Movement meanings - admin friendly */}
-          <div className="grid gap-2 sm:grid-cols-2">
-            <div className="flex gap-3 rounded-lg border p-3 bg-white">
-              <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-amber-100 text-amber-700">
-                <Clock3 className="h-4 w-4" />
+              {/* Movement meanings - admin friendly */}
+              <div className="grid gap-2 sm:grid-cols-2">
+                <div className="flex gap-3 rounded-lg border p-3 bg-white">
+                  <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-amber-100 text-amber-700">
+                    <Clock3 className="h-4 w-4" />
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium flex items-center gap-2">
+                      Outstanding{" "}
+                      <Badge variant="outline" className={cn("text-[11px] capitalize", movementTypeClass("outstanding"))}>
+                        outstanding
+                      </Badge>
+                    </p>
+                    <p className="text-xs text-muted-foreground">Payment not yet received. Booking was created but customer hasn&apos;t paid.</p>
+                  </div>
+                </div>
+                <div className="flex gap-3 rounded-lg border p-3 bg-white">
+                  <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-emerald-100 text-emerald-700">
+                    <CheckCircle className="h-4 w-4" />
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium flex items-center gap-2">
+                      Collected{" "}
+                      <Badge variant="outline" className={cn("text-[11px] capitalize", movementTypeClass("collected"))}>
+                        collected
+                      </Badge>
+                    </p>
+                    <p className="text-xs text-muted-foreground">Money received. Payment was successful.</p>
+                  </div>
+                </div>
+                <div className="flex gap-3 rounded-lg border p-3 bg-white">
+                  <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-blue-100 text-blue-700">
+                    <Undo2 className="h-4 w-4" />
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium flex items-center gap-2">
+                      Refund{" "}
+                      <Badge variant="outline" className={cn("text-[11px] capitalize", movementTypeClass("refund"))}>
+                        refund
+                      </Badge>
+                    </p>
+                    <p className="text-xs text-muted-foreground">Money was returned. Customer got their money back.</p>
+                  </div>
+                </div>
+                <div className="flex gap-3 rounded-lg border p-3 bg-white">
+                  <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-zinc-100 text-zinc-700">
+                    <Ban className="h-4 w-4" />
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium flex items-center gap-2">
+                      Voided{" "}
+                      <Badge variant="outline" className={cn("text-[11px] capitalize", movementTypeClass("voided"))}>
+                        voided
+                      </Badge>
+                    </p>
+                    <p className="text-xs text-muted-foreground">Canceled — no money moved. Booking was voided before payment.</p>
+                  </div>
+                </div>
               </div>
-              <div>
-                <p className="text-sm font-medium flex items-center gap-2">
-                  Outstanding{" "}
-                  <Badge variant="outline" className={cn("text-[11px] capitalize", movementTypeClass("outstanding"))}>
-                    outstanding
-                  </Badge>
-                </p>
-                <p className="text-xs text-muted-foreground">Payment not yet received. Booking was created but customer hasn&apos;t paid.</p>
-              </div>
-            </div>
-            <div className="flex gap-3 rounded-lg border p-3 bg-white">
-              <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-emerald-100 text-emerald-700">
-                <CheckCircle className="h-4 w-4" />
-              </div>
-              <div>
-                <p className="text-sm font-medium flex items-center gap-2">
-                  Collected{" "}
-                  <Badge variant="outline" className={cn("text-[11px] capitalize", movementTypeClass("collected"))}>
-                    collected
-                  </Badge>
-                </p>
-                <p className="text-xs text-muted-foreground">Money received. Payment was successful.</p>
-              </div>
-            </div>
-            <div className="flex gap-3 rounded-lg border p-3 bg-white">
-              <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-blue-100 text-blue-700">
-                <Undo2 className="h-4 w-4" />
-              </div>
-              <div>
-                <p className="text-sm font-medium flex items-center gap-2">
-                  Refund{" "}
-                  <Badge variant="outline" className={cn("text-[11px] capitalize", movementTypeClass("refund"))}>
-                    refund
-                  </Badge>
-                </p>
-                <p className="text-xs text-muted-foreground">Money was returned. Customer got their money back.</p>
-              </div>
-            </div>
-            <div className="flex gap-3 rounded-lg border p-3 bg-white">
-              <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-zinc-100 text-zinc-700">
-                <Ban className="h-4 w-4" />
-              </div>
-              <div>
-                <p className="text-sm font-medium flex items-center gap-2">
-                  Voided{" "}
-                  <Badge variant="outline" className={cn("text-[11px] capitalize", movementTypeClass("voided"))}>
-                    voided
-                  </Badge>
-                </p>
-                <p className="text-xs text-muted-foreground">Canceled — no money moved. Booking was voided before payment.</p>
-              </div>
-            </div>
-          </div>
 
-          <div className="rounded-lg border bg-muted/30 p-3">
-            <p className="text-xs font-semibold text-brand-900">Try this:</p>
-            <p className="text-xs text-muted-foreground mt-1">
-              Want to see <b>approved refunds where money actually went out</b>? Select <b>Approved</b> + <b>Refund</b>.
-              <br />
-              Want <b>pending requests that are already paid</b>? Select <b>Requested</b> + <b>Collected</b>.
-            </p>
-          </div>
+              <div className="rounded-lg border bg-muted/30 p-3">
+                <p className="text-xs font-semibold text-brand-900">Try this:</p>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Want to see <b>approved refunds where money actually went out</b>? Select <b>Approved</b> + <b>Refund</b>.
+                  <br />
+                  Want <b>pending requests that are already paid</b>? Select <b>Requested</b> + <b>Collected</b>.
+                </p>
+              </div>
             </CardContent>
           </CollapsibleContent>
         </Card>
