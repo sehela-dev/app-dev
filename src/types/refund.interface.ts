@@ -7,6 +7,8 @@ export interface IRefundPayment {
   provider: string;
   gross_amount_idr: number;
   status: string;
+  movement_type?: string | null;
+  raw_status?: string | null;
   customer_name: string;
   customer_email: string;
 }
@@ -34,6 +36,8 @@ export interface IRefundItem {
   id: string;
   refund_type: string;
   status: RefundStatus;
+  movement_type?: string | null;
+  raw_status?: string | null;
   amount_idr: number;
   reason: string | null;
   requested_at: string;
@@ -44,10 +48,13 @@ export interface IRefundItem {
   booking: IRefundBooking | null;
 }
 
+export type RefundMovementFilter = "voided" | "collected" | "outstanding" | "all" | "refund";
+
 export interface IRefundListParams {
   page?: number;
   limit?: number;
   status?: RefundStatus | "all";
+  movement_type?: RefundMovementFilter;
 }
 
 export interface IRefundReviewPayload {

@@ -14,7 +14,7 @@ import { formatCurrency, formatDateHelper, isTransactionVoidable } from "@/lib/h
 import { cn } from "@/lib/utils";
 import { IRefundItem } from "@/types/refund.interface";
 import { Check, Loader2, Undo2, X } from "lucide-react";
-import { refundStatusClass, refundStatusLabel } from "./refund-status";
+import { movementTypeClass, movementTypeLabel, refundStatusClass, refundStatusLabel } from "./refund-status";
 
 interface RefundDetailDialogProps {
   isOpen: boolean;
@@ -62,9 +62,14 @@ export const RefundDetailDialog = ({ isOpen, onClose, refundId, onSuccess }: Ref
               Refund Detail
             </span>
             {refund ? (
-              <Badge variant="outline" className={cn("capitalize", refundStatusClass(refund.status))}>
-                {refundStatusLabel(refund.status)}
-              </Badge>
+              <div className="flex items-center gap-2">
+                <Badge variant="outline" className={cn("capitalize", movementTypeClass(refund.movement_type ?? refund.payment?.movement_type))}>
+                  {movementTypeLabel(refund.movement_type ?? refund.payment?.movement_type)}
+                </Badge>
+                <Badge variant="outline" className={cn("capitalize", refundStatusClass(refund.status))}>
+                  {refundStatusLabel(refund.status)}
+                </Badge>
+              </div>
             ) : null}
           </AlertDialogTitle>
         </AlertDialogHeader>
@@ -112,6 +117,14 @@ export const RefundDetailDialog = ({ isOpen, onClose, refundId, onSuccess }: Ref
                 <div className="flex flex-col">
                   <span className="text-xs text-muted-foreground">Refund Type</span>
                   <span className="capitalize">{refund.refund_type?.replace(/_/g, " ")}</span>
+                </div>
+                <div className="flex flex-col">
+                  <span className="text-xs text-muted-foreground">Movement</span>
+                  <span>
+                    <Badge variant="outline" className={cn("capitalize", movementTypeClass(refund.movement_type ?? refund.payment?.movement_type))}>
+                      {movementTypeLabel(refund.movement_type ?? refund.payment?.movement_type)}
+                    </Badge>
+                  </span>
                 </div>
               </div>
               {refund.reason ? (
