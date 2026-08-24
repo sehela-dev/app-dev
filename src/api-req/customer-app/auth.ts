@@ -50,6 +50,21 @@ export const userCompleteProfile: TAuthCompleteProfile = async (data) => {
   return res.data;
 };
 
+export const verifyCompleteProfileToken = async (email: string, token: string) => {
+  const res = await axiosx(false).get(`${MAIN_API_URL}/auth/complete-profile/verify`, { params: { email, token } });
+  return res.data;
+};
+
+export const completeProfileWithToken: import("@/types/customer-app/auth-customer.interface").TCompleteProfileWithToken = async (data) => {
+  const res = await axiosx(false).post(`${MAIN_API_URL}/auth/complete-profile`, data);
+  return res.data;
+};
+
+export const resendRegistration = async (data: { email: string }) => {
+  const res = await axiosx(false).post(`${MAIN_API_URL}/auth/resend-registration`, data);
+  return res.data;
+};
+
 export const userAuthForgotPassword: TAuthForgotPassword = async (data) => {
   const res = await axiosx(false).post(`${MAIN_API_URL}/auth/forgot-password`, data);
   return res.data;

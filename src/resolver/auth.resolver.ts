@@ -69,3 +69,31 @@ export const forgotPasswordSchema = z.object({
   email: z.string().min(1, { message: "Email is required" }).email({ message: "Invalid email" }),
 });
 export type ForgotPasswordFormValues = z.infer<typeof forgotPasswordSchema>;
+
+export const completeProfileTokenSchema = z
+  .object({
+    full_name: z.string().min(1, { message: "Full name is required" }),
+    phone: z
+      .string()
+      .min(10, { message: "Phone must be at least 10 digits" })
+      .max(13, { message: "Phone max 13 digits" })
+      .regex(/^\d+$/, { message: "Phone must contain only numbers" }),
+    instagram_username: z.string().optional(),
+    medical_notes: z.string().optional(),
+    gender: z.string().min(1, { message: "Gender is required" }),
+    date_of_birth: z.string().min(1, { message: "Date of birth is required" }),
+    photo_consent: z.boolean().optional(),
+    tnc_agreed: z.boolean().refine((val) => val === true, { message: "You must agree to terms" }),
+    email: z.string().email().min(1, { message: "Required" }),
+    password: z.string().optional(),
+    confirm_password: z.string().optional(),
+  })
+  .refine(
+    (data) => {
+      if (!data.password && !data.confirm_password) return true;
+      if (data.password && data.password.length < 8) return false;
+      return data.password === data.confirm_password;
+    },
+    { message: "Passwords do not match or must be ≥8 chars", path: ["confirm_password"] },
+  );
+export type CompleteProfileTokenFormValues = z.infer<typeof completeProfileTokenSchema>;

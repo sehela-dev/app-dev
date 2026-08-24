@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { useJwtToken } from "@/hooks";
 import { useGetProfileCallback } from "@/hooks/api/queries/customer/profile";
 import { Loader2, TriangleAlert } from "lucide-react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useState } from "react";
 
 /*
@@ -28,9 +28,21 @@ const parseHashTokens = () => {
 
 export const AuthCallBackPage = () => {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const qpToken = searchParams.get("token");
+  const qpEmail = searchParams.get("email");
+  const isTokenCallback = !!qpToken && !!qpEmail; // 15m complete_profile token (no JWT)
+
   const { setJwtToken, resetJwt } = useJwtToken();
   const [tokens, setTokens] = useState<{ access_token: string; refresh_token: string }>({ access_token: "", refresh_token: "" });
   const [isReady, setIsReady] = useState(false);
+
+  // Token path: redirect to /complete-profile with token+email (verify+countdown handled there)
+  useEffect(() => {
+    if (isTokenCallback) {
+      router.replace(`/complete-profile?token=${encodeURIComponent(qpToken!)}&email=${encodeURIComponent(qpEmail!)}`);
+    }
+  }, [isTokenCallback, qpToken, qpEmail, router]);
 
   const { data, isLoading, isError } = useGetProfileCallback(tokens?.access_token);
 
@@ -89,6 +101,22 @@ export const AuthCallBackPage = () => {
           <div className="flex flex-col items-center justify-center py-6">
             <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
             <p className="text-brand-500">Fetching data...</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (isTokenCallback) {
+    return (
+      <div className="flex flex-col items-center w-full space-y-12 font-serif">
+        <div className="pt-12 flex justify-center">
+          <LogoComponent className="w-[99px] h-[32px]" />
+        </div>
+        <div>
+          <div className="flex flex-col items-center justify-center py-6">
+            <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+            <p className="text-brand-500">Redirecting...</p>
           </div>
         </div>
       </div>

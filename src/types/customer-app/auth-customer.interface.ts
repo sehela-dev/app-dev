@@ -107,3 +107,35 @@ export type TAuthProfileCustomer = (data?: string) => Promise<IResponseData<IPro
 export type TAuthCompleteProfile = (data: IAuthSignUpPaylaod | FormData) => Promise<IResponseData<unknown>>;
 export type TAuthForgotPassword = (data: { email: string }) => Promise<IResponseData<unknown>>;
 export type TAuthResetPassword = (data: IAuthResetPassword) => Promise<IResponseData<unknown>>;
+
+export interface ICompleteProfileTokenPayload {
+  email: string;
+  token: string;
+  full_name?: string;
+  phone?: string;
+  instagram_username?: string;
+  gender?: string;
+  date_of_birth?: string;
+  medical_notes?: string;
+  photo_consent?: boolean;
+  tnc_agreed?: boolean;
+  new_password?: string;
+}
+export interface ICompleteProfileVerifyData {
+  valid: boolean;
+  expires_at: string;
+  full_name?: string;
+  email?: string;
+}
+export interface ICompleteProfileTokenResponse {
+  id: string;
+  auth_user_id: string;
+  full_name: string;
+  tnc_agreed_at: string | null;
+  is_profile_complete: boolean;
+  email: string;
+  password_updated: boolean;
+  session: { access_token: string; refresh_token: string; expires_in: number; expires_at: number } | null;
+}
+export type TCompleteProfileWithToken = (data: ICompleteProfileTokenPayload) => Promise<IResponseData<ICompleteProfileTokenResponse>>;
+export type TVerifyCompleteProfileToken = (email: string, token: string) => Promise<IResponseData<ICompleteProfileVerifyData>>;
