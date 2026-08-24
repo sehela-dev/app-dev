@@ -66,8 +66,9 @@ export const AuthCallBackPage = () => {
 
   const { setJwtToken, resetJwt, isHydrated, access_token: storedAccessToken } = useJwtToken();
   const [tokens, setTokens] = useState<{ access_token: string; refresh_token: string }>({ access_token: "", refresh_token: "" });
-  const [hashError, setHashError] = useState<{ error: string | null; error_code: string | null; error_description: string | null } | null>(null);
   const [isReady, setIsReady] = useState(false);
+  // sync parse — avoids one-render delay where hash#error is stuck on Loading...
+  const hashError = typeof window !== "undefined" ? parseHashError() : null;
 
   // If already have session in localStorage, use it to decide where to go (avoids "Link Expired" when hash empty)
   const { data: storedProfile, isLoading: storedLoading } = useGetProfile(Boolean(storedAccessToken) && isHydrated && !isTokenCallback && !tokens.access_token);
@@ -89,7 +90,6 @@ export const AuthCallBackPage = () => {
 
   useEffect(() => {
     setTokens(parseHashTokens());
-    setHashError(parseHashError());
     setIsReady(true);
   }, []);
 
@@ -167,6 +167,52 @@ export const AuthCallBackPage = () => {
     );
   }
 
+  // Supabase magiclink error (#error=access_denied&error_code=otp_expired) — show immediately, don't stuck on Loading/Fetching
+  // covers both #hash and ?search variants: /auth/callback#error=... or /auth/callback?error=...
+  if (hashError) {
+    const isOtpExpired = hashError.error_code === "otp_expired" || hashError.error === "access_denied";
+    const title = "Link Expired";
+    const desc = hashError.error_description ?? (isOtpExpired ? "Email link is invalid or has expired." : "This link is invalid or has expired. Please request a new link to continue.");
+    return (
+      <div className="flex flex-col items-center w-full space-y-12 font-serif">
+        <div className="pt-12 flex justify-center">
+          <LogoComponent className="w-[99px] h-[32px]" />
+        </div>
+        <div className="w-full mx-auto max-w-[361px] px-6">
+          <div className="bg-white mx-auto w-full px-6 rounded-md pt-10 pb-6 flex flex-col items-center text-center gap-4">
+            <TriangleAlert className="h-10 w-10 text-brand-400" />
+            <div className="space-y-1">
+              <h3 className="text-2xl font-bold text-brand-500 leading-tight">{title}</h3>
+              <p className="text-sm font-normal text-brand-400 leading-tight">{desc}</p>
+              {hashError.error_code && <p className="text-xs font-mono text-brand-300">{hashError.error_code}</p>}
+            </div>
+            <Button
+              className="w-full max-h-[42px] min-h-[42px] text-sm"
+              onClick={() => {
+                if (typeof window !== "undefined") window.history.replaceState(null, "", "/auth/callback");
+                resetJwt();
+                router.push("/auth/sign-up");
+              }}
+            >
+              Sign Up
+            </Button>
+            <Button
+              variant="outline"
+              className="w-full max-h-[42px] min-h-[42px] text-sm"
+              onClick={() => {
+                if (typeof window !== "undefined") window.history.replaceState(null, "", "/auth/callback");
+                resetJwt();
+                router.push("/auth/login");
+              }}
+            >
+              Back to Login
+            </Button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   // localStorage session exists → show fetching while we decide
   if (!isTokenCallback && isHydrated && storedAccessToken && storedLoading) {
     return (
@@ -218,56 +264,45 @@ export const AuthCallBackPage = () => {
     );
   }
 
-  // Supabase magiclink error → https://.../auth/callback#error=access_denied&error_code=otp_expired&error_description=Email+link+is+invalid+or+has+expired
-  if (hashError || isError || (isReady && !tokens.access_token && !storedAccessToken && !isTokenCallback)) {
-    const isOtpExpired = hashError?.error_code === "otp_expired" || hashError?.error === "access_denied";
-    const title = isOtpExpired ? "Link Expired" : "Link Expired";
-    const desc = hashError?.error_description ?? (isOtpExpired ? "Email link is invalid or has expired." : "This link is invalid or has expired. Please request a new link to continue.");
-    // don't show generic error if we already handled stored session redirect above — only for no-session or explicit hash error
-    if (hashError || isError || (isReady && !tokens.access_token && !storedAccessToken)) {
-      return (
-        <div className="flex flex-col items-center w-full space-y-12 font-serif">
-          {/* Logo */}
-          <div className="pt-12 flex justify-center">
-            <LogoComponent className="w-[99px] h-[32px]" />
-          </div>
+  if (isError || (isReady && !tokens.access_token && !storedAccessToken && !isTokenCallback)) {
+    return (
+      <div className="flex flex-col items-center w-full space-y-12 font-serif">
+        {/* Logo */}
+        <div className="pt-12 flex justify-center">
+          <LogoComponent className="w-[99px] h-[32px]" />
+        </div>
 
-          {/* Main Content */}
-          <div className="w-full mx-auto max-w-[361px] px-6">
-            <div className="bg-white mx-auto w-full px-6 rounded-md pt-10 pb-6 flex flex-col items-center text-center gap-4">
-              <TriangleAlert className="h-10 w-10 text-brand-400" />
-              <div className="space-y-1">
-                <h3 className="text-2xl font-bold text-brand-500 leading-tight">{title}</h3>
-                <p className="text-sm font-normal text-brand-400 leading-tight">{desc}</p>
-                {hashError?.error_code && <p className="text-xs font-mono text-brand-300">{hashError.error_code}</p>}
-              </div>
-              <Button
-                className="w-full max-h-[42px] min-h-[42px] text-sm"
-                onClick={() => {
-                  // clear error hash then go sign-up to request new link
-                  if (typeof window !== "undefined") window.history.replaceState(null, "", "/auth/callback");
-                  resetJwt();
-                  router.push("/auth/sign-up");
-                }}
-              >
-                Sign Up
-              </Button>
-              <Button
-                variant="outline"
-                className="w-full max-h-[42px] min-h-[42px] text-sm"
-                onClick={() => {
-                  if (typeof window !== "undefined") window.history.replaceState(null, "", "/auth/callback");
-                  resetJwt();
-                  router.push("/auth/login");
-                }}
-              >
-                Back to Login
-              </Button>
+        {/* Main Content */}
+        <div className="w-full mx-auto max-w-[361px] px-6">
+          <div className="bg-white mx-auto w-full px-6 rounded-md pt-10 pb-6 flex flex-col items-center text-center gap-4">
+            <TriangleAlert className="h-10 w-10 text-brand-400" />
+            <div className="space-y-1">
+              <h3 className="text-2xl font-bold text-brand-500 leading-tight">Link Expired</h3>
+              <p className="text-sm font-normal text-brand-400 leading-tight">This link is invalid or has expired. Please request a new link to continue.</p>
             </div>
+            <Button
+              className="w-full max-h-[42px] min-h-[42px] text-sm"
+              onClick={() => {
+                resetJwt();
+                router.push("/auth/sign-up");
+              }}
+            >
+              Sign Up
+            </Button>
+            <Button
+              variant="outline"
+              className="w-full max-h-[42px] min-h-[42px] text-sm"
+              onClick={() => {
+                resetJwt();
+                router.push("/auth/login");
+              }}
+            >
+              Back to Login
+            </Button>
           </div>
         </div>
-      );
-    }
+      </div>
+    );
   }
 
   return null;
