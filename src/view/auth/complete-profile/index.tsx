@@ -49,8 +49,12 @@ const defaultValues = {
 export const CompleteProfilePageView = () => {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const token = searchParams.get("token");
-  const emailParam = searchParams.get("email");
+  const rawToken = searchParams.get("token") ?? searchParams.get("code");
+  const rawEmail = searchParams.get("email");
+  // also support direct window parse for cases where Next's useSearchParams lags
+  const fallback = typeof window !== "undefined" ? new URL(window.location.href).searchParams : null;
+  const token = rawToken ?? fallback?.get("token") ?? fallback?.get("code") ?? null;
+  const emailParam = rawEmail ?? fallback?.get("email") ?? null;
   const isTokenMode = !!token && !!emailParam;
 
   const { resetJwt, setJwtToken } = useJwtToken();

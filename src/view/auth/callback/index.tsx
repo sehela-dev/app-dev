@@ -29,8 +29,23 @@ const parseHashTokens = () => {
 export const AuthCallBackPage = () => {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const qpToken = searchParams.get("token");
-  const qpEmail = searchParams.get("email");
+  // support both ?token= and ?code= (supabase sometimes uses code) and handle email alias
+  const getTokenFromParams = () => {
+    const qpToken = searchParams.get("token") ?? searchParams.get("code");
+    const qpEmail = searchParams.get("email");
+    if (qpToken && qpEmail) return { token: qpToken, email: qpEmail };
+    // fallback: parse window.location directly (covers hash fallback and SSR edge)
+    if (typeof window !== "undefined") {
+      const url = new URL(window.location.href);
+      const t = url.searchParams.get("token") ?? url.searchParams.get("code") ?? new URLSearchParams(window.location.hash.replace(/^#/, "")).get("token");
+      const e = url.searchParams.get("email") ?? new URLSearchParams(window.location.hash.replace(/^#/, "")).get("email");
+      if (t && e) return { token: t, email: e };
+    }
+    return null;
+  };
+  const qp = getTokenFromParams();
+  const qpToken = qp?.token ?? null;
+  const qpEmail = qp?.email ?? null;
   const isTokenCallback = !!qpToken && !!qpEmail; // 15m complete_profile token (no JWT)
 
   const { setJwtToken, resetJwt } = useJwtToken();
@@ -39,8 +54,14 @@ export const AuthCallBackPage = () => {
 
   // Token path: redirect to /complete-profile with token+email (verify+countdown handled there)
   useEffect(() => {
-    if (isTokenCallback) {
-      router.replace(`/complete-profile?token=${encodeURIComponent(qpToken!)}&email=${encodeURIComponent(qpEmail!)}`);
+    if (isTokenCallback && qpToken && qpEmail) {
+      // use href to ensure navigation works even if router state stale; keep token as-is
+      router.replace(`/complete-profile?token=${encodeURIComponent(qpToken)}&email=${encodeURIComponent(qpEmail)}`);
+      // fallback if soft nav fails
+      const t = setTimeout(() => {
+        if (window.location.pathname !== "/complete-profile") window.location.href = `/complete-profile?token=${encodeURIComponent(qpToken)}&email=${encodeURIComponent(qpEmail)}`;
+      }, 800);
+      return () => clearTimeout(t);
     }
   }, [isTokenCallback, qpToken, qpEmail, router]);
 
@@ -89,6 +110,27 @@ export const AuthCallBackPage = () => {
     }
   }, [data, router, setJwtToken, tokens]);
 
+  if (isTokenCallback) {
+    return (
+      <div className="flex flex-col items-center w-full space-y-12 font-serif">
+        <div className="pt-12 flex justify-center">
+          <LogoComponent className="w-[99px] h-[32px]" />
+        </div>
+        <div>
+          <div className="flex flex-col items-center justify-center py-6">
+            <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+            <p className="text-brand-500">Redirecting to complete profile...</p>
+          </div>
+        </div>
+        <div className="w-full mx-auto max-w-[361px] px-6">
+          <Button variant="outline" className="w-full" onClick={() => window.location.href = `/complete-profile?token=${encodeURIComponent(qpToken!)}&email=${encodeURIComponent(qpEmail!)}`}>
+            Continue to Complete Profile
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
   if (isLoading) {
     return (
       <div className="flex flex-col items-center w-full space-y-12 font-serif">
@@ -101,22 +143,6 @@ export const AuthCallBackPage = () => {
           <div className="flex flex-col items-center justify-center py-6">
             <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
             <p className="text-brand-500">Fetching data...</p>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  if (isTokenCallback) {
-    return (
-      <div className="flex flex-col items-center w-full space-y-12 font-serif">
-        <div className="pt-12 flex justify-center">
-          <LogoComponent className="w-[99px] h-[32px]" />
-        </div>
-        <div>
-          <div className="flex flex-col items-center justify-center py-6">
-            <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
-            <p className="text-brand-500">Redirecting...</p>
           </div>
         </div>
       </div>
