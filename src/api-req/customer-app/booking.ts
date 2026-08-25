@@ -8,6 +8,7 @@ import {
   TCreatePublicBooking,
   TEligibleCreditsResponse,
   TRepayBooking,
+  TValidateVoucher,
 } from "@/types/customer-app/booking.interface";
 
 export const getEligibleCredits: TEligibleCreditsResponse = async (params: IEligibleCreditsParams) => {
@@ -29,5 +30,10 @@ export const createPublicBooking: TCreatePublicBooking = async (body: ICreatePub
 
 export const repayBooking: TRepayBooking = async (bookingId: string) => {
   const res = await axiosx(true).post(`${MAIN_API_URL}/profile/bookings/${bookingId}/repay`);
+  return res.data;
+};
+
+export const validateVoucher: TValidateVoucher = async (body) => {
+  const res = await axiosx(true).post(`${MAIN_API_URL}/profile/vouchers/validate`, body);
   return res.data;
 };

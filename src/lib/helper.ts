@@ -436,3 +436,9 @@ export const normalizePhoneNumber = (phone: string): string => {
 
   return digits;
 };
+
+export const normalizeOrderId = (id?: string | null): string => (id ? String(id).replace(/^#+/, "").trim() : "");
+export const displayOrderId = (id?: string | null): string => {
+  const clean = normalizeOrderId(id);
+  return clean ? `#${clean}` : "-";
+};

@@ -15,12 +15,13 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 import { usePaymentMethodCtx } from "@/context/payment-method.ctx";
-import { useCreateBooking, useCreatePublicBooking } from "@/hooks/api/mutations/customers";
+import { useCreateBooking, useCreatePublicBooking, useValidateVoucher } from "@/hooks/api/mutations/customers";
 import { useGetEligibleCredits, useGetMyCredits } from "@/hooks/api/queries/customer/profile";
 import { useGetPublicSession } from "@/hooks/api/queries/customer/public";
 import { formatDateHelper } from "@/lib/helper";
 import { cn } from "@/lib/utils";
 import { getSessionLevelBadge, getSessionTypeBadge } from "@/utils/session-badge";
+import type { IValidateVoucherResponse } from "@/types/customer-app/booking.interface";
 
 type PaymentMethod = "credit" | "cash";
 
@@ -44,6 +45,8 @@ export const CheckoutSessionView = () => {
   const [creditsToUse, setCreditsToUse] = useState(1);
   const [couponInput, setCouponInput] = useState("");
   const [appliedCoupon, setAppliedCoupon] = useState<string | null>(null);
+  const [validatedVoucher, setValidatedVoucher] = useState<IValidateVoucherResponse | null>(null);
+  const [voucherError, setVoucherError] = useState<string | null>(null);
 
   const { data: session, isLoading, isError } = useGetPublicSession(typeof id === "string" ? id : undefined);
   const { data: creditsData, isLoading: creditsLoading } = useGetMyCredits();
@@ -54,6 +57,7 @@ export const CheckoutSessionView = () => {
   const { mutateAsync, isPending: bookingPending } = useCreateBooking();
   // using cash
   const { mutateAsync: mutatePublicBooking, isPending: publicBookingPending } = useCreatePublicBooking();
+  const { mutateAsync: validateVoucherAsync, isPending: voucherValidating } = useValidateVoucher();
 
   if (isLoading) {
     return (
@@ -95,6 +99,51 @@ export const CheckoutSessionView = () => {
     }
   };
 
+  const handleApplyVoucher = async () => {
+    const code = couponInput.trim().toUpperCase();
+    if (!code) return;
+    setVoucherError(null);
+    try {
+      const raw = await validateVoucherAsync({ voucher_code: code, class_session_id: session!.id });
+      // raw is { success, data } per edge function
+      const v: IValidateVoucherResponse = (raw as unknown as { data: IValidateVoucherResponse }).data ?? (raw as unknown as IValidateVoucherResponse);
+      if (v.is_valid) {
+        setAppliedCoupon(v.voucher_code ?? code);
+        setValidatedVoucher(v);
+        setVoucherError(null);
+      } else {
+        setAppliedCoupon(null);
+        setValidatedVoucher(null);
+        setVoucherError(v.error_message || `Invalid voucher (${v.error_code || "UNKNOWN"})`);
+      }
+    } catch (err: unknown) {
+      const msg =
+        (err as { response?: { data?: { error?: { message?: string } } } })?.response?.data?.error?.message ||
+        (err as Error)?.message ||
+        "Failed to validate voucher";
+      setVoucherError(msg);
+      setAppliedCoupon(null);
+      setValidatedVoucher(null);
+    }
+  };
+
+  const handleRemoveVoucher = () => {
+    setAppliedCoupon(null);
+    setValidatedVoucher(null);
+    setVoucherError(null);
+    setCouponInput("");
+  };
+
+  const handleCouponInputChange = (val: string) => {
+    setCouponInput(val);
+    if (voucherError) setVoucherError(null);
+  };
+
+  // derived pricing for Drop In
+  const subtotal = session?.price_idr ?? 0;
+  const discount = validatedVoucher?.calculated_discount ?? 0;
+  const total = Math.max(0, subtotal - discount);
+
   const handleProcessPayment = async () => {
     if (paymentType === "credit" && selectedCredit) {
       try {
@@ -110,9 +159,11 @@ export const CheckoutSessionView = () => {
       }
     } else if (paymentType === "cash") {
       try {
+        const voucher_code = appliedCoupon ? appliedCoupon.trim().toUpperCase() : undefined;
         const response = await mutatePublicBooking({
           class_session_id: session.id,
           payment_method: "midtrans",
+          ...(voucher_code ? { voucher_code } : {}),
         });
         const bookingData = response.data;
         if (bookingData?.booking_id) {
@@ -323,35 +374,51 @@ export const CheckoutSessionView = () => {
                       className="min-h-[48px] rounded-xl border-brand-100 bg-white pl-10 pr-3"
                       placeholder="Enter promo code"
                       value={couponInput}
-                      onChange={(e) => setCouponInput(e.target.value)}
+                      onChange={(e) => handleCouponInputChange(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") {
+                          e.preventDefault();
+                          void handleApplyVoucher();
+                        }
+                      }}
+                      disabled={!!appliedCoupon}
                     />
                     <TicketPercent size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-brand-500/40" />
                   </div>
                   <Button
                     type="button"
                     className="min-h-[48px] rounded-xl bg-brand-500 px-6 text-gray-50"
-                    onClick={() => setAppliedCoupon(couponInput.trim() || null)}
+                    onClick={handleApplyVoucher}
+                    disabled={!couponInput.trim() || voucherValidating || !!appliedCoupon}
                   >
-                    Apply
+                    {voucherValidating ? <Loader2 className="h-4 w-4 animate-spin" /> : "Apply"}
                   </Button>
                 </div>
 
-                {appliedCoupon ? (
+                {appliedCoupon && validatedVoucher ? (
                   <div className="flex w-full items-center justify-between gap-3 rounded-xl border border-brand-500/40 bg-brand-25 py-3 pl-4 pr-2">
                     <div className="flex items-center gap-3">
                       <CircleCheckSvg />
                       <div className="flex flex-col">
                         <p className="text-sm font-semibold uppercase">{appliedCoupon}</p>
-                        <p className="text-xs text-brand-500/60">10% off your booking</p>
+                        <p className="text-xs text-brand-500/60">
+                          {validatedVoucher.voucher_name
+                            ? `${validatedVoucher.voucher_name} — Rp ${validatedVoucher.calculated_discount.toLocaleString("id-ID")} off`
+                            : `Rp ${validatedVoucher.calculated_discount.toLocaleString("id-ID")} off your booking`}
+                        </p>
                       </div>
                     </div>
                     <button
                       type="button"
-                      onClick={() => setAppliedCoupon(null)}
+                      onClick={handleRemoveVoucher}
                       className="flex h-8 w-8 items-center justify-center rounded-full text-brand-500/50 transition-colors hover:bg-brand-100 hover:text-brand-500"
                     >
                       <X size={16} />
                     </button>
+                  </div>
+                ) : voucherError ? (
+                  <div className="rounded-xl border border-red-200 bg-red-50 p-3">
+                    <p className="text-xs font-medium text-red-600">{voucherError}</p>
                   </div>
                 ) : (
                   <p className="text-xs text-brand-500/50">Have a promo code? Apply it here before checkout.</p>
@@ -363,16 +430,18 @@ export const CheckoutSessionView = () => {
                 <div className="flex flex-col gap-2.5 rounded-xl border border-brand-100 bg-brand-25 p-4">
                   <div className="flex items-center justify-between text-sm">
                     <span className="text-brand-500/60">Subtotal</span>
-                    <span className="font-semibold">Rp {session.price_idr.toLocaleString("id-ID")}</span>
+                    <span className="font-semibold">Rp {subtotal.toLocaleString("id-ID")}</span>
                   </div>
                   <div className="flex items-center justify-between text-sm">
                     <span className="text-brand-500/60">Discount</span>
-                    <span className="font-semibold text-brand-500">Rp 0</span>
+                    <span className={cn("font-semibold", discount > 0 ? "text-emerald-600" : "text-brand-500")}>
+                      {discount > 0 ? `- Rp ${discount.toLocaleString("id-ID")}` : "Rp 0"}
+                    </span>
                   </div>
                   <div className="h-px w-full bg-brand-100" />
                   <div className="flex items-center justify-between">
                     <span className="font-semibold">Total</span>
-                    <span className="text-lg font-extrabold">Rp {session.price_idr.toLocaleString("id-ID")}</span>
+                    <span className="text-lg font-extrabold">Rp {total.toLocaleString("id-ID")}</span>
                   </div>
                 </div>
               </div>

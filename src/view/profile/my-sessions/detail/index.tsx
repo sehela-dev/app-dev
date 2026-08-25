@@ -6,9 +6,9 @@ import { NavHeaderComponent } from "@/components/layout/header-checkout";
 import { Button } from "@/components/ui/button";
 import { useRepayBooking } from "@/hooks/api/mutations/customers";
 import { useGetMySessionDetail } from "@/hooks/api/queries/customer/profile";
-import { formatCurrency, formatDateHelper } from "@/lib/helper";
+import { formatCurrency, formatDateHelper, normalizeOrderId } from "@/lib/helper";
 import { Clock, CreditCard, Loader2, MapPin, RefreshCw } from "lucide-react";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import QRCode from "react-qr-code";
 import { toast } from "sonner";
@@ -17,6 +17,7 @@ const FAILED_PAYMENT_STATUSES = ["cancel", "cancelled", "canceled", "expire", "e
 
 export const MySessionDetail = () => {
   const params = useParams();
+  const router = useRouter();
   const { id } = params;
   const { data, isLoading, isFetched } = useGetMySessionDetail(id as string);
   const [open, setOpen] = useState(false);
@@ -25,11 +26,15 @@ export const MySessionDetail = () => {
 
   const bookingData = data?.data;
   const paymentStatus = bookingData?.payment?.status;
+  const normalizedBookingStatus = bookingData?.booking_status?.toLowerCase() ?? "";
+  const isExpired = normalizedBookingStatus === "expired" || paymentStatus === "expire" || paymentStatus === "expired";
   const isPaymentFailed = !!paymentStatus && FAILED_PAYMENT_STATUSES.includes(paymentStatus);
   const isPendingPayment =
     !isPaymentFailed &&
+    !isExpired &&
     (bookingData?.booking_status === "pending_payment" || paymentStatus === "pending");
-  const isCancelled = bookingData?.booking_status === "cancelled" || bookingData?.booking_status === "canceled";
+  const isCancelled =
+    normalizedBookingStatus === "cancelled" || normalizedBookingStatus === "canceled" || normalizedBookingStatus === "expired" || isExpired;
   const snapRedirectUrl = bookingData?.payment?.snap_redirect_url;
   const repayMutation = useRepayBooking();
 
@@ -79,7 +84,18 @@ export const MySessionDetail = () => {
             <>
               <div className="flex flex-col gap-4 px-4">
                 {/* Pending Payment Banner */}
-                {isPaymentFailed && (
+                {isExpired ? (
+                  <div className="mt-4 flex items-start gap-3 rounded-xl border border-zinc-300 bg-zinc-50 p-4">
+                    <Clock className="h-5 w-5 shrink-0 text-zinc-600 mt-0.5" />
+                    <div className="flex flex-col gap-1 flex-1">
+                      <p className="font-semibold text-sm text-zinc-800">Booking Expired</p>
+                      <p className="text-xs text-zinc-700 leading-relaxed">
+                        Payment window 15m after <b>{bookingData?.created_at ? formatDateHelper(bookingData.created_at, "dd MMM HH:mm") : "booking"}</b> exceeded.
+                        Booking auto-set to <b>expired</b> ({bookingData?.cancel_reason ?? "payment_expired"}). Please re-book.
+                      </p>
+                    </div>
+                  </div>
+                ) : isPaymentFailed ? (
                   <div className="mt-4 flex items-start gap-3 rounded-xl border border-red-300 bg-red-50 p-4">
                     <RefreshCw className="h-5 w-5 shrink-0 text-red-600 mt-0.5" />
                     <div className="flex flex-col gap-1 flex-1">
@@ -90,19 +106,18 @@ export const MySessionDetail = () => {
                       </p>
                     </div>
                   </div>
-                )}
-                {isPendingPayment && (
+                ) : isPendingPayment ? (
                   <div className="mt-4 flex items-start gap-3 rounded-xl border border-yellow-300 bg-yellow-50 p-4">
                     <Clock className="h-5 w-5 shrink-0 text-yellow-600 mt-0.5" />
                     <div className="flex flex-col gap-1 flex-1">
                       <p className="font-semibold text-sm text-yellow-800">Payment Pending</p>
                       <p className="text-xs text-yellow-700 leading-relaxed">
                         Your booking is not confirmed yet. Complete your payment to secure your spot before the
-                        reservation expires.
+                        reservation expires (15m after booking creation).
                       </p>
                     </div>
                   </div>
-                )}
+                ) : null}
 
                 <div className="flex flex-col gap-4 w-full">
                   <div className="bg-[#FFFFFFCC] border border-[#91C1CA] mx-auto w-full rounded-[12px]">
@@ -114,7 +129,7 @@ export const MySessionDetail = () => {
                         </div>
                         <div className="flex flex-col gap-1">
                           <p className="text-xs">#Order ID</p>
-                          <p className="text-sm font-semibold">{bookingData?.payment?.order_id ?? "-"}</p>
+                          <p className="text-sm font-semibold">{normalizeOrderId(bookingData?.payment?.order_id) || "-"}</p>
                         </div>
                       </div>
                       <div className="flex flex-col gap-1">
@@ -140,9 +155,23 @@ export const MySessionDetail = () => {
                           <MapPin /> Open Goole Maps
                         </Button>
                       </div>
-                      <div className="flex flex-row items-center w-full bg-brand-25 p-2 justify-between">
-                        <p className="font-semibold text-sm">Purchase Amount</p>
-                        <p className="font-semibold text-sm">{formatCurrency(bookingData?.total_paid_idr)}</p>
+                      <div className="flex flex-col w-full bg-brand-25 p-2 gap-1">
+                        {bookingData?.voucher_code ? (
+                          <>
+                            <div className="flex flex-row items-center justify-between">
+                              <p className="font-normal text-xs text-brand-500/60">Original Price</p>
+                              <p className="font-normal text-xs line-through text-brand-500/60">{formatCurrency(bookingData?.price_idr)}</p>
+                            </div>
+                            <div className="flex flex-row items-center justify-between">
+                              <p className="font-normal text-xs text-brand-500/60">Voucher {bookingData.voucher_code}</p>
+                              <p className="font-normal text-xs text-emerald-600">- {formatCurrency(bookingData?.voucher_discount_idr ?? 0)}</p>
+                            </div>
+                          </>
+                        ) : null}
+                        <div className="flex flex-row items-center justify-between">
+                          <p className="font-semibold text-sm">Purchase Amount</p>
+                          <p className="font-semibold text-sm">{formatCurrency(bookingData?.total_paid_idr)}</p>
+                        </div>
                       </div>
 
                       {isPendingPayment || isPaymentFailed ? (
@@ -155,7 +184,15 @@ export const MySessionDetail = () => {
                     </div>
                   </div>
 
-                  {(isPendingPayment || isPaymentFailed) ? (
+                  {isExpired ? (
+                    <div className="mx-auto w-full flex flex-col items-center gap-3 rounded-xl border-2 border-dashed border-zinc-300 bg-zinc-50 p-8 text-center">
+                      <Clock className="h-10 w-10 text-zinc-500" />
+                      <p className="font-semibold text-zinc-700">Booking expired</p>
+                      <p className="text-xs text-zinc-500 max-w-[240px]">
+                        This booking expired 15m after creation (payment_expired). Please make a new booking.
+                      </p>
+                    </div>
+                  ) : isPendingPayment || isPaymentFailed ? (
                     <div className="mx-auto w-full flex flex-col items-center gap-3 rounded-xl border-2 border-dashed border-yellow-300 bg-yellow-50/50 p-8 text-center">
                       <CreditCard className="h-10 w-10 text-yellow-600" />
                       <p className="font-semibold text-brand-500">QR code available after payment</p>
@@ -200,7 +237,11 @@ export const MySessionDetail = () => {
 
         <StickyContainerComponent>
           <div className="flex my-2 px-4">
-            {isPaymentFailed ? (
+            {isExpired ? (
+              <Button className="w-full min-h-[48px]" variant="outline" onClick={() => router.push("/book")}>
+                Browse Classes
+              </Button>
+            ) : isPaymentFailed ? (
               <Button
                 className="w-full min-h-[48px]"
                 onClick={handleRetryPayment}

@@ -107,6 +107,7 @@ export const MySessionsPage = () => {
                       paymentMethod={item.payment?.provider ?? ""}
                       bookingId={item.id}
                       classSessionId={item.class_session?.id}
+                      createdAt={item.created_at}
                       onClick={() => onClickMySessionDetail(item?.id)}
                     />
                   ))}

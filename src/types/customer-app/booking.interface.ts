@@ -60,7 +60,9 @@ export type TCreateBooking = (body: ICreateBookingRequest) => Promise<IResponseD
 
 export interface ICreatePublicBookingRequest {
   class_session_id: string;
-  payment_method: "cash";
+  payment_method: "cash" | "midtrans";
+  voucher_code?: string;
+  notes?: string;
 }
 
 export interface ICreatePublicBookingResponse {
@@ -68,6 +70,9 @@ export interface ICreatePublicBookingResponse {
   payment_id: string;
   order_id: string;
   amount_idr: number;
+  original_amount_idr?: number;
+  voucher_code?: string | null;
+  voucher_discount_idr?: number;
   class_name: string;
   start_datetime: string;
   booking_status: string;
@@ -81,6 +86,33 @@ export interface ICreatePublicBookingResponse {
 }
 
 export type TCreatePublicBooking = (body: ICreatePublicBookingRequest) => Promise<IResponseData<ICreatePublicBookingResponse>>;
+
+// ----------------------------------------------------------------------
+// POST /profile/vouchers/validate (alias /profile/bookings/validate-voucher)
+// ----------------------------------------------------------------------
+export interface IValidateVoucherRequest {
+  voucher_code: string;
+  class_session_id?: string;
+  cart_total_idr?: number;
+}
+
+export interface IValidateVoucherResponse {
+  is_valid: boolean;
+  voucher_code?: string;
+  voucher_id?: string | null;
+  voucher_name?: string | null;
+  discount_type?: string | null;
+  discount_value?: number | null;
+  calculated_discount: number;
+  cart_total_idr: number;
+  discounted_total_idr: number;
+  error_code?: string | null;
+  error_message?: string | null;
+}
+
+export type TValidateVoucher = (
+  body: IValidateVoucherRequest,
+) => Promise<{ success: boolean; data: IValidateVoucherResponse }>;
 
 // ----------------------------------------------------------------------
 // POST /profile/bookings/:booking_id/repay (retry payment) - migrated from /public

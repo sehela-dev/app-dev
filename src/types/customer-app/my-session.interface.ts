@@ -10,6 +10,9 @@ export interface IMySessionItem {
   canceled_at: string;
   notes: string;
   created_at: string;
+  voucher_code?: string | null;
+  voucher_discount_idr?: number | null;
+  total_paid_idr?: number | null;
   class_session: IClassSession;
   payment?: ISessionPayment;
 }

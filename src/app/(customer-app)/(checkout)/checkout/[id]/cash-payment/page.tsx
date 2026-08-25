@@ -6,9 +6,9 @@ import { Loader2, QrCode, Clock, CheckCircle, AlertCircle, CreditCard, Home, Ext
 import { Button } from "@/components/ui/button";
 
 import { useGetMySessionDetail } from "@/hooks/api/queries/customer/profile";
-import { formatDateHelper } from "@/lib/helper";
+import { formatDateHelper, normalizeOrderId } from "@/lib/helper";
 
-const PAYMENT_TIMEOUT_MS = 2 * 60 * 1000;
+const PAYMENT_TIMEOUT_MS = 15 * 60 * 1000; // 15m after bookings.created_at — matches expire_stale_pending_bookings
 
 export default function CashPaymentPage() {
   const router = useRouter();
@@ -19,7 +19,6 @@ export default function CashPaymentPage() {
   const snapParam = searchParams.get("snap_redirect_url") as string | null;
 
   const [timeRemaining, setTimeRemaining] = useState(PAYMENT_TIMEOUT_MS);
-  const [isExpired, setIsExpired] = useState(false);
   const [paymentConfirmed, setPaymentConfirmed] = useState(false);
   const hasOpenedRef = useRef(false);
 
@@ -33,29 +32,31 @@ export default function CashPaymentPage() {
   const bookingStatus = detail?.booking_status ?? null;
   const paymentStatus = detail?.payment?.status ?? null;
   const orderId = detail?.payment?.order_id ?? null;
+  const createdAt = (detail as unknown as { created_at?: string })?.created_at ?? null;
+  // 15m lazy expiry: now - created_at >=15m → expired (backend does it on next fetch)
+  const backendExpired = bookingStatus === "expired" || paymentStatus === "expire" || paymentStatus === "expired";
+  const isExpired = backendExpired || timeRemaining === 0;
 
   // Open Midtrans in new tab once — keeps this page as success host
   useEffect(() => {
-    if (!snapUrl || hasOpenedRef.current || paymentConfirmed) return;
+    if (!snapUrl || hasOpenedRef.current || paymentConfirmed || isExpired) return;
     hasOpenedRef.current = true;
     const w = window.open(snapUrl, "_blank", "noopener,noreferrer");
     if (!w) hasOpenedRef.current = false;
-  }, [snapUrl, paymentConfirmed]);
+  }, [snapUrl, paymentConfirmed, isExpired]);
 
+  // Countdown from bookings.created_at + 15m (not fixed 2m)
   useEffect(() => {
-    if (paymentConfirmed) return;
-    const interval = setInterval(() => {
-      setTimeRemaining((prev) => {
-        const next = prev - 1000;
-        if (next <= 0) {
-          setIsExpired(true);
-          return 0;
-        }
-        return next;
-      });
-    }, 1000);
+    if (paymentConfirmed || backendExpired || !createdAt) return;
+    const expiresAt = new Date(createdAt).getTime() + PAYMENT_TIMEOUT_MS;
+    const tick = () => {
+      const remaining = expiresAt - Date.now();
+      setTimeRemaining(remaining > 0 ? remaining : 0);
+    };
+    tick();
+    const interval = setInterval(tick, 1000);
     return () => clearInterval(interval);
-  }, [paymentConfirmed]);
+  }, [paymentConfirmed, backendExpired, createdAt]);
 
   useEffect(() => {
     if (bookingStatus === "confirmed" || paymentStatus === "paid" || paymentStatus === "settlement" || paymentStatus === "capture") {
@@ -64,8 +65,8 @@ export default function CashPaymentPage() {
   }, [bookingStatus, paymentStatus]);
 
   useEffect(() => {
-    if (isExpired && !paymentConfirmed) refetch();
-  }, [isExpired, paymentConfirmed, refetch]);
+    if (timeRemaining === 0 && !paymentConfirmed && !backendExpired) refetch(); // triggers backend lazy expire
+  }, [timeRemaining, paymentConfirmed, backendExpired, refetch]);
 
   if (isLoading) {
     return (
@@ -149,7 +150,7 @@ export default function CashPaymentPage() {
               <div className="h-px bg-brand-50" />
               <div className="flex items-center justify-between gap-4">
                 <span className="text-brand-500/60">Order ID</span>
-                <span className="font-mono text-xs text-brand-700">{orderId ?? "—"}</span>
+                <span className="font-mono text-xs text-brand-700">{normalizeOrderId(orderId) || "—"}</span>
               </div>
               {bookingId && (
                 <div className="flex items-center justify-between gap-4">
@@ -252,7 +253,7 @@ export default function CashPaymentPage() {
               {orderId && (
                 <div className="flex justify-between">
                   <span className="text-brand-500/60">Order ID</span>
-                  <span className="font-mono text-xs">{orderId}</span>
+                  <span className="font-mono text-xs">{normalizeOrderId(orderId)}</span>
                 </div>
               )}
             </div>
@@ -266,9 +267,9 @@ export default function CashPaymentPage() {
           )}
 
           {isExpired && !paymentConfirmed && (
-            <div className="flex items-center gap-2 rounded-xl bg-yellow-50 border border-yellow-100 p-4 mb-4">
-              <AlertCircle className="h-5 w-5 text-yellow-500" />
-              <p className="text-sm font-medium text-yellow-700">Payment time expired. Your booking is still pending. You can pay at the studio before class starts.</p>
+            <div className="flex items-center gap-2 rounded-xl bg-zinc-50 border border-zinc-200 p-4 mb-4">
+              <AlertCircle className="h-5 w-5 text-zinc-600" />
+              <p className="text-sm font-medium text-zinc-700">Booking expired — 15m payment window exceeded (payment_expired). Please make a new booking.</p>
             </div>
           )}
 

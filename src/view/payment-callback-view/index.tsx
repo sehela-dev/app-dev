@@ -6,6 +6,7 @@ import { Loader2 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { useGetPaymentStatus } from "@/hooks/api/queries/customer/payments";
+import { displayOrderId, normalizeOrderId } from "@/lib/helper";
 
 const SUCCESS_STATUSES = ["settlement", "capture"];
 const FAILURE_STATUSES = ["deny", "cancel", "expire", "failure"];
@@ -13,10 +14,11 @@ const FAILURE_STATUSES = ["deny", "cancel", "expire", "failure"];
 export const PaymentCallbackView = () => {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const orderId = searchParams.get("order_id");
+  const rawOrderId = searchParams.get("order_id");
+  const orderId = rawOrderId ? normalizeOrderId(rawOrderId) : null;
   const urlTransactionStatus = searchParams.get("transaction_status");
 
-  // Verify actual status from backend (webhook may lag behind Midtrans redirect)
+  // Verify actual status from backend (webhook may lag behind Midtrans redirect) — BE now stores without '#', strip for compat
   const { data, isLoading } = useGetPaymentStatus(orderId);
 
   const serverStatus = data?.data?.transaction_status;
@@ -61,7 +63,7 @@ export const PaymentCallbackView = () => {
         )}
 
         {orderId && (
-          <p className="text-xs text-brand-500/50 font-mono">Order ID: {orderId}</p>
+          <p className="text-xs text-brand-500/50 font-mono">Order ID: {displayOrderId(orderId)}</p>
         )}
 
         {!isLoading && (

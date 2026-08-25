@@ -3,6 +3,8 @@ import { CalendarMinus, MapPin, User, Clock, CreditCard, XCircle, CheckCircle2, 
 import { cn } from "@/lib/utils";
 import { Button } from "../ui/button";
 import { useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
+import { formatDateHelper } from "@/lib/helper";
 
 interface IMySessionCardProps {
   time: string;
@@ -16,6 +18,7 @@ interface IMySessionCardProps {
   paymentMethod: string;
   bookingId: string;
   classSessionId: string;
+  createdAt?: string | null;
   onClick?: () => void;
 }
 
@@ -44,6 +47,7 @@ export const MySessionCardComponent = ({
   paymentMethod,
   bookingId,
   classSessionId,
+  createdAt,
   onClick,
 }: IMySessionCardProps) => {
   const router = useRouter();
@@ -119,6 +123,25 @@ export const MySessionCardComponent = ({
 
   const BadgeIcon = statusMeta.icon;
 
+  // 15m expiry countdown — uses bookings.created_at (added 2026-08-24) — ponytail: client-only timer, BE is source of truth
+  const [now, setNow] = useState(() => Date.now());
+  useEffect(() => {
+    if (!isPendingPayment || !createdAt) return;
+    const id = setInterval(() => setNow(Date.now()), 1000);
+    return () => clearInterval(id);
+  }, [isPendingPayment, createdAt]);
+  const expiresAtMs = createdAt ? new Date(createdAt).getTime() + 15 * 60 * 1000 : null;
+  const remainingMs = expiresAtMs ? expiresAtMs - now : null;
+  const remainingLabel =
+    isPendingPayment && remainingMs !== null
+      ? remainingMs <= 0
+        ? "Expired"
+        : `${String(Math.floor(remainingMs / 60000)).padStart(2, "0")}:${String(Math.floor((remainingMs % 60000) / 1000)).padStart(2, "0")} left`
+      : null;
+  const expiresLabel = expiresAtMs
+    ? new Date(expiresAtMs).toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit", hour12: false })
+    : null;
+
   const handlePayNow = (e: React.MouseEvent) => {
     e.stopPropagation();
     router.push(`/checkout/${classSessionId}/cash-payment?booking_id=${bookingId}`);
@@ -183,18 +206,32 @@ export const MySessionCardComponent = ({
               {instructor}
             </p>
           )}
+          {createdAt && (
+            <p className="flex items-center gap-2 text-xs text-gray-500">
+              <Clock size={12} className="shrink-0 text-brand-300" />
+              Booked {formatDateHelper(createdAt, "dd MMM HH:mm")} WIB
+              {isPendingPayment && expiresLabel ? ` • Expires ${expiresLabel} WIB` : ""}
+            </p>
+          )}
         </div>
 
         {/* Action — brand is main color */}
         {isPendingPayment && (
-          <Button
-            size="sm"
-            className="mt-3 w-full rounded-xl bg-brand-500 font-semibold text-white hover:bg-brand-600 shadow-sm"
-            onClick={handlePayNow}
-          >
-            <CreditCard className="h-4 w-4" />
-            Pay Now — {hhmm} WIB
-          </Button>
+          <>
+            <Button
+              size="sm"
+              className="mt-3 w-full rounded-xl bg-brand-500 font-semibold text-white hover:bg-brand-600 shadow-sm"
+              onClick={handlePayNow}
+            >
+              <CreditCard className="h-4 w-4" />
+              Pay Now — {hhmm} WIB
+            </Button>
+            {remainingLabel && (
+              <p className="mt-1.5 text-center text-xs font-medium text-amber-700">
+                {remainingLabel === "Expired" ? "Expired — please re-book" : `${remainingLabel} left to pay`}
+              </p>
+            )}
+          </>
         )}
       </div>
     </div>

@@ -17,21 +17,33 @@ export const useRepayBooking = () => {
 };
 
 const useConfig = (queryClient: ReturnType<typeof useQueryClient>) => {
-  const onError = useCallback((error: AxiosError<any>) => {
-    const responseError = error?.response?.data?.error;
-    if (error?.response && error?.response?.status < 500) {
-      return toast.error(responseError?.code ?? "ERROR", {
+  const onError = useCallback(
+    (error: AxiosError<any>) => {
+      const responseError = error?.response?.data?.error;
+      // 410 BOOKING_EXPIRED — 15m lazy expiry, pending_payment → expired
+      if (responseError?.code === "BOOKING_EXPIRED" || error?.response?.status === 410) {
+        queryClient.invalidateQueries({ queryKey: ["user", "profile", "my-session"] });
+        return toast.error("Booking Expired", {
+          id: "error",
+          description: responseError?.message ?? "Payment window 15m exceeded (payment_expired). Please make a new booking.",
+          position: "top-center",
+        });
+      }
+      if (error?.response && error?.response?.status < 500) {
+        return toast.error(responseError?.code ?? "ERROR", {
+          id: "error",
+          description: responseError?.message ?? "Unable to retry payment. Please try again.",
+          position: "top-center",
+        });
+      }
+      return toast.error("Something Wrong!", {
         id: "error",
-        description: responseError?.message ?? "Unable to retry payment. Please try again.",
+        description: "Please try again later!",
         position: "top-center",
       });
-    }
-    return toast.error("Something Wrong!", {
-      id: "error",
-      description: "Please try again later!",
-      position: "top-center",
-    });
-  }, []);
+    },
+    [queryClient],
+  );
 
   const onSuccess = useCallback(
     (data: any) => {

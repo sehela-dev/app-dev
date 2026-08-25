@@ -19,6 +19,7 @@ export interface IPaymentStatus {
 export type TGetPaymentStatus = (orderId: string) => Promise<IResponseData<IPaymentStatus>>;
 
 export const getPaymentStatus: TGetPaymentStatus = async (orderId) => {
-  const res = await axiosx(true).get(`${MAIN_API_URL}/payments/status/${orderId}`);
+  const clean = orderId.replace(/^#+/, "").trim();
+  const res = await axiosx(true).get(`${MAIN_API_URL}/payments/status/${encodeURIComponent(clean)}`);
   return res.data;
 };
