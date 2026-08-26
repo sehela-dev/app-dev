@@ -96,7 +96,7 @@ export const SessionDetailView = () => {
 
   return (
     <>
-      <div className="flex w-full flex-col gap-6 px-4 pb-8 pt-6 font-serif text-brand-500">
+      <div className="flex w-full flex-col gap-6 px-4 pb-8 pt-6 font-serif text-brand-500 min-h-full">
         {/* back */}
         <button
           onClick={() => router.back()}
