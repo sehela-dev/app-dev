@@ -10,8 +10,10 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 import { usePaymentMethodCtx } from "@/context/payment-method.ctx";
+import { useGetSessionDetail } from "@/hooks/api/queries/admin/class-session";
 import { X } from "lucide-react";
-import { useState } from "react";
+import { useParams } from "next/navigation";
+import { useEffect, useState } from "react";
 
 const walletContent = [
   {
@@ -33,8 +35,13 @@ const walletContent = [
 
 export const CheckoutSessionView = () => {
   const [selectedCredit, setSelectedCredit] = useState<number | null>(null);
-  const { paymentType } = usePaymentMethodCtx();
-  console.log("paymentType", paymentType);
+  const { paymentType, onChangePaymentMethod } = usePaymentMethodCtx();
+  const { id } = useParams();
+  const { data } = useGetSessionDetail(id as string);
+  const isCreditOnly = !!data?.data?.is_credit_only;
+  useEffect(() => {
+    if (isCreditOnly && paymentType === "cash") onChangePaymentMethod("credit");
+  }, [isCreditOnly, paymentType, onChangePaymentMethod]);
 
   const onSelectWalletCredit = (id: number) => {
     if (selectedCredit === id) setSelectedCredit(null);
@@ -46,8 +53,17 @@ export const CheckoutSessionView = () => {
         <NavHeaderComponent />
         <div className="flex w-full px-4  flex-col gap-4 h-auto  mt-4 overflow-auto">
           <h3 className="font-semibold">Order Items</h3>
-          <CheckoutSessionCardComponent duration="20" location="TB Simatupang" date="Monday, 10 Aug 2025" time="08:00" title="Basic Yoga" />
-          {paymentType === "cash" ? (
+          <CheckoutSessionCardComponent
+            duration="20"
+            location={(data?.data?.location as string) ?? "TB Simatupang"}
+            date={(data?.data?.start_date as string) ?? "Monday, 10 Aug 2025"}
+            time={(data?.data?.time_start as string) ?? "08:00"}
+            title={data?.data?.session_name ?? "Basic Yoga"}
+          />
+          {isCreditOnly ? (
+            <p className="text-xs text-amber-600 bg-amber-50 border border-amber-200 rounded p-2">This session only accepts credit payment</p>
+          ) : null}
+          {(isCreditOnly ? false : paymentType === "cash") ? (
             <>
               <div>
                 <div className="relative">

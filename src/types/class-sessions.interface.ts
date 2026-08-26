@@ -37,6 +37,8 @@ export interface ISessionItem {
   slots_available: number;
   slots_display: string;
   is_full: boolean;
+  is_credit_only?: boolean;
+  photo_url?: string | null;
 }
 
 export interface IClassSession {
@@ -68,6 +70,9 @@ export interface ICreateSessionPaylaod {
   //PRICING
   price_idr: number;
   price_credit_amount: number;
+  is_credit_only?: boolean;
+  photo_url?: string | null;
+  photo?: File | null;
   recurring?: {
     type: string;
     count: string | number;
@@ -115,5 +120,5 @@ export interface IParticipantsSession {
 export type TSessionListData = (data: ICommonParams) => Promise<IResponseData<ISessionItem[]>>;
 export type TSessionDetailData = (id: string) => Promise<IResponseData<ISessionItem>>;
 export type TSessionBookings = ({ id, page, limit }: { id: string; page: number; limit: number }) => Promise<IResponseData<IParticipantsSession[]>>;
-export type TCreateSessionData = (data: ICreateSessionPaylaod) => Promise<IResponseData<ISessionItem>>;
-export type TEditSessionData = ({ id, data }: { id: string; data: ICreateSessionPaylaod }) => Promise<IResponseData<ISessionItem>>;
+export type TCreateSessionData = (data: ICreateSessionPaylaod | FormData) => Promise<IResponseData<ISessionItem>>;
+export type TEditSessionData = ({ id, data }: { id: string; data: ICreateSessionPaylaod | FormData }) => Promise<IResponseData<ISessionItem>>;

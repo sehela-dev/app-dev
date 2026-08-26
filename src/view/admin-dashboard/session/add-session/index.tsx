@@ -11,6 +11,7 @@ import {
 } from "@/components/page/session/form";
 import { Button } from "@/components/ui/button";
 import { useCreateNewSession } from "@/hooks/api/mutations/admin";
+import { createFormData } from "@/lib/helper";
 import { ICreateSessionPaylaod } from "@/types/class-sessions.interface";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
@@ -50,6 +51,9 @@ const defaultValues = {
   //PRICING
   price_idr: "0",
   price_credit_amount: "1",
+  is_credit_only: false,
+  photo: null as File | null,
+  photo_url: "",
   is_recurring: "no",
   recurring_type: "",
   recurring_count: "0",
@@ -129,8 +133,9 @@ export const CreateSessionPageView = () => {
           : {
               meeting_link: data?.meeting_link as string,
             }),
-        price_idr: parseInt(data?.price_idr),
+        price_idr: data?.is_credit_only ? 0 : parseInt(data?.price_idr),
         price_credit_amount: parseInt(data?.price_credit_amount),
+        is_credit_only: !!data?.is_credit_only,
         start_date: data?.start_date as string,
         time_start: data?.time_start as string,
         time_end: data?.time_end as string,
@@ -157,7 +162,15 @@ export const CreateSessionPageView = () => {
           : null),
       };
 
-      const res = await mutateAsync(payload);
+      // File takes precedence over URL per API contract; use multipart when file selected
+      const hasFile = data?.photo instanceof File;
+      const submitData: ICreateSessionPaylaod | FormData = hasFile
+        ? createFormData({ ...payload, photo: data.photo as File })
+        : data?.photo_url
+          ? { ...payload, photo_url: data.photo_url as string }
+          : payload;
+
+      const res = await mutateAsync(submitData as ICreateSessionPaylaod);
       if (res) {
         handleOpenModal("ONSUCCESS");
       }
