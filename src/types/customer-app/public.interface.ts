@@ -127,6 +127,8 @@ export interface IPublicSession {
   meeting_link: string | null;
   price_idr: number;
   price_credit_amount: number | null;
+  is_credit_only?: boolean | null;
+  photo_url?: string | null;
   slots_booked: number;
   slots_total: number;
   slots_available: number;

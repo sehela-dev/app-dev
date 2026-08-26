@@ -1,6 +1,5 @@
 "use client";
 
-import Image from "next/image";
 import { useParams, useRouter } from "next/navigation";
 import {
   CalendarMinus2,
@@ -22,7 +21,6 @@ import { useAuthMember } from "@/context/member.ctx";
 import { useGetPublicSession } from "@/hooks/api/queries/customer/public";
 import { formatDateHelper } from "@/lib/helper";
 import { getSessionLevelBadge, getSessionTypeBadge } from "@/utils/session-badge";
-import { getClassImage } from "@/utils/class-image";
 
 const getDuration = (start: string, end: string): string => {
   const [sh, sm] = start.split(":").map(Number);
@@ -88,8 +86,9 @@ export const SessionDetailView = () => {
   }
 
   const isOnline = session.place === "online";
+  const isCreditOnly = !!session.is_credit_only || session.price_idr === 0;
   const allowCredit = !!session.allow_credit && (session.price_credit_amount ?? 0) > 0;
-  const isFree = !session.price_idr && !allowCredit;
+  const isFree = !session.price_idr && !allowCredit && !isCreditOnly;
   const bookedPercent = session.slots_total ? Math.min(100, (session.slots_booked / session.slots_total) * 100) : 0;
   const duration = getDuration(session.time_start, session.time_end);
   const levelBadge = getSessionLevelBadge(session.level);
@@ -106,16 +105,13 @@ export const SessionDetailView = () => {
           <ChevronLeft size={18} /> Back
         </button>
 
-        {/* banner */}
-        <div className="relative w-full overflow-hidden rounded-xl border border-brand-100">
-          <Image
-            src={getClassImage(session.class_name)}
-            alt={session.session_name}
-            width={361}
-            height={200}
-            className="w-full object-cover"
-          />
-        </div>
+        {/* banner — session photo only, no fallback */}
+        {session.photo_url ? (
+          <div className="relative w-full overflow-hidden rounded-xl border border-brand-100">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src={session.photo_url} alt={session.session_name} className="h-[200px] w-full object-cover" />
+          </div>
+        ) : null}
 
         {/* title */}
         <div className="flex flex-col gap-2">
@@ -217,6 +213,20 @@ export const SessionDetailView = () => {
         <InfoCard title="Price" icon={<Gem size={16} />}>
           {isFree ? (
             <p className="text-lg font-extrabold">Free</p>
+          ) : isCreditOnly ? (
+            <>
+              {allowCredit && (
+                <InfoRow
+                  label="Credit"
+                  value={
+                    <span className="flex items-center justify-end gap-1">
+                      <Gem size={15} /> {session.price_credit_amount} Credit
+                    </span>
+                  }
+                />
+              )}
+              <p className="text-xs text-brand-500/60">Credit only — cash payment not available.</p>
+            </>
           ) : (
             <>
               {session.price_idr > 0 && <InfoRow label="Cash" value={`Rp ${session.price_idr.toLocaleString("id-ID")}`} />}
@@ -262,7 +272,7 @@ export const SessionDetailView = () => {
             </Button>
           ) : (
             <div className="flex flex-row items-center justify-between gap-4">
-              {allowCredit && (
+              {allowCredit && !isCreditOnly && (
                 <>
                   <div className="w-full">
                     <Button
@@ -276,11 +286,19 @@ export const SessionDetailView = () => {
                   <p className="font-normal text-xs">Or</p>
                 </>
               )}
-              <div className="w-full">
-                <Button className="font-extrabold !text-gray-50 h-12 w-full" onClick={() => onCheckoutSession("cash")}>
-                  {session.price_idr > 0 ? `Rp. ${session.price_idr.toLocaleString("id-ID")}` : "Free"}
-                </Button>
-              </div>
+              {allowCredit && isCreditOnly ? (
+                <div className="w-full">
+                  <Button className="font-extrabold h-12 w-full !bg-brand-50" variant="secondary" onClick={() => onCheckoutSession("credit")}>
+                    <Gem /> {session.price_credit_amount} Credit
+                  </Button>
+                </div>
+              ) : !isCreditOnly ? (
+                <div className="w-full">
+                  <Button className="font-extrabold !text-gray-50 h-12 w-full" onClick={() => onCheckoutSession("cash")}>
+                    {session.price_idr > 0 ? `Rp. ${session.price_idr.toLocaleString("id-ID")}` : "Free"}
+                  </Button>
+                </div>
+              ) : null}
             </div>
           )}
         </div>

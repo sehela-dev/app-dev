@@ -306,7 +306,7 @@ const ClassSessions = ({
                     isSpecial={session.type === "special"}
                     isOnline={session.place === "online"}
                     credit={session.allow_credit && session.price_credit_amount ? String(session.price_credit_amount) : ""}
-                    price={session.price_idr > 0 ? session.price_idr.toLocaleString("id-ID") : ""}
+                    price={!session.is_credit_only && session.price_idr > 0 ? session.price_idr.toLocaleString("id-ID") : ""}
                     url={`/book/session/${session.id}?date=${displayDate}&class_id=${classInfo?.id}`}
                   />
                 ))}

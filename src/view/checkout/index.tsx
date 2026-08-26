@@ -1,5 +1,5 @@
 "use client";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { Loader2, MapPin, Minus, Plus, TicketPercent, Users, Video, X } from "lucide-react";
 
@@ -59,6 +59,14 @@ export const CheckoutSessionView = () => {
   const { mutateAsync: mutatePublicBooking, isPending: publicBookingPending } = useCreatePublicBooking();
   const { mutateAsync: validateVoucherAsync, isPending: voucherValidating } = useValidateVoucher();
 
+  const isCreditOnly = !!session?.is_credit_only || session?.price_idr === 0;
+  const allowCredit = !!session?.allow_credit && (session?.price_credit_amount ?? 0) > 0;
+  const showCredit = isCreditOnly ? allowCredit : paymentType === "credit" && allowCredit;
+
+  useEffect(() => {
+    if (isCreditOnly && paymentType !== "credit" && allowCredit) onChangePaymentMethod("credit");
+  }, [isCreditOnly, paymentType, allowCredit, onChangePaymentMethod]);
+
   if (isLoading) {
     return (
       <div className="flex items-center justify-center min-h-dvh">
@@ -77,8 +85,6 @@ export const CheckoutSessionView = () => {
     );
   }
 
-  const allowCredit = !!session.allow_credit && (session.price_credit_amount ?? 0) > 0;
-  const showCredit = paymentType === "credit" && allowCredit;
   const sessionCreditPrice = session.price_credit_amount ?? 1;
   const availableCredits = eligibleParams ? eligibleCreditsData?.data ?? [] : creditsData?.data?.filter((item) => !item.is_expired) ?? [];
   const creditsListLoading = eligibleParams ? eligibleLoading : creditsLoading;
@@ -248,31 +254,38 @@ export const CheckoutSessionView = () => {
           </div>
 
           {/* Payment method */}
-          <div className="flex flex-col gap-2">
-            <h3 className="font-semibold">Payment Method</h3>
-            <div className="grid grid-cols-2 gap-2">
-              {PAYMENT_METHODS.map((method) => {
-                const disabled = method.id === "credit" && !allowCredit;
-                return (
-                  <button
-                    key={method.id}
-                    type="button"
-                    disabled={disabled}
-                    onClick={() => onChangePaymentMethod(method.id)}
-                    className={cn(
-                      "rounded-xl border px-4 py-3 text-sm font-bold transition-colors",
-                      disabled && "opacity-40 cursor-not-allowed",
-                      paymentType === method.id
-                        ? "bg-brand-500 border-brand-500 text-gray-50"
-                        : "border-brand-100 bg-brand-25 text-brand-500 hover:border-brand-500",
-                    )}
-                  >
-                    {method.label}
-                  </button>
-                );
-              })}
+          {isCreditOnly ? (
+            <div className="rounded-xl border border-brand-500/20 bg-brand-25 p-3 flex items-center gap-2">
+              <Badge className="bg-brand-500 text-gray-50">Credit Only</Badge>
+              <p className="text-xs text-brand-500/70">This session only accepts credits.</p>
             </div>
-          </div>
+          ) : (
+            <div className="flex flex-col gap-2">
+              <h3 className="font-semibold">Payment Method</h3>
+              <div className="grid grid-cols-2 gap-2">
+                {PAYMENT_METHODS.map((method) => {
+                  const disabled = method.id === "credit" && !allowCredit;
+                  return (
+                    <button
+                      key={method.id}
+                      type="button"
+                      disabled={disabled}
+                      onClick={() => onChangePaymentMethod(method.id)}
+                      className={cn(
+                        "rounded-xl border px-4 py-3 text-sm font-bold transition-colors",
+                        disabled && "opacity-40 cursor-not-allowed",
+                        paymentType === method.id
+                          ? "bg-brand-500 border-brand-500 text-gray-50"
+                          : "border-brand-100 bg-brand-25 text-brand-500 hover:border-brand-500",
+                      )}
+                    >
+                      {method.label}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          )}
 
           {showCredit ? (
             <div className="flex flex-col gap-4 w-full">
