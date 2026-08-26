@@ -67,6 +67,7 @@ export const AddTransactionFOrm = () => {
     startDate: selectedRange.from,
     endDate: selectedRange.to,
     search: debounceClass,
+    is_credit_only: false
     // status: "scheduled",
   });
 

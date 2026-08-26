@@ -392,6 +392,7 @@ export const SessionDetailPage = () => {
                 >
                   {data?.data?.status}
                 </Badge>
+                {data?.data?.is_credit_only ? <Badge variant="secondary">Credit Only</Badge> : null}
               </div>
 
               <p className="text-sm text-gray-500">Review all session details and make updates as needed</p>
@@ -460,10 +461,21 @@ export const SessionDetailPage = () => {
           <div className="flex flex-col gap-4">
             <h4 className="text-sm font-semibold">Pricing</h4>
             <div className="grid grid-cols-12 gap-4">
+              <div className="grid col-span-3 text-gray-500">Payment</div>
+              <div className="grid col-span-9">{data?.data?.is_credit_only ? "Credit Only" : "Cash + Credit"}</div>
               <div className="grid col-span-3 text-gray-500">Regular Price</div>
               <div className="grid col-span-9">{formatCurrency(data?.data?.price_idr)}</div>
               <div className="grid col-span-3 text-gray-500">Credit Price</div>
               <div className="grid col-span-9">{data?.data?.price_credit_amount} Credit</div>
+              {data?.data?.photo_url ? (
+                <>
+                  <div className="grid col-span-3 text-gray-500">Photo</div>
+                  <div className="grid col-span-9">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src={data.data.photo_url} alt="session" className="h-32 w-32 rounded object-cover border" />
+                  </div>
+                </>
+              ) : null}
               <div className="grid col-span-3 text-gray-500">Discount</div>
               {/* <div className="grid col-span-9">{data?.data?.place}</div> */}
               <div className="grid col-span-9">-</div>

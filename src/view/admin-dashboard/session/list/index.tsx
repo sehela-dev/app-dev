@@ -15,8 +15,10 @@ import { defaultDate, formatDateHelper } from "@/lib/helper";
 import { cn } from "@/lib/utils";
 // import { IClassSessionCategory } from "@/types/class-category.interface";
 import { ISessionItem } from "@/types/class-sessions.interface";
+import { ICommonParams } from "@/types/general.interface";
 
-import { CirclePlus, Ellipsis, ListFilter } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { CirclePlus, Ellipsis } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 
@@ -59,6 +61,8 @@ export const SessionListPage = () => {
     from: null,
     to: null,
   });
+  const [creditOnly, setCreditOnly] = useState(false);
+  const [hasPhoto, setHasPhoto] = useState<boolean | null>(null);
   const { data, isLoading, refetch } = useGetSessions({
     page,
     limit,
@@ -66,7 +70,9 @@ export const SessionListPage = () => {
     status: tabs !== "all" ? tabs : "",
     startDate: selectedRange.from as string,
     endDate: selectedRange.to as string,
-  });
+    is_credit_only: creditOnly,
+    ...(hasPhoto !== null ? { has_photo: hasPhoto } : null),
+  } as ICommonParams & Record<string, unknown>);
 
   const { mutateAsync } = useDeleteSession();
 
@@ -74,7 +80,19 @@ export const SessionListPage = () => {
     {
       id: "session_name",
       text: "Session Name",
-      value: "session_name",
+      value: (row: ISessionItem) => <span>{row.session_name}</span>,
+    },
+    {
+      id: "credit_only",
+      text: "Credit Only",
+      value: (row: ISessionItem) =>
+        row.is_credit_only ? (
+          <Badge variant="secondary" className="text-xs">
+            Credit Only
+          </Badge>
+        ) : (
+          <span className="text-xs text-gray-400">—</span>
+        ),
     },
     {
       id: "class",
@@ -199,12 +217,27 @@ export const SessionListPage = () => {
             tabs={tabFilter}
           />
         </div>
-        <div className="flex flex-row items-center w-full justify-end gap-2">
-          <div>
-            <Button variant={"outline"} className="text-brand-999 text-sm font-medium">
-              <ListFilter /> Filter
-            </Button>
-          </div>
+        <div className="flex flex-row items-center w-full justify-end gap-2 flex-wrap">
+          <Button
+            variant={creditOnly ? "default" : "outline"}
+            className="text-sm"
+            onClick={() => {
+              setCreditOnly((v) => !v);
+              setPage(1);
+            }}
+          >
+            {creditOnly ? "Credit Only" : "Non-Credit"}
+          </Button>
+          <Button
+            variant={hasPhoto === true ? "default" : "outline"}
+            className="text-sm"
+            onClick={() => {
+              setHasPhoto((v) => (v === true ? null : true));
+              setPage(1);
+            }}
+          >
+            Has Photo
+          </Button>
           <div>
             {can("session:create") && (
               <Button className=" text-sm font-medium" onClick={() => router.push("session/create")}>

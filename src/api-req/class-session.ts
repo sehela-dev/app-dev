@@ -9,7 +9,7 @@ import {
 } from "@/types/class-category.interface";
 import { TCreateSessionData, TEditSessionData, TSessionBookings, TSessionDetailData, TSessionListData } from "@/types/class-sessions.interface";
 
-export const getSessions: TSessionListData = async ({ page, limit, search, payment_method, status, startDate, endDate }) => {
+export const getSessions: TSessionListData = async ({ page, limit, search, payment_method, status, startDate, endDate, is_credit_only, has_photo }) => {
   const res = await axiosx(true).get(`${MAIN_API_URL}/classes/sessions`, {
     params: {
       page,
@@ -19,7 +19,8 @@ export const getSessions: TSessionListData = async ({ page, limit, search, payme
       ...(search ? { q: search } : null),
       ...(payment_method ? { payment_method } : null),
       ...(status ? { status } : null),
-      // ...(status ? { status } : null),
+      ...(typeof is_credit_only === "boolean" ? { is_credit_only } : null),
+      ...(typeof has_photo === "boolean" ? { has_photo } : null),
     },
   });
   return res.data;

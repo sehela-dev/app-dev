@@ -12,6 +12,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { useEditSession } from "@/hooks/api/mutations/admin";
 import { useGetSessionDetail } from "@/hooks/api/queries/admin/class-session";
+import { createFormData } from "@/lib/helper";
 
 import { Loader2 } from "lucide-react";
 import { useParams, useRouter } from "next/navigation";
@@ -54,6 +55,9 @@ const defaultValues = {
   //PRICING
   price_idr: "0",
   price_credit_amount: "1",
+  is_credit_only: false,
+  photo: null as File | null,
+  photo_url: "",
 
   //OTHER
   type: "regular",
@@ -145,8 +149,11 @@ export const EditSessionPage = () => {
       meeting_link: data?.data?.meeting_link,
 
       //PRICING
-      price_idr: String(data?.data?.price_idr),
-      price_credit_amount: String(data?.data?.price_credit_amount),
+        price_idr: String(data?.data?.price_idr),
+        price_credit_amount: String(data?.data?.price_credit_amount),
+        is_credit_only: !!data?.data?.is_credit_only,
+        photo: null as File | null,
+        photo_url: data?.data?.photo_url ?? "",
 
       //OTHER
       type: data?.data?.type,
@@ -199,8 +206,10 @@ export const EditSessionPage = () => {
           : {
               meeting_link: data?.meeting_link as string,
             }),
-        price_idr: parseInt(data?.price_idr),
-        price_credit_amount: parseInt(data?.price_credit_amount),
+        // is_credit_only locked after creation — keep original value
+        price_idr: values.is_credit_only ? 0 : parseInt(data?.price_idr as string),
+        price_credit_amount: parseInt(data?.price_credit_amount as string),
+        is_credit_only: !!values.is_credit_only,
         start_date: data?.start_date as string,
         time_start: data?.time_start as string,
         time_end: data?.time_end as string,
@@ -226,7 +235,16 @@ export const EditSessionPage = () => {
           : // eslint-disable-next-line @typescript-eslint/no-explicit-any
             { payment: null as any }),
       };
-      const res = await mutateAsync({ id: id as string, data: { ...payload } });
+      const hasFile = data?.photo instanceof File;
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      let submitData: any = payload;
+      if (hasFile) {
+        submitData = createFormData({ ...payload, photo: data.photo as File });
+      } else if (typeof data?.photo_url === "string") {
+        const url = (data.photo_url as string).trim();
+        submitData = url ? { ...payload, photo_url: url } : { ...payload, photo_url: null };
+      }
+      const res = await mutateAsync({ id: id as string, data: submitData });
       if (res) {
         handleOpenModal("ONSUCCESS");
       }
@@ -282,7 +300,7 @@ export const EditSessionPage = () => {
               <SessionDateTimeFormComponent start_date={values.start_date} isEdit />
               <SessionLocationFormComponent />
             </div>
-            <SessionPricingFormComponent />
+            <SessionPricingFormComponent disableCreditOnly />
           </div>
           <div className="flex flex-row w-full items-center justify-end gap-4 mt-4">
             <div>
