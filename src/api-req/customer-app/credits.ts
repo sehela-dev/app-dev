@@ -19,12 +19,19 @@ export const getCreditLedger: TGetCreditLedger = async (params) => {
     params: {
       ...(params?.page ? { page: params.page } : {}),
       ...(params?.page_size ? { page_size: params.page_size } : {}),
+      ...(params?.type && params.type !== "all" ? { type: params.type } : {}),
     },
   });
-  // supabase functions returns { success, data, pagination } — normalize to IResponseData
-  const d = res.data as { success?: boolean; data: unknown; pagination?: unknown; statusCode?: number; message?: string };
+  // supabase functions returns { success, data, pagination, summary } — normalize to IResponseData
+  const d = res.data as { success?: boolean; data: unknown; pagination?: unknown; summary?: unknown; statusCode?: number; message?: string };
   if (d.success !== undefined) {
-    return { statusCode: d.statusCode ?? 200, message: d.message ?? "ok", data: d.data as never, pagination: d.pagination as never };
+    return {
+      statusCode: d.statusCode ?? 200,
+      message: d.message ?? "ok",
+      data: d.data as never,
+      pagination: d.pagination as never,
+      summary: d.summary as never,
+    } as never;
   }
   return res.data;
 };

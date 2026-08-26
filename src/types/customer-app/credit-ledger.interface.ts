@@ -5,7 +5,11 @@ export type LedgerEntryType = "credit_issue" | "credit_spend" | "credit_refund" 
 export interface ILedgerSharedContext {
   is_shared_package: boolean;
   shared_with_user_id: string | null;
+  shared_with_user_name: string | null;
+  shared_with_user_email: string | null;
   shared_by_user_id: string | null;
+  shared_by_user_name: string | null;
+  shared_by_user_email: string | null;
 }
 
 export interface ILedgerEntry {
@@ -24,6 +28,14 @@ export interface ILedgerEntry {
 export interface ILedgerParams {
   page?: number;
   page_size?: number;
+  type?: "earned" | "used" | "expired" | "all";
 }
 
-export type TGetCreditLedger = (params?: ILedgerParams) => Promise<IResponseData<ILedgerEntry[]>>;
+export interface ILedgerSummary {
+  earned: number;
+  used: number;
+  expired: number;
+  balance: number;
+}
+
+export type TGetCreditLedger = (params?: ILedgerParams) => Promise<IResponseData<ILedgerEntry[]> & { summary?: ILedgerSummary }>;
