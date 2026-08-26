@@ -4,28 +4,36 @@ export interface IMyCreditItem {
   package_purchase_id: string;
   package_id: string;
   package_name: string;
-  package_description: string;
+  package_description: string | null;
+  package_type?: string | null;
   total_credits: number;
   credits_remaining: number;
   credits_used: number;
   price_paid_idr: number;
   purchased_at: string;
-  first_used_at: string;
-  expires_at: string;
+  first_used_at: string | null;
+  expires_at: string | null;
   validity_days: number;
   status: string;
   validity_status: string;
   is_expired: boolean;
-  session_type_restriction?: string | string[];
-  place_restriction: string | string[];
-  class_ids_restriction?: string[];
-  class_type_restriction?: string | string[];
+  session_type_restriction?: string | string[] | null;
+  place_restriction?: string | string[] | null;
+  class_ids_restriction?: string[] | null;
+  class_type_restriction?: string | string[] | null;
   is_owner: boolean;
   is_shared: boolean;
-  shared_with_user_id?: string;
-  shared_with_user_name?: string;
-  shared_by_user_id?: string;
-  shared_by_user_name?: string;
+  shared_with_user_id?: string | null;
+  shared_with_user_name?: string | null;
+  shared_by_user_id?: string | null;
+  shared_by_user_name?: string | null;
 }
 
-export type TMyCreditResponse = () => Promise<IResponseData<IMyCreditItem[]>>;
+export interface IMyCreditParams {
+  is_expired?: boolean;
+  page?: number;
+  page_size?: number;
+  limit?: number;
+}
+
+export type TMyCreditResponse = (params?: IMyCreditParams) => Promise<IResponseData<IMyCreditItem[]>>;

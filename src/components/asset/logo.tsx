@@ -9,7 +9,9 @@ interface ILogoProps {
 
 export const LogoComponent = ({ className, src = "logo.png" }: ILogoProps) => {
   return (
-    <div className={cn(className, "relative")}>
+    <div className={cn(className, "relative")} onClick={() => {
+      window.location.href = '/'
+    }}>
       <Image src={`/assets/${src}`} alt="logo-sehela" width={99} height={32} loading="lazy" />
     </div>
   );

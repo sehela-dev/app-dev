@@ -54,7 +54,7 @@ export const BookClassView = () => {
   const onClearFilters = () => setParams({ date: undefined, instructor_id: undefined, location_id: undefined, place: undefined });
 
   return (
-    <div className="flex flex-col w-full gap-8 font-serif mx-auto py-8 min-h-dvh text-brand-500">
+    <div className="flex flex-col w-full gap-8 font-serif mx-auto pt-8 min-h-dvh text-brand-500">
       {!classId ? (
         <ClassPicker classes={classes} isLoading={classesLoading} isError={classesError} onSelect={(id) => setParams({ class_id: id })} />
       ) : (

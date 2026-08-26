@@ -7,7 +7,7 @@ import { useAuthMember } from "@/context/member.ctx";
 import { useGetMySessions } from "@/hooks/api/queries/customer/profile";
 import { formatDateHelper, getDurationInMinutes } from "@/lib/helper";
 
-import { ChevronRight, Loader2, LogOut, SquarePen, Tickets } from "lucide-react";
+import { ChevronRight, History, Loader2, LogOut, SquarePen, Tickets } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { ReactNode, useState } from "react";
@@ -121,6 +121,7 @@ export const ProfilePageView = () => {
       <div className=" pt-6">
         <div className="flex flex-col gap-2 ">
           <MenuItem icon={<Tickets />} name="My Credits" action={() => router.push("/profile/my-credits")} />
+          <MenuItem icon={<History />} name="Credit History" action={() => router.push("/profile/credit-history")} />
           <MenuItem icon={<SquarePen />} name="Edit Profile" action={() => router.push("/profile/update")} />
         </div>
         <Divider className="mb-4" />
