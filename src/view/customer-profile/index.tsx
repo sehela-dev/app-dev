@@ -61,8 +61,8 @@ export const ProfilePageView = () => {
                       key={item.id}
                       duration={getDurationInMinutes(item?.class_session?.start_datetime, item?.class_session?.end_datetime)}
                       location={item?.class_session?.location_address}
-                      date={formatDateHelper(item.class_session.start_datetime, "EEEE, MMM yyyy")}
-                      time={formatDateHelper(item?.class_session?.start_datetime, "H:mm")}
+                      date={formatDateHelper(item.class_session.start_datetime, "EEEE, dd MMM yyyy")}
+                      time={formatDateHelper(item?.class_session?.start_datetime, "HH:mm")}
                       title={item?.class_session?.session_name}
                     />
                   ))}
