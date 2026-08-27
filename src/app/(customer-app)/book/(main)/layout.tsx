@@ -7,5 +7,5 @@ export default function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  return <MainLayoutWithNav>{children}</MainLayoutWithNav>;
+  return <MainLayoutWithNav showNav>{children}</MainLayoutWithNav>;
 }

@@ -19,6 +19,9 @@ interface IMySessionCardProps {
   bookingId: string;
   classSessionId: string;
   createdAt?: string | null;
+  computedStatus?: string | null;
+  isEnded?: boolean | null;
+  sessionStatus?: string | null;
   onClick?: () => void;
 }
 
@@ -48,40 +51,80 @@ export const MySessionCardComponent = ({
   bookingId,
   classSessionId,
   createdAt,
+  computedStatus,
+  isEnded,
+  sessionStatus,
   onClick,
 }: IMySessionCardProps) => {
   const router = useRouter();
 
   const normalizedBooking = bookingStatus?.toLowerCase() ?? "";
   const normalizedPayment = paymentStatus?.toLowerCase() ?? "";
+  const normalizedSession = (sessionStatus ?? computedStatus ?? "").toLowerCase();
+
+  const isSessionCanceled = normalizedSession === "canceled" || normalizedSession === "cancelled";
+  const isSessionEnded = normalizedSession === "ended" || !!isEnded;
+  const isSessionOngoing = normalizedSession === "ongoing";
+  const isSessionScheduled = normalizedSession === "scheduled";
 
   const isCancelled =
     normalizedBooking === "cancelled" ||
     normalizedBooking === "canceled" ||
     normalizedBooking === "expired" ||
-    FAILED_STATUSES.includes(normalizedPayment);
+    FAILED_STATUSES.includes(normalizedPayment) ||
+    isSessionCanceled;
 
-  // pending only if not already cancelled
-  const isPendingPayment = !isCancelled && (normalizedBooking === "pending_payment" || normalizedPayment === "pending");
+  // pending only if not already cancelled/ended
+  const isPendingPayment = !isCancelled && !isSessionEnded && !isSessionCanceled && !isSessionOngoing && (normalizedBooking === "pending_payment" || normalizedPayment === "pending");
 
   const isConfirmed =
     !isCancelled &&
     !isPendingPayment &&
+    !isSessionEnded &&
+    !isSessionCanceled &&
     (normalizedBooking === "confirmed" || normalizedBooking === "upcoming" || normalizedPayment === "paid" || normalizedPayment === "settlement" || normalizedPayment === "capture");
 
-  const isUpcoming = normalizedBooking === "upcoming";
+  const isUpcoming = isSessionScheduled || (isConfirmed && normalizedBooking === "upcoming");
 
   const hhmm = ensureHHmm(time);
   const durationLabel = duration ? `${duration} min` : "";
 
+  const isExpired = normalizedBooking === "expired" || normalizedPayment === "expired" || normalizedPayment === "expire";
   const statusMeta = (() => {
     if (isCancelled) {
+      if (isExpired) {
+        return {
+          label: "Expired",
+          badgeClass: "bg-violet-200 text-violet-800 border-violet-200",
+          accent: "border-l-violet-500",
+          timePill: "bg-violet-200 text-violet-800 border-violet-200",
+          icon: Clock,
+        };
+      }
       return {
-        label: normalizedBooking === "expired" || normalizedPayment === "expired" || normalizedPayment === "expire" ? "Expired" : "Cancelled",
+        label: "Cancelled",
         badgeClass: "bg-red-200/40 text-red-800 border-red-200",
         accent: "border-l-red-500",
         timePill: "bg-red-200/30 text-red-800 border-red-200",
         icon: XCircle,
+      };
+    }
+    if (isSessionEnded) {
+      return {
+        label: "Ended",
+        badgeClass: "bg-gray-200 text-gray-700 border-gray-300",
+        accent: "border-l-gray-400",
+        timePill: "bg-gray-200 text-gray-700 border-gray-300",
+        icon: Clock,
+      };
+    }
+    if (isSessionOngoing) {
+      return {
+        label: "Ongoing",
+        badgeClass: "bg-blue-200 text-blue-800 border-blue-200",
+        accent: "border-l-blue-500",
+        timePill: "bg-blue-200 text-blue-800 border-blue-200",
+        icon: Clock,
       };
     }
     if (isPendingPayment) {
@@ -204,6 +247,14 @@ export const MySessionCardComponent = ({
             <p className="flex items-center gap-2 text-sm text-gray-600">
               <User size={14} className="shrink-0 text-brand-400" />
               {instructor}
+            </p>
+          )}
+          {sessionStatus && (
+            <p className="flex items-center gap-2 text-xs text-gray-500 capitalize">
+              <Clock size={12} className="shrink-0 text-brand-300" />
+              Session: {sessionStatus}
+              {computedStatus && computedStatus.toLowerCase() !== sessionStatus.toLowerCase() ? ` → ${computedStatus}` : ""}
+              {isEnded ? " (ended)" : ""}
             </p>
           )}
           {createdAt && (

@@ -15,7 +15,7 @@ import { formatDateHelper, getDurationInMinutes } from "@/lib/helper";
 import { Loader2 } from "lucide-react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 
 const tabs = [
   {
@@ -27,12 +27,20 @@ const tabs = [
     value: "upcoming",
   },
   {
+    name: "Ended",
+    value: "ended",
+  },
+  {
     name: "Pending Payment",
     value: "pending_payment",
   },
   {
     name: "Canceled",
     value: "cancelled",
+  },
+  {
+    name: "Expired",
+    value: "expired",
   },
 ];
 
@@ -49,6 +57,9 @@ export const MySessionsPage = () => {
     limit: 8,
     search: debounceSearch,
   });
+
+  // BE filter is `expired` (booking expired) for Ended tab — no separate `ended` value
+  const displayed = useMemo(() => data?.data ?? [], [data]);
 
   const handleSearch = (query: string) => {
     setSearch(query);
@@ -81,7 +92,7 @@ export const MySessionsPage = () => {
             />
             <div className="flex flex-row items-center justify-between gap-2">
               <SearchInput search={search} onSearch={handleSearch} />
-              <DialogSessionFilter />
+              {/* <DialogSessionFilter /> */}
             </div>
           </div>
 
@@ -89,11 +100,11 @@ export const MySessionsPage = () => {
             <div className="flex items-center justify-center py-6">
               <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
             </div>
-          ) : (data?.data?.length as number) > 0 ? (
+          ) : (displayed.length as number) > 0 ? (
             <div className="flex flex-col gap-4">
               <ScrollArea>
                 <div className="flex flex-col gap-4">
-                  {data?.data?.map((item) => (
+                  {displayed.map((item) => (
                     <MySessionCardComponent
                       key={item.id}
                       duration={getDurationInMinutes(item?.class_session?.start_datetime, item?.class_session?.end_datetime)}
@@ -108,6 +119,9 @@ export const MySessionsPage = () => {
                       bookingId={item.id}
                       classSessionId={item.class_session?.id}
                       createdAt={item.created_at}
+                      computedStatus={item.class_session?.computed_status}
+                      isEnded={item.class_session?.is_ended}
+                      sessionStatus={item.class_session?.status}
                       onClick={() => onClickMySessionDetail(item?.id)}
                     />
                   ))}

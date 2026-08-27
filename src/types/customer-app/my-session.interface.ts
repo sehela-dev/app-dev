@@ -32,6 +32,8 @@ export interface IClassSession {
   level: string;
   place: string;
   status: string;
+  computed_status?: string;
+  is_ended?: boolean;
   room_id: string;
   location: string;
   end_datetime: string;
