@@ -23,7 +23,7 @@ export const getSessionLevelBadge = (level?: string | null): ISessionBadge | nul
   switch (level) {
     case "beginner":
       return {
-        label: "Beginner",
+        label: "Newbie Yogi",
         className: "bg-green-500/15 text-green-800 border-green-500/30",
       };
     case "intermediate":
@@ -33,7 +33,7 @@ export const getSessionLevelBadge = (level?: string | null): ISessionBadge | nul
       };
     case "advanced":
       return {
-        label: "Advanced",
+        label: "Experienced Yogi",
         className: "bg-red-500/15 text-red-800 border-red-500/30",
       };
     case "all_levels":

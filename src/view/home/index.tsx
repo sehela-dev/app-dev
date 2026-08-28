@@ -131,12 +131,19 @@ export const HomeView = () => {
               Breathe to <em>make space.</em>
             </h1>
             <p className="lead">
-              A single breath at Sehela brings you the space you need — to tune in with your body, to sit with your thoughts, or simply to focus on your day.
+              A single breath at Sehela brings you the space you need — to tune in with your body, to sit with your thoughts, or simply to focus on
+              your day.
             </p>
             <div className="hero-ctas">
               <Link href="/book" className="btn-primary">
                 Book a Class
               </Link>
+              <a href="#locations" className="btn-ghost" style={{ background: "var(--peach)", color: "var(--teal-deep)", borderColor: "var(--peach)" }}>
+                View Locations
+              </a>
+              <a href="#pricing" className="btn-ghost" style={{ background: "var(--peach)", color: "var(--teal-deep)", borderColor: "var(--peach)" }}>
+                Price List
+              </a>
             </div>
           </div>
         </section>
@@ -153,7 +160,11 @@ export const HomeView = () => {
                 { title: "Hatha Yoga", desc: "Slow, deliberate, and rooted — a steady class for building a strong foundation and calming the mind." },
                 { title: "Vinyasa Flow", desc: "Breath-linked movement that builds heat, rhythm, and focus." },
                 { title: "Power Yoga", desc: "A stronger, faster-paced practice to build heat, strength, and a serious sweat." },
-                { title: "Basic Yoga", desc: "No experience needed — just curiosity and an open mat. Perfect if you're new to yoga.", tag: "New to Yoga" },
+                {
+                  title: "Basic Yoga",
+                  desc: "No experience needed — just curiosity and an open mat. Perfect if you're new to yoga.",
+                  tag: "New to Yoga",
+                },
                 { title: "Yoga for 50s+", desc: "Gentle, chair-supported movement with props for comfort — built for strength, balance, and ease." },
                 { title: "Prenatal Yoga", desc: "A safe, nurturing practice supportive through every trimester." },
               ].map((c) => (
@@ -176,7 +187,8 @@ export const HomeView = () => {
               </div>
             </div>
             <p className="classes-footnote">
-              Have questions about the schedule? <strong>Message us on WhatsApp</strong> — full booking is on our <Link href="/book">booking site</Link>.
+              Have questions about the schedule? <strong>Message us on WhatsApp</strong> — full booking is on our{" "}
+              <Link href="/book">booking site</Link>.
             </p>
           </div>
         </section>
@@ -185,8 +197,17 @@ export const HomeView = () => {
           <div className="wrap">
             <div className="eyebrow">Beyond the Mat</div>
             <h2>Special classes &amp; workshops, occasionally</h2>
-            <p>From restorative evenings to alignment intensives, sound healing, and masterclasses — sometimes in-studio, sometimes off-site with guest teachers.</p>
-            <a href="https://instagram.com/sehelaspace" target="_blank" rel="noopener noreferrer" className="btn-primary" style={{ background: "#FFDFCF", color: "#1F4750" }}>
+            <p>
+              From restorative evenings to alignment intensives, sound healing, and masterclasses — sometimes in-studio, sometimes off-site with guest
+              teachers.
+            </p>
+            <a
+              href="https://instagram.com/sehelaspace"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="btn-primary"
+              style={{ background: "#FFDFCF", color: "#1F4750" }}
+            >
               Follow @sehelaspace
             </a>
           </div>
@@ -197,7 +218,8 @@ export const HomeView = () => {
             <div className="eyebrow">Deepen Your Practice</div>
             <h2 className="training-h2">Yoga Teacher Training</h2>
             <p className="training-p">
-              In collaboration with One Song Yoga School, led by Denise Payne, Sehela Space hosts a teacher training program for practitioners ready to take their practice further — whether to teach, or simply to go deeper.
+              In collaboration with One Song Yoga School, led by Denise Payne, Sehela Space hosts a teacher training program for practitioners ready
+              to take their practice further — whether to teach, or simply to go deeper.
             </p>
             <div className="partner-line">
               <span className="dot" /> In partnership with One Song Yoga School
@@ -206,7 +228,13 @@ export const HomeView = () => {
               <div className="k">Program Details</div>
               <div className="v">Full curriculum &amp; enrollment</div>
               <p>Dates, curriculum, pricing, and application details for the current teacher training cohort are all listed on our website.</p>
-              <a href="https://sehelaspace.com" target="_blank" rel="noopener noreferrer" className="btn-primary" style={{ background: "#347582", color: "#DCF2ED" }}>
+              <a
+                href="https://sehelaspace.com"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="btn-primary"
+                style={{ background: "#347582", color: "#DCF2ED" }}
+              >
                 Visit sehelaspace.com
               </a>
             </div>
@@ -222,29 +250,71 @@ export const HomeView = () => {
             </div>
             <div className="loc-grid">
               <div className="loc-card">
-                <div className="loc-photo">
-                  <div className="loc-name">Pondok Labu</div>
+                <div className="loc-photo" style={{ overflow: "hidden" }}>
+                  <Image
+                    src="/assets/home-page/pd-labu.jpg"
+                    alt="Pondok Labu studio"
+                    fill
+                    sizes="(max-width: 768px) 100vw, 400px"
+                    style={{ objectFit: "cover" }}
+                  />
+                  <div
+                    aria-hidden
+                    style={{ position: "absolute", inset: 0, background: "linear-gradient(to top, rgba(31,71,80,0.55), rgba(31,71,80,0.05))" }}
+                  />
+                  <div className="loc-name" style={{ zIndex: 1 }}>
+                    Pondok Labu
+                  </div>
                 </div>
                 <div className="loc-body">
                   <div className="addr">Jl. Pd. Labu 1 No.8b, RT.3/RW.7, Pd. Labu, Kec. Cilandak, Kota Jakarta Selatan, DKI Jakarta 12450</div>
                   <div className="loc-actions">
-                    <a href="https://www.google.com/maps/search/?api=1&query=Jl.+Pd.+Labu+1+No.8b+RT.3%2FRW.7+Pd.+Labu+Kec.+Cilandak+Kota+Jakarta+Selatan+12450" target="_blank" rel="noopener noreferrer">View on Google Maps</a>
+                    <a
+                      href="https://www.google.com/maps/search/?api=1&query=Jl.+Pd.+Labu+1+No.8b+RT.3%2FRW.7+Pd.+Labu+Kec.+Cilandak+Kota+Jakarta+Selatan+12450"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                    >
+                      View on Google Maps
+                    </a>
                     <a href="https://wa.me/62811149688">WhatsApp</a>
-                    <a href="https://instagram.com/sehelaspace" target="_blank" rel="noopener noreferrer">@sehelaspace</a>
+                    <a href="https://instagram.com/sehelaspace" target="_blank" rel="noopener noreferrer">
+                      @sehelaspace
+                    </a>
                   </div>
                 </div>
               </div>
               <div className="loc-card">
-                <div className="loc-photo">
-                  <div className="loc-name">Kemang</div>
+                <div className="loc-photo" style={{ overflow: "hidden" }}>
+                  <Image
+                    src="/assets/home-page/kemang-studio.jpeg"
+                    alt="Kemang studio"
+                    fill
+                    sizes="(max-width: 768px) 100vw, 400px"
+                    style={{ objectFit: "cover" }}
+                  />
+                  <div
+                    aria-hidden
+                    style={{ position: "absolute", inset: 0, background: "linear-gradient(to top, rgba(31,71,80,0.55), rgba(31,71,80,0.05))" }}
+                  />
+                  <div className="loc-name" style={{ zIndex: 1 }}>
+                    Kemang
+                  </div>
                 </div>
                 <div className="loc-body">
                   <div className="addr">Jl. Kemang Timur No.76, RT.11/RW.3, Bangka, Kec. Mampang Prpt., Kota Jakarta Selatan, DKI Jakarta 12730</div>
                   <div className="note">Inside East Kemang Padel Club</div>
                   <div className="loc-actions">
-                    <a href="https://www.google.com/maps/search/?api=1&query=Jl.+Kemang+Timur+No.76+RT.11%2FRW.3+Bangka+Kec.+Mampang+Prapatan+Kota+Jakarta+Selatan+12730" target="_blank" rel="noopener noreferrer">View on Google Maps</a>
+                    <a
+                      href="https://www.google.com/maps/search/?api=1&query=Jl.+Kemang+Timur+No.76+RT.11%2FRW.3+Bangka+Kec.+Mampang+Prapatan+Kota+Jakarta+Selatan+12730"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                    >
+                      View on Google Maps
+                    </a>
                     <a href="https://wa.me/6281110002826">WhatsApp</a>
-                    <a href="https://instagram.com/sehelaspace" target="_blank" rel="noopener noreferrer">@sehelaspace</a>
+                    <a href="https://instagram.com/sehelaspace" target="_blank" rel="noopener noreferrer">
+                      @sehelaspace
+                    </a>
                   </div>
                 </div>
               </div>
@@ -277,7 +347,8 @@ export const HomeView = () => {
                 </div>
               ))}
               <div className="price-note">
-                All single sessions and packages must be <strong>used within 30 days of the purchase date</strong>. Once activated, the expiry countdown shown above begins on the date of your <strong>first class</strong>.
+                All single sessions and packages must be <strong>used within 30 days of the purchase date</strong>. Once activated, the expiry
+                countdown shown above begins on the date of your <strong>first class</strong>.
               </div>
             </div>
             <div className="highlight-grid">
@@ -290,34 +361,73 @@ export const HomeView = () => {
                   <li>Props for comfort &amp; support</li>
                 </ul>
                 <div className="packages">
-                  <div className="pkg"><span className="label">2-Class Package</span><span className="amt">Rp300K</span></div>
-                  <div className="pkg"><span className="label">4-Class Package</span><span className="amt">Rp500K</span></div>
+                  <div className="pkg">
+                    <span className="label">2-Class Package</span>
+                    <span className="amt">Rp300K</span>
+                  </div>
+                  <div className="pkg">
+                    <span className="label">4-Class Package</span>
+                    <span className="amt">Rp500K</span>
+                  </div>
                 </div>
-                <div className="fine">No drop-in available. Must be used within 30 days of purchase. Once activated, the expiry countdown shown above begins on the date of your first class.</div>
+                <div className="fine">
+                  No drop-in available. Must be used within 30 days of purchase. Once activated, the expiry countdown shown above begins on the date
+                  of your first class.
+                </div>
               </div>
               <div className="price-highlight">
                 <div className="h-eyebrow">Special Program</div>
                 <h3>Prenatal Yoga</h3>
                 <div className="packages">
-                  <div className="pkg"><span className="label">1 Session</span><span className="amt">Rp190K</span></div>
-                  <div className="pkg"><span className="label">4-Class Package</span><span className="amt">Rp680K</span></div>
+                  <div className="pkg">
+                    <span className="label">1 Session</span>
+                    <span className="amt">Rp190K</span>
+                  </div>
+                  <div className="pkg">
+                    <span className="label">4-Class Package</span>
+                    <span className="amt">Rp680K</span>
+                  </div>
                 </div>
-                <div className="fine">Must be used within 30 days of purchase. Once activated, the expiry countdown shown above begins on the date of your first class.</div>
+                <div className="fine">
+                  Must be used within 30 days of purchase. Once activated, the expiry countdown shown above begins on the date of your first class.
+                </div>
               </div>
             </div>
             <div style={{ textAlign: "center" }}>
               <details className="terms-details">
-                <summary><span className="terms-btn">View Terms &amp; Conditions</span></summary>
+                <summary>
+                  <span className="terms-btn">View Terms &amp; Conditions</span>
+                </summary>
                 <div className="terms-panel">
-                  <ul>
+                  <>
                     <li>All sessions and packages must be used within 30 days of the purchase date.</li>
                     <li>The package expiry date cannot be extended for any reason.</li>
                     <li>Packages are non-transferable and cannot be assigned to another person.</li>
-                    <li>For shareable packages, the names of both customers and the class credit allocated to each must be provided at the time of purchase.</li>
-                    <li>The expiry countdown starts from the first class attended by the customer (normal package) or by either customer (shared package).</li>
-                    <li>The 3-class first-timer package is only available for individuals who have never attended a class at Sehela Space studios.</li>
-                  </ul>
-                  <a className="full-link" href="/terms-and-conditions">Read full Terms &amp; Conditions →</a>
+                    <li>
+                      For shareable packages, the names of both customers and the class credit allocated to each must be provided at the time of
+                      purchase.
+                    </li>
+                    <li>
+                      The expiry countdown starts from the first class attended by the customer (normal package) or by either customer (shared
+                      package).
+                    </li>
+                    <li>
+                      The 3-class first-timer package is only available for individuals who have never attended a class at Sehela Space studios.
+                    </li>
+                    <li>
+                      {" "}
+                      ⁠Customers may purchase a new package within 30 days of the previous package&apos;s expiry to qualify for rollover; any
+                      remaining credit will be combined with the new package&apos;s credit and share its expiry date.
+                    </li>
+                    <li>
+                      If a new package isn&apos;t purchased within 30 days of the previous package&apos;s expiry, any remaining credit will expire and
+                      cannot be rolled over.
+                    </li>
+                  </>
+
+                  <a className="full-link" href="/terms-and-conditions">
+                    Read full Terms &amp; Conditions →
+                  </a>
                 </div>
               </details>
             </div>
@@ -328,20 +438,30 @@ export const HomeView = () => {
           <div className="wrap">
             <div className="eyebrow">Sehela Shop</div>
             <h2>Merch, mats &amp; more</h2>
-            <p>Beyond classes, we carry Sehela Space merchandise alongside a curated selection of other yoga and wellness brands. Shop in-studio, or order online and pick up at either location.</p>
+            <p>
+              Beyond classes, we carry Sehela Space merchandise alongside a curated selection of other yoga and wellness brands. Shop in-studio, or
+              order online and pick up at either location.
+            </p>
             <div className="shop-visual">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <Image src={'/assets/home-page/asset-3.png'} alt="home-page" height={160} width={200} />
-
+              <Image src={"/assets/home-page/shop-thumbnail.jpg"} alt="home-page" height={160} width={200} />
             </div>
             <div className="hero-ctas" style={{ justifyContent: "flex-start" }}>
-              <Link href="/shop" className="btn-primary" style={{ background: "#347582", color: "#DCF2ED" }}>Shop Online</Link>
-              <a href="https://instagram.com/sehelaspace" target="_blank" rel="noopener noreferrer" className="btn-ghost" style={{ borderColor: "rgba(31,71,80,0.3)", color: "#1F4750" }}>Via Instagram</a>
+              <Link href="/shop" className="btn-primary" style={{ background: "#347582", color: "#DCF2ED" }}>
+                Shop Online
+              </Link>
+              <a
+                href="https://instagram.com/sehelaspace"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="btn-ghost"
+                style={{ borderColor: "rgba(31,71,80,0.3)", color: "#1F4750" }}
+              >
+                Via Instagram
+              </a>
             </div>
           </div>
         </section>
       </div>
-
 
       <MainFooterComponent />
     </div>

@@ -225,7 +225,7 @@ const ClassSessions = ({
       </button>
 
       {/* class banner */}
-      <div className="relative w-full h-full mx-auto">
+      {/* <div className="relative w-full h-full mx-auto">
         <Image
           src={getClassImage(classInfo?.class_name)}
           alt={classInfo?.class_name ?? "class"}
@@ -234,7 +234,7 @@ const ClassSessions = ({
           className="w-full h-full rounded-xl"
           objectFit="fill"
         />
-      </div>
+      </div> */}
 
       <div className="flex flex-col gap-2">
         <h2 className="font-serif font-extrabold text-[32px] leading-[110%]">{classInfo?.class_name ?? "Class"}</h2>

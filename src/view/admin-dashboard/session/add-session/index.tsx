@@ -60,7 +60,7 @@ const defaultValues = {
 
   //OTHER
   type: "regular",
-  level: "advanced",
+  level: "all_levels",
   isOveride: false,
   payment: {
     payment_model: "",

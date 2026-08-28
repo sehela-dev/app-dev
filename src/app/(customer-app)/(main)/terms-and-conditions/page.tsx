@@ -33,7 +33,10 @@ export default function TermsAndConditionsPage() {
 
         <div className="rounded-xl border border-brand-100 bg-white p-4 text-xs leading-6 text-brand-500/70">
           <p className="font-bold text-brand-700">Catatan</p>
-          <p className="mt-1">Reschedule hanya &gt;6 jam sebelum kelas (yoga 100k, prenatal pilates 125k). Keterlambatan &gt;10 menit kredit hangus. Barang tertinggal disimpan 2 minggu.</p>
+          <p className="mt-1">
+            Reschedule hanya &gt;6 jam sebelum kelas (yoga 75k, prenatal pilates 95k). Keterlambatan &gt;10 menit kredit hangus. Barang tertinggal
+            disimpan 2 minggu.
+          </p>
         </div>
       </div>
     </div>

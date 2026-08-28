@@ -32,6 +32,12 @@ export const OPTION_TYPE = [
   },
 ];
 
+export const OPTION_LEVEL = [
+  { value: "beginner", label: "Newbie Yogi" },
+  { value: "all_levels", label: "All Levels" },
+  { value: "advanced", label: "Experienced Yogi" },
+];
+
 export const SessionBasicInfoFormComponent = ({ type }: { type?: string }) => {
   const methods = useFormContext();
   const { control } = methods;
@@ -122,7 +128,35 @@ export const SessionBasicInfoFormComponent = ({ type }: { type?: string }) => {
               )}
             />
           </div>
-          <div className="grid grid-cols-3 space-y-2 gap-2">
+          <div className="grid grid-cols-2 lg:grid-cols-4 space-y-2 gap-2">
+            <FormField
+              control={control}
+              name="level"
+              render={({ field }) => (
+                <FormItem className="flex flex-col">
+                  <FormLabel className=" text-brand-999 font-medium text-sm" required>
+                    Level
+                  </FormLabel>
+                  <FormControl>
+                    <Selects value={field.value} defaultValue={field.value} onValueChange={field.onChange}>
+                      <SelectTrigger className="w-full px-4 py-4 border-2 border-gray-200 rounded-lg text-gray-999 placeholder-gray-400 focus:outline-none focus:border-brand-500 transition-colors h-[42px]">
+                        <SelectValue placeholder="Select Level" className="!text-gray-400" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectGroup>
+                          {OPTION_LEVEL.map((item) => (
+                            <SelectItem value={item.value} key={item.value}>
+                              {item.label}
+                            </SelectItem>
+                          ))}
+                        </SelectGroup>
+                      </SelectContent>
+                    </Selects>
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
             <FormField
               control={control}
               name="type"

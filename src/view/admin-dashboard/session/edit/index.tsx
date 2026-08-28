@@ -61,7 +61,7 @@ const defaultValues = {
 
   //OTHER
   type: "regular",
-  level: "advanced",
+  level: "all_levels",
   isOveride: false,
   payment: {
     payment_model: null,
@@ -157,7 +157,7 @@ export const EditSessionPage = () => {
 
       //OTHER
       type: data?.data?.type,
-      level: "advanced",
+      level: data?.data?.level ?? "all_levels",
       isOveride: !!data?.data?.instructor_payment_model || false,
       ...(data?.data?.type === "private" || data?.data?.type === "special"
         ? {
