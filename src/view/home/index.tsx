@@ -1,6 +1,7 @@
 "use client";
 
 import { MainFooterComponent } from "@/components/layout";
+import Image from "next/image";
 import Link from "next/link";
 import { useEffect } from "react";
 
@@ -330,7 +331,8 @@ export const HomeView = () => {
             <p>Beyond classes, we carry Sehela Space merchandise alongside a curated selection of other yoga and wellness brands. Shop in-studio, or order online and pick up at either location.</p>
             <div className="shop-visual">
               {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src="https://book.sehelaspace.com/_next/image?url=%2Fassets%2Fhome-page%2Fasset-3.png&w=640&q=75" alt="Sehela Space shop" />
+              <Image src={'/assets/home-page/asset-3.png'} alt="home-page" height={160} width={200} />
+
             </div>
             <div className="hero-ctas" style={{ justifyContent: "flex-start" }}>
               <Link href="/shop" className="btn-primary" style={{ background: "#347582", color: "#DCF2ED" }}>Shop Online</Link>

@@ -1,4 +1,4 @@
-import { TNC_PARAGRAPHS } from "@/components/general/tnc-dialog";
+import { TNC_PARAGRAPHS } from "@/constants/nav-item";
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
@@ -24,7 +24,7 @@ export default function TermsAndConditionsPage() {
         </div>
 
         <ol className="list-decimal space-y-4 pl-5 text-sm leading-relaxed text-brand-900">
-          {TNC_PARAGRAPHS.map((paragraph: string) => (
+          {TNC_PARAGRAPHS?.map((paragraph: string) => (
             <li key={paragraph.slice(0, 48)} className="pl-1">
               {paragraph}
             </li>
