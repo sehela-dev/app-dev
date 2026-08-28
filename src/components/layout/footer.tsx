@@ -42,7 +42,7 @@ export const MainFooterComponent = () => {
             <a href="https://wa.me/6281110002826">Kemang Studio · +62 811-1000-2826</a>
           </div>
           <div>
-            <a href="https://wa.me/6281110101800">Partnership · Amyra Amalia +62 811-1010-1800</a>
+            <a href="https://wa.me/6281110101800">Partnership and Collaborations · +62 811-1010-1800</a>
           </div>
           <div>sehelaspace@gmail.com</div>
           <a href="https://instagram.com/sehelaspace" target="_blank" rel="noopener noreferrer">
