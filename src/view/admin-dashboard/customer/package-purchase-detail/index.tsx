@@ -283,12 +283,41 @@ export const PackagePurchaseDetailPage = () => {
         </Card>
       )}
 
-      <HistoryTable title="Credit ledger history" emptyText="No ledger entries were recorded for this purchase." headers={["Date (WIB)", "Type", "Amount", "Note"]}>
+      <HistoryTable title="Credit ledger history" emptyText="No ledger entries were recorded for this purchase." headers={["Date (WIB)", "Type", "Amount", "Session", "Spender", "Note"]}>
         {purchase.ledger_history.map((entry) => (
           <TableRow key={entry.id}>
             <TableCell>{formatJakarta(entry.created_at)}</TableCell>
             <TableCell className="capitalize">{entry.entry_type.replaceAll("_", " ")}</TableCell>
             <TableCell className={entry.amount < 0 ? "text-destructive" : "text-green-700"}>{entry.amount > 0 ? `+${entry.amount}` : entry.amount}</TableCell>
+            <TableCell className="whitespace-normal">
+              {entry.booking_session_id ? (
+                <a
+                  href={`/admin/session/${entry.booking_session_id}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="font-medium text-brand-700 underline-offset-2 hover:underline"
+                  title="Open session detail in new tab"
+                >
+                  {entry.booking_session_name ?? `${entry.booking_session_id.slice(0, 8)}…`}
+                </a>
+              ) : entry.booking_session_name ? (
+                <span className="font-medium">{entry.booking_session_name}</span>
+              ) : (
+                <span className="text-muted-foreground">-</span>
+              )}
+            </TableCell>
+            <TableCell className="whitespace-normal">
+              {entry.spender?.full_name ? (
+                <span className="inline-flex items-center gap-1">
+                  {entry.spender.full_name}
+                  {entry.is_shared_credit ? <Badge variant="outline" className="text-[10px] leading-none px-1 py-0">shared</Badge> : null}
+                </span>
+              ) : entry.user_id ? (
+                <span className="text-xs text-muted-foreground">{entry.user_id.slice(0, 8)}…</span>
+              ) : (
+                <span className="text-muted-foreground">-</span>
+              )}
+            </TableCell>
             <TableCell className="whitespace-normal">{entry.note ?? "-"}</TableCell>
           </TableRow>
         ))}

@@ -35,6 +35,12 @@ export interface IPackagePurchaseLedgerEntry {
   unit_value_idr: number | null;
   total_value_idr: number | null;
   created_at: string;
+  user_id?: string | null;
+  package_purchase_id?: string | null;
+  booking_session_id?: string | null;
+  booking_session_name?: string | null;
+  spender?: { id: string; full_name: string | null } | null;
+  is_shared_credit?: boolean | null;
 }
 
 export interface IPackagePurchaseActionState {

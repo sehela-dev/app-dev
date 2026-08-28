@@ -16,7 +16,7 @@ import { defaultDate, formatCurrency, formatDateHelper, reminderMessage, sendRem
 import { cn } from "@/lib/utils";
 import { IParticipantsSession, ISessionItem } from "@/types/class-sessions.interface";
 import { IAttendanceStatus } from "@/types/orders.interface";
-import { ArrowLeftRight, Ban, Banknote, BellRing, Copy, Ellipsis, Loader2, LucideIcon, PenIcon, RotateCcw, WalletCards, X } from "lucide-react";
+import { AlertTriangle, ArrowLeftRight, Ban, Banknote, BellRing, Copy, Ellipsis, Loader2, LucideIcon, PenIcon, RotateCcw, WalletCards, X } from "lucide-react";
 import { differenceInCalendarDays } from "date-fns";
 import { useParams, useRouter } from "next/navigation";
 import React, { useState } from "react";
@@ -94,6 +94,7 @@ export const SessionDetailPage = () => {
   const [refundType, setRefundTYpe] = useState("none")
   const [selectedDataCancel, setSelectedDataCancel] = useState<IParticipantsSession | null>(null);
   const [pendingAttendance, setPendingAttendance] = useState<{ id: string; status: IAttendanceStatus } | null>(null);
+  const [isLateCancel, setIsLateCancel] = useState(false);
 
   const { mutateAsync: rescheduleSession } = useRescheduleSession();
 
@@ -136,9 +137,28 @@ export const SessionDetailPage = () => {
     setPendingAttendance(null);
   };
 
+  const getHoursUntilSession = () => {
+    const iso = data?.data?.start_datetime;
+    if (!iso) return null;
+    const ms = new Date(iso).getTime() - Date.now();
+    if (Number.isNaN(ms)) return null;
+    return ms / 3600000;
+  };
+
   const onTriggerCancel = (row: IParticipantsSession) => {
     setSelectedDataCancel(row);
-    setRefundAmount(row?.payment_method === "cash" ? (row?.paid_with?.revenue_idr ?? 0) : 0);
+    const hoursUntil = getHoursUntilSession();
+    const late = hoursUntil !== null && hoursUntil < 6;
+    setIsLateCancel(late);
+    const isCredits = row?.paid_with?.type === "credits" || row?.payment_method === "credits";
+    if (late) {
+      setRefundTYpe("none");
+    } else {
+      setRefundTYpe(isCredits ? "credit_return" : "credit_issue_new");
+    }
+    // cash/midtrans amount prefill for external refund; credits use package expiry
+    const isCash = row?.payment_method === "cash" || row?.payment_method === "midtrans" || row?.paid_with?.type === "cash";
+    setRefundAmount(isCash ? (row?.paid_with?.revenue_idr ?? 0) : 0);
     const packageExpiry = row?.paid_with?.package_expires_at;
     setValidityDays(packageExpiry ? Math.max(differenceInCalendarDays(new Date(packageExpiry), new Date()), 0) : 15);
     setOpenCancel(true);
@@ -208,8 +228,46 @@ export const SessionDetailPage = () => {
       value: "customer_email",
     },
     {
+      id: "payment_method",
+      text: "Payment",
+      value: (row: IParticipantsSession) => {
+        const method = (row.payment_method || row.paid_with?.type || "-").toLowerCase();
+        const isCredits = method === "credits" || row.paid_with?.type === "credits";
+        const label = isCredits ? "Credits" : method === "cash" || method === "midtrans" ? "Midtrans" : row.payment_method || "-";
+        return (
+          <Badge variant="outline" className={cn("capitalize whitespace-nowrap", isCredits ? "border-brand-200 bg-brand-25 text-brand-700" : "border-emerald-200 bg-emerald-50 text-emerald-700")}>
+            {label}
+          </Badge>
+        );
+      },
+    },
+    {
+      id: "paid_with",
+      text: "Package / Paid",
+      value: (row: IParticipantsSession) => {
+        if (!row.paid_with) return <span className="text-muted-foreground">-</span>;
+        if (row.paid_with.type === "credits") {
+          return (
+            <div className="flex flex-col leading-tight">
+              <span className="font-medium whitespace-nowrap">{row.paid_with.package_name ?? "Package"}</span>
+              <span className="text-xs text-muted-foreground whitespace-nowrap">
+                {row.paid_with.credits_used ?? 1} cr
+                {row.paid_with.package_expires_at ? ` · exp ${formatDateHelper(row.paid_with.package_expires_at, "dd MMM yy")}` : ""}
+              </span>
+            </div>
+          );
+        }
+        return (
+          <div className="flex flex-col leading-tight">
+            <span className="font-medium whitespace-nowrap">{formatCurrency(row.paid_with.revenue_idr ?? 0)}</span>
+            {row.payment_status && <span className="text-xs text-muted-foreground capitalize">{row.payment_status}</span>}
+          </div>
+        );
+      },
+    },
+    {
       id: "photo_consent",
-      text: "Photo Concent",
+      text: "Photo Consent",
       value: (row: IParticipantsSession) => <p>{row?.photo_consent ? "Yes" : "No"}</p>,
     },
     {
@@ -626,30 +684,79 @@ export const SessionDetailPage = () => {
             setValidityDays(15)
             setRefundAmount(0)
             setRescheduleNotes("")
+            setIsLateCancel(false)
           }}
         >
-
-          <RadioGroup value={refundType} onValueChange={(v) => setRefundTYpe(v)}>
-            <div className="grid grid-cols-2 gap-2">
-              {refundOptions?.map((option) => (
-                <div key={option.value} className={cn("flex items-center space-x-2 border border-brand-400 rounded-xl p-4", {
-                  "border-2 bg-brand-50": refundType === option.value
-                })}>
-                  <RadioGroupItem value={option.value} id={option.value} />
-                  <Label htmlFor={option.value} className="text-sm font-medium text-brand-999 cursor-pointer">
-                    <div className="flex flex-row items-center gap-4">
-                      {option.icon}
-                      <div className="flex flex-col gap-2">
-                        <p className="font-bold text-xl">{option.title}</p>
-                        <p className="font-normal">{option.description}</p>
-                      </div>
-                    </div>
-
-                  </Label>
+          {(() => {
+            const hoursUntil = (() => {
+              const iso = data?.data?.start_datetime;
+              if (!iso) return null;
+              const ms = new Date(iso).getTime() - Date.now();
+              return Number.isNaN(ms) ? null : ms / 3600000;
+            })();
+            const isCredits = selectedDataCancel?.paid_with?.type === "credits" || selectedDataCancel?.payment_method === "credits";
+            const isCash = selectedDataCancel?.payment_method === "cash" || selectedDataCancel?.payment_method === "midtrans" || selectedDataCancel?.paid_with?.type === "cash";
+            const policyNote = isManager
+              ? isLateCancel
+                ? "Late cancellation (< 6 hours). Admin is limited to No refund / External refund — manager may override to any option below."
+                : isCredits
+                  ? "On-time (≥ 6 hours) credit-package booking — standard is Return package credits (manager may choose any option)."
+                  : "On-time (≥ 6 hours) Midtrans/cash booking — standard is Issue new credits (manager may choose any option)."
+              : isLateCancel
+                ? "Late cancellation (< 6 hours) — only No refund or External refund is allowed."
+                : isCredits
+                  ? "On-time (≥ 6 hours) credit-package booking — credit will be returned to the original package."
+                  : "On-time (≥ 6 hours) Midtrans/cash booking — a new credit will be issued.";
+            return (
+              <div className={cn("flex gap-3 rounded-lg border p-3 text-sm", isLateCancel ? "border-amber-300 bg-amber-50 text-amber-900" : "border-brand-100 bg-brand-25 text-brand-900")}>
+                <AlertTriangle className={cn("h-5 w-5 shrink-0", isLateCancel ? "text-amber-600" : "text-brand-500")} />
+                <div>
+                  <p className="font-semibold">{isLateCancel ? "Late cancellation — less than 6 hours" : "On-time cancellation"}</p>
+                  <p className="text-xs leading-relaxed">{policyNote}</p>
+                  {selectedDataCancel && (
+                    <p className="text-xs text-muted-foreground mt-1">
+                      {selectedDataCancel.customer_name} · {isCredits ? `Package: ${selectedDataCancel.paid_with?.package_name ?? "-"} (${selectedDataCancel.paid_with?.credits_used ?? 1} cr)` : `Cash: ${formatCurrency(selectedDataCancel.paid_with?.revenue_idr ?? data?.data?.price_idr)} · ${isCash ? "Midtrans/cash" : selectedDataCancel.payment_method}`}
+                      {hoursUntil !== null && ` · starts in ${hoursUntil.toFixed(1)}h`}
+                    </p>
+                  )}
                 </div>
-              ))}
-            </div>
-          </RadioGroup>
+              </div>
+            );
+          })()}
+
+          {(() => {
+            const isCredits = selectedDataCancel?.paid_with?.type === "credits" || selectedDataCancel?.payment_method === "credits";
+            const visible = isManager
+              ? refundOptions
+              : isLateCancel
+                ? refundOptions.filter(o => o.value === "none" || o.value === "manual_external")
+                : isCredits
+                  ? refundOptions.filter(o => o.value === "credit_return")
+                  : refundOptions.filter(o => o.value === "credit_issue_new");
+            return (
+              <RadioGroup value={refundType} onValueChange={(v) => setRefundTYpe(v)}>
+                <div className="grid grid-cols-2 gap-2">
+                  {visible?.map((option) => (
+                    <div key={option.value} className={cn("flex items-center space-x-2 border border-brand-400 rounded-xl p-4", {
+                      "border-2 bg-brand-50": refundType === option.value
+                    })}>
+                      <RadioGroupItem value={option.value} id={option.value} />
+                      <Label htmlFor={option.value} className="text-sm font-medium text-brand-999 cursor-pointer">
+                        <div className="flex flex-row items-center gap-4">
+                          {option.icon}
+                          <div className="flex flex-col gap-2">
+                            <p className="font-bold text-xl">{option.title}</p>
+                            <p className="font-normal">{option.description}</p>
+                          </div>
+                        </div>
+
+                      </Label>
+                    </div>
+                  ))}
+                </div>
+              </RadioGroup>
+            );
+          })()}
 
           {refundType === "credit_issue_new" && (
             <div className="flex flex-col gap-2">
