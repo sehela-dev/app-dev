@@ -13,13 +13,20 @@ export default function GuestGuard({ children }: { children: React.ReactNode }) 
   // so it must not be hijacked by the guest guard once the token is stored.
   const isAuthCallback = pathname?.startsWith("/auth/callback") ?? false;
 
+  const getSafeRedirect = () => {
+    if (typeof window === "undefined") return "/";
+    const redirect = new URLSearchParams(window.location.search).get("redirect");
+    if (redirect && redirect.startsWith("/") && !redirect.startsWith("//")) return redirect;
+    return "/";
+  };
+
   useEffect(() => {
     // wait until auth state ready
     if (!isAuthReady) return;
 
     // already logged in → redirect
     if (isAuthenticated && !isAuthCallback) {
-      router.replace("/");
+      router.replace(getSafeRedirect());
     }
   }, [isAuthenticated, isAuthReady, router, isAuthCallback]);
 

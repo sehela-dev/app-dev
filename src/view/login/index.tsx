@@ -24,10 +24,18 @@ const resolver = zodResolver(authLoginSchema);
 
 export default function LoginPageView() {
   const { login } = useAuthMember();
+  const router = useRouter();
   const methods = useForm<AuthLoginFormValues>({ defaultValues, resolver, mode: "all" });
   const { control, handleSubmit } = methods;
 
   const { mutateAsync } = useCustomerAuthLogin();
+
+  const getSafeRedirect = () => {
+    if (typeof window === "undefined") return "/";
+    const redirect = new URLSearchParams(window.location.search).get("redirect");
+    if (redirect && redirect.startsWith("/") && !redirect.startsWith("//")) return redirect;
+    return "/";
+  };
 
   const onSubmit = handleSubmit(async (data) => {
     try {
@@ -43,6 +51,7 @@ export default function LoginPageView() {
           expires_at: res.data?.session?.expires_at,
           expires_in: res.data?.session?.expires_in,
         });
+        router.replace(getSafeRedirect());
       }
     } catch (error: unknown) {
       console.log(error);
@@ -170,7 +179,14 @@ export default function LoginPageView() {
           <div className="text-center space-y-4 pb-12">
             <p className="text-sm text-brand-500">
               Don’t have an account?
-              <a href="/auth/sign-up" className="ml-1 font-semibold text-brand-500 hover:text-brand-600 underline transition-colors">
+              <a
+                href={(() => {
+                  if (typeof window === "undefined") return "/auth/sign-up";
+                  const r = new URLSearchParams(window.location.search).get("redirect");
+                  return r && r.startsWith("/") && !r.startsWith("//") ? `/auth/sign-up?redirect=${encodeURIComponent(r)}` : "/auth/sign-up";
+                })()}
+                className="ml-1 font-semibold text-brand-500 hover:text-brand-600 underline transition-colors"
+              >
                 Sign up here
               </a>
             </p>

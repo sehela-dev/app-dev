@@ -266,7 +266,7 @@ export const SessionDetailView = () => {
           ) : !isAuthenticated ? (
             <Button
               className="font-extrabold !text-gray-50 h-12 w-full"
-              onClick={() => router.push("/auth/login")}
+              onClick={() => router.push(`/auth/login?redirect=${encodeURIComponent(`/book/session/${id as string}`)}`)}
             >
               Join Now
             </Button>
