@@ -1,35 +1,14 @@
 "use client";
 
-import { ProductCategorySection } from "@/components/shop/product-section";
-import { Button } from "@/components/ui/button";
-import { SearchInput } from "@/components/ui/search-input";
-import { ListFilter } from "lucide-react";
-import { useSearchParams } from "next/navigation";
-
 export const ShopPageView = () => {
-  const query = useSearchParams();
-  const q = query.get("category") ?? "";
-  console.log(q);
-
-  const onViewAll = (category: string) => {
-    console.log("ss", category);
-    // router.push(`/shop?category=${category}`);
-  };
-
   return (
-    <div className="flex flex-col w-full gap-[37px]">
-      <div className="font-serif flex-col mx-auto p-4 w-full ">
-        <div className="flex flex-row items-center gap-2">
-          <SearchInput className="min-h-[40px] bg-brand-25 border-brand-100 " />
-          <Button size={"icon"} variant={"outline"} className="min-h-[40px] min-w-[40px] bg-brand-25 border-brand-100 ">
-            <ListFilter color="var(--color-brand-500)" strokeWidth={2} />
-          </Button>
-        </div>
-
-        <ProductCategorySection title="Sports Wear & Equipment" onClickViewAll={() => onViewAll("sport-wear")} />
-        <ProductCategorySection title="Merch" onClickViewAll={() => onViewAll("sport-wear")} />
-        <ProductCategorySection title="Other" onClickViewAll={() => onViewAll("sport-wear")} />
-      </div>
+    <div className="flex flex-col items-center justify-center w-full min-h-[60vh] px-6 py-16 text-center">
+      <div className="rounded-full bg-[#EAF7F2] border border-[rgba(52,117,130,0.2)] p-5 mb-5">🛠️</div>
+      <h1 className="font-serif text-2xl text-[#1F4750]">Shop — Under Development</h1>
+      <p className="mt-2 max-w-sm text-sm leading-relaxed text-[#4B7078]">
+        We&apos;re curating mats, merch &amp; more. Check back soon or visit us in-studio at Pondok Labu &amp; Kemang.
+      </p>
+      <p className="mt-1 text-xs tracking-widest uppercase text-[#E68D70] font-semibold">Coming Soon</p>
     </div>
   );
 };
