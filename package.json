@@ -6,7 +6,8 @@
     "dev": "next dev --turbopack",
     "build": "next build --turbopack",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "push": "git push origin main && git push prod main"
   },
   "dependencies": {
     "@fontsource-variable/inter": "^5.2.6",

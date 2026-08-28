@@ -138,7 +138,11 @@ export const HomeView = () => {
               <Link href="/book" className="btn-primary">
                 Book a Class
               </Link>
-              <a href="#locations" className="btn-ghost" style={{ background: "var(--peach)", color: "var(--teal-deep)", borderColor: "var(--peach)" }}>
+              <a
+                href="#locations"
+                className="btn-ghost"
+                style={{ background: "var(--peach)", color: "var(--teal-deep)", borderColor: "var(--peach)" }}
+              >
                 View Locations
               </a>
               <a href="#pricing" className="btn-ghost" style={{ background: "var(--peach)", color: "var(--teal-deep)", borderColor: "var(--peach)" }}>
@@ -443,7 +447,7 @@ export const HomeView = () => {
               order online and pick up at either location.
             </p>
             <div className="shop-visual">
-              <Image src={"/assets/home-page/shop-thumbnail.jpg"} alt="home-page" height={160} width={200} />
+              <Image src={"/assets/home-page/shop-thumbnail.jpeg"} alt="home-page-thumbnail" height={160} width={200} />
             </div>
             <div className="hero-ctas" style={{ justifyContent: "flex-start" }}>
               <Link href="/shop" className="btn-primary" style={{ background: "#347582", color: "#DCF2ED" }}>
