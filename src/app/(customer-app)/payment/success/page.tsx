@@ -2,6 +2,14 @@ import { PaymentCallbackView } from "@/view/payment-callback-view";
 import { Loader2 } from "lucide-react";
 import { Suspense } from "react";
 
+import type { Metadata } from "next";
+
+export const metadata: Metadata = {
+  title: "Payment Success — Sehela Space",
+  description: "Payment Success at Sehela Space",
+};
+
+
 export default function PaymentSuccessPage() {
   return (
     <Suspense

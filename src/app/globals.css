@@ -110,6 +110,7 @@
 
 /* 3) Import Tailwind AFTER tokens */
 @import "tailwindcss";
+@import "../styles/sehela-client.css";
 
 /* 4) Dark via system */
 /* @media (prefers-color-scheme: dark) { */

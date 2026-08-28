@@ -87,7 +87,7 @@ Logout
       {/* Mobile Menu Overlay */}
       {isOpen && (
         <div
-          className="fixed top-[58px] left-0 right-0 bottom-0 bg-black/20 z-40 max-w-[414px] mx-auto"
+          className="fixed top-[58px] left-0 right-0 bottom-0 bg-black/20 z-40 max-w-[550px] mx-auto"
           onClick={() => setIsOpen(false)}
           aria-hidden="true"
         />
@@ -95,7 +95,7 @@ Logout
 
       {/* Mobile Menu Panel */}
       <div
-        className={`fixed top-[58px] left-0 right-0 bg-brand-50 shadow-lg z-40 transition-all duration-300 ease-out max-w-[414px] mx-auto ${isOpen ? "max-h-96 opacity-100" : "max-h-0 opacity-0 overflow-hidden"
+        className={`fixed top-[58px] left-0 right-0 bg-brand-50 shadow-lg z-40 transition-all duration-300 ease-out max-w-[550px] mx-auto ${isOpen ? "max-h-96 opacity-100" : "max-h-0 opacity-0 overflow-hidden"
           }`}
       >
         <nav className="flex flex-col p-4 gap-2">

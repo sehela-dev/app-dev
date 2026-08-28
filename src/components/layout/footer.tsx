@@ -1,46 +1,69 @@
-import { Instagram, Mail, Phone } from "lucide-react";
-import { LogoComponent } from "../asset/logo";
-import Image from "next/image";
+"use client";
+
+import Link from "next/link";
+import { usePathname } from "next/navigation";
 
 export const MainFooterComponent = () => {
+  const pathname = usePathname();
+  const showCta = pathname === "/";
+
   return (
-    <div className="bg-brand-500 flex w-full text-gray-50 font-serif">
-      <div className="px-4 py-10.5 flex flex-col gap-9.5 w-full">
-        <div className="flex flex-col gap-6">
-          <p className="text-xl font-bold">Contacts</p>
-          <div className="flex flex-col gap-4 font-normal">
-            <p className="flex items-center gap-2.5 text-sm">
-              <Phone />
-              +628111469688
-            </p>
-            <p className="flex items-center gap-2.5 text-sm">
-              <Mail />
-              sehelaspace@gmail.com
-            </p>
+    <footer className="ref-footer text-brand-500 font-sans">
+      {showCta && (
+        <div className="footer-cta">
+          <h2>
+            Your mat is <em>waiting.</em>
+          </h2>
+          <p>First class at Sehela Space? Come 15 minutes early.</p>
+          <div className="hero-ctas">
+            <Link href="/book" className="btn-primary">
+              Book a Class
+            </Link>
+            <a href="https://wa.me/62811149688" className="btn-ghost">
+              WhatsApp Us
+            </a>
           </div>
         </div>
-        <div className="flex flex-col gap-6">
-          <p className="text-xl font-bold">Socials</p>
-          <div className="flex flex-col gap-4 font-normal">
-            <p className="flex items-center gap-2.5 text-sm">
-              <Instagram />
-              @sehelaspace
-            </p>
-            <p className="flex items-center gap-2.5 text-sm">
-              <Instagram />
-              @denisepayneyoga
-            </p>
-          </div>
+      )}
+
+      <div className="footer-body">
+        <div className="logo">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src="https://book.sehelaspace.com/_next/image?url=%2Fassets%2Fsehela-light.png&w=256&q=75" alt="Sehela Space" />
         </div>
-        <div className="flex  justify-center items-center mx-auto">
-          <div className="flex items-center w-full justify-center mt-4 gap-2.5">
-            <LogoComponent className="w-[99px] h-[32px]" src="sehela-light.png" />
-            <div>
-              <Image src={"/assets/one-song.png"} alt="one-song" width={48} height={48} />
-            </div>
+        <p className="blurb">A yoga studio in South Jakarta with two homes — Pondok Labu and Kemang.</p>
+
+        <div className="footer-col">
+          <h4>Contacts</h4>
+          <div>
+            <a href="https://wa.me/62811149688">Pondok Labu · +62 811-1496-88</a>
           </div>
+          <div>
+            <a href="https://wa.me/6281110002826">Kemang Studio · +62 811-1000-2826</a>
+          </div>
+          <div>
+            <a href="https://wa.me/6281110101800">Partnership · Amyra Amalia +62 811-1010-1800</a>
+          </div>
+          <div>sehelaspace@gmail.com</div>
+          <a href="https://instagram.com/sehelaspace" target="_blank" rel="noopener noreferrer">
+            @sehelaspace
+          </a>
+
+        </div>
+
+        <div className="footer-col">
+          <h4>Locations</h4>
+          <a href="#locations">Pondok Labu</a>
+          <a href="#locations">Kemang (inside East Kemang Padel Club)</a>
+        </div>
+
+        <div className="footer-col">
+          <h4>More</h4>
+          <a href="/terms-and-conditions">Terms and Conditions</a>
         </div>
       </div>
-    </div>
+
+      <div className="footer-bottom">© 2026 Sehela Space. All rights reserved.</div>
+    </footer>
   );
 };

@@ -3,7 +3,7 @@
 export default function AuthLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
     <div className="min-h-[100vh] flex flex-col sm:bg-brand-100 w-[100vw] overflow-hidden">
-      <div className=" min-h-[100vh] sm:mx-auto w-full max-w-dvw sm:max-w-[414px] bg-brand-50  flex flex-col">
+      <div className=" min-h-[100vh] sm:mx-auto w-full max-w-dvw sm:max-w-[550px] bg-brand-50  flex flex-col">
         {/* Header (fixed height, non-scrolling) */}
 
         {/* Content (only this scrolls) */}

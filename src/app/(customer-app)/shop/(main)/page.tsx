@@ -1,7 +1,14 @@
-"use client";
 import { ShopPageView } from "@/view/shop";
 import { Loader2 } from "lucide-react";
 import { Suspense } from "react";
+
+import type { Metadata } from "next";
+
+export const metadata: Metadata = {
+  title: "Shop — Sehela Space",
+  description: "Shop at Sehela Space",
+};
+
 
 export default function Home() {
   return (
