@@ -27,19 +27,15 @@ export const getSessionLevelBadge = (level?: string | null): ISessionBadge | nul
         className: "bg-green-500/15 text-green-800 border-green-500/30",
       };
     case "intermediate":
+    case "all_levels":
       return {
-        label: "Intermediate",
-        className: "bg-blue-500/15 text-blue-800 border-blue-500/30",
+        label: "All Levels",
+        className: "bg-brand-500/10 text-brand-600 border-brand-500/20",
       };
     case "advanced":
       return {
         label: "Experienced Yogi",
         className: "bg-red-500/15 text-red-800 border-red-500/30",
-      };
-    case "all_levels":
-      return {
-        label: "All Levels",
-        className: "bg-brand-500/10 text-brand-600 border-brand-500/20",
       };
     default:
       return level
