@@ -9,11 +9,23 @@ import {
 } from "@/types/class-category.interface";
 import { TCreateSessionData, TEditSessionData, TSessionBookings, TSessionDetailData, TSessionListData } from "@/types/class-sessions.interface";
 
-export const getSessions: TSessionListData = async ({ page, limit, search, payment_method, status, startDate, endDate, is_credit_only, has_photo }) => {
+export const getSessions: TSessionListData = async ({
+  page,
+  limit,
+  search,
+  payment_method,
+  status,
+  startDate,
+  endDate,
+  is_credit_only,
+  has_photo,
+  date,
+}) => {
   const res = await axiosx(true).get(`${MAIN_API_URL}/classes/sessions`, {
     params: {
       page,
       page_size: limit,
+      ...(date ? { date } : null),
       ...(startDate ? { start_date: startDate } : null),
       ...(endDate ? { end_date: endDate } : null),
       ...(search ? { q: search } : null),
@@ -85,7 +97,7 @@ export const deleteSession: TSessionDetailData = async (id) => {
   return res.data;
 };
 
-export const sendReminderAll = async (data:string) =>{
+export const sendReminderAll = async (data: string) => {
   const res = await axiosx(true).post(`${MAIN_API_URL}/classes/sessions/${data}/send-reminder`, data);
-  return res.data
-}
+  return res.data;
+};

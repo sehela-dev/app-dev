@@ -84,7 +84,8 @@ export const CompleteProfilePageView = () => {
     const id = setInterval(tick, 1000);
     return () => clearInterval(id);
   }, [expiresAt, isTokenMode]);
-  const countdown = remainingSec !== null ? `${String(Math.floor(remainingSec / 60)).padStart(2, "0")}:${String(remainingSec % 60).padStart(2, "0")}` : null;
+  const countdown =
+    remainingSec !== null ? `${String(Math.floor(remainingSec / 60)).padStart(2, "0")}:${String(remainingSec % 60).padStart(2, "0")}` : null;
   const isExpired = remainingSec === 0;
 
   // JWT path
@@ -110,7 +111,8 @@ export const CompleteProfilePageView = () => {
       toast.success("New link sent", { description: "Check your email for a new 15m link.", position: "top-center" });
       refetchVerify();
     } catch (e: unknown) {
-      const msg = (e as { response?: { data?: { error?: { message?: string } } } })?.response?.data?.error?.message ?? "Please try again later (60s throttle).";
+      const msg =
+        (e as { response?: { data?: { error?: { message?: string } } } })?.response?.data?.error?.message ?? "Please try again later (60s throttle).";
       toast.error("Resend failed", { description: msg, position: "top-center" });
     }
   };
@@ -185,7 +187,9 @@ export const CompleteProfilePageView = () => {
         ...(data.password ? { new_password: data.password } : {}),
       };
       try {
-        const res = (await tokenMutate(payload as never)) as { data?: { session?: { access_token: string; refresh_token: string; expires_in?: number; expires_at?: number } } };
+        const res = (await tokenMutate(payload as never)) as {
+          data?: { session?: { access_token: string; refresh_token: string; expires_in?: number; expires_at?: number } };
+        };
         const session = res?.data?.session;
         if (session?.access_token) {
           setJwtToken({
@@ -222,7 +226,10 @@ export const CompleteProfilePageView = () => {
       if (res) router.push("/");
     } catch (error) {
       console.log(error);
-      if ((error as { response?: { status?: number } })?.response?.status === 401 || (error as { response?: { status?: number } })?.response?.status === 403) {
+      if (
+        (error as { response?: { status?: number } })?.response?.status === 401 ||
+        (error as { response?: { status?: number } })?.response?.status === 403
+      ) {
         goToLogin();
       }
     }
@@ -502,7 +509,7 @@ export const CompleteProfilePageView = () => {
                     )}
                   />
                 ) : (
-                  <p className="text-xs text-brand-400 bg-gray-50 rounded px-3 py-2">Photo upload is available after completion in Profile — this link doesn&apos;t support files.</p>
+                  <></>
                 )}
 
                 <FormField
@@ -529,7 +536,7 @@ export const CompleteProfilePageView = () => {
                   render={({ field }) => (
                     <FormItem className="flex flex-col">
                       <FormLabel className="font-serif text-brand-500 text-sm" required={!isTokenMode}>
-                        Password {isTokenMode && <span className="font-normal text-brand-400">(optional, ≥8 chars)</span>}
+                        Password
                       </FormLabel>
                       <FormControl>
                         <PasswordInput

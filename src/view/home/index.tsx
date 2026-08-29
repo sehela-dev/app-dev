@@ -308,11 +308,7 @@ export const HomeView = () => {
                   <div className="addr">Jl. Kemang Timur No.76, RT.11/RW.3, Bangka, Kec. Mampang Prpt., Kota Jakarta Selatan, DKI Jakarta 12730</div>
                   <div className="note">Inside East Kemang Padel Club</div>
                   <div className="loc-actions">
-                    <a
-                      href="https://www.google.com/maps/search/?api=1&query=Jl.+Kemang+Timur+No.76+RT.11%2FRW.3+Bangka+Kec.+Mampang+Prapatan+Kota+Jakarta+Selatan+12730"
-                      target="_blank"
-                      rel="noopener noreferrer"
-                    >
+                    <a href="https://maps.app.goo.gl/SX57BgC1eyAoq4wB6?g_st=ic" target="_blank" rel="noopener noreferrer">
                       View on Google Maps
                     </a>
                     <a href="https://wa.me/6281110002826">WhatsApp</a>
@@ -403,7 +399,7 @@ export const HomeView = () => {
                   <span className="terms-btn">View Terms &amp; Conditions</span>
                 </summary>
                 <div className="terms-panel">
-                  <>
+                  <ol>
                     <li>All sessions and packages must be used within 30 days of the purchase date.</li>
                     <li>The package expiry date cannot be extended for any reason.</li>
                     <li>Packages are non-transferable and cannot be assigned to another person.</li>
@@ -419,7 +415,6 @@ export const HomeView = () => {
                       The 3-class first-timer package is only available for individuals who have never attended a class at Sehela Space studios.
                     </li>
                     <li>
-                      {" "}
                       ⁠Customers may purchase a new package within 30 days of the previous package&apos;s expiry to qualify for rollover; any
                       remaining credit will be combined with the new package&apos;s credit and share its expiry date.
                     </li>
@@ -427,7 +422,7 @@ export const HomeView = () => {
                       If a new package isn&apos;t purchased within 30 days of the previous package&apos;s expiry, any remaining credit will expire and
                       cannot be rolled over.
                     </li>
-                  </>
+                  </ol>
 
                   <a className="full-link" href="/terms-and-conditions">
                     Read full Terms &amp; Conditions →

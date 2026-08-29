@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import {
   format,
   startOfMonth,
@@ -14,6 +14,7 @@ import {
   isBefore,
   isAfter,
   differenceInDays,
+  parseISO,
 } from "date-fns";
 import { Button } from "@/components/ui/button";
 import { ChevronLeft, ChevronRight, Calendar } from "lucide-react";
@@ -45,19 +46,19 @@ export function DateRangePicker({
   allowPastDates = true,
   maxSelectionDays = 31,
 }: DateRangePickerProps) {
-  const defaultStartDate = useMemo(() => {
-    if (startDate) {
-      return new Date(startDate);
+  const parseDate = (v?: string) => {
+    if (!v) return null;
+    try {
+      const d = parseISO(v);
+      return Number.isNaN(d.getTime()) ? null : d;
+    } catch {
+      return null;
     }
-    return null;
-  }, [startDate]);
+  };
 
-  const defaultEndDate = useMemo(() => {
-    if (endDate) {
-      return new Date(endDate);
-    }
-    return null;
-  }, [endDate]);
+  const defaultStartDate = useMemo(() => parseDate(startDate), [startDate]);
+
+  const defaultEndDate = useMemo(() => parseDate(endDate), [endDate]);
 
   const [dateRange, setDateRange] = useState<DateRange>({
     start: defaultStartDate,
@@ -66,6 +67,18 @@ export function DateRangePicker({
 
   const [firstMonth, setFirstMonth] = useState(defaultStartDate || new Date());
   const [secondMonth, setSecondMonth] = useState(addMonths(defaultStartDate || new Date(), 1));
+
+  // ponytail: sync controlled props → internal state (fixes "Select date" when parent sets default)
+  useEffect(() => {
+    setDateRange({ start: defaultStartDate, end: mode === "single" ? null : defaultEndDate });
+  }, [defaultStartDate, defaultEndDate, mode]);
+
+  useEffect(() => {
+    if (defaultStartDate) {
+      setFirstMonth(defaultStartDate);
+      setSecondMonth(addMonths(defaultStartDate, 1));
+    }
+  }, [defaultStartDate]);
   const [isOpen, setIsOpen] = useState(false);
   const [notification, setNotification] = useState<{ show: boolean; message: string }>({
     show: false,
@@ -233,12 +246,12 @@ export function DateRangePicker({
           <span className="text-foreground font-medium">
             {mode === "single"
               ? dateRange.start
-                ? format(dateRange.start, "d MMM yyyy")
+                ? format(dateRange.start, "dd MMM yyyy")
                 : "Select date"
               : dateRange.start && dateRange.end
-              ? `${format(dateRange.start, "d MMM yyyy")} - ${format(dateRange.end, "d MMM yyyy")}`
+              ? `${format(dateRange.start, "dd MMM yyyy")} - ${format(dateRange.end, "d MMM yyyy")}`
               : dateRange.start
-              ? `${format(dateRange.start, "d MMM yyyy")} - Select end date`
+              ? `${format(dateRange.start, "dd MMM yyyy")} - Select end date`
               : "Select date range"}
           </span>
         </Button>

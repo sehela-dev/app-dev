@@ -59,22 +59,20 @@ export const EnrollStudentView = () => {
     setPage(1);
   };
 
-  const [selectedRange, setSelectedRange] = useState<{ from: string | null; to: string | null }>({
-    from: isManager ? null : defaultDate().formattedToday,
-    to: isManager ? null : defaultDate().formattedOneMonthLater,
-  });
+  const [selectedRange, setSelectedRange] = useState<string | null>(isManager ? null : defaultDate().formattedToday);
 
   const { data, isLoading, refetch } = useGetSessions({
     page,
     limit,
-    startDate: selectedRange.from as string,
-    endDate: selectedRange.to as string,
+    // startDate: selectedRange.from as string,
+    // endDate: selectedRange.to as string,
     search: debounceClass,
+    date: selectedRange as string,
     // status: "scheduled",
   });
 
-  const handleDateRangeChangeDual = (startDate?: string, endDate?: string) => {
-    setSelectedRange((prev) => ({ ...prev, from: startDate as string, to: endDate as string }));
+  const handleDateRangeChangeDual = (startDate?: string) => {
+    setSelectedRange(startDate as string);
     refetch();
   };
   const onSelectSession = (data: ISessionItem) => {
@@ -103,13 +101,13 @@ export const EnrollStudentView = () => {
         ...(tabs === "credit"
           ? { user_id: customerData?.id as string, payment_method: "credits", package_purchase_id: customerData?.package?.package_purchase_id }
           : {
-            third_party_id: customerData?.third_party?.id,
-            booking_id: customerData?.booking_id,
-            ...(customerData?.id ? { user_id: customerData?.id as string } : null),
-            customer_name: customerData?.name,
-            customer_phone: customerData?.phone,
-            customer_email: customerData?.email,
-          }),
+              third_party_id: customerData?.third_party?.id,
+              booking_id: customerData?.booking_id,
+              ...(customerData?.id ? { user_id: customerData?.id as string } : null),
+              customer_name: customerData?.name,
+              customer_phone: customerData?.phone,
+              customer_email: customerData?.email,
+            }),
         status: "paid",
 
         // ...(customerData?.package?.package_purchase_id ? {})
@@ -154,21 +152,11 @@ export const EnrollStudentView = () => {
                   <SearchInput className="border-brand-100" search={search} onSearch={handleSearch} />
                   <div className="flex flex-row items-center gap-4">
                     <div className="w-full flex flex-col gap-1">
-                      <p className="text-sm font-medium">Date From</p>
                       <DateRangePicker
                         mode="single"
+                        startDate={selectedRange as string}
+                        endDate={selectedRange as string}
                         onDateRangeChange={(e) => handleDateRangeChangeDual(e)}
-                        startDate={selectedRange.from as string}
-                        allowFutureDates
-                        allowPastDates={isManager}
-                      />
-                    </div>
-                    <div className="w-full">
-                      <p className="text-sm font-medium">Date to</p>
-                      <DateRangePicker
-                        mode="single"
-                        onDateRangeChange={(e) => handleDateRangeChangeDual(selectedRange.from as string, e)}
-                        startDate={selectedRange.to as string}
                         allowFutureDates
                         allowPastDates={isManager}
                       />
