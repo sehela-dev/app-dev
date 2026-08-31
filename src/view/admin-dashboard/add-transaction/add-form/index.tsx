@@ -52,27 +52,24 @@ export const AddTransactionFOrm = () => {
   const [search, setSearch] = useState("");
   const debounceClass = useDebounce(search, 300);
 
-  const [selectedRange, setSelectedRange] = useState<{ from?: string; to?: string }>({
-    from: undefined,
-    to: undefined,
-  });
+  const [selectedRange, setSelectedRange] = useState<string | null>(defaultDate().formattedToday ?? null)
   const handleSearch = (query: string) => {
     setSearch(query);
     setPage(1);
   };
 
-  const { data, isLoading } = useGetSessions({
+  const { data, isLoading, refetch } = useGetSessions({
     page,
     limit,
-    startDate: selectedRange.from,
-    endDate: selectedRange.to,
+
     search: debounceClass,
-    is_credit_only: false
+    is_credit_only: false,
+    date: selectedRange as string,
     // status: "scheduled",
   });
-
-  const handleDateRangeChangeDual = (startDate?: string, endDate?: string) => {
-    setSelectedRange((prev) => ({ ...prev, from: startDate, to: endDate ?? "" }));
+  const handleDateRangeChangeDual = (startDate?: string) => {
+    setSelectedRange(startDate as string);
+    refetch();
   };
 
   // alwasy match/check cart data and table data for quantity
@@ -245,13 +242,14 @@ export const AddTransactionFOrm = () => {
                   <p className="text-sm text-gray-500">Enter customer information to book a class</p>
                 </div>
                 <div className="flex flex-row gap-2">
-                  <div className="flex  min-w-[60%] w-full">
+                  <div className="w-full flex flex-col gap-1">
                     <DateRangePicker
-                      mode="range"
-                      onDateRangeChange={handleDateRangeChangeDual}
-                      startDate={selectedRange.from}
-                      endDate={selectedRange.to}
+                      mode="single"
+                      startDate={selectedRange as string}
+                      endDate={selectedRange as string}
+                      onDateRangeChange={(e) => handleDateRangeChangeDual(e)}
                       allowFutureDates
+                      allowPastDates={isManager}
                     />
                   </div>
                   <div className="flex w-full">
