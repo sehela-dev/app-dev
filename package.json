@@ -7,7 +7,8 @@
     "build": "next build --turbopack",
     "start": "next start",
     "lint": "eslint",
-    "push": "git push origin main && git push prod main"
+    "push": "git push origin main && git push prod main",
+    "pull-main": "git pull origin main && git pull prod main"
   },
   "dependencies": {
     "@fontsource-variable/inter": "^5.2.6",
