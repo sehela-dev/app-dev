@@ -302,7 +302,7 @@ export const EditSessionPage = () => {
               <SessionDateTimeFormComponent start_date={values.start_date} isEdit />
               <SessionLocationFormComponent />
             </div>
-            <SessionPricingFormComponent disableCreditOnly={!!isManager} />
+            <SessionPricingFormComponent disableCreditOnly={!isManager} />
           </div>
           <div className="flex flex-row w-full items-center justify-end gap-4 mt-4">
             <div>
