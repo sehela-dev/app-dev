@@ -17,34 +17,28 @@ import { cn } from "@/lib/utils";
 import { useGetPublicSessionsInfinite } from "@/hooks/api/queries/customer/public";
 import { formatDateHelper } from "@/lib/helper";
 
-const DATE_RANGE_DAYS = 7; // today + 7 days forward
-
-function getTodayStr() {
-  return format(new Date(), "yyyy-MM-dd");
-}
+const DATE_RANGE_DAYS = 7;
 
 function SessionDateStrip({ selectedDate, onSelect }: { selectedDate?: string; onSelect: (d: string) => void }) {
   const today = useMemo(() => startOfDay(new Date()), []);
   const todayStr = useMemo(() => format(today, "yyyy-MM-dd"), [today]);
 
-  // clamp only past — future extends
   const effectiveSelected = useMemo(() => {
-    if (!selectedDate) return todayStr;
+    if (!selectedDate) return undefined;
     try {
       const parsed = parseISO(selectedDate);
-      if (Number.isNaN(parsed.getTime())) return todayStr;
+      if (Number.isNaN(parsed.getTime())) return undefined;
       const d = startOfDay(parsed);
-      if (d < today) return todayStr;
+      if (d < today) return undefined;
       return format(d, "yyyy-MM-dd");
     } catch {
-      return todayStr;
+      return undefined;
     }
-  }, [selectedDate, today, todayStr]);
+  }, [selectedDate, today]);
 
-  // keep extending: show from today to max(today+7, selected+7)
   const dates = useMemo(() => {
-    const selected = parseISO(effectiveSelected);
-    const endFromSelected = addDays(startOfDay(selected), DATE_RANGE_DAYS);
+    const base = effectiveSelected ? parseISO(effectiveSelected) : today;
+    const endFromSelected = addDays(startOfDay(base), DATE_RANGE_DAYS);
     const defaultEnd = addDays(today, DATE_RANGE_DAYS);
     const end = endFromSelected > defaultEnd ? endFromSelected : defaultEnd;
     const len = differenceInDays(end, today) + 1;
@@ -78,11 +72,10 @@ function SessionDateStrip({ selectedDate, onSelect }: { selectedDate?: string; o
     };
   }, [otherDates.length]);
 
-  // keep selected in view; when today selected scroll back to first date after today
   useEffect(() => {
     const el = scrollRef.current;
     if (!el) return;
-    if (isTodaySelected) {
+    if (!effectiveSelected || isTodaySelected) {
       el.scrollTo({ left: 0, behavior: "smooth" });
       return;
     }
@@ -94,32 +87,34 @@ function SessionDateStrip({ selectedDate, onSelect }: { selectedDate?: string; o
   }, [effectiveSelected, otherDates, isTodaySelected]);
 
   const scrollBy = (dir: -1 | 1) => {
-    scrollRef.current?.scrollBy({ left: dir * 280, behavior: "smooth" });
+    scrollRef.current?.scrollBy({ left: dir * 220, behavior: "smooth" });
   };
 
   const todayDate = dates[0];
 
   return (
-    <div className="flex gap-2 w-full items-stretch">
-      {/* Today pinned — always visible */}
+    <div className="w-full rounded-2xl bg-zinc-50 border border-zinc-100 p-1.5 flex gap-1.5 items-stretch">
+      {/* Today pinned — seamless */}
       <button
         type="button"
         onClick={() => onSelect(todayStr)}
         className={cn(
-          "flex min-w-[72px] h-[90px] flex-col items-center justify-center rounded-xl border px-3 py-2 text-center transition-colors shrink-0 cursor-pointer snap-start shadow-sm",
-          isTodaySelected ? "bg-brand-500 border-brand-500 text-gray-50" : "bg-brand-25 border-brand-100 text-brand-500 hover:border-brand-500",
+          "flex min-w-[62px] h-[68px] flex-col items-center justify-center rounded-xl px-2 text-center transition-all shrink-0 cursor-pointer",
+          isTodaySelected
+            ? "bg-brand-500 text-white shadow-sm"
+            : "bg-white text-zinc-600 border border-zinc-100 hover:border-zinc-200 hover:bg-white",
         )}
       >
-        <span className="text-[11px] font-bold uppercase tracking-wider opacity-60">{format(todayDate, "EEE")}</span>
-        <span className="text-xl font-extrabold leading-none mt-1">{format(todayDate, "d")}</span>
-        <span className="text-xs font-semibold opacity-70 mt-0.5">{format(todayDate, "MMM")}</span>
-        <span className="mt-1 text-[10px] font-bold opacity-80 h-[14px] leading-[14px]">Today</span>
+        <span className="text-[10px] font-medium tracking-widest uppercase opacity-60">{format(todayDate, "EEE")}</span>
+        <span className="text-[18px] font-bold leading-none mt-0.5">{format(todayDate, "d")}</span>
+        <span className="text-[10px] font-medium opacity-60">{format(todayDate, "MMM")}</span>
+        <span className={cn("mt-1.5 h-1 w-1 rounded-full", isTodaySelected ? "bg-white" : "bg-brand-500")} />
       </button>
 
-      <div className="relative flex-1 min-w-0">
+      <div className="relative flex-1 min-w-0 flex items-stretch">
         <div
           ref={scrollRef}
-          className="flex gap-2 overflow-x-auto pb-2 snap-x snap-mandatory scroll-smooth [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden"
+          className="flex flex-1 gap-1.5 overflow-x-auto snap-x snap-mandatory scroll-smooth items-stretch [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden"
         >
           {otherDates.map((d) => {
             const dateStr = format(d, "yyyy-MM-dd");
@@ -130,14 +125,16 @@ function SessionDateStrip({ selectedDate, onSelect }: { selectedDate?: string; o
                 type="button"
                 onClick={() => onSelect(dateStr)}
                 className={cn(
-                  "flex min-w-[72px] h-[90px] flex-col items-center justify-center rounded-xl border px-3 py-2 text-center transition-colors shrink-0 cursor-pointer snap-start",
-                  isSelected ? "bg-brand-500 border-brand-500 text-gray-50" : "bg-brand-25 border-brand-100 text-brand-500 hover:border-brand-500",
+                  "flex min-w-[60px] h-[68px] flex-col items-center justify-center rounded-xl px-2 text-center transition-all shrink-0 cursor-pointer snap-start",
+                  isSelected
+                    ? "bg-brand-500 text-white shadow-sm"
+                    : "bg-white text-zinc-600 border border-zinc-100 hover:border-zinc-200 hover:bg-white",
                 )}
               >
-                <span className="text-[11px] font-bold uppercase tracking-wider opacity-60">{format(d, "EEE")}</span>
-                <span className="text-xl font-extrabold leading-none mt-1">{format(d, "d")}</span>
-                <span className="text-xs font-semibold opacity-70 mt-0.5">{format(d, "MMM")}</span>
-                <span className="mt-1 text-[10px] font-bold h-[14px] leading-[14px] opacity-80">{isSelected ? "Selected" : "\u00A0"}</span>
+                <span className="text-[10px] font-medium tracking-widest uppercase opacity-60">{format(d, "EEE")}</span>
+                <span className="text-[18px] font-bold leading-none mt-0.5">{format(d, "d")}</span>
+                <span className="text-[10px] font-medium opacity-60">{format(d, "MMM")}</span>
+                <span className={cn("mt-1.5 h-1 w-1 rounded-full transition-colors", isSelected ? "bg-white" : "bg-transparent")} />
               </button>
             );
           })}
@@ -148,9 +145,9 @@ function SessionDateStrip({ selectedDate, onSelect }: { selectedDate?: string; o
             type="button"
             aria-label="Previous dates"
             onClick={() => scrollBy(-1)}
-            className="absolute left-0 top-1/2 -translate-y-1/2 -translate-x-1 size-8 rounded-full border border-brand-100 bg-gray-50 shadow-md flex items-center justify-center text-brand-500 hover:bg-brand-500 hover:text-gray-50 hover:border-brand-500 transition-colors cursor-pointer"
+            className="absolute left-0 top-1/2 -translate-y-1/2 -translate-x-2 size-7 rounded-full bg-white border border-zinc-200 shadow-sm flex items-center justify-center text-zinc-600 hover:bg-zinc-900 hover:text-white hover:border-zinc-900 transition-colors cursor-pointer"
           >
-            <ChevronLeft size={16} />
+            <ChevronLeft size={14} />
           </button>
         )}
         {canNext && (
@@ -158,9 +155,9 @@ function SessionDateStrip({ selectedDate, onSelect }: { selectedDate?: string; o
             type="button"
             aria-label="Next dates"
             onClick={() => scrollBy(1)}
-            className="absolute right-0 top-1/2 -translate-y-1/2 translate-x-1 size-8 rounded-full border border-brand-100 bg-gray-50 shadow-md flex items-center justify-center text-brand-500 hover:bg-brand-500 hover:text-gray-50 hover:border-brand-500 transition-colors cursor-pointer"
+            className="absolute right-0 top-1/2 -translate-y-1/2 translate-x-2 size-7 rounded-full bg-white border border-zinc-200 shadow-sm flex items-center justify-center text-zinc-600 hover:bg-zinc-900 hover:text-white hover:border-zinc-900 transition-colors cursor-pointer"
           >
-            <ChevronRight size={16} />
+            <ChevronRight size={14} />
           </button>
         )}
       </div>
@@ -174,55 +171,71 @@ export const BookClassView = () => {
   const searchParams = useSearchParams();
 
   const classId = searchParams.get("class_id") ?? undefined;
-  const dateParam = searchParams.get("date") ?? undefined;
+  const dateParam = searchParams.get("date") ?? null;
   const instructorId = searchParams.get("instructor_id") ?? undefined;
   const locationId = searchParams.get("location_id") ?? undefined;
   const place = searchParams.get("place") ?? undefined;
 
-  // default to today if no date in URL — calendar always has a selected date, only past is blocked, future extends
-  const todayStr = useMemo(() => getTodayStr(), []);
   const effectiveDate = useMemo(() => {
-    if (!dateParam) return todayStr;
+    if (!dateParam) return null;
     try {
       const parsed = parseISO(dateParam);
-      if (Number.isNaN(parsed.getTime())) return todayStr;
+      if (Number.isNaN(parsed.getTime())) return undefined;
       const today = startOfDay(new Date());
       const d = startOfDay(parsed);
-      if (d < today) return todayStr;
+      if (d < today) return undefined;
       return format(d, "yyyy-MM-dd");
     } catch {
-      return todayStr;
+      return undefined;
     }
-  }, [dateParam, todayStr]);
+  }, [dateParam]);
 
   const [filterResetKey, setFilterResetKey] = useState(0);
   const [search, setSearch] = useState("");
 
   const { data, isLoading, isError, refetch, fetchNextPage, hasNextPage, isFetchingNextPage } = useGetPublicSessionsInfinite(
     {
-      date: effectiveDate,
+      date: effectiveDate ?? undefined,
       class_id: classId,
       instructor_id: instructorId,
       location_id: locationId,
       place,
     },
-    50,
+    10,
   );
 
-  const sessions = useMemo(() => data?.pages.flatMap((page) => page.data?.[0]?.sessions ?? []) ?? [], [data]);
-  const displayDate = data?.pages?.[0]?.data?.[0]?.date ?? effectiveDate;
+  const groups = useMemo(() => {
+    const raw = data?.pages.flatMap((page) => page.data ?? []) ?? [];
+    const byDate = new Map<string, (typeof raw)[number]>();
+    for (const g of raw) {
+      const existing = byDate.get(g.date);
+      if (!existing) byDate.set(g.date, { ...g, sessions: [...g.sessions] });
+      else {
+        const seen = new Set(existing.sessions.map((s) => s.id));
+        for (const s of g.sessions) if (!seen.has(s.id)) { existing.sessions.push(s); seen.add(s.id); }
+      }
+    }
+    return [...byDate.values()];
+  }, [data]);
+  const sessions = useMemo(() => groups.flatMap((g) => g.sessions), [groups]);
 
-  const filteredSessions = useMemo(() => {
-    const query = search.trim().toLowerCase();
-    if (!query) return sessions;
-    return sessions.filter(
-      (session) =>
-        session.session_name.toLowerCase().includes(query) ||
-        session.instructor_name?.toLowerCase().includes(query) ||
-        session.location_name?.toLowerCase().includes(query) ||
-        session.class_name?.toLowerCase().includes(query),
-    );
-  }, [sessions, search]);
+  const filteredGroups = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    if (!q) return groups;
+    return groups
+      .map((g) => ({
+        ...g,
+        sessions: g.sessions.filter(
+          (s) =>
+            s.session_name.toLowerCase().includes(q) ||
+            s.instructor_name?.toLowerCase().includes(q) ||
+            s.location_name?.toLowerCase().includes(q) ||
+            s.class_name?.toLowerCase().includes(q),
+        ),
+      }))
+      .filter((g) => g.sessions.length > 0);
+  }, [groups, search]);
+  const filteredSessions = useMemo(() => filteredGroups.flatMap((g) => g.sessions), [filteredGroups]);
 
   const setParams = (next: Record<string, string | undefined>) => {
     const params = new URLSearchParams(searchParams.toString());
@@ -254,82 +267,88 @@ export const BookClassView = () => {
 
         <h2 className="font-serif font-extrabold text-[32px] leading-[110%]">Book Class</h2>
 
-        {/* Calendar on top — today to 7 days forward, no past */}
-        <SessionDateStrip selectedDate={effectiveDate} onSelect={(d) => setParams({ date: d })} />
+        <SessionDateStrip
+          selectedDate={effectiveDate ?? undefined}
+          onSelect={(d) => setParams({ date: effectiveDate === d ? undefined : d })}
+        />
 
         <div className="flex flex-col gap-4">
-          <h3 className="text-xl font-extrabold">Upcoming Sessions</h3>
+            <h3 className="text-xl font-extrabold">Upcoming Sessions</h3>
 
-          <SessionFilters
-            key={filterResetKey}
-            classId={classId}
-            instructorId={instructorId}
-            locationId={locationId}
-            place={place}
-            onChange={(key, value) => setParams({ [key]: value })}
-            onReset={handleResetFilters}
-          />
+            <SessionFilters
+              key={filterResetKey}
+              classId={classId}
+              instructorId={instructorId}
+              locationId={locationId}
+              place={place}
+              onChange={(key, value) => setParams({ [key]: value })}
+              onReset={handleResetFilters}
+            />
 
-          <SearchInput
-            search={search}
-            onSearch={setSearch}
-            placeholder="Search sessions, instructors, locations..."
-            className="[&>input]:bg-brand-00 [&>input]:rounded-xl [&>input]:border-brand-100"
-          />
+            <SearchInput
+              search={search}
+              onSearch={setSearch}
+              placeholder="Search sessions, instructors, locations..."
+              className="[&>input]:bg-brand-00 [&>input]:rounded-xl [&>input]:border-brand-100"
+            />
 
-          {search.trim() && (
-            <p className="text-sm text-brand-500/60">
-              {filteredSessions.length} result{filteredSessions.length === 1 ? "" : "s"}
-            </p>
-          )}
+            {search.trim() && (
+              <p className="text-sm text-brand-500/60">
+                {filteredSessions.length} result{filteredSessions.length === 1 ? "" : "s"}
+              </p>
+            )}
 
-          {isLoading ? (
-            <div className="flex items-center justify-center py-10">
-              <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
-            </div>
-          ) : isError ? (
-            <div className="flex flex-col items-center justify-center py-10 text-center gap-3">
-              <p className="text-sm text-brand-500/70">Something went wrong while loading sessions.</p>
-              <Button variant="outline" onClick={() => refetch()}>
-                Try Again
-              </Button>
-            </div>
-          ) : sessions.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-10 text-center">
-              <p className="font-semibold">No sessions available</p>
-              <p className="text-sm text-brand-500/70 mt-1">Try another date or adjust your filters.</p>
-            </div>
-          ) : search.trim() && filteredSessions.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-10 text-center">
-              <p className="font-semibold">No matches found</p>
-              <p className="text-sm text-brand-500/70 mt-1">Try a different keyword for your search.</p>
-            </div>
-          ) : (
-            <div className="flex flex-col gap-4">
-              <h3 className="font-[600]">{formatDateHelper(displayDate ?? "", "EEEE, dd MMM yyyy")}</h3>
+            {isLoading ? (
+              <div className="flex items-center justify-center py-10">
+                <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+              </div>
+            ) : isError ? (
+              <div className="flex flex-col items-center justify-center py-10 text-center gap-3">
+                <p className="text-sm text-brand-500/70">Something went wrong while loading sessions.</p>
+                <Button variant="outline" onClick={() => refetch()}>
+                  Try Again
+                </Button>
+              </div>
+            ) : sessions.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-10 text-center">
+                <p className="font-semibold">No sessions available</p>
+                <p className="text-sm text-brand-500/70 mt-1">Try another date or adjust your filters.</p>
+              </div>
+            ) : search.trim() && filteredSessions.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-10 text-center">
+                <p className="font-semibold">No matches found</p>
+                <p className="text-sm text-brand-500/70 mt-1">Try a different keyword for your search.</p>
+              </div>
+            ) : (
               <InfiniteScroll hasMore={!!hasNextPage} isLoading={isFetchingNextPage} onLoadMore={() => fetchNextPage()}>
-                <div className="flex flex-col gap-4">
-                  {filteredSessions.map((session) => (
-                    <SessionCardComponent
-                      key={session.id}
-                      time={session.time_start}
-                      endTime={session.time_end}
-                      title={session.session_name}
-                      location={session.place === "online" ? "Online" : session.location_name ?? ""}
-                      instructor={session.instructor_name ?? ""}
-                      slot={String(session.slots_available)}
-                      isSpecial={session.type === "special"}
-                      isOnline={session.place === "online"}
-                      credit={session.allow_credit && session.price_credit_amount ? String(session.price_credit_amount) : ""}
-                      price={!session.is_credit_only && session.price_idr > 0 ? session.price_idr.toLocaleString("id-ID") : ""}
-                      url={`/book/session/${session.id}?date=${displayDate}${classId ? `&class_id=${classId}` : ""}`}
-                    />
+                <div className="flex flex-col gap-6">
+                  {filteredGroups.map((group) => (
+                    <div key={group.date} className="flex flex-col gap-4">
+                      <h3 className="font-[600]">{formatDateHelper(group.date ?? "", "EEEE, dd MMM yyyy")}</h3>
+                      <div className="flex flex-col gap-4">
+                        {group.sessions.map((session) => (
+                          <SessionCardComponent
+                            key={session.id}
+                            time={session.time_start}
+                            endTime={session.time_end}
+                            title={session.session_name}
+                            location={session.place === "online" ? "Online" : session.location_name ?? ""}
+                            instructor={session.instructor_name ?? ""}
+                            slot={String(session.slots_available)}
+                            isSpecial={session.type === "special"}
+                            isOnline={session.place === "online"}
+                            credit={session.allow_credit && session.price_credit_amount ? String(session.price_credit_amount) : ""}
+                            price={!session.is_credit_only && session.price_idr > 0 ? session.price_idr.toLocaleString("id-ID") : ""}
+                            url={`/book/session/${session.id}?date=${group.date}${classId ? `&class_id=${classId}` : ""}`}
+                          />
+                        ))}
+                      </div>
+                    </div>
                   ))}
                 </div>
               </InfiniteScroll>
-            </div>
-          )}
-        </div>
+            )}
+          </div>
       </div>
       <MainFooterComponent />
     </div>
