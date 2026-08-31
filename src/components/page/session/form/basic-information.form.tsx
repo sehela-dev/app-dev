@@ -49,7 +49,7 @@ export const SessionBasicInfoFormComponent = ({ type }: { type?: string }) => {
   const debouncedSearchInstructor = useDebounce(searchInstructor, 300); // 500ms delay
 
   const { data, isLoading: isLoadingClass } = useGetClassSessionsCategory({ page: 1, limit: 10, search: debouncedSearch });
-  const { data: instructorData, isLoading: isLoadingInstructor } = useGetInstructor({ page: 1, limit: 10, search: debouncedSearchInstructor });
+  const { data: instructorData, isLoading: isLoadingInstructor } = useGetInstructor({ page: 1, limit: 10, search: debouncedSearchInstructor, status: 'active' });
 
   const onSearchChange = (e: string) => {
     setSearch(e);
@@ -99,7 +99,7 @@ export const SessionBasicInfoFormComponent = ({ type }: { type?: string }) => {
                       className="w-full px-4 py-4 border-2 border-gray-200 rounded-lg text-gray-999  placeholder-gray-400 focus:outline-none focus:border-brand-500 transition-colors h-[42px]"
                       placeholder="Type here.."
                       {...field}
-                      // className="w-auto min-w-[388px]"
+                    // className="w-auto min-w-[388px]"
                     />
                   </FormControl>
                   <FormMessage />
@@ -120,7 +120,7 @@ export const SessionBasicInfoFormComponent = ({ type }: { type?: string }) => {
                       className="w-full px-4 py-4 border-2 border-gray-200 rounded-lg text-gray-999  placeholder-gray-400 focus:outline-none focus:border-brand-500 transition-colors h-[42px]"
                       placeholder="Type here.."
                       {...field}
-                      // className="w-auto min-w-[388px]"
+                    // className="w-auto min-w-[388px]"
                     />
                   </FormControl>
                   <FormMessage />
