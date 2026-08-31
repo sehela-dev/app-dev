@@ -7,12 +7,11 @@ import { cn } from "@/lib/utils";
 import { SelectSearch } from "@/components/ui/select-search";
 import { Collapsible, CollapsibleTrigger, CollapsibleContent } from "@/components/ui/collapsible";
 
-import { useGetPublicClasses, useGetPublicInstructors, useGetPublicLocations } from "@/hooks/api/queries/customer/public";
+import { useGetPublicClasses, useGetPublicInstructors } from "@/hooks/api/queries/customer/public";
 
 interface IFilterValues {
   class_id?: string;
   instructor_id?: string;
-  location_id?: string;
   place?: string;
 }
 
@@ -21,7 +20,6 @@ type FilterKey = keyof IFilterValues;
 interface ISessionFiltersProps {
   classId?: string;
   instructorId?: string;
-  locationId?: string;
   place?: string;
   onChange: (key: FilterKey, value: string | undefined) => void;
   onReset: () => void;
@@ -33,11 +31,10 @@ const FORMATS = [
   { id: "online", label: "Online" },
 ];
 
-export function SessionFilters({ classId, instructorId, locationId, place, onChange, onReset }: ISessionFiltersProps) {
+export function SessionFilters({ classId, instructorId, place, onChange, onReset }: ISessionFiltersProps) {
   const [open, setOpen] = useState(false);
   const [classSearch, setClassSearch] = useState("");
   const [instructorSearch, setInstructorSearch] = useState("");
-  const [locationSearch, setLocationSearch] = useState("");
 
   const { data: classesData, isLoading: classesLoading, isFetching: classesFetching } = useGetPublicClasses({ page_size: 100 });
   const {
@@ -45,11 +42,6 @@ export function SessionFilters({ classId, instructorId, locationId, place, onCha
     isLoading: instructorsLoading,
     isFetching: instructorsFetching,
   } = useGetPublicInstructors({ page_size: 15, q: instructorSearch.trim() || undefined });
-  const {
-    data: locationsData,
-    isLoading: locationsLoading,
-    isFetching: locationsFetching,
-  } = useGetPublicLocations({ page_size: 15, q: locationSearch.trim() || undefined });
 
   const classOptions = useMemo(() => {
     const q = classSearch.trim().toLowerCase();
@@ -61,9 +53,8 @@ export function SessionFilters({ classId, instructorId, locationId, place, onCha
     () => (instructorsData?.data ?? []).map((item) => ({ value: item.id, label: item.full_name })),
     [instructorsData],
   );
-  const locationOptions = useMemo(() => (locationsData?.data ?? []).map((item) => ({ value: item.id, label: item.name })), [locationsData]);
 
-  const activeCount = [classId, instructorId, locationId, place].filter(Boolean).length;
+  const activeCount = [classId, instructorId, place].filter(Boolean).length;
 
   return (
     <div className="w-full rounded-xl border border-brand-100 bg-brand-25 font-serif text-brand-500">
@@ -131,39 +122,23 @@ export function SessionFilters({ classId, instructorId, locationId, place, onCha
                 />
               </div>
 
-              {/* Instructor & Location */}
+              {/* Instructor */}
               <div className="flex flex-col gap-1.5">
-                <p className="text-xs font-bold uppercase tracking-wider text-brand-500/60">Instructor & Location</p>
-                <div className="flex flex-col gap-2.5">
-                  <SelectSearch
-                    options={instructorOptions}
-                    value={instructorId}
-                    onValueChange={(value) => onChange("instructor_id", value || undefined)}
-                    searchValue={instructorSearch}
-                    onSearchChange={setInstructorSearch}
-                    placeholder="Instructor"
-                    searchPlaceholder="Search instructor..."
-                    emptyMessage="No instructor found."
-                    loading={instructorsLoading || instructorsFetching}
-                    loadingMessage="Loading instructors..."
-                    clearable
-                    className="[&>span]:text-brand-500"
-                  />
-                  <SelectSearch
-                    options={locationOptions}
-                    value={locationId}
-                    onValueChange={(value) => onChange("location_id", value || undefined)}
-                    searchValue={locationSearch}
-                    onSearchChange={setLocationSearch}
-                    placeholder="Location"
-                    searchPlaceholder="Search location..."
-                    emptyMessage="No location found."
-                    loading={locationsLoading || locationsFetching}
-                    loadingMessage="Loading locations..."
-                    clearable
-                    className="[&>span]:text-brand-500"
-                  />
-                </div>
+                <p className="text-xs font-bold uppercase tracking-wider text-brand-500/60">Instructor</p>
+                <SelectSearch
+                  options={instructorOptions}
+                  value={instructorId}
+                  onValueChange={(value) => onChange("instructor_id", value || undefined)}
+                  searchValue={instructorSearch}
+                  onSearchChange={setInstructorSearch}
+                  placeholder="Instructor"
+                  searchPlaceholder="Search instructor..."
+                  emptyMessage="No instructor found."
+                  loading={instructorsLoading || instructorsFetching}
+                  loadingMessage="Loading instructors..."
+                  clearable
+                  className="[&>span]:text-brand-500"
+                />
               </div>
             </div>
           </CollapsibleContent>

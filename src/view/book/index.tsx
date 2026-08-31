@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 
-import { ChevronLeft, ChevronRight, Loader2 } from "lucide-react";
+import { ChevronLeft, ChevronRight, Loader2, X } from "lucide-react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { addDays, differenceInDays, format, parseISO, startOfDay } from "date-fns";
 
@@ -12,9 +12,11 @@ import { SessionFilters } from "@/components/general/session-filters";
 import { InfiniteScroll } from "@/components/base/infinite-scroll";
 import { SearchInput } from "@/components/ui/search-input";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 
-import { useGetPublicSessionsInfinite } from "@/hooks/api/queries/customer/public";
+import { useGetPublicLocations, useGetPublicSessionsInfinite } from "@/hooks/api/queries/customer/public";
 import { formatDateHelper } from "@/lib/helper";
 
 const DATE_RANGE_DAYS = 7;
@@ -165,6 +167,81 @@ function SessionDateStrip({ selectedDate, onSelect }: { selectedDate?: string; o
   );
 }
 
+function BookLocationFilter({ values, onChange }: { values: string[]; onChange: (v: string[]) => void }) {
+  const [search, setSearch] = useState("");
+  const {
+    data: locationsData,
+    isLoading: locationsLoading,
+    isFetching: locationsFetching,
+  } = useGetPublicLocations({ page_size: 50, q: search.trim() || undefined });
+  const locationOptions = useMemo(
+    () => (locationsData?.data ?? []).map((item) => ({ value: item.id, label: item.name })),
+    [locationsData],
+  );
+  const toggle = (id: string) => {
+    onChange(values.includes(id) ? values.filter((v) => v !== id) : [...values, id]);
+  };
+  return (
+    <div className="w-full rounded-xl border border-brand-100 bg-brand-25 p-4 font-serif text-brand-500">
+      <div className="flex items-center justify-between">
+        <p className="text-xs font-bold uppercase tracking-wider text-brand-500/60">
+          Location{values.length ? ` (${values.length})` : ""}
+        </p>
+        {values.length > 0 && (
+          <button type="button" onClick={() => onChange([])} className="text-xs font-semibold underline cursor-pointer hover:opacity-70">
+            Clear
+          </button>
+        )}
+      </div>
+      <Input
+        placeholder="Search location..."
+        value={search}
+        onChange={(e) => setSearch(e.target.value)}
+        className="mt-2 bg-white border-brand-100"
+      />
+      {values.length > 0 && (
+        <div className="flex flex-wrap gap-1.5 mt-2">
+          {values.map((id) => {
+            const label = locationOptions.find((o) => o.value === id)?.label ?? id;
+            return (
+              <span key={id} className="inline-flex items-center gap-1 rounded-full bg-brand-500 px-2.5 py-1 text-xs font-semibold text-white">
+                {label}
+                <button
+                  type="button"
+                  onClick={() => toggle(id)}
+                  className="rounded-full p-0.5 hover:bg-white/20 cursor-pointer"
+                  aria-label={`Remove ${label}`}
+                >
+                  <X size={12} />
+                </button>
+              </span>
+            );
+          })}
+        </div>
+      )}
+      <div className="mt-3 max-h-48 overflow-auto flex flex-col gap-1 pr-1">
+        {locationsLoading || locationsFetching ? (
+          <div className="flex items-center justify-center py-6">
+            <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+          </div>
+        ) : locationOptions.length === 0 ? (
+          <p className="text-sm text-muted-foreground py-2">No location found.</p>
+        ) : (
+          locationOptions.map((opt) => (
+            <label
+              key={opt.value}
+              className="flex items-center gap-2 rounded-md px-2 py-1.5 hover:bg-brand-100 cursor-pointer"
+            >
+              <Checkbox checked={values.includes(opt.value)} onCheckedChange={() => toggle(opt.value)} />
+              <span className="text-sm truncate">{opt.label}</span>
+            </label>
+          ))
+        )}
+      </div>
+    </div>
+  );
+}
+
 export const BookClassView = () => {
   const router = useRouter();
   const pathname = usePathname();
@@ -173,7 +250,12 @@ export const BookClassView = () => {
   const classId = searchParams.get("class_id") ?? undefined;
   const dateParam = searchParams.get("date") ?? null;
   const instructorId = searchParams.get("instructor_id") ?? undefined;
-  const locationId = searchParams.get("location_id") ?? undefined;
+  const locationIdRaw = searchParams.get("location_ids") ?? searchParams.get("location_id") ?? "";
+  const locationIds = useMemo(
+    () => (locationIdRaw ? [...new Set(locationIdRaw.split(",").map((s) => s.trim()).filter(Boolean))] : []),
+    [locationIdRaw],
+  );
+  const locationParam = locationIds.length ? locationIds.join(",") : undefined;
   const place = searchParams.get("place") ?? undefined;
 
   const effectiveDate = useMemo(() => {
@@ -199,7 +281,7 @@ export const BookClassView = () => {
       date: effectiveDate,
       class_id: classId,
       instructor_id: instructorId,
-      location_id: locationId,
+      ...(locationParam ? { location_id: locationParam } : {}),
       place,
     },
     10,
@@ -256,7 +338,7 @@ export const BookClassView = () => {
   const handleResetFilters = () => {
     setFilterResetKey((key) => key + 1);
     setSearch("");
-    setParams({ class_id: undefined, instructor_id: undefined, location_id: undefined, place: undefined });
+    setParams({ class_id: undefined, instructor_id: undefined, location_id: undefined, location_ids: undefined, place: undefined });
   };
 
   return (
@@ -266,30 +348,35 @@ export const BookClassView = () => {
           <ChevronLeft size={18} /> Back
         </button>
 
-        <SessionDateStrip
-          selectedDate={effectiveDate ?? undefined}
-          onSelect={(d) => setParams({ date: effectiveDate === d ? undefined : d })}
-        />
+
 
         <div className="flex flex-col gap-4">
           <h3 className="text-xl font-extrabold">Upcoming Sessions</h3>
-
+          <SessionDateStrip
+            selectedDate={effectiveDate ?? undefined}
+            onSelect={(d) => setParams({ date: effectiveDate === d ? undefined : d })}
+          />
+          <BookLocationFilter
+            values={locationIds}
+            onChange={(next) => setParams({ location_id: next.length ? next.join(",") : undefined, location_ids: undefined })}
+          />
           <SessionFilters
             key={filterResetKey}
             classId={classId}
             instructorId={instructorId}
-            locationId={locationId}
             place={place}
             onChange={(key, value) => setParams({ [key]: value })}
             onReset={handleResetFilters}
           />
 
-          <SearchInput
+
+
+          {/* <SearchInput
             search={search}
             onSearch={setSearch}
             placeholder="Search sessions, instructors, locations..."
             className="[&>input]:bg-brand-00 [&>input]:rounded-xl [&>input]:border-brand-100"
-          />
+          /> */}
 
           {search.trim() && (
             <p className="text-sm text-brand-500/60">

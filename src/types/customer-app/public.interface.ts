@@ -93,6 +93,7 @@ export interface IPublicSessionsParams {
   class_id?: string;
   instructor_id?: string;
   location_id?: string;
+  location_ids?: string;
   type?: string;
   level?: string;
   place?: string;
