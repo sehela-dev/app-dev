@@ -89,7 +89,7 @@ export type TGetPublicLocations = (params?: IPublicLocationsParams) => Promise<I
 // ----------------------------------------------------------------------
 
 export interface IPublicSessionsParams {
-  date?: string;
+  date?: string | null;
   class_id?: string;
   instructor_id?: string;
   location_id?: string;

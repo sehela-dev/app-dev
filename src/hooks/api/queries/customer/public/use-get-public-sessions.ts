@@ -7,5 +7,4 @@ export const useGetPublicSessions = (params: IPublicSessionsParams) =>
     queryKey: ["customer", "public", "sessions", params],
     queryFn: () => getPublicSessions(params),
     refetchOnWindowFocus: false,
-    enabled: !!(params?.class_id || params?.date),
   });

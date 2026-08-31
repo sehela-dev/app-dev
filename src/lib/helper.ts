@@ -31,7 +31,7 @@ export function formatCurrency(amount?: string | number, currencyCode = "IDR", l
 export const formatDateHelper = (date: string | Date, formatStr: string = "dd/MM/yyyy"): string => {
   try {
     const dateObj = typeof date === "string" ? parseISO(date) : date;
-    return format(dateObj, formatStr, { locale: id });
+    return format(dateObj, formatStr);
   } catch (error) {
     console.error("Date formatting error:", error);
     return "";
