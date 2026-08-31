@@ -12,6 +12,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { useEditSession } from "@/hooks/api/mutations/admin";
 import { useGetSessionDetail } from "@/hooks/api/queries/admin/class-session";
+import { useAdminPermission } from "@/hooks/use-role-access";
 import { createFormData } from "@/lib/helper";
 
 import { Loader2 } from "lucide-react";
@@ -87,6 +88,7 @@ export const OPTION_TYPE_KEY = {
 };
 
 export const EditSessionPage = () => {
+  const { isManager } = useAdminPermission()
   const router = useRouter();
   const params = useParams();
   const { id } = params;
@@ -149,11 +151,11 @@ export const EditSessionPage = () => {
       meeting_link: data?.data?.meeting_link,
 
       //PRICING
-        price_idr: String(data?.data?.price_idr),
-        price_credit_amount: String(data?.data?.price_credit_amount),
-        is_credit_only: !!data?.data?.is_credit_only,
-        photo: null as File | null,
-        photo_url: data?.data?.photo_url ?? "",
+      price_idr: String(data?.data?.price_idr),
+      price_credit_amount: String(data?.data?.price_credit_amount),
+      is_credit_only: !!data?.data?.is_credit_only,
+      photo: null as File | null,
+      photo_url: data?.data?.photo_url ?? "",
 
       //OTHER
       type: data?.data?.type,
@@ -161,23 +163,23 @@ export const EditSessionPage = () => {
       isOveride: !!data?.data?.instructor_payment_model || false,
       ...(data?.data?.type === "private" || data?.data?.type === "special"
         ? {
-            payment: {
-              payment_model: data?.data?.instructor_payment_model,
-              session_type: data?.data?.type,
-              model_params: {
-                percentage: data?.data?.instructor_payment_params?.percentage,
-                min_amount: data?.data?.instructor_payment_params?.min_amount,
-                min_threshold_people: data?.data?.instructor_payment_params?.min_threshold_people,
-                amount: data?.data?.instructor_payment_params?.amount,
-                credit_rate: data?.data?.instructor_payment_params?.credit_rate,
-                non_credit_rate: data?.data?.instructor_payment_params?.non_credit_rate,
-                base_amount: data?.data?.instructor_payment_params?.base_amount,
-                additional_per_person: data?.data?.instructor_payment_params?.additional_per_person,
-                base_people: data?.data?.instructor_payment_params?.base_people,
-                per_person_amount: data?.data?.instructor_payment_params?.per_person_amount,
-              },
+          payment: {
+            payment_model: data?.data?.instructor_payment_model,
+            session_type: data?.data?.type,
+            model_params: {
+              percentage: data?.data?.instructor_payment_params?.percentage,
+              min_amount: data?.data?.instructor_payment_params?.min_amount,
+              min_threshold_people: data?.data?.instructor_payment_params?.min_threshold_people,
+              amount: data?.data?.instructor_payment_params?.amount,
+              credit_rate: data?.data?.instructor_payment_params?.credit_rate,
+              non_credit_rate: data?.data?.instructor_payment_params?.non_credit_rate,
+              base_amount: data?.data?.instructor_payment_params?.base_amount,
+              additional_per_person: data?.data?.instructor_payment_params?.additional_per_person,
+              base_people: data?.data?.instructor_payment_params?.base_people,
+              per_person_amount: data?.data?.instructor_payment_params?.per_person_amount,
             },
-          }
+          },
+        }
         : { payment: null }),
     };
   }, [data?.data]);
@@ -199,13 +201,13 @@ export const EditSessionPage = () => {
         place: data?.place as string,
         ...(data?.place === "offline"
           ? {
-              location: data?.room.label as string,
-              location_maps_url: data?.location_maps_url as string,
-              room_id: data?.room.value as string,
-            }
+            location: data?.room.label as string,
+            location_maps_url: data?.location_maps_url as string,
+            room_id: data?.room.value as string,
+          }
           : {
-              meeting_link: data?.meeting_link as string,
-            }),
+            meeting_link: data?.meeting_link as string,
+          }),
         // is_credit_only locked after creation — keep original value
         price_idr: values.is_credit_only ? 0 : parseInt(data?.price_idr as string),
         price_credit_amount: parseInt(data?.price_credit_amount as string),
@@ -215,25 +217,25 @@ export const EditSessionPage = () => {
         time_end: data?.time_end as string,
         ...(data?.isOveride && (data?.type === "private" || data?.type === "special")
           ? {
-              payment: {
-                payment_model: data?.payment?.payment_model,
-                session_type: data?.type,
-                model_params: {
-                  percentage: parseInt(String(data?.payment?.model_params?.percentage)) as number,
-                  min_amount: parseInt(String(data?.payment?.model_params?.min_amount)) as number,
-                  min_threshold_people: parseInt(String(data?.payment?.model_params?.min_threshold_people)) as number,
-                  amount: parseInt(String(data?.payment?.model_params?.amount)) as number,
-                  credit_rate: parseInt(String(data?.payment?.model_params?.credit_rate)) as number,
-                  non_credit_rate: parseInt(String(data?.payment?.model_params?.non_credit_rate)) as number,
-                  base_amount: parseInt(String(data?.payment?.model_params?.base_amount)) as number,
-                  additional_per_person: parseInt(String(data?.payment?.model_params?.additional_per_person)) as number,
-                  base_people: parseInt(String(data?.payment?.model_params?.base_people)) as number,
-                  per_person_amount: parseInt(String(data?.payment?.model_params?.per_person_amount)) as number,
-                },
+            payment: {
+              payment_model: data?.payment?.payment_model,
+              session_type: data?.type,
+              model_params: {
+                percentage: parseInt(String(data?.payment?.model_params?.percentage)) as number,
+                min_amount: parseInt(String(data?.payment?.model_params?.min_amount)) as number,
+                min_threshold_people: parseInt(String(data?.payment?.model_params?.min_threshold_people)) as number,
+                amount: parseInt(String(data?.payment?.model_params?.amount)) as number,
+                credit_rate: parseInt(String(data?.payment?.model_params?.credit_rate)) as number,
+                non_credit_rate: parseInt(String(data?.payment?.model_params?.non_credit_rate)) as number,
+                base_amount: parseInt(String(data?.payment?.model_params?.base_amount)) as number,
+                additional_per_person: parseInt(String(data?.payment?.model_params?.additional_per_person)) as number,
+                base_people: parseInt(String(data?.payment?.model_params?.base_people)) as number,
+                per_person_amount: parseInt(String(data?.payment?.model_params?.per_person_amount)) as number,
               },
-            }
+            },
+          }
           : // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            { payment: null as any }),
+          { payment: null as any }),
       };
       const hasFile = data?.photo instanceof File;
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -300,7 +302,7 @@ export const EditSessionPage = () => {
               <SessionDateTimeFormComponent start_date={values.start_date} isEdit />
               <SessionLocationFormComponent />
             </div>
-            <SessionPricingFormComponent disableCreditOnly />
+            <SessionPricingFormComponent disableCreditOnly={!!isManager} />
           </div>
           <div className="flex flex-row w-full items-center justify-end gap-4 mt-4">
             <div>

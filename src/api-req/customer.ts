@@ -18,7 +18,7 @@ export const getCustomers: TCustomerData = async ({ page, limit, status, search 
     params: {
       page,
       page_size: limit,
-      is_active: status,
+      ...(status !== "all" ? { is_active: status } : null),
       ...(search ? { q: search } : null),
     },
   });
