@@ -5,12 +5,12 @@ import { useMemo, useState } from "react";
 import { ChevronDown } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { SelectSearch } from "@/components/ui/select-search";
-import { DateRangePicker } from "@/components/base/date-range-picker";
 import { Collapsible, CollapsibleTrigger, CollapsibleContent } from "@/components/ui/collapsible";
 
-import { useGetPublicInstructors, useGetPublicLocations } from "@/hooks/api/queries/customer/public";
+import { useGetPublicClasses, useGetPublicInstructors, useGetPublicLocations } from "@/hooks/api/queries/customer/public";
 
 interface IFilterValues {
+  class_id?: string;
   instructor_id?: string;
   location_id?: string;
   place?: string;
@@ -19,11 +19,10 @@ interface IFilterValues {
 type FilterKey = keyof IFilterValues;
 
 interface ISessionFiltersProps {
-  date?: string;
+  classId?: string;
   instructorId?: string;
   locationId?: string;
   place?: string;
-  onDateChange: (date: string) => void;
   onChange: (key: FilterKey, value: string | undefined) => void;
   onReset: () => void;
 }
@@ -34,11 +33,13 @@ const FORMATS = [
   { id: "online", label: "Online" },
 ];
 
-export function SessionFilters({ date, instructorId, locationId, place, onDateChange, onChange, onReset }: ISessionFiltersProps) {
-  const [open, setOpen] = useState(true);
+export function SessionFilters({ classId, instructorId, locationId, place, onChange, onReset }: ISessionFiltersProps) {
+  const [open, setOpen] = useState(false);
+  const [classSearch, setClassSearch] = useState("");
   const [instructorSearch, setInstructorSearch] = useState("");
   const [locationSearch, setLocationSearch] = useState("");
 
+  const { data: classesData, isLoading: classesLoading, isFetching: classesFetching } = useGetPublicClasses({ page_size: 100 });
   const {
     data: instructorsData,
     isLoading: instructorsLoading,
@@ -50,13 +51,19 @@ export function SessionFilters({ date, instructorId, locationId, place, onDateCh
     isFetching: locationsFetching,
   } = useGetPublicLocations({ page_size: 15, q: locationSearch.trim() || undefined });
 
+  const classOptions = useMemo(() => {
+    const q = classSearch.trim().toLowerCase();
+    const all = (classesData?.data ?? []).map((item) => ({ value: item.id, label: item.class_name }));
+    if (!q) return all;
+    return all.filter((o) => o.label.toLowerCase().includes(q));
+  }, [classesData, classSearch]);
   const instructorOptions = useMemo(
     () => (instructorsData?.data ?? []).map((item) => ({ value: item.id, label: item.full_name })),
     [instructorsData],
   );
   const locationOptions = useMemo(() => (locationsData?.data ?? []).map((item) => ({ value: item.id, label: item.name })), [locationsData]);
 
-  const activeCount = [date, instructorId, locationId, place].filter(Boolean).length;
+  const activeCount = [classId, instructorId, locationId, place].filter(Boolean).length;
 
   return (
     <div className="w-full rounded-xl border border-brand-100 bg-brand-25 font-serif text-brand-500">
@@ -83,18 +90,6 @@ export function SessionFilters({ date, instructorId, locationId, place, onDateCh
 
           <CollapsibleContent className="pt-4">
             <div className="flex flex-col gap-4">
-              {/* Date */}
-              <div className="flex flex-col gap-1.5">
-                <p className="text-xs font-bold uppercase tracking-wider text-brand-500/60">Date</p>
-                <DateRangePicker
-                  mode="single"
-                  startDate={date}
-                  allowPastDates={false}
-                  allowFutureDates
-                  onDateRangeChange={(selectedDate) => selectedDate && onDateChange(selectedDate)}
-                />
-              </div>
-
               {/* Format */}
               <div className="flex flex-col gap-1.5">
                 <p className="text-xs font-bold uppercase tracking-wider text-brand-500/60">Format</p>
@@ -115,6 +110,25 @@ export function SessionFilters({ date, instructorId, locationId, place, onDateCh
                     </button>
                   ))}
                 </div>
+              </div>
+
+              {/* Class */}
+              <div className="flex flex-col gap-1.5">
+                <p className="text-xs font-bold uppercase tracking-wider text-brand-500/60">Class</p>
+                <SelectSearch
+                  options={classOptions}
+                  value={classId}
+                  onValueChange={(value) => onChange("class_id", value || undefined)}
+                  searchValue={classSearch}
+                  onSearchChange={setClassSearch}
+                  placeholder="All Classes"
+                  searchPlaceholder="Search class..."
+                  emptyMessage="No class found."
+                  loading={classesLoading || classesFetching}
+                  loadingMessage="Loading classes..."
+                  clearable
+                  className="[&>span]:text-brand-500"
+                />
               </div>
 
               {/* Instructor & Location */}
