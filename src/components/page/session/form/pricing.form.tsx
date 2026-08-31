@@ -15,6 +15,13 @@ export const SessionPricingFormComponent = ({ disableCreditOnly = false }: { dis
   const photoFile: File | null = watch("photo");
   const photoUrl: string = watch("photo_url");
 
+  useEffect(() => {
+    if (!isCreditOnly) {
+      const v = watch("price_idr");
+      if (!v || v === "0" || v === 0) setValue("price_idr", "150000", { shouldDirty: true });
+    }
+  }, [isCreditOnly, setValue, watch]);
+
   const filePreview = useMemo(() => {
     if (photoFile instanceof File) return URL.createObjectURL(photoFile);
     return null;

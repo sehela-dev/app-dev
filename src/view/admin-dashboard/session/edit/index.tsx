@@ -208,10 +208,14 @@ export const EditSessionPage = () => {
           : {
             meeting_link: data?.meeting_link as string,
           }),
-        // is_credit_only locked after creation — keep original value
-        price_idr: values.is_credit_only ? 0 : parseInt(data?.price_idr as string),
+        price_idr: (() => {
+          const effectiveCreditOnly = isManager ? !!data?.is_credit_only : !!values.is_credit_only;
+          if (effectiveCreditOnly) return 0;
+          const n = parseInt((data?.price_idr as string) ?? "");
+          return Number.isFinite(n) && n > 0 ? n : 150000;
+        })(),
         price_credit_amount: parseInt(data?.price_credit_amount as string),
-        is_credit_only: !!values.is_credit_only,
+        is_credit_only: isManager ? !!data?.is_credit_only : !!values.is_credit_only,
         start_date: data?.start_date as string,
         time_start: data?.time_start as string,
         time_end: data?.time_end as string,

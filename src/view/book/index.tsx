@@ -65,7 +65,7 @@ export const BookClassView = () => {
           locationId={locationId}
           place={place}
           onBackToClasses={onBackToClasses}
-          onDateChange={(d) => setParams({ date: d })}
+          onDateChange={(d) => setParams({ date: date === d ? undefined : d })}
           onApplyFilters={(key, value) => setParams({ [key]: value })}
           onClearFilters={onClearFilters}
         />
@@ -197,7 +197,12 @@ const ClassSessions = ({
     4,
   );
 
-  const sessions = useMemo(() => data?.pages.flatMap((page) => page.data?.[0]?.sessions ?? []) ?? [], [data]);
+  const sessions = useMemo(() => {
+    const raw = data?.pages.flatMap((page) => page.data?.[0]?.sessions ?? []) ?? [];
+    const byId = new Map<string, (typeof raw)[number]>();
+    for (const s of raw) if (!byId.has(s.id)) byId.set(s.id, s);
+    return [...byId.values()];
+  }, [data]);
   const displayDate = data?.pages?.[0]?.data?.[0]?.date ?? date;
 
   const filteredSessions = useMemo(() => {
