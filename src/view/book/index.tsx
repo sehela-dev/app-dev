@@ -6,7 +6,7 @@ import { ChevronLeft, ChevronRight, Loader2 } from "lucide-react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { addDays, differenceInDays, format, parseISO, startOfDay } from "date-fns";
 
-import { MainFooterComponent } from "@/components/layout";
+// import { MainFooterComponent } from "@/components/layout";
 import { SessionCardComponent } from "@/components/general/session-card";
 import { SessionFilters } from "@/components/general/session-filters";
 import { InfiniteScroll } from "@/components/base/infinite-scroll";
@@ -24,17 +24,17 @@ function SessionDateStrip({ selectedDate, onSelect }: { selectedDate?: string; o
   const todayStr = useMemo(() => format(today, "yyyy-MM-dd"), [today]);
 
   const effectiveSelected = useMemo(() => {
-    if (!selectedDate) return undefined;
+    if (!selectedDate) return todayStr;
     try {
       const parsed = parseISO(selectedDate);
-      if (Number.isNaN(parsed.getTime())) return undefined;
+      if (Number.isNaN(parsed.getTime())) return todayStr;
       const d = startOfDay(parsed);
-      if (d < today) return undefined;
+      if (d < today) return todayStr;
       return format(d, "yyyy-MM-dd");
     } catch {
-      return undefined;
+      return todayStr;
     }
-  }, [selectedDate, today]);
+  }, [selectedDate, today, todayStr]);
 
   const dates = useMemo(() => {
     const base = effectiveSelected ? parseISO(effectiveSelected) : today;
@@ -93,7 +93,7 @@ function SessionDateStrip({ selectedDate, onSelect }: { selectedDate?: string; o
   const todayDate = dates[0];
 
   return (
-    <div className="w-full rounded-2xl bg-zinc-50 border border-zinc-100 p-1.5 flex gap-1.5 items-stretch">
+    <div className="w-full rounded-2xl bg-none border border-brand-100 p-1.5 flex gap-1.5 items-stretch">
       {/* Today pinned — seamless */}
       <button
         type="button"
@@ -102,12 +102,12 @@ function SessionDateStrip({ selectedDate, onSelect }: { selectedDate?: string; o
           "flex min-w-[62px] h-[68px] flex-col items-center justify-center rounded-xl px-2 text-center transition-all shrink-0 cursor-pointer",
           isTodaySelected
             ? "bg-brand-500 text-white shadow-sm"
-            : "bg-white text-zinc-600 border border-zinc-100 hover:border-zinc-200 hover:bg-white",
+            : "bg-none text-zinc-600  hover:border-zinc-200  hover:bg-brand-100",
         )}
       >
-        <span className="text-[10px] font-medium tracking-widest uppercase opacity-60">{format(todayDate, "EEE")}</span>
-        <span className="text-[18px] font-bold leading-none mt-0.5">{format(todayDate, "d")}</span>
-        <span className="text-[10px] font-medium opacity-60">{format(todayDate, "MMM")}</span>
+        <span className="text-[10px] font-medium tracking-widest uppercase opacity-60">&nbsp;</span>
+        <span className="text-[18px] font-bold leading-none mt-0.5">Today</span>
+        <span className="text-[10px] font-medium opacity-60">&nbsp;</span>
         <span className={cn("mt-1.5 h-1 w-1 rounded-full", isTodaySelected ? "bg-white" : "bg-brand-500")} />
       </button>
 
@@ -128,7 +128,7 @@ function SessionDateStrip({ selectedDate, onSelect }: { selectedDate?: string; o
                   "flex min-w-[60px] h-[68px] flex-col items-center justify-center rounded-xl px-2 text-center transition-all shrink-0 cursor-pointer snap-start",
                   isSelected
                     ? "bg-brand-500 text-white shadow-sm"
-                    : "bg-white text-zinc-600 border border-zinc-100 hover:border-zinc-200 hover:bg-white",
+                    : "bg-none text-zinc-600  hover:border-zinc-200 hover:bg-brand-100",
                 )}
               >
                 <span className="text-[10px] font-medium tracking-widest uppercase opacity-60">{format(d, "EEE")}</span>
@@ -177,16 +177,17 @@ export const BookClassView = () => {
   const place = searchParams.get("place") ?? undefined;
 
   const effectiveDate = useMemo(() => {
-    if (!dateParam) return null;
+    const today = startOfDay(new Date());
+    const todayStr = format(today, "yyyy-MM-dd");
+    if (!dateParam) return todayStr;
     try {
       const parsed = parseISO(dateParam);
-      if (Number.isNaN(parsed.getTime())) return undefined;
-      const today = startOfDay(new Date());
+      if (Number.isNaN(parsed.getTime())) return todayStr;
       const d = startOfDay(parsed);
-      if (d < today) return undefined;
+      if (d < today) return todayStr;
       return format(d, "yyyy-MM-dd");
     } catch {
-      return undefined;
+      return todayStr;
     }
   }, [dateParam]);
 
@@ -195,7 +196,7 @@ export const BookClassView = () => {
 
   const { data, isLoading, isError, refetch, fetchNextPage, hasNextPage, isFetchingNextPage } = useGetPublicSessionsInfinite(
     {
-      date: effectiveDate ?? undefined,
+      date: effectiveDate,
       class_id: classId,
       instructor_id: instructorId,
       location_id: locationId,
@@ -264,8 +265,6 @@ export const BookClassView = () => {
         <button onClick={handleBack} className="flex items-center gap-2 text-sm font-semibold w-fit cursor-pointer hover:opacity-70">
           <ChevronLeft size={18} /> Back
         </button>
-
-        <h2 className="font-serif font-extrabold text-[32px] leading-[110%]">Book Class</h2>
 
         <SessionDateStrip
           selectedDate={effectiveDate ?? undefined}
@@ -350,7 +349,7 @@ export const BookClassView = () => {
           )}
         </div>
       </div>
-      <MainFooterComponent />
+      {/* <MainFooterComponent /> */}
     </div>
   );
 };
