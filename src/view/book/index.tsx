@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 
-import { ChevronLeft, ChevronRight, Loader2, X } from "lucide-react";
+import { ChevronDown, ChevronLeft, ChevronRight, Loader2, X } from "lucide-react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { addDays, differenceInDays, format, parseISO, startOfDay } from "date-fns";
 
@@ -13,6 +13,7 @@ import { InfiniteScroll } from "@/components/base/infinite-scroll";
 import { SearchInput } from "@/components/ui/search-input";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 
@@ -168,6 +169,7 @@ function SessionDateStrip({ selectedDate, onSelect }: { selectedDate?: string; o
 }
 
 function BookLocationFilter({ values, onChange }: { values: string[]; onChange: (v: string[]) => void }) {
+  const [open, setOpen] = useState(false);
   const [search, setSearch] = useState("");
   const {
     data: locationsData,
@@ -182,62 +184,85 @@ function BookLocationFilter({ values, onChange }: { values: string[]; onChange: 
     onChange(values.includes(id) ? values.filter((v) => v !== id) : [...values, id]);
   };
   return (
-    <div className="w-full rounded-xl border border-brand-100 bg-brand-25 p-4 font-serif text-brand-500">
-      <div className="flex items-center justify-between">
-        <p className="text-xs font-bold uppercase tracking-wider text-brand-500/60">
-          Location{values.length ? ` (${values.length})` : ""}
-        </p>
-        {values.length > 0 && (
-          <button type="button" onClick={() => onChange([])} className="text-xs font-semibold underline cursor-pointer hover:opacity-70">
-            Clear
-          </button>
-        )}
-      </div>
-      <Input
-        placeholder="Search location..."
-        value={search}
-        onChange={(e) => setSearch(e.target.value)}
-        className="mt-2 bg-white border-brand-100"
-      />
-      {values.length > 0 && (
-        <div className="flex flex-wrap gap-1.5 mt-2">
-          {values.map((id) => {
-            const label = locationOptions.find((o) => o.value === id)?.label ?? id;
-            return (
-              <span key={id} className="inline-flex items-center gap-1 rounded-full bg-brand-500 px-2.5 py-1 text-xs font-semibold text-white">
-                {label}
-                <button
-                  type="button"
-                  onClick={() => toggle(id)}
-                  className="rounded-full p-0.5 hover:bg-white/20 cursor-pointer"
-                  aria-label={`Remove ${label}`}
-                >
-                  <X size={12} />
-                </button>
-              </span>
-            );
-          })}
-        </div>
-      )}
-      <div className="mt-3 max-h-48 overflow-auto flex flex-col gap-1 pr-1">
-        {locationsLoading || locationsFetching ? (
-          <div className="flex items-center justify-center py-6">
-            <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+    <div className="w-full rounded-xl border border-brand-100 bg-brand-25 font-serif text-brand-500">
+      <Collapsible open={open} onOpenChange={setOpen}>
+        <div className="p-4">
+          <div className="flex items-center justify-between">
+            <CollapsibleTrigger asChild>
+              <button type="button" className="flex items-center gap-2 cursor-pointer group">
+                <ChevronDown className={cn("size-4 transition-transform duration-200", open && "rotate-180")} />
+                <p className="text-sm font-extrabold">Location</p>
+                {values.length > 0 && (
+                  <span className="flex size-5 items-center justify-center rounded-full bg-brand-500 text-[10px] font-bold text-white">
+                    {values.length}
+                  </span>
+                )}
+              </button>
+            </CollapsibleTrigger>
+            {values.length > 0 && (
+              <button
+                type="button"
+                onClick={() => onChange([])}
+                className="text-xs font-semibold underline cursor-pointer hover:opacity-70"
+              >
+                Clear
+              </button>
+            )}
           </div>
-        ) : locationOptions.length === 0 ? (
-          <p className="text-sm text-muted-foreground py-2">No location found.</p>
-        ) : (
-          locationOptions.map((opt) => (
-            <label
-              key={opt.value}
-              className="flex items-center gap-2 rounded-md px-2 py-1.5 hover:bg-brand-100 cursor-pointer"
-            >
-              <Checkbox checked={values.includes(opt.value)} onCheckedChange={() => toggle(opt.value)} />
-              <span className="text-sm truncate">{opt.label}</span>
-            </label>
-          ))
-        )}
-      </div>
+          <CollapsibleContent className="pt-4">
+            <div className="flex flex-col gap-3">
+              <Input
+                placeholder="Search location..."
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                className="bg-white border-brand-100"
+              />
+              {values.length > 0 && (
+                <div className="flex flex-wrap gap-1.5">
+                  {values.map((id) => {
+                    const label = locationOptions.find((o) => o.value === id)?.label ?? id;
+                    return (
+                      <span
+                        key={id}
+                        className="inline-flex items-center gap-1 rounded-full bg-brand-500 px-2.5 py-1 text-xs font-semibold text-white"
+                      >
+                        {label}
+                        <button
+                          type="button"
+                          onClick={() => toggle(id)}
+                          className="rounded-full p-0.5 hover:bg-white/20 cursor-pointer"
+                          aria-label={`Remove ${label}`}
+                        >
+                          <X size={12} />
+                        </button>
+                      </span>
+                    );
+                  })}
+                </div>
+              )}
+              <div className="max-h-48 overflow-auto flex flex-col gap-1 pr-1">
+                {locationsLoading || locationsFetching ? (
+                  <div className="flex items-center justify-center py-6">
+                    <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+                  </div>
+                ) : locationOptions.length === 0 ? (
+                  <p className="text-sm text-muted-foreground py-2">No location found.</p>
+                ) : (
+                  locationOptions.map((opt) => (
+                    <label
+                      key={opt.value}
+                      className="flex items-center gap-2 rounded-md px-2 py-1.5 hover:bg-brand-100 cursor-pointer"
+                    >
+                      <Checkbox checked={values.includes(opt.value)} onCheckedChange={() => toggle(opt.value)} />
+                      <span className="text-sm truncate">{opt.label}</span>
+                    </label>
+                  ))
+                )}
+              </div>
+            </div>
+          </CollapsibleContent>
+        </div>
+      </Collapsible>
     </div>
   );
 }
