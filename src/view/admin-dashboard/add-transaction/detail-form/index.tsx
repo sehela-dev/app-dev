@@ -156,8 +156,8 @@ export const DetailFormAddTransaction = () => {
       ...(selectedPaymentMethod === "transfer"
         ? {
           transfer_details: {
-            account_name_from: nameFrom as string,
-            account_bank_from: selectedBank?.label as string,
+            // account_name_from: nameFrom as string,
+            // account_bank_from: selectedBank?.label as string,
             account_bank_to: selectedBankTo?.label as string,
           },
         }
@@ -165,6 +165,7 @@ export const DetailFormAddTransaction = () => {
           branch: selectedBranch?.value as string,
         }),
       user_id: customerData?.id as string,
+      branch: selectedBranch?.value as string,
       ...(discountData ? { voucher_code: selectedVoucher?.code } : null),
     };
     // console.log(payload)
@@ -588,7 +589,7 @@ export const DetailFormAddTransaction = () => {
                         readOnly
                       />
                     </div>
-                    {selectedPaymentMethod === "transfer" ? (
+                    {selectedPaymentMethod === "transfer" && (
                       <div className="flex flex-col gap-1">
                         <div className="flex flex-col gap-1 mt-2">
                           <Label className="text-gray-500">Transfer To</Label>
@@ -608,61 +609,27 @@ export const DetailFormAddTransaction = () => {
                             }}
                           />
                         </div>
-                        <div className="flex flex-col gap-1 mt-2">
-                          <Label className="text-gray-500">Account Name</Label>
-                          <Input
-                            className="w-full px-4 py-4 border-2 border-gray-200 rounded-lg text-brand-999 placeholder-gray-400 focus:outline-none focus:border-brand-500 transition-colors h-[42px]"
-                            placeholder="Type here.."
-                            value={nameFrom}
-                            onChange={(e) => {
-                              setNameFrom(e.target.value);
-                            }}
 
-                          // className="w-auto min-w-[388px]"
-                          />
-                        </div>
-
-                        <div className="flex flex-col gap-1 mt-2">
-                          <Label className="text-gray-500">Transfer From</Label>
-                          <Select
-                            options={BANK_LIST as never}
-                            className="basic-multi-select "
-                            classNames={{
-                              control: () =>
-                                "w-full !border-2 !border-gray-200 rounded-lg text-gray-999  focus:outline-none focus:border-brand-500 transition-colors h-[42px] !rounded-md !bg-transparent shadow-xs",
-                              placeholder: () => "placeholder-gray-400",
-                              singleValue: () => "text-brand-999",
-                              input: () => "text-brand-999 bg-none",
-                            }}
-                            onChange={(e) => {
-                              // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                              setSelectedBank(e as any);
-                            }}
-                          />
-                        </div>
                       </div>
-                    ) : (
-                      <>
-                        <div className="flex flex-col gap-1 mt-2">
-                          <Label className="text-gray-500">Branch</Label>
-                          <Select
-                            options={SEHELA_BRANCH as never}
-                            className="basic-multi-select "
-                            classNames={{
-                              control: () =>
-                                "w-full !border-2 !border-gray-200 rounded-lg text-gray-999  focus:outline-none focus:border-brand-500 transition-colors h-[42px] !rounded-md !bg-transparent shadow-xs",
-                              placeholder: () => "placeholder-gray-400",
-                              singleValue: () => "text-brand-999",
-                              input: () => "text-brand-999 bg-none",
-                            }}
-                            onChange={(e) => {
-                              // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                              setSelectedBranch(e as any);
-                            }}
-                          />
-                        </div>
-                      </>
                     )}
+                    <div className="flex flex-col gap-1 mt-2">
+                      <Label className="text-gray-500">Branch</Label>
+                      <Select
+                        options={SEHELA_BRANCH as never}
+                        className="basic-multi-select "
+                        classNames={{
+                          control: () =>
+                            "w-full !border-2 !border-gray-200 rounded-lg text-gray-999  focus:outline-none focus:border-brand-500 transition-colors h-[42px] !rounded-md !bg-transparent shadow-xs",
+                          placeholder: () => "placeholder-gray-400",
+                          singleValue: () => "text-brand-999",
+                          input: () => "text-brand-999 bg-none",
+                        }}
+                        onChange={(e) => {
+                          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                          setSelectedBranch(e as any);
+                        }}
+                      />
+                    </div>
 
                     {/* {selectedPaymentMethod === "bank_transfer" &&} */}
                   </div>

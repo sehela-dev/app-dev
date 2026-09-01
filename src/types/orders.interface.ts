@@ -161,9 +161,9 @@ export interface IAddTransactionPayload {
   notes: string;
   status: string;
   transfer_details?: {
-    account_name_from: string;
-    account_bank_from: string;
-    account_bank_to: string;
+    account_name_from?: string;
+    account_bank_from?: string;
+    account_bank_to?: string;
   };
   branch?: string;
 }
