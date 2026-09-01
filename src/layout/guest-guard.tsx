@@ -15,8 +15,13 @@ export default function GuestGuard({ children }: { children: React.ReactNode }) 
 
   const getSafeRedirect = () => {
     if (typeof window === "undefined") return "/";
-    const redirect = new URLSearchParams(window.location.search).get("redirect");
+    const params = new URLSearchParams(window.location.search);
+    const redirect = params.get("next") ?? params.get("redirect");
     if (redirect && redirect.startsWith("/") && !redirect.startsWith("//")) return redirect;
+    try {
+      const stored = sessionStorage.getItem("auth.redirect");
+      if (stored && stored.startsWith("/") && !stored.startsWith("//")) return stored;
+    } catch {}
     return "/";
   };
 
@@ -24,9 +29,11 @@ export default function GuestGuard({ children }: { children: React.ReactNode }) 
     // wait until auth state ready
     if (!isAuthReady) return;
 
-    // already logged in → redirect
+    // already logged in → redirect (respect booking intent)
     if (isAuthenticated && !isAuthCallback) {
-      router.replace(getSafeRedirect());
+      const dest = getSafeRedirect();
+      // let AuthMemberGuard handle profile completeness on protected dest
+      router.replace(dest);
     }
   }, [isAuthenticated, isAuthReady, router, isAuthCallback]);
 

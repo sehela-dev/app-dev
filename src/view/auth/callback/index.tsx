@@ -73,14 +73,30 @@ export const AuthCallBackPage = () => {
   // If already have session in localStorage, use it to decide where to go (avoids "Link Expired" when hash empty)
   const { data: storedProfile, isLoading: storedLoading } = useGetProfile(Boolean(storedAccessToken) && isHydrated && !isTokenCallback && !tokens.access_token);
 
+  // helper to preserve booking intent via ?next (BE contract) with ?redirect fallback
+  const getNextParam = () => {
+    if (typeof window === "undefined") return null;
+    const url = new URL(window.location.href);
+    const n = url.searchParams.get("next") ?? url.searchParams.get("redirect");
+    if (n && n.startsWith("/") && !n.startsWith("//")) return n;
+    try {
+      const s = sessionStorage.getItem("auth.redirect");
+      if (s && s.startsWith("/") && !s.startsWith("//")) return s;
+    } catch {}
+    return null;
+  };
+
   // Token path: redirect to /complete-profile with token+email (verify+countdown handled there)
+  // Preserve booking intent: /auth/callback?token=&email=&next=/profile/my-sessions/:id
   useEffect(() => {
     if (isTokenCallback && qpToken && qpEmail) {
-      // use href to ensure navigation works even if router state stale; keep token as-is
-      router.replace(`/complete-profile?token=${encodeURIComponent(qpToken)}&email=${encodeURIComponent(qpEmail)}`);
+      const next = getNextParam();
+      const base = `/complete-profile?token=${encodeURIComponent(qpToken)}&email=${encodeURIComponent(qpEmail)}`;
+      const dest = next ? `${base}&next=${encodeURIComponent(next)}` : base;
+      router.replace(dest);
       // fallback if soft nav fails
       const t = setTimeout(() => {
-        if (window.location.pathname !== "/complete-profile") window.location.href = `/complete-profile?token=${encodeURIComponent(qpToken)}&email=${encodeURIComponent(qpEmail)}`;
+        if (window.location.pathname !== "/complete-profile") window.location.href = dest;
       }, 800);
       return () => clearTimeout(t);
     }
@@ -107,6 +123,19 @@ export const AuthCallBackPage = () => {
     }
   }, [isError, resetJwt]);
 
+  const getSafeStoredRedirect = () => {
+    try {
+      const params = new URLSearchParams(window.location.search);
+      const qs = params.get("next") ?? params.get("redirect");
+      if (qs && qs.startsWith("/") && !qs.startsWith("//")) return qs;
+    } catch {}
+    try {
+      const r = sessionStorage.getItem("auth.redirect");
+      if (r && r.startsWith("/") && !r.startsWith("//")) return r;
+    } catch {}
+    return "/";
+  };
+
   useEffect(() => {
     if (!data?.data) return;
 
@@ -115,7 +144,8 @@ export const AuthCallBackPage = () => {
         access_token: tokens?.access_token,
         refresh_token: tokens?.refresh_token,
       });
-      router.push("/complete-profile");
+      const next = getNextParam();
+      router.push(next ? `/complete-profile?next=${encodeURIComponent(next)}` : "/complete-profile");
     } else {
       setJwtToken({
         access_token: tokens?.access_token,
@@ -127,7 +157,11 @@ export const AuthCallBackPage = () => {
           overview: data?.data?.overview,
         },
       });
-      router.replace("/");
+      const redirect = getSafeStoredRedirect();
+      try {
+        sessionStorage.removeItem("auth.redirect");
+      } catch {}
+      router.replace(redirect);
     }
   }, [data, router, setJwtToken, tokens]);
 
@@ -140,9 +174,17 @@ export const AuthCallBackPage = () => {
     if (!storedAccessToken) return;
     if (!storedProfile?.data) return;
     if (!storedProfile.data.is_profile_complete) {
-      router.replace("/complete-profile");
+      const next = getNextParam();
+      router.replace(next ? `/complete-profile?next=${encodeURIComponent(next)}` : "/complete-profile");
     } else {
-      router.replace("/");
+      const redirect = getSafeStoredRedirect();
+      // only consume storage redirect if we actually have one
+      if (redirect !== "/") {
+        try {
+          sessionStorage.removeItem("auth.redirect");
+        } catch {}
+      }
+      router.replace(redirect);
     }
   }, [isHydrated, storedAccessToken, storedProfile, isTokenCallback, hashError, router]);
 

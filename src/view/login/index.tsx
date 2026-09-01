@@ -32,8 +32,14 @@ export default function LoginPageView() {
 
   const getSafeRedirect = () => {
     if (typeof window === "undefined") return "/";
-    const redirect = new URLSearchParams(window.location.search).get("redirect");
+    const params = new URLSearchParams(window.location.search);
+    const redirect = params.get("next") ?? params.get("redirect");
     if (redirect && redirect.startsWith("/") && !redirect.startsWith("//")) return redirect;
+    // also check sessionStorage for Google OAuth round-trip
+    try {
+      const stored = sessionStorage.getItem("auth.redirect");
+      if (stored && stored.startsWith("/") && !stored.startsWith("//")) return stored;
+    } catch {}
     return "/";
   };
 
@@ -51,7 +57,13 @@ export default function LoginPageView() {
           expires_at: res.data?.session?.expires_at,
           expires_in: res.data?.session?.expires_in,
         });
-        router.replace(getSafeRedirect());
+        const dest = getSafeRedirect();
+        try {
+          sessionStorage.removeItem("auth.redirect");
+        } catch {}
+        // let AuthMemberGuard handle is_profile_complete redirect if needed;
+        // but if profile already complete, go directly to dest (booking)
+        router.replace(dest);
       }
     } catch (error: unknown) {
       console.log(error);
@@ -144,6 +156,13 @@ export default function LoginPageView() {
                   variant={"outline"}
                   className="text-sm w-full py-4 border-2 border-gray-200 rounded-lg flex items-center justify-center gap-3 hover:border-teal-300 hover:bg-teal-50 transition-colors"
                   onClick={() => {
+                    const params = new URLSearchParams(window.location.search);
+                    const redirect = params.get("next") ?? params.get("redirect");
+                    if (redirect && redirect.startsWith("/") && !redirect.startsWith("//")) {
+                      try {
+                        sessionStorage.setItem("auth.redirect", redirect);
+                      } catch {}
+                    }
                     userSigInWithGoogle();
                   }}
                 >
@@ -180,10 +199,11 @@ export default function LoginPageView() {
             <p className="text-sm text-brand-500">
               Don’t have an account?
               <a
-                href={(() => {
+                  href={(() => {
                   if (typeof window === "undefined") return "/auth/sign-up";
-                  const r = new URLSearchParams(window.location.search).get("redirect");
-                  return r && r.startsWith("/") && !r.startsWith("//") ? `/auth/sign-up?redirect=${encodeURIComponent(r)}` : "/auth/sign-up";
+                  const params = new URLSearchParams(window.location.search);
+                  const r = params.get("next") ?? params.get("redirect");
+                  return r && r.startsWith("/") && !r.startsWith("//") ? `/auth/sign-up?next=${encodeURIComponent(r)}` : "/auth/sign-up";
                 })()}
                 className="ml-1 font-semibold text-brand-500 hover:text-brand-600 underline transition-colors"
               >

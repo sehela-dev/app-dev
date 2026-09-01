@@ -63,7 +63,10 @@ export const SignUpViewPage = () => {
       const formData = createFormData(payload);
       const res = await mutateAsync(formData);
       if (res) {
-        router.push(`/auth/verify-account?email=${res.data?.email}&accessed_at=${Date.now()}`);
+        const params = new URLSearchParams(window.location.search);
+        const next = params.get("next") ?? params.get("redirect");
+        const qs = `email=${encodeURIComponent(res.data?.email)}&accessed_at=${Date.now()}${next && next.startsWith("/") && !next.startsWith("//") ? `&next=${encodeURIComponent(next)}` : ""}`;
+        router.push(`/auth/verify-account?${qs}`);
       }
     } catch (error) {
       console.log(error);
@@ -372,7 +375,15 @@ export const SignUpViewPage = () => {
               <div className="text-center space-y-4 mt-12 pb-2">
                 <p className="text-gray-500 text-sm">
                   Already have an account?{" "}
-                  <a className="text-brand-500 font-bold underline" href="/auth/login">
+                  <a
+                    className="text-brand-500 font-bold underline"
+                    href={(() => {
+                      if (typeof window === "undefined") return "/auth/login";
+                      const params = new URLSearchParams(window.location.search);
+                      const r = params.get("next") ?? params.get("redirect");
+                      return r && r.startsWith("/") && !r.startsWith("//") ? `/auth/login?next=${encodeURIComponent(r)}` : "/auth/login";
+                    })()}
+                  >
                     Log in here
                   </a>
                 </p>

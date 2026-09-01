@@ -56,6 +56,16 @@ export const CompleteProfilePageView = () => {
   const token = rawToken ?? fallback?.get("token") ?? fallback?.get("code") ?? null;
   const emailParam = rawEmail ?? fallback?.get("email") ?? null;
   const isTokenMode = !!token && !!emailParam;
+  // BE contract: preserve booking intent via ?next (alias ?redirect)
+  const rawNext = searchParams.get("next") ?? searchParams.get("redirect") ?? fallback?.get("next") ?? fallback?.get("redirect") ?? null;
+  const getSafeNext = () => {
+    if (rawNext && rawNext.startsWith("/") && !rawNext.startsWith("//")) return rawNext;
+    try {
+      const s = sessionStorage.getItem("auth.redirect");
+      if (s && s.startsWith("/") && !s.startsWith("//")) return s;
+    } catch {}
+    return "/profile/my-sessions";
+  };
 
   const { resetJwt, setJwtToken } = useJwtToken();
   const [tncDialogOpen, setTncDialogOpen] = useState(false);
@@ -92,16 +102,18 @@ export const CompleteProfilePageView = () => {
   const { data: profileUser, isLoading, isError, refetch } = useGetProfile(!isTokenMode);
 
   useEffect(() => {
-    if (!isTokenMode && profileUser?.data?.is_profile_complete) router.replace("/");
+    if (!isTokenMode && profileUser?.data?.is_profile_complete) router.replace(getSafeNext());
   }, [profileUser, router, isTokenMode]);
 
   useEffect(() => {
-    if (verifyErrorCode === "ALREADY_COMPLETED") router.replace("/");
+    if (verifyErrorCode === "ALREADY_COMPLETED") router.replace(getSafeNext());
   }, [verifyErrorCode, router]);
 
   const goToLogin = () => {
     resetJwt();
-    router.replace("/auth/login");
+    const next = getSafeNext();
+    if (next !== "/profile/my-sessions") router.replace(`/auth/login?next=${encodeURIComponent(next)}`);
+    else router.replace("/auth/login");
   };
 
   const handleResend = async () => {
@@ -191,6 +203,9 @@ export const CompleteProfilePageView = () => {
           data?: { session?: { access_token: string; refresh_token: string; expires_in?: number; expires_at?: number } };
         };
         const session = res?.data?.session;
+        try {
+          sessionStorage.removeItem("auth.redirect");
+        } catch {}
         if (session?.access_token) {
           setJwtToken({
             access_token: session.access_token,
@@ -198,14 +213,15 @@ export const CompleteProfilePageView = () => {
             expires_in: session.expires_in,
             expires_at: session.expires_at,
           });
-          router.push("/");
+          router.push(getSafeNext());
         } else {
           toast.success("Profile completed", { description: "Done — please login.", position: "top-center" });
-          router.push("/auth/login");
+          const next = getSafeNext();
+          router.push(next !== "/profile/my-sessions" ? `/auth/login?next=${encodeURIComponent(next)}` : "/auth/login");
         }
       } catch (error: unknown) {
         const code = (error as { response?: { data?: { error?: { code?: string } } } })?.response?.data?.error?.code;
-        if (code === "ALREADY_COMPLETED") router.replace("/");
+        if (code === "ALREADY_COMPLETED") router.replace(getSafeNext());
       }
       return;
     }
@@ -223,7 +239,12 @@ export const CompleteProfilePageView = () => {
         phone: data?.phone,
       };
       const res = await jwtMutate(payload);
-      if (res) router.push("/");
+      if (res) {
+        try {
+          sessionStorage.removeItem("auth.redirect");
+        } catch {}
+        router.push(getSafeNext());
+      }
     } catch (error) {
       console.log(error);
       if (
@@ -268,7 +289,7 @@ export const CompleteProfilePageView = () => {
               <Button className="w-full max-h-[42px] min-h-[42px] text-sm" onClick={handleResend}>
                 Request New Link
               </Button>
-              <Button variant="outline" className="w-full max-h-[42px] min-h-[42px] text-sm" onClick={() => router.push("/auth/login")}>
+              <Button variant="outline" className="w-full max-h-[42px] min-h-[42px] text-sm" onClick={goToLogin}>
                 Back to Login
               </Button>
             </div>
@@ -627,7 +648,13 @@ export const CompleteProfilePageView = () => {
               <div className="text-center space-y-4 mt-12 pb-2">
                 <p className="text-gray-500 text-sm">
                   Already have an account?{" "}
-                  <a className="text-brand-500 font-bold underline" href="/auth/login">
+                  <a
+                    className="text-brand-500 font-bold underline"
+                    href={(() => {
+                      const n = getSafeNext();
+                      return n !== "/profile/my-sessions" ? `/auth/login?next=${encodeURIComponent(n)}` : "/auth/login";
+                    })()}
+                  >
                     Log in here
                   </a>
                 </p>
