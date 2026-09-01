@@ -151,6 +151,15 @@ export const CheckoutSessionView = () => {
   const total = Math.max(0, subtotal - discount);
 
   const handleProcessPayment = async () => {
+    const handleBookingError = (err: unknown) => {
+      const code = (err as { response?: { data?: { error?: { code?: string } } } })?.response?.data?.error?.code;
+      if (code === "PROFILE_INCOMPLETE") {
+        const fullPath = typeof window !== "undefined" ? `${window.location.pathname}${window.location.search}` : `/checkout/${id as string}`;
+        router.replace(`/complete-profile?next=${encodeURIComponent(fullPath)}`);
+        return true;
+      }
+      return false;
+    };
     if (paymentType === "credit" && selectedCredit) {
       try {
         await mutateAsync({
@@ -160,7 +169,8 @@ export const CheckoutSessionView = () => {
           credits_to_use: creditsToUse,
         });
         router.push(`/checkout/${id}/success`);
-      } catch {
+      } catch (err) {
+        if (handleBookingError(err)) return;
         // error toast handled by the mutation config; user can retry with another package
       }
     } else if (paymentType === "cash") {
@@ -186,7 +196,8 @@ export const CheckoutSessionView = () => {
         } else {
           router.push(`/checkout/${id}/success`);
         }
-      } catch {
+      } catch (err) {
+        if (handleBookingError(err)) return;
         // error toast handled by the mutation config
       }
     }

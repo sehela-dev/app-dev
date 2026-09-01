@@ -53,6 +53,15 @@ export const axiosx = (auth?: boolean, params?: string, type?: string) => {
         }
       }
 
+      // BE booking guard: incomplete profile → 403 PROFILE_INCOMPLETE
+      if (error?.response?.status === 403 && error?.response?.data?.error?.code === "PROFILE_INCOMPLETE") {
+        if (typeof window !== "undefined" && !window.location.pathname.startsWith("/complete-profile")) {
+          toast.error("Please complete your profile first", { id: "profile-incomplete", position: "top-center" });
+          const fullPath = `${window.location.pathname}${window.location.search}`;
+          window.location.replace(`/complete-profile?next=${encodeURIComponent(fullPath)}`);
+        }
+      }
+
       if (error?.response && error.response.status >= 500) {
         toast.error(validationStatus(error.response.status), {
           id: "error",

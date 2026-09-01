@@ -51,18 +51,38 @@ export default function LoginPageView() {
       const res = await mutateAsync(payload);
 
       if (res) {
+        const raw = res as unknown as {
+          data?: {
+            session?: { access_token: string; refresh_token: string; expires_at?: number; expires_in?: number };
+            profile?: { is_profile_complete?: boolean };
+            requires_profile_completion?: boolean;
+            next_redirect?: string | null;
+          };
+        };
+        const d = raw?.data;
+        const requires =
+          d?.requires_profile_completion === true ||
+          d?.profile?.is_profile_complete === false ||
+          d?.next_redirect === "/complete-profile";
         login({
-          access_token: res.data?.session?.access_token as string,
-          refresh_token: res.data?.session?.refresh_token as string,
-          expires_at: res.data?.session?.expires_at,
-          expires_in: res.data?.session?.expires_in,
+          access_token: d?.session?.access_token as string,
+          refresh_token: d?.session?.refresh_token as string,
+          expires_at: d?.session?.expires_at,
+          expires_in: d?.session?.expires_in,
         });
         const dest = getSafeRedirect();
+        const bookingDest = dest !== "/" ? dest : "/book";
         try {
           sessionStorage.removeItem("auth.redirect");
         } catch {}
-        // let AuthMemberGuard handle is_profile_complete redirect if needed;
-        // but if profile already complete, go directly to dest (booking)
+        if (requires) {
+          router.replace(`/complete-profile?next=${encodeURIComponent(d?.next_redirect && d.next_redirect !== "/complete-profile" ? d.next_redirect : bookingDest)}`);
+          return;
+        }
+        if (d?.next_redirect && d.next_redirect !== "/complete-profile" && d.next_redirect.startsWith("/")) {
+          router.replace(d.next_redirect);
+          return;
+        }
         router.replace(dest);
       }
     } catch (error: unknown) {

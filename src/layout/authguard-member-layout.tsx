@@ -28,9 +28,10 @@ export default function AuthMemberGuard({ children }: { children: React.ReactNod
     }
   }, [isAuthenticated, isAuthReady, isCompleteProfile, router]);
 
-  // block protected content until auth is known
+  // block protected content until auth is known or profile incomplete (prevent booking while incomplete)
   if (!isAuthReady) return null;
   if (!isAuthenticated) return null;
+  if (isCompleteProfile === false) return null;
 
   return <>{children}</>;
 }

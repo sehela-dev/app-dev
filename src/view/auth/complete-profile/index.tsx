@@ -58,13 +58,15 @@ export const CompleteProfilePageView = () => {
   const isTokenMode = !!token && !!emailParam;
   // BE contract: preserve booking intent via ?next (alias ?redirect)
   const rawNext = searchParams.get("next") ?? searchParams.get("redirect") ?? fallback?.get("next") ?? fallback?.get("redirect") ?? null;
-  const getSafeNext = () => {
-    if (rawNext && rawNext.startsWith("/") && !rawNext.startsWith("//")) return rawNext;
+  const normalizeNext = (v: string) => (v === "/booking" ? "/book" : v);
+  const getSafeNext = (fallback?: string | null) => {
+    if (fallback && fallback.startsWith("/") && !fallback.startsWith("//")) return normalizeNext(fallback);
+    if (rawNext && rawNext.startsWith("/") && !rawNext.startsWith("//")) return normalizeNext(rawNext);
     try {
       const s = sessionStorage.getItem("auth.redirect");
-      if (s && s.startsWith("/") && !s.startsWith("//")) return s;
+      if (s && s.startsWith("/") && !s.startsWith("//")) return normalizeNext(s);
     } catch {}
-    return "/profile/my-sessions";
+    return "/book";
   };
 
   const { resetJwt, setJwtToken } = useJwtToken();
@@ -200,9 +202,13 @@ export const CompleteProfilePageView = () => {
       };
       try {
         const res = (await tokenMutate(payload as never)) as {
-          data?: { session?: { access_token: string; refresh_token: string; expires_in?: number; expires_at?: number } };
+          data?: {
+            session?: { access_token: string; refresh_token: string; expires_in?: number; expires_at?: number };
+            next_redirect?: string | null;
+          };
         };
         const session = res?.data?.session;
+        const beNext = (res?.data?.next_redirect as string | null) ?? null;
         try {
           sessionStorage.removeItem("auth.redirect");
         } catch {}
@@ -213,11 +219,11 @@ export const CompleteProfilePageView = () => {
             expires_in: session.expires_in,
             expires_at: session.expires_at,
           });
-          router.push(getSafeNext());
+          router.push(getSafeNext(beNext));
         } else {
           toast.success("Profile completed", { description: "Done — please login.", position: "top-center" });
-          const next = getSafeNext();
-          router.push(next !== "/profile/my-sessions" ? `/auth/login?next=${encodeURIComponent(next)}` : "/auth/login");
+          const next = getSafeNext(beNext);
+          router.push(next !== "/book" ? `/auth/login?next=${encodeURIComponent(next)}` : "/auth/login");
         }
       } catch (error: unknown) {
         const code = (error as { response?: { data?: { error?: { code?: string } } } })?.response?.data?.error?.code;
@@ -238,12 +244,13 @@ export const CompleteProfilePageView = () => {
         tnc_agreed: data?.tnc_agreed,
         phone: data?.phone,
       };
-      const res = await jwtMutate(payload);
+      const res = (await jwtMutate(payload)) as { data?: { next_redirect?: string | null } } & { next_redirect?: string | null };
       if (res) {
+        const beNext = (res as { data?: { next_redirect?: string | null } })?.data?.next_redirect ?? (res as { next_redirect?: string | null })?.next_redirect ?? null;
         try {
           sessionStorage.removeItem("auth.redirect");
         } catch {}
-        router.push(getSafeNext());
+        router.push(getSafeNext(beNext));
       }
     } catch (error) {
       console.log(error);
