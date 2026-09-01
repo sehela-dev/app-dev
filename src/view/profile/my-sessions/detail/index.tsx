@@ -129,7 +129,7 @@ export const MySessionDetail = () => {
                         </div>
                         <div className="flex flex-col gap-1">
                           <p className="text-xs">#Order ID</p>
-                          <p className="text-sm font-semibold">{normalizeOrderId(bookingData?.payment?.order_id) || "-"}</p>
+                          <p className="text-sm font-semibold">{normalizeOrderId(bookingData?.payment?.order_id ?? bookingData?.order_id) || "-"}</p>
                         </div>
                       </div>
                       <div className="flex flex-col gap-1">

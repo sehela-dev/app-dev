@@ -60,6 +60,7 @@ export interface IMySessionDetail {
   location_maps_url: string;
   meeting_link: string;
   start_datetime: string;
+  order_id: string | null;
   end_datetime: string;
   room_id: string;
   payment_method: string;
