@@ -203,3 +203,65 @@ export interface IBookingPaymentDetail {
 export type TExportInstructorPayment = (data: IPayloadExport) => Promise<Blob>;
 
 export type TInstructorSessionPaymentDetails = (data: string) => Promise<IResponseData<IPaymentDetailsResponse>>;
+
+// monthly-report payroll 24th-23rd
+export interface IMonthlyReportPayload {
+  year: number;
+  month: number;
+  force_regenerate?: boolean;
+  allow_incomplete?: boolean;
+}
+
+export interface IMonthlyReportData {
+  report_id: string;
+  instructor_id: string;
+  instructor_name: string;
+  period: string;
+  period_start: string;
+  period_end: string;
+  total_sessions: number;
+  total_bookings: number;
+  total_revenue: number;
+  total_compensation_basis_idr: number;
+  total_payment: number;
+  file_name: string;
+  storage_path: string;
+  download_url: string;
+  generated_at: string;
+  is_cached: boolean;
+  is_incomplete?: boolean;
+}
+
+export interface ITeacherReportsParams {
+  instructor_id?: string;
+  year?: number;
+  month?: number;
+  page?: number;
+  page_size?: number;
+}
+
+export interface ITeacherReportItem {
+  id: string;
+  report_id: string;
+  instructor_id: string;
+  instructor_name: string;
+  period: string;
+  period_start: string;
+  period_end: string;
+  total_sessions: number;
+  total_bookings: number;
+  total_revenue: number;
+  total_payment: number;
+  file_name: string;
+  storage_path: string;
+  download_url: string;
+  generated_at: string;
+  is_cached?: boolean;
+  is_incomplete?: boolean;
+  year?: number;
+  month?: number;
+}
+
+export type TGenerateMonthlyReport = (data: { id: string } & IMonthlyReportPayload) => Promise<IResponseData<IMonthlyReportData>>;
+export type TPreviewMonthlyReport = (data: { id: string; year: number; month: number }) => Promise<Blob>;
+export type TListTeacherReports = (params: ITeacherReportsParams) => Promise<IResponseData<ITeacherReportItem[]>>;

@@ -12,14 +12,17 @@ import { useGetInstructorPaymentDetails } from "@/hooks/api/queries/admin/instru
 import { defaultDate, formatDateHelper, formatCurrency } from "@/lib/helper";
 import { File, ListFilter, Loader2, PenIcon, Receipt, ChevronDown, ChevronUp, EyeIcon } from "lucide-react";
 import { useParams, useRouter } from "next/navigation";
-import { Fragment, useState } from "react";
+import { Fragment, useEffect, useState } from "react";
 import { IModelParams, IPaymentRuleResponse, ISessionInstructorPayment } from "@/types/instructor.interface";
 import { Select, SelectContent, SelectGroup, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { MONTH_LIST, YEAR_LIST } from "@/constants/sample-data";
 import { CustomPagination } from "@/components/general/pagination-component";
-import { useExportInstructorPayment } from "@/hooks/api/mutations/admin";
+import { useExportInstructorPayment, useGenerateMonthlyReport } from "@/hooks/api/mutations/admin";
+import { useGetTeacherReports } from "@/hooks/api/queries/admin/instructor";
 import { BaseDialogComponent } from "@/components/general/base-dialog-component";
+import { BaseDialogConfirmation } from "@/components/general/dialog-confirnation";
 import { InstructorPaymentDetailComponent } from "@/components/page/instructor-payment/payment-details";
+import { previewMonthlyReport } from "@/api-req/instructor";
 
 const instructorTabs = [
   {
@@ -30,7 +33,21 @@ const instructorTabs = [
     value: "payment",
     name: "Class & Payment",
   },
+  {
+    value: "report",
+    name: "Payroll Report",
+  },
 ];
+
+const getPayrollPeriod = (year: number, month: number) => {
+  const prevMonth = month === 1 ? 12 : month - 1;
+  const prevYear = month === 1 ? year - 1 : year;
+  const pad = (n: number) => String(n).padStart(2, "0");
+  const start = `${prevYear}-${pad(prevMonth)}-24`;
+  const end = `${year}-${pad(month)}-23`;
+  const display = `${formatDateHelper(start, "dd MMM")} - ${formatDateHelper(end, "dd MMM yyyy")}`;
+  return { start, end, display };
+};
 
 const PAYMENT_MODEL_LABELS: Record<string, string> = {
   percentage: "Percentage",
@@ -86,6 +103,23 @@ export const InstructorDetailPage = () => {
     setOpenExport(true);
   };
   const { mutateAsync: exportPayment, isPending } = useExportInstructorPayment();
+  const { mutateAsync: generateReport, isPending: isGenerating } = useGenerateMonthlyReport();
+  const [reportMonth, setReportMonth] = useState(Number(formatDateHelper(defaultDate().formattedToday, "M")));
+  const [reportYear, setReportYear] = useState(Number(formatDateHelper(defaultDate().formattedToday, "yyyy")));
+  const [reportResult, setReportResult] = useState<import("@/types/instructor.interface").IMonthlyReportData | null>(null);
+  const [pendingPeriod, setPendingPeriod] = useState<{ canGenerateFrom?: string; message?: string } | null>(null);
+  const [reportPage, setReportPage] = useState(1);
+  const payrollPeriod = getPayrollPeriod(reportYear, reportMonth);
+
+  useEffect(() => {
+    setReportResult(null);
+    setPendingPeriod(null);
+    setReportPage(1);
+  }, [reportMonth, reportYear, id]);
+  const { data: teacherReports, isFetching: fetchingReports, refetch: refetchReports } = useGetTeacherReports(
+    { instructor_id: id as string, year: reportYear, month: reportMonth, page: reportPage, page_size: 10 },
+    tabs === "report"
+  );
   const {
     data: payments,
     isLoading: loadingPayments,
@@ -269,6 +303,43 @@ export const InstructorDetailPage = () => {
       setOpenExport(false);
     } catch (error) {
       console.log(error);
+    }
+  };
+
+  const onGeneratePayroll = async (opts?: { allow_incomplete?: boolean; force_regenerate?: boolean }) => {
+    try {
+      const res = await generateReport({ id: id as string, year: reportYear, month: reportMonth, ...opts });
+      const data = (res as unknown as { data: import("@/types/instructor.interface").IMonthlyReportData })?.data ?? (res as unknown as import("@/types/instructor.interface").IMonthlyReportData);
+      if ((data as unknown as { download_url: string })?.download_url) setReportResult(data as unknown as import("@/types/instructor.interface").IMonthlyReportData);
+      refetchReports();
+      // langsung download via signed url (workaround BUG #9)
+      if ((data as unknown as { download_url: string })?.download_url) window.open((data as unknown as { download_url: string }).download_url, "_blank");
+      setPendingPeriod(null);
+    } catch (err: unknown) {
+      const axiosErr = err as { response?: { data?: { error?: { code?: string; message?: string; details?: { can_generate_from?: string } } } } };
+      const code = axiosErr?.response?.data?.error?.code;
+      if (code === "PERIOD_NOT_ENDED") {
+        setPendingPeriod({
+          canGenerateFrom: axiosErr?.response?.data?.error?.details?.can_generate_from,
+          message: axiosErr?.response?.data?.error?.message,
+        });
+        return;
+      }
+      console.log(err);
+    }
+  };
+
+  const onPreviewPayroll = async () => {
+    try {
+      const blob = await previewMonthlyReport({ id: id as string, year: reportYear, month: reportMonth });
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `payment_report_${data?.data?.full_name?.replace(/\s+/g, "_")}_${MONTH_LIST.find((m) => Number(m.value) === reportMonth)?.label}_${reportYear}.csv`;
+      a.click();
+      window.URL.revokeObjectURL(url);
+    } catch (e) {
+      console.log(e);
     }
   };
 
@@ -492,6 +563,100 @@ export const InstructorDetailPage = () => {
           </CardContent>
         </Card>
       )}
+      {tabs === "report" && (
+        <div className="flex flex-col gap-4">
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between">
+              <div className="flex flex-col">
+                <h3 className="text-2xl font-semibold">Payroll Report</h3>
+                <p className="text-sm text-gray-500">Payroll period {payrollPeriod.display} (24th previous month → 23rd current month) • 7-column CSV</p>
+              </div>
+            </CardHeader>
+            <CardContent className="flex flex-col gap-4">
+              <div className="flex flex-col gap-3">
+                <div className="flex flex-row gap-3 items-end flex-wrap">
+                  <div className="flex flex-col gap-1">
+                    <p className="text-sm font-medium">Month</p>
+                    <Select value={String(reportMonth)} onValueChange={(v) => setReportMonth(Number(v))}>
+                      <SelectTrigger className="w-[160px]"><SelectValue placeholder="Select month" /></SelectTrigger>
+                      <SelectContent><SelectGroup>{MONTH_LIST.map((m) => <SelectItem key={m.value} value={String(m.value)}>{m.label}</SelectItem>)}</SelectGroup></SelectContent>
+                    </Select>
+                  </div>
+                  <div className="flex flex-col gap-1">
+                    <p className="text-sm font-medium">Year</p>
+                    <Select value={String(reportYear)} onValueChange={(v) => setReportYear(Number(v))}>
+                      <SelectTrigger className="w-[120px]"><SelectValue placeholder="Select year" /></SelectTrigger>
+                      <SelectContent><SelectGroup>{YEAR_LIST.map((y) => <SelectItem key={y} value={String(y)}>{y}</SelectItem>)}</SelectGroup></SelectContent>
+                    </Select>
+                  </div>
+                  <div className="flex flex-col gap-1 min-w-[200px]">
+                    <p className="text-sm font-medium">Payroll Period</p>
+                    <Badge variant="outline" className="h-9 px-3 flex items-center gap-1 bg-muted/30 font-normal"><span className="truncate">{payrollPeriod.display}</span></Badge>
+                  </div>
+                  <div className="flex gap-2 ml-auto flex-wrap">
+                    <Button variant="outline" onClick={onPreviewPayroll} className="whitespace-nowrap">Preview CSV</Button>
+                    <Button onClick={() => onGeneratePayroll()} disabled={isGenerating} className="whitespace-nowrap">{isGenerating ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <File className="h-4 w-4 mr-2" />} {isGenerating ? "Generating..." : "Generate Report"}</Button>
+                  </div>
+                </div>
+                <p className="text-xs text-muted-foreground">Report is calculated 24th previous month → 23rd selected month. Example: {MONTH_LIST.find((m) => Number(m.value) === reportMonth)?.label} {reportYear} = {payrollPeriod.display}. CSV has 7 columns: No, Session, Date, Customer, Revenue (IDR), Compensation Basis (IDR), Teacher Payment (IDR).</p>
+              </div>
+
+              {reportResult ? (
+                <div className="rounded-lg border p-4 flex flex-col gap-3 bg-gradient-to-br from-brand-50/60 to-white shadow-sm animate-in fade-in">
+                  <div className="flex flex-wrap gap-2 items-center">
+                    <Badge variant="outline" className={reportResult.is_cached ? "border-green-200 bg-green-50 text-green-700" : "border-blue-200 bg-blue-50 text-blue-700"}>{reportResult.is_cached ? "Ready to Download • Saved" : "Newly Created"}</Badge>
+                    {reportResult.is_incomplete && <Badge variant="outline" className="border-amber-200 bg-amber-50 text-amber-700">Provisional — final after 24 {MONTH_LIST.find((m) => Number(m.value) === reportMonth)?.label}</Badge>}
+                    <span className="text-sm text-muted-foreground">Created {formatDateHelper(reportResult.generated_at, "dd MMM yyyy HH:mm")}</span>
+                  </div>
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-sm">
+                    <div className="rounded-md bg-muted/40 p-2.5"><div className="text-xs text-muted-foreground">Sessions</div><div className="font-semibold text-base">{reportResult.total_sessions} sessions</div></div>
+                    <div className="rounded-md bg-muted/40 p-2.5"><div className="text-xs text-muted-foreground">Bookings</div><div className="font-semibold text-base">{reportResult.total_bookings}</div></div>
+                    <div className="rounded-md bg-muted/40 p-2.5"><div className="text-xs text-muted-foreground">Total Revenue</div><div className="font-semibold text-base">{formatCurrency(reportResult.total_revenue)}</div></div>
+                    <div className="rounded-md bg-brand-50 p-2.5 border border-brand-100"><div className="text-xs text-brand-700">Total Teacher Pay</div><div className="font-semibold text-base text-brand-900">{formatCurrency(reportResult.total_payment)}</div></div>
+                  </div>
+                  <div className="flex items-center gap-2 text-xs text-muted-foreground"><File className="h-3.5 w-3.5 shrink-0" /><span className="truncate">{reportResult.file_name} • {reportResult.period}</span></div>
+                  <div className="flex gap-2 flex-wrap">
+                    <Button onClick={() => window.open(reportResult.download_url, "_blank")}><File className="h-4 w-4 mr-2" />Download Report</Button>
+                    <Button variant="outline" onClick={() => onGeneratePayroll({ force_regenerate: true })} disabled={isGenerating}>Regenerate</Button>
+                    <Button variant="ghost" onClick={() => setReportResult(null)}>Dismiss</Button>
+                  </div>
+                </div>
+              ) : (
+                <div className="rounded-lg border border-dashed p-4 bg-muted/20 text-sm text-muted-foreground leading-relaxed">
+                  Select month & year above, then click <span className="font-medium text-foreground">Generate Report</span> to create the payroll report. Use <span className="font-medium text-foreground">Preview CSV</span> for a quick view without saving to history. Generated reports will appear in the History table below.
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader className="pb-3">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h4 className="font-semibold">Report History</h4>
+                  <p className="text-sm text-muted-foreground">All saved reports for this instructor & period • Click Download to re-download (link valid for 1 hour)</p>
+                </div>
+                <Badge variant="outline" className="whitespace-nowrap">{(teacherReports as unknown as { pagination?: { total_items: number } })?.pagination?.total_items ?? 0} reports</Badge>
+              </div>
+            </CardHeader>
+            <CardContent>
+              <CustomTable
+                headers={[
+                  { id: "period", text: "Period", value: (r: import("@/types/instructor.interface").ITeacherReportItem) => <span className="whitespace-nowrap">{r.period ?? `${r.period_start} → ${r.period_end}`}</span> },
+                  { id: "sessions", text: "Sessions", value: "total_sessions" },
+                  { id: "bookings", text: "Bookings", value: "total_bookings" },
+                  { id: "payment", text: "Total Pay", value: (r: import("@/types/instructor.interface").ITeacherReportItem) => formatCurrency(r.total_payment) },
+                  { id: "file", text: "File", value: (r: import("@/types/instructor.interface").ITeacherReportItem) => <span className="text-xs truncate max-w-[200px] inline-block" title={r.file_name}>{r.file_name}</span> },
+                  { id: "action", text: "Action", value: (r: import("@/types/instructor.interface").ITeacherReportItem) => <Button variant="outline" size="sm" onClick={() => window.open(r.download_url, "_blank")}><File className="h-3 w-3 mr-1" />Download</Button> },
+                ]}
+                data={(teacherReports?.data as unknown as import("@/types/instructor.interface").ITeacherReportItem[]) ?? []}
+                isLoading={fetchingReports}
+              />
+              <CustomPagination currentPage={reportPage} onPageChange={setReportPage} hasPrevPage={(teacherReports as unknown as { pagination?: { has_prev: boolean } })?.pagination?.has_prev} hasNextPage={(teacherReports as unknown as { pagination?: { has_next: boolean } })?.pagination?.has_next} totalItems={(teacherReports as unknown as { pagination?: { total_items: number } })?.pagination?.total_items as number} totalPages={(teacherReports as unknown as { pagination?: { total_pages: number } })?.pagination?.total_pages as number} limit={10} />
+            </CardContent>
+          </Card>
+        </div>
+      )}
       {openExport && (
         <BaseDialogComponent
           isOpen={openExport}
@@ -515,7 +680,7 @@ export const InstructorDetailPage = () => {
                   </SelectGroup>
                 </SelectContent>
               </Select>
-              <p className="text-xs text-muted-foreground">Choose how rows are grouped in the CSV.</p>
+              <p className="text-xs text-muted-foreground">Choose how rows are grouped in the CSV. For official teacher payroll, use Payroll Report → Generate Report.</p>
             </div>
             <div className="flex flex-col gap-2">
               <p className="text-sm font-medium">Date range</p>
@@ -530,6 +695,17 @@ export const InstructorDetailPage = () => {
             </div>
           </div>
         </BaseDialogComponent>
+      )}
+      {pendingPeriod && (
+        <BaseDialogConfirmation
+          open={!!pendingPeriod}
+          title="Period not yet complete"
+          subtitle={`${pendingPeriod.message ?? `Report for ${MONTH_LIST.find((m) => Number(m.value) === reportMonth)?.label} ${reportYear} can only be generated from 24 ${MONTH_LIST.find((m) => Number(m.value) === reportMonth)?.label}`} ${pendingPeriod.canGenerateFrom ? `(available from ${formatDateHelper(pendingPeriod.canGenerateFrom, "dd MMM yyyy")})` : ""} — Generate a provisional report now? It will be marked Provisional and finalized automatically after the 24th.`}
+          confirmText="Yes, Generate Provisional"
+          onConfirm={() => { setPendingPeriod(null); onGeneratePayroll({ allow_incomplete: true }); }}
+          onCancel={() => setPendingPeriod(null)}
+          image="warning-1"
+        />
       )}
       {openDetail && selectedPayment && (
         <InstructorPaymentDetailComponent

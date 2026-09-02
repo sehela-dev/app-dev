@@ -18,9 +18,14 @@ import {
 import { useAdminPermission } from "@/hooks/use-role-access";
 import { formatCurrency, formatDateHelper } from "@/lib/helper";
 import { ICustomerActvity, ICustomerTrx, IHistoricalPackagePurchase } from "@/types/customers.interface";
-import { Loader2, PenIcon } from "lucide-react";
+import { File, Loader2, PenIcon } from "lucide-react";
 import { useParams, useRouter } from "next/navigation";
 import { useState } from "react";
+import { Select, SelectContent, SelectGroup, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { MONTH_LIST, YEAR_LIST } from "@/constants/sample-data";
+import { exportCustomerActivity } from "@/api-req/customer";
+import { toast } from "sonner";
+import { BaseDialogComponent } from "@/components/general/base-dialog-component";
 
 const instructorTabs = [
   {
@@ -55,6 +60,12 @@ export const CustomerDetailPage = () => {
     startDate: null,
     endDate: null,
   });
+  const [openExportStudent, setOpenExportStudent] = useState(false);
+  const [exportYear, setExportYear] = useState<string>("");
+  const [exportMonth, setExportMonth] = useState<string>("");
+  const [exportBookingStatus, setExportBookingStatus] = useState<string>("all");
+  const [exportAttendanceStatus, setExportAttendanceStatus] = useState<string>("all");
+  const [exporting, setExporting] = useState(false);
 
   const handleDateRangeChangeDual = (startDate?: string, endDate?: string) => {
     setSelectedRange({ startDate: startDate ?? null, endDate: endDate ?? null });
@@ -73,6 +84,40 @@ export const CustomerDetailPage = () => {
     },
     tabs === "activity",
   );
+
+  const handleExportActivity = async () => {
+    try {
+      setExporting(true);
+      const blob = await exportCustomerActivity({
+        id: id as string,
+        ...(exportYear ? { year: Number(exportYear) } : null),
+        ...(exportMonth ? { month: Number(exportMonth) } : null),
+        ...(!exportYear && !exportMonth ? { startDate: selectedRange.startDate as string } : null),
+        ...(!exportYear && !exportMonth ? { endDate: selectedRange.endDate as string } : null),
+        ...(exportBookingStatus !== "all" ? { booking_status: exportBookingStatus } : null),
+        ...(exportAttendanceStatus !== "all" ? { attendance_status: exportAttendanceStatus } : null),
+        sort_by: activitySort?.key ?? "session_start",
+        order: activitySort?.direction ?? "desc",
+      } as unknown as import("@/types/customers.interface").ICustomerActivityParams);
+      const blobTyped = blob as Blob;
+      const name = data?.data?.profile?.full_name?.replace(/\s+/g, "_") ?? "Student";
+      const period = exportYear && exportMonth ? `${exportYear}-${String(exportMonth).padStart(2, "0")}` : exportYear ? `${exportYear}` : selectedRange.startDate ? `${selectedRange.startDate}_${selectedRange.endDate}` : "all";
+      const url = window.URL.createObjectURL(blobTyped);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `sessions_${name}_${period}.csv`;
+      a.click();
+      window.URL.revokeObjectURL(url);
+      toast.success("Export started", { description: "CSV downloaded", position: "top-center" });
+      setOpenExportStudent(false);
+    } catch (e: unknown) {
+      const err = e as { response?: { status?: number; data?: { error?: { message?: string } } } };
+      if (err?.response?.status === 404) toast.error("Student not found", { position: "top-center" });
+      else toast.error("Export failed", { description: err?.response?.data?.error?.message ?? "Please try again", position: "top-center" });
+    } finally {
+      setExporting(false);
+    }
+  };
   const { data: trx, isLoading: loadingTrx } = useGetCustomerTrx({ id: id as string, page: transactionPage, limit: 10 }, tabs === "trx");
   const {
     data: historicalPurchases,
@@ -206,7 +251,7 @@ export const CustomerDetailPage = () => {
           <Button
             variant="link"
             className="h-auto justify-start p-0 text-left text-brand-500"
-            onClick={() => (isManager ? router.push(`/admin/member/${id}/credit-packages/${row.id}`) : () => {})}
+            onClick={() => (isManager ? router.push(`/admin/member/${id}/credit-packages/${row.id}`) : () => { })}
           >
             {row.credit_package?.name ?? "-"}
           </Button>
@@ -356,19 +401,25 @@ export const CustomerDetailPage = () => {
               <div className="flex flex-row items-center w-full justify-between">
                 <BackButtonComponent>
                   <div className="flex flex-col gap-1">
-                    <h3 className="text-2xl text-brand-999 font-medium">Members Sessions History</h3>
+                    <h3 className="text-2xl text-brand-999 font-medium">Member Sessions History</h3>
                     <p className="text-sm text-gray-500 max-w-[80%]">Monitor member activity, attendance, and payment status</p>
                   </div>
                 </BackButtonComponent>
-                <div className="flex flex-row items-center gap-4">
-                  <DateRangePicker
-                    mode="range"
-                    onDateRangeChange={handleDateRangeChangeDual}
-                    startDate={selectedRange?.startDate ?? undefined}
-                    endDate={selectedRange?.endDate ?? undefined}
-                    allowFutureDates
-                    allowPastDates
-                  />
+                <div className="flex flex-row items-center gap-2">
+                  <div>
+                    <DateRangePicker
+                      mode="range"
+                      onDateRangeChange={handleDateRangeChangeDual}
+                      startDate={selectedRange?.startDate ?? undefined}
+                      endDate={selectedRange?.endDate ?? undefined}
+                      allowFutureDates
+                      allowPastDates
+                    />
+                  </div>
+                  <div>
+                    <Button variant="outline" onClick={() => setOpenExportStudent(true)}><File className="h-4 w-4 mr-2" />Export CSV</Button>
+
+                  </div>
                 </div>
               </div>
             </CardHeader>
@@ -390,6 +441,51 @@ export const CustomerDetailPage = () => {
               />
             </CardFooter>
           </Card>
+          {openExportStudent && (
+            <BaseDialogComponent
+              isOpen={openExportStudent}
+              title="Export Sessions"
+              btnConfirm="Export CSV"
+              onClose={() => setOpenExportStudent(false)}
+              onConfirm={handleExportActivity}
+              isDisabled={exporting}
+            >
+              <div className="flex flex-col gap-4">
+                <p className="text-sm text-muted-foreground">Table shows date-range filtered data. Use these filters only for the CSV export — <span className="font-medium">year/month overrides date range</span>.</p>
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="flex flex-col gap-1">
+                    <p className="text-sm font-medium">Year</p>
+                    <Select value={exportYear} onValueChange={(v) => setExportYear(v === "all" ? "" : v)}>
+                      <SelectTrigger><SelectValue placeholder="All Years" /></SelectTrigger>
+                      <SelectContent><SelectGroup><SelectItem value="all">All Years</SelectItem>{YEAR_LIST.map((y) => <SelectItem key={y} value={String(y)}>{y}</SelectItem>)}</SelectGroup></SelectContent>
+                    </Select>
+                  </div>
+                  <div className="flex flex-col gap-1">
+                    <p className="text-sm font-medium">Month</p>
+                    <Select value={exportMonth} onValueChange={(v) => setExportMonth(v === "all" ? "" : v)}>
+                      <SelectTrigger><SelectValue placeholder="All Months" /></SelectTrigger>
+                      <SelectContent><SelectGroup><SelectItem value="all">All Months</SelectItem>{MONTH_LIST.map((m) => <SelectItem key={m.value} value={String(m.value)}>{m.label}</SelectItem>)}</SelectGroup></SelectContent>
+                    </Select>
+                  </div>
+                  <div className="flex flex-col gap-1">
+                    <p className="text-sm font-medium">Booking Status</p>
+                    <Select value={exportBookingStatus} onValueChange={setExportBookingStatus}>
+                      <SelectTrigger><SelectValue /></SelectTrigger>
+                      <SelectContent><SelectGroup><SelectItem value="all">All Booking</SelectItem><SelectItem value="confirmed">Confirmed</SelectItem><SelectItem value="canceled">Canceled</SelectItem><SelectItem value="confirmed,canceled">Confirmed + Canceled</SelectItem></SelectGroup></SelectContent>
+                    </Select>
+                  </div>
+                  <div className="flex flex-col gap-1">
+                    <p className="text-sm font-medium">Attendance</p>
+                    <Select value={exportAttendanceStatus} onValueChange={setExportAttendanceStatus}>
+                      <SelectTrigger><SelectValue /></SelectTrigger>
+                      <SelectContent><SelectGroup><SelectItem value="all">All Attendance</SelectItem><SelectItem value="attended">Attended</SelectItem><SelectItem value="no_show">No Show</SelectItem><SelectItem value="attended,no_show">Attended + No Show</SelectItem></SelectGroup></SelectContent>
+                    </Select>
+                  </div>
+                </div>
+                <p className="text-xs text-muted-foreground">If year/month is set, date range is ignored. CSV includes all matching rows (no pagination) with current sort. Filename: <span className="font-mono">sessions_{"{name}"}_{"{year-month|dates}"}.csv</span></p>
+              </div>
+            </BaseDialogComponent>
+          )}
         </div>
       )}
       {tabs === "trx" && (

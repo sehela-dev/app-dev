@@ -20,12 +20,12 @@ interface TabsItem {
 export const GeneralTabComponent = ({ tabs, selecetedTab, setTab, variant = "default" }: ITabs) => {
   // const router = useRouter();
   return (
-    <Tabs defaultValue={selecetedTab} className="w-full">
-      <div className="flex w-full flex-row items-center justify-between overflow-x-auto [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
+    <Tabs defaultValue={selecetedTab} className="flex w-full">
+      <div className="flex  flex-row items-center justify-between overflow-x-auto [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
         <TabsList
           variant={variant}
           className={cn(
-            "flex w-full min-w-0 flex-nowrap items-center justify-start gap-1 overflow-x-auto p-1 duration-300 min-h-[40px] [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden scroll-px-1",
+            "flex min-w-0 flex-nowrap items-center justify-start gap-1 overflow-x-auto p-1 duration-300 min-h-[40px] [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden scroll-px-1",
             {
               "bg-brand-50": variant === "default",
             }

@@ -3,6 +3,7 @@ import { MAIN_API_URL } from "@/lib/config";
 import {
   TCreteateCustomerAdmin,
   TCustomerActivity,
+  TCustomerActivityExport,
   TCustomerData,
   TCustomerDetail,
   TCustomerTrx,
@@ -52,17 +53,40 @@ export const getCustomerWallet: TGetUserWallet = async ({ user, session }) => {
   return res.data;
 };
 
-export const getCustomerActivity: TCustomerActivity = async ({ id, startDate, endDate, limit, page, sort_by, order }) => {
+export const getCustomerActivity: TCustomerActivity = async ({ id, startDate, endDate, limit, page, sort_by, order, year, month, booking_status, attendance_status, format }) => {
+  const isCsv = format === "csv";
   const res = await axiosx(true).get(`${MAIN_API_URL}/admin/students/${id}/sessions`, {
     params: {
-      page,
-      page_size: limit,
-      ...(startDate ? { start_date: startDate } : null),
-      ...(endDate ? { end_date: endDate } : null),
+      ...(isCsv ? null : { page, page_size: limit }),
+      ...(year ? { year } : null),
+      ...(month ? { month } : null),
+      ...(!year && !month && startDate ? { start_date: startDate } : null),
+      ...(!year && !month && endDate ? { end_date: endDate } : null),
+      ...(booking_status ? { booking_status } : null),
+      ...(attendance_status ? { attendance_status } : null),
       ...(sort_by ? { sort_by, order } : null),
+      ...(format ? { format } : null),
     },
+    ...(isCsv ? { responseType: "blob" as const } : null),
   });
   return res.data;
+};
+
+export const exportCustomerActivity: TCustomerActivityExport = async (params) => {
+  const res = await axiosx(true).get(`${MAIN_API_URL}/admin/students/${params.id}/sessions`, {
+    params: {
+      ...(params.year ? { year: params.year } : null),
+      ...(params.month ? { month: params.month } : null),
+      ...(!params.year && !params.month && params.startDate ? { start_date: params.startDate } : null),
+      ...(!params.year && !params.month && params.endDate ? { end_date: params.endDate } : null),
+      ...(params.booking_status ? { booking_status: params.booking_status } : null),
+      ...(params.attendance_status ? { attendance_status: params.attendance_status } : null),
+      ...(params.sort_by ? { sort_by: params.sort_by, order: (params as unknown as { order?: string }).order } : null),
+      format: "csv",
+    },
+    responseType: "blob",
+  });
+  return res.data as unknown as Blob;
 };
 
 export const getCustomerTrx: TCustomerTrx = async ({ id, page, limit }) => {

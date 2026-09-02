@@ -15,6 +15,7 @@ export * from "./use-create-discount-voucher";
 export * from "./use-apply-discount-voucher";
 export * from "./use-booking-session";
 export * from "./use-export-instructor-payment";
+export * from "./use-generate-monthly-report";
 export * from "./use-edit-class-category";
 export * from "./use-change-attendance-status";
 export * from "./use-reschedule-session";

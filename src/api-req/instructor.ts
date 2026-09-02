@@ -6,9 +6,12 @@ import {
   TCreateInstructor,
   TEditInstructor,
   TExportInstructorPayment,
+  TGenerateMonthlyReport,
   TInstructorData,
   TInstructorDetail,
   TInstructorSessionPaymentDetails,
+  TListTeacherReports,
+  TPreviewMonthlyReport,
 } from "@/types/instructor.interface";
 
 export const getInstructor: TInstructorData = async ({ page, limit, search, status }) => {
@@ -71,5 +74,36 @@ export const exportInstructorPayment: TExportInstructorPayment = async ({ id, st
 
 export const getInstructorPaymentDetail: TInstructorSessionPaymentDetails = async (id) => {
   const res = await axiosx(true).get(`${MAIN_API_URL}/admin/sessions/${id}/payment-details`);
+  return res.data;
+};
+
+export const generateMonthlyReport: TGenerateMonthlyReport = async ({ id, year, month, force_regenerate, allow_incomplete }) => {
+  const res = await axiosx(true).post(`${MAIN_API_URL}/admin/instructors/${id}/monthly-report`, {
+    year,
+    month,
+    ...(typeof force_regenerate === "boolean" ? { force_regenerate } : null),
+    ...(typeof allow_incomplete === "boolean" ? { allow_incomplete } : null),
+  });
+  return res.data;
+};
+
+export const previewMonthlyReport: TPreviewMonthlyReport = async ({ id, year, month }) => {
+  const res = await axiosx(true).get(`${MAIN_API_URL}/admin/instructors/${id}/monthly-report`, {
+    params: { year, month },
+    responseType: "blob",
+  });
+  return res.data;
+};
+
+export const listTeacherReports: TListTeacherReports = async (params) => {
+  const res = await axiosx(true).get(`${MAIN_API_URL}/admin/teacher-reports`, {
+    params: {
+      ...(params.instructor_id ? { instructor_id: params.instructor_id } : null),
+      ...(params.year ? { year: params.year } : null),
+      ...(params.month ? { month: params.month } : null),
+      page: params.page ?? 1,
+      page_size: params.page_size ?? 20,
+    },
+  });
   return res.data;
 };

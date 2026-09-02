@@ -173,6 +173,11 @@ export interface ITransferDetails {
 
 export interface ICustomerActivityParams extends ICommonParams {
   id: string;
+  year?: number | string;
+  month?: number | string;
+  booking_status?: string;
+  attendance_status?: string;
+  format?: "json" | "csv";
 }
 
 export interface IHistoricalPackagePurchasesParams {
@@ -223,6 +228,7 @@ export type TGetUserWallet = ({ user, session }: { user: string; session: string
 export type TEditCustomer = ({ data, id }: { data: ICreateNewCustomerAdminPaylod; id: string }) => Promise<IResponseData<IResponseCustomer>>;
 export type TDeleteCustomer = (id: string) => Promise<IResponseData<IResponseCustomer>>;
 export type TCustomerActivity = (params: ICustomerActivityParams) => Promise<IResponseData<ICustomerActvity[]>>;
+export type TCustomerActivityExport = (params: ICustomerActivityParams) => Promise<Blob>;
 
 export type TCustomerTrx = ({ id, page, limit }: ICustomerActivityParams) => Promise<IResponseData<ICustomerTrx[]>>;
 export type TGetHistoricalPackagePurchases = (params: IHistoricalPackagePurchasesParams) => Promise<IResponseData<IHistoricalPackagePurchase[]>>;
