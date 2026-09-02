@@ -80,12 +80,14 @@ export const InstructorDetailPage = () => {
   const [openDetail, setOpenDetail] = useState(false);
   const [selectedPayment, setSelectedPayment] = useState<string | null>(null);
 
-  const [groupBy, setGroupBy] = useState<"student" | "session">("session");
+  const [groupBy, setGroupBy] = useState<"student" | "session">("student");
   const [openExport, setOpenExport] = useState(false);
   const [exportRange, setExportRange] = useState<{ startDate?: string | null; endDate?: string | null }>({
     startDate: defaultDate().formattedOneMonthAgo,
     endDate: defaultDate().formattedToday,
   });
+  const [exportYear, setExportYear] = useState<string>("");
+  const [exportMonth, setExportMonth] = useState<string>("");
 
   const handleOpenModalDetail = (id: string | null) => {
     setOpenDetail(true);
@@ -102,6 +104,7 @@ export const InstructorDetailPage = () => {
     setExportRange({ startDate: selectedRange.startDate ?? defaultDate().formattedOneMonthAgo, endDate: selectedRange.endDate ?? defaultDate().formattedToday });
     setOpenExport(true);
   };
+  const payoutPeriod = exportYear && exportMonth ? getPayrollPeriod(Number(exportYear), Number(exportMonth)) : null;
   const { mutateAsync: exportPayment, isPending } = useExportInstructorPayment();
   const { mutateAsync: generateReport, isPending: isGenerating } = useGenerateMonthlyReport();
   const [reportMonth, setReportMonth] = useState(Number(formatDateHelper(defaultDate().formattedToday, "M")));
@@ -286,21 +289,24 @@ export const InstructorDetailPage = () => {
 
   const onExportPayment = async () => {
     try {
+      const useYearMonth = !!exportYear && !!exportMonth;
       const payload = {
         id: id as string,
-        start_date: exportRange?.startDate ?? defaultDate().formattedOneMonthAgo,
-        end_date: exportRange?.endDate ?? defaultDate().formattedToday,
+        ...(useYearMonth ? { year: Number(exportYear), month: Number(exportMonth) } : { start_date: exportRange?.startDate ?? defaultDate().formattedOneMonthAgo, end_date: exportRange?.endDate ?? defaultDate().formattedToday }),
         group_by: groupBy,
-      };
+      } as unknown as import("@/types/instructor.interface").IPayloadExport;
       const blob = await exportPayment(payload);
 
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
-      a.download = `[${payments?.data?.instructor_name}] Payment-${groupBy} - ${exportRange?.startDate} -  ${exportRange?.endDate}.csv`;
+      const periodLabel = useYearMonth ? `${exportYear}-${String(exportMonth).padStart(2, "0")} (${payoutPeriod?.display})` : `${exportRange?.startDate}_${exportRange?.endDate}`;
+      a.download = `[${payments?.data?.instructor_name}] Payment-${groupBy}-${periodLabel}.csv`;
       a.click();
       window.URL.revokeObjectURL(url);
       setOpenExport(false);
+      setExportYear("");
+      setExportMonth("");
     } catch (error) {
       console.log(error);
     }
@@ -667,6 +673,7 @@ export const InstructorDetailPage = () => {
           isDisabled={!!isPending}
         >
           <div className="flex flex-col gap-4">
+            <p className="text-xs text-muted-foreground bg-muted/30 rounded-md p-2">Default <span className="font-medium">By Student</span> (student rows with pro-rata fee). <span className="font-medium">24 prev → 23 current month</span> when Year/Month is set (e.g., Aug 2026 = 24 Jul – 23 Aug). Leave Year/Month empty to use custom date range.</p>
             <div className="flex flex-col gap-2">
               <p className="text-sm font-medium">Group by</p>
               <Select value={groupBy} onValueChange={(v) => setGroupBy(v as "student" | "session")}>
@@ -675,24 +682,43 @@ export const InstructorDetailPage = () => {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectGroup>
-                    <SelectItem value="session">By Session</SelectItem>
-                    <SelectItem value="student">By Student</SelectItem>
+                    <SelectItem value="student">By Student (detailed rows, fee pro-rata)</SelectItem>
+                    <SelectItem value="session">By Session (aggregated per session)</SelectItem>
                   </SelectGroup>
                 </SelectContent>
               </Select>
-              <p className="text-xs text-muted-foreground">Choose how rows are grouped in the CSV. For official teacher payroll, use Payroll Report → Generate Report.</p>
             </div>
-            <div className="flex flex-col gap-2">
-              <p className="text-sm font-medium">Date range</p>
-              <DateRangePicker
-                mode="range"
-                startDate={exportRange.startDate ?? undefined}
-                endDate={exportRange.endDate ?? undefined}
-                onDateRangeChange={handleExportRangeChange}
-                allowPastDates
-                allowFutureDates
-              />
+            <div className="grid grid-cols-2 gap-3">
+              <div className="flex flex-col gap-1">
+                <p className="text-sm font-medium">Year</p>
+                <Select value={exportYear} onValueChange={(v) => setExportYear(v === "all" ? "" : v)}>
+                  <SelectTrigger><SelectValue placeholder="All — use date range" /></SelectTrigger>
+                  <SelectContent><SelectGroup><SelectItem value="all">All — use date range</SelectItem>{YEAR_LIST.map((y) => <SelectItem key={y} value={String(y)}>{y}</SelectItem>)}</SelectGroup></SelectContent>
+                </Select>
+              </div>
+              <div className="flex flex-col gap-1">
+                <p className="text-sm font-medium">Month</p>
+                <Select value={exportMonth} onValueChange={(v) => setExportMonth(v === "all" ? "" : v)}>
+                  <SelectTrigger><SelectValue placeholder="All — use date range" /></SelectTrigger>
+                  <SelectContent><SelectGroup><SelectItem value="all">All — use date range</SelectItem>{MONTH_LIST.map((m) => <SelectItem key={m.value} value={String(m.value)}>{m.label}</SelectItem>)}</SelectGroup></SelectContent>
+                </Select>
+              </div>
             </div>
+            {payoutPeriod && <Badge variant="outline" className="w-fit bg-muted/30">{payoutPeriod.display} • {payoutPeriod.start} to {payoutPeriod.end}</Badge>}
+            {(!exportYear || !exportMonth) && (
+              <div className="flex flex-col gap-2">
+                <p className="text-sm font-medium">Custom date range (fallback)</p>
+                <DateRangePicker
+                  mode="range"
+                  startDate={exportRange.startDate ?? undefined}
+                  endDate={exportRange.endDate ?? undefined}
+                  onDateRangeChange={handleExportRangeChange}
+                  allowPastDates
+                  allowFutureDates
+                />
+                <p className="text-xs text-muted-foreground">Used only when Year/Month not both set.</p>
+              </div>
+            )}
           </div>
         </BaseDialogComponent>
       )}

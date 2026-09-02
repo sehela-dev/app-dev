@@ -64,9 +64,16 @@ export const deleteInstructor = async (id: string) => {
 //   return res.data;
 // };
 
-export const exportInstructorPayment: TExportInstructorPayment = async ({ id, start_date, end_date, group_by }) => {
+export const exportInstructorPayment: TExportInstructorPayment = async ({ id, start_date, end_date, year, month, group_by }) => {
   const res = await axiosx(true).get(`${MAIN_API_URL}/admin/instructors/${id}/payment-export`, {
-    params: { start_date, end_date, format: "csv", ...(group_by ? { group_by } : null) },
+    params: {
+      ...(year ? { year } : null),
+      ...(month ? { month } : null),
+      ...(!year && !month && start_date ? { start_date } : null),
+      ...(!year && !month && end_date ? { end_date } : null),
+      format: "csv",
+      ...(group_by ? { group_by } : null),
+    },
     responseType: "blob",
   });
   return res.data;

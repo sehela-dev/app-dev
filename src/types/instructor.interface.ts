@@ -142,8 +142,10 @@ export interface IExportInstructorPayment {
 
 export interface IPayloadExport {
   id: string;
-  start_date: number | string;
-  end_date: number | string;
+  start_date?: number | string;
+  end_date?: number | string;
+  year?: number | string;
+  month?: number | string;
   group_by?: "student" | "session";
 }
 
