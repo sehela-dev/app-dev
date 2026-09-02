@@ -86,9 +86,14 @@ export interface ICreateSessionPaylaod {
 
 export interface IBookingPaidWith {
   type: "credits" | "cash" | string;
+  provider?: string | null;
+  price_idr?: number;
+  gross_amount_idr?: number;
+  revenue_idr?: number;
+  voucher_code?: string | null;
+  voucher_discount_idr?: number;
   credits_used?: number;
   credit_unit_value_idr?: number;
-  revenue_idr?: number;
   package_purchase_id?: string;
   package_name?: string;
   package_credits?: number;

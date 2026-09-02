@@ -117,7 +117,7 @@ export interface IParamsCashFlowReport extends ICommonParams {
 }
 export interface ICashFlowResponse {
   date: string;
-  branch: string;
+  branch: string | null;
   summary: ISummaryCashFlow;
   by_payment_method: ICashFlowByPaymentMethod[];
   total_transactions: number;
@@ -151,7 +151,7 @@ export interface ICashFlowTransaction {
   id: string;
   order_id: string;
   payment_method: string;
-  branch?: string;
+  branch?: string | null;
   amount_idr: number;
   movement_type: string;
   raw_status: string;

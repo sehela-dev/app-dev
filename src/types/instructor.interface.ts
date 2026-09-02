@@ -144,6 +144,7 @@ export interface IPayloadExport {
   id: string;
   start_date: number | string;
   end_date: number | string;
+  group_by?: "student" | "session";
 }
 
 export interface IPaymentDetailsResponse {

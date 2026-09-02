@@ -231,11 +231,18 @@ export const SessionDetailPage = () => {
       id: "payment_method",
       text: "Payment",
       value: (row: IParticipantsSession) => {
-        const method = (row.payment_method || row.paid_with?.type || "-").toLowerCase();
-        const isCredits = method === "credits" || row.paid_with?.type === "credits";
-        const label = isCredits ? "Credits" : method === "cash" || method === "midtrans" ? "Midtrans" : row.payment_method || "-";
+        const provider = (row.paid_with?.provider || "").toLowerCase();
+        const type = (row.paid_with?.type || "").toLowerCase();
+        const method = (row.payment_method || type || "-").toLowerCase();
+        const isCredits = type === "credits" || method === "credits";
+        let label: string;
+        if (isCredits) label = "Credits";
+        else if (provider === "third_party") label = "3rd Party";
+        else if (provider === "midtrans" || method === "midtrans") label = "Midtrans";
+        else if (method === "cash" || type === "cash") label = "Cash";
+        else label = row.payment_method || "-";
         return (
-          <Badge variant="outline" className={cn("capitalize whitespace-nowrap", isCredits ? "border-brand-200 bg-brand-25 text-brand-700" : "border-emerald-200 bg-emerald-50 text-emerald-700")}>
+          <Badge variant="outline" className={cn("capitalize whitespace-nowrap", isCredits ? "border-brand-200 bg-brand-25 text-brand-700" : provider === "third_party" ? "border-amber-200 bg-amber-50 text-amber-700" : "border-emerald-200 bg-emerald-50 text-emerald-700")}>
             {label}
           </Badge>
         );
@@ -695,18 +702,21 @@ export const SessionDetailPage = () => {
               return Number.isNaN(ms) ? null : ms / 3600000;
             })();
             const isCredits = selectedDataCancel?.paid_with?.type === "credits" || selectedDataCancel?.payment_method === "credits";
+            const provider = (selectedDataCancel?.paid_with?.provider || "").toLowerCase();
+            const isThirdParty = provider === "third_party";
             const isCash = selectedDataCancel?.payment_method === "cash" || selectedDataCancel?.payment_method === "midtrans" || selectedDataCancel?.paid_with?.type === "cash";
+            const cashLabel = isThirdParty ? "3rd Party" : "Midtrans/cash";
             const policyNote = isManager
               ? isLateCancel
                 ? "Late cancellation (< 6 hours). Admin is limited to No refund / External refund — manager may override to any option below."
                 : isCredits
                   ? "On-time (≥ 6 hours) credit-package booking — standard is Return package credits (manager may choose any option)."
-                  : "On-time (≥ 6 hours) Midtrans/cash booking — standard is Issue new credits (manager may choose any option)."
+                  : `On-time (≥ 6 hours) ${cashLabel} booking — standard is Issue new credits (manager may choose any option).`
               : isLateCancel
                 ? "Late cancellation (< 6 hours) — only No refund or External refund is allowed."
                 : isCredits
                   ? "On-time (≥ 6 hours) credit-package booking — credit will be returned to the original package."
-                  : "On-time (≥ 6 hours) Midtrans/cash booking — a new credit will be issued.";
+                  : `On-time (≥ 6 hours) ${cashLabel} booking — a new credit will be issued.`;
             return (
               <div className={cn("flex gap-3 rounded-lg border p-3 text-sm", isLateCancel ? "border-amber-300 bg-amber-50 text-amber-900" : "border-brand-100 bg-brand-25 text-brand-900")}>
                 <AlertTriangle className={cn("h-5 w-5 shrink-0", isLateCancel ? "text-amber-600" : "text-brand-500")} />
@@ -715,7 +725,7 @@ export const SessionDetailPage = () => {
                   <p className="text-xs leading-relaxed">{policyNote}</p>
                   {selectedDataCancel && (
                     <p className="text-xs text-muted-foreground mt-1">
-                      {selectedDataCancel.customer_name} · {isCredits ? `Package: ${selectedDataCancel.paid_with?.package_name ?? "-"} (${selectedDataCancel.paid_with?.credits_used ?? 1} cr)` : `Cash: ${formatCurrency(selectedDataCancel.paid_with?.revenue_idr ?? data?.data?.price_idr)} · ${isCash ? "Midtrans/cash" : selectedDataCancel.payment_method}`}
+                      {selectedDataCancel.customer_name} · {isCredits ? `Package: ${selectedDataCancel.paid_with?.package_name ?? "-"} (${selectedDataCancel.paid_with?.credits_used ?? 1} cr)` : `Cash: ${formatCurrency(selectedDataCancel.paid_with?.revenue_idr ?? data?.data?.price_idr)} · ${isThirdParty ? "3rd Party" : isCash ? "Midtrans/cash" : selectedDataCancel.payment_method}`}
                       {hoursUntil !== null && ` · starts in ${hoursUntil.toFixed(1)}h`}
                     </p>
                   )}

@@ -15,12 +15,14 @@ import { DateRangePicker } from "@/components/base/date-range-picker";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
-const COLORS = {
+const COLORS: Record<string, string> = {
   transfer: "#3b82f6",
   cash: "#10b981",
   edc: "#f59e0b",
   midtrans: "#8b5cf6",
   credits: "#337582",
+  classpass: "#ec4899",
+  strongbee: "#14b8a6",
 };
 
 const statusBadgeClass = (status?: string) => {
@@ -279,34 +281,25 @@ export const CashFlowView = () => {
                   </CardHeader>
                   <CardContent className="space-y-4">
                     {data?.data?.by_payment_method.map((method) => {
-                      const percentage = ((method.collected / data?.data?.summary?.collected) * 100).toFixed(1);
+                      const totalCollected = data?.data?.summary?.collected ?? 0;
+                      const percentage = totalCollected > 0 ? ((method.collected / totalCollected) * 100).toFixed(1) : "0.0";
+                      const color = COLORS[method.payment_method] ?? "#9ca3af";
                       return (
                         <div key={method.payment_method} className="space-y-2">
                           <div className="flex items-center justify-between">
                             <div className="flex items-center gap-3">
-                              <div
-                                className="w-3 h-3 rounded-full"
-                                style={{
-                                  backgroundColor: COLORS[method.payment_method as keyof typeof COLORS],
-                                }}
-                              />
-                              <span className="font-medium text-gray-700 capitalize">{method.payment_method}</span>
+                              <div className="w-3 h-3 rounded-full" style={{ backgroundColor: color }} />
+                              <span className="font-medium text-gray-700 capitalize">{method.payment_method.replace("_", " ")}</span>
                             </div>
-                            <span className="text-sm text-gray-600 capitalize">{method.payment_method} transactions</span>
+                            <span className="text-sm text-gray-600">{method.transaction_count} transactions</span>
                           </div>
                           <div className="flex items-center justify-between">
                             <div className="w-full bg-gray-200 rounded-full h-2 mr-3">
-                              <div
-                                className="h-2 rounded-full transition-all"
-                                style={{
-                                  width: `${percentage}%`,
-                                  backgroundColor: COLORS[method.payment_method as keyof typeof COLORS],
-                                }}
-                              />
+                              <div className="h-2 rounded-full transition-all" style={{ width: `${percentage}%`, backgroundColor: color }} />
                             </div>
                             <span className="text-sm font-semibold text-gray-900 min-w-fit">{percentage}%</span>
                           </div>
-                          <div className="text-sm text-gray-600">Rp {(method.collected / 1000000).toFixed(2)}M</div>
+                          <div className="text-sm text-gray-600">{formatCurrency(method.collected)}</div>
                         </div>
                       );
                     })}
