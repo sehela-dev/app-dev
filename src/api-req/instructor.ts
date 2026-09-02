@@ -61,12 +61,11 @@ export const deleteInstructor = async (id: string) => {
 //   return res.data;
 // };
 
-export const exportInstructorPayment: TExportInstructorPayment = async ({ id, start_date, end_date }) => {
+export const exportInstructorPayment: TExportInstructorPayment = async ({ id, start_date, end_date, group_by }) => {
   const res = await axiosx(true).get(`${MAIN_API_URL}/admin/instructors/${id}/payment-export`, {
-    params: { start_date, end_date, format: "csv" },
+    params: { start_date, end_date, format: "csv", ...(group_by ? { group_by } : null) },
     responseType: "blob",
   });
-  // const res = await axiosx(true).post(`${MAIN_API_URL}/admin/instructors/${id}/monthly-report`, { start_date, end_date });
   return res.data;
 };
 
