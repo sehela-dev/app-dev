@@ -153,6 +153,14 @@ export function DateRangePicker({
     }
   };
 
+  const handleReset = () => {
+    setDateRange({ start: null, end: null });
+    setNotification({ show: false, message: "" });
+    // notify parent that range is cleared — empty strings so parent can set null
+    onDateRangeChange?.("", "");
+    setIsOpen(false);
+  };
+
   const handlePrevMonth = () => {
     setFirstMonth((prev) => subMonths(prev, 1));
     setSecondMonth((prev) => subMonths(prev, 1));
@@ -286,13 +294,22 @@ export function DateRangePicker({
             </div>
           )}
 
-          <div className="mt-4 pt-4 border-t border-border flex justify-end gap-2">
-            <Button variant="outline" onClick={() => setIsOpen(false)} className="px-4 py-2">
-              Cancel
-            </Button>
-            <Button onClick={handleApply} disabled={mode === "range" ? !dateRange.start || !dateRange.end : !dateRange.start} className="px-4 py-2">
-              Apply
-            </Button>
+          <div className="mt-4 pt-4 border-t border-border flex justify-between gap-2">
+            <div>
+              {mode === "range" && (dateRange.start || dateRange.end) && (
+                <Button variant="ghost" onClick={handleReset} className="px-4 py-2 text-muted-foreground">
+                  Reset
+                </Button>
+              )}
+            </div>
+            <div className="flex gap-2">
+              <Button variant="outline" onClick={() => setIsOpen(false)} className="px-4 py-2">
+                Cancel
+              </Button>
+              <Button onClick={handleApply} disabled={mode === "range" ? !dateRange.start || !dateRange.end : !dateRange.start} className="px-4 py-2">
+                Apply
+              </Button>
+            </div>
           </div>
         </div>
       </PopoverContent>
