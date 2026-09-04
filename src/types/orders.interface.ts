@@ -66,6 +66,7 @@ export interface ICustomerData {
   package?: IEligiblePackage;
   third_party?: IThirdPartyApp;
   booking_id?: string;
+  branch?: string;
 }
 
 export interface IAdminCartItemData {
@@ -96,6 +97,7 @@ export interface IAdminCartItemData {
     phone: string;
     email: string;
   } | null;
+  branch?: string;
 }
 export interface IAdminCartData {
   customer?: ICustomerData;
