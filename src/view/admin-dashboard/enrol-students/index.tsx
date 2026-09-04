@@ -101,13 +101,14 @@ export const EnrollStudentView = () => {
         ...(tabs === "credit"
           ? { user_id: customerData?.id as string, payment_method: "credits", package_purchase_id: customerData?.package?.package_purchase_id }
           : {
-              third_party_id: customerData?.third_party?.id,
-              booking_id: customerData?.booking_id,
-              ...(customerData?.id ? { user_id: customerData?.id as string } : null),
-              customer_name: customerData?.name,
-              customer_phone: customerData?.phone,
-              customer_email: customerData?.email,
-            }),
+            third_party_id: customerData?.third_party?.id,
+            booking_id: customerData?.booking_id,
+            ...(customerData?.id ? { user_id: customerData?.id as string } : null),
+            customer_name: customerData?.name,
+            customer_phone: customerData?.phone,
+            customer_email: customerData?.email,
+            branch: customerData?.branch,
+          }),
         status: "paid",
 
         // ...(customerData?.package?.package_purchase_id ? {})
