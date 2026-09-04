@@ -159,4 +159,79 @@ export interface ICashFlowTransaction {
   created_at: string;
 }
 
+// GET /admin/credits/ledger — log view over credits_ledger
+export type LedgerEntryType = "credit_issue" | "credit_spend" | "credit_refund" | "credit_expired" | "adjustment";
+
+export interface ICreditsLedgerParams {
+  user_id?: string;
+  package_purchase_id?: string;
+  entry_type?: string; // csv e.g. "credit_spend,credit_refund"
+  start_date?: string; // YYYY-MM-DD
+  end_date?: string;
+  q?: string;
+  page?: number;
+  page_size?: number;
+  order?: "asc" | "desc";
+  format?: "json" | "csv";
+}
+
+export interface ICreditsLedgerItem {
+  id: string;
+  entry_type: LedgerEntryType;
+  amount: number;
+  unit_value_idr: number | null;
+  total_value_idr: number | null;
+  note: string | null;
+  created_at: string;
+  created_at_wib: string;
+  ref_id: string | null;
+  booking: {
+    id: string;
+    customer_name: string;
+    attendance_status: string | null;
+    class_session: { session_name: string; start_datetime: string } | null;
+  } | null;
+  package_purchase: { id: string; package_name: string; purchased_at: string; expires_at: string } | null;
+  customer: { user_id: string; full_name: string; phone: string } | null;
+  balance_before_credits?: number | null;
+  balance_after_credits?: number | null;
+  balance_before_value_idr?: number | null;
+  balance_after_value_idr?: number | null;
+  is_outstanding?: boolean;
+  is_package_outstanding?: boolean;
+}
+
+export interface ICreditsLedgerMeta {
+  periode: string;
+  generated_at?: string;
+  generated_at_wib: string;
+  filters: {
+    user_id?: string | null;
+    package_purchase_id?: string | null;
+    entry_type?: string | string[] | null;
+    start_date: string | null;
+    end_date: string | null;
+    q: string | null;
+    order?: string | null;
+  };
+  total_items: number;
+}
+
+export interface ICreditsLedgerSummary {
+  periode: string;
+  total_movements: number;
+  by_type: Record<string, { count: number; credits: number; value_idr: number }>;
+  net_credits: number;
+  net_value_idr: number;
+  outstanding: { packages: number; credits: number; value_idr: number };
+  // flat aliases (keep optional for BE compat)
+  outstanding_packages?: number;
+  outstanding_credits?: number;
+  outstanding_value_idr?: number;
+}
+
+export type TCreditsLedger = (params: ICreditsLedgerParams) => Promise<IResponseData<ICreditsLedgerItem[]> & { meta?: ICreditsLedgerMeta }>;
+
+export type TCreditsLedgerSummary = (params: Omit<ICreditsLedgerParams, "page" | "page_size" | "order" | "format">) => Promise<IResponseData<ICreditsLedgerSummary>>;
+
 export type TCashFlowReport = (data: IParamsCashFlowReport) => Promise<IResponseData<ICashFlowResponse>>;
