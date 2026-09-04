@@ -10,7 +10,7 @@ import { SearchInput } from "@/components/ui/search-input";
 import { useEditClassCategory } from "@/hooks/api/mutations/admin";
 import { useGetClassSessionsCategory } from "@/hooks/api/queries/admin/class-session";
 import { useAdminPermission } from "@/hooks/use-role-access";
-import { formatDateHelper } from "@/lib/helper";
+import { formatCurrency, formatDateHelper } from "@/lib/helper";
 import { cn } from "@/lib/utils";
 import { IClassSessionCategory } from "@/types/class-category.interface";
 
@@ -88,6 +88,16 @@ export const ClassListView = () => {
       id: "allow_credit",
       text: "Credit Eligible",
       value: (row: IClassSessionCategory) => (row.allow_credit ? "Yes" : "No"),
+    },
+    {
+      id: "cancellation_fee_idr",
+      text: "Cancellation Fee",
+      value: (row: IClassSessionCategory) => {
+        if (row.cancellation_fee_idr === undefined || row.cancellation_fee_idr === null) return "-";
+        if (row.cancellation_fee_idr === 0)
+          return <span className="inline-flex items-center rounded-full bg-green-100 px-2 py-0.5 text-xs font-medium text-green-700">Free</span>;
+        return formatCurrency(row.cancellation_fee_idr);
+      },
     },
     // {
     //   id: "defaultCredits",

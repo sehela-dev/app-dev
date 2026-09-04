@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import { useCreateClassSession } from "@/hooks/api/mutations/admin";
+import { useAdminPermission } from "@/hooks/use-role-access";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 // import { useRouter } from "next/navigation";
@@ -18,9 +19,11 @@ const defaultValues = {
   class_name: "",
   class_description: "",
   allow_credit: true,
+  cancellation_fee_idr: 75000,
 };
 export const AddClassPageView = () => {
   const router = useRouter();
+  const { isManager } = useAdminPermission();
   const methods = useForm({ defaultValues });
   const { control, handleSubmit } = methods;
   const { mutateAsync } = useCreateClassSession();
@@ -35,10 +38,13 @@ export const AddClassPageView = () => {
   };
   const onSubmit = handleSubmit(async (data) => {
     try {
+      const rawFee = (data as unknown as { cancellation_fee_idr: unknown }).cancellation_fee_idr;
       const payload = {
         ...data,
+        cancellation_fee_idr: rawFee === "" || rawFee === undefined ? 75000 : Number(rawFee),
         is_active: true,
-      };
+      } as typeof data & { is_active: boolean; cancellation_fee_idr: number };
+      if (!isManager) delete (payload as Record<string, unknown>).cancellation_fee_idr;
       const res = await mutateAsync(payload);
       if (res) {
         console.log(res.data);
@@ -119,6 +125,33 @@ export const AddClassPageView = () => {
                         <FormControl>
                           <Switch checked={field.value} onCheckedChange={field.onChange} />
                         </FormControl>
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={control}
+                    name="cancellation_fee_idr"
+                    render={({ field }) => (
+                      <FormItem className="flex flex-col">
+                        <FormLabel className=" text-brand-999 font-medium text-sm">Cancellation Fee (IDR)</FormLabel>
+                        <FormControl>
+                          <Input
+                            type="number"
+                            min={0}
+                            step={1000}
+                            placeholder="75000"
+                            disabled={!isManager}
+                            {...field}
+                            onChange={(e) => field.onChange(e.target.value === "" ? "" : Number(e.target.value))}
+                            className="w-full px-4 py-4 border-2 border-gray-200 rounded-lg text-gray-999 placeholder-gray-400 focus:outline-none focus:border-brand-500 transition-colors h-[42px] disabled:opacity-50"
+                          />
+                        </FormControl>
+                        <FormDescription>
+                          {isManager
+                            ? "0 = no penalty even within 6h. Charged via Midtrans when member cancels within 6h and wants credit back."
+                            : "Only manager can edit this field."}
+                        </FormDescription>
+                        <FormMessage />
                       </FormItem>
                     )}
                   />
