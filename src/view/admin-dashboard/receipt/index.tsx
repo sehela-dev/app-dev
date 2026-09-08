@@ -79,6 +79,16 @@ export const OrderReceiptPage = () => {
               <p className="text-gray-500  text-sm">Time</p>
               <p className="text-brand-999 text-right text-sm">{data?.data?.time}</p>
             </div>
+            {data?.data?.created_by && (
+              <div className="grid grid-cols-2">
+                <p className="text-gray-500 text-sm">Input</p>
+                <p className="text-brand-999 text-right text-sm">
+                  <Badge variant="outline" className="text-xs">
+                    {data.data.created_by.name ?? data.data.created_by.id.slice(0, 8)}
+                  </Badge>
+                </p>
+              </div>
+            )}
             <hr style={{ color: "var(--color-brand-100" }} className="my-4" />
             <div className="grid grid-cols-2">
               <p className="text-brand-999 font-semibold text-sm">Customer Information</p>

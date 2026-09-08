@@ -40,6 +40,7 @@ export interface ITotals {
 
 export interface IPackage {
   package_status: string;
+  validity_status?: string;
   package_purchase_id: string;
   user_id: string;
   customer_name: string;
@@ -108,6 +109,63 @@ export interface IDetailFile {
 export type TOutstandingCreditTable = (params: ICommonParams) => Promise<IResponseData<ITableOutstandingReportResponse>>;
 
 export type TGenerateReportOutstandingCredit = (data: IGenerateReportOutstanding) => Promise<IResponseData<IGeenrateOutstandingResponse>>;
+
+// Outstanding snapshot (as_of / year-month) — GET /admin/credits/outstanding/*
+export interface IOutstandingDetailParams {
+  asOf?: string; // YYYY-MM-DD, maps to ?as_of
+  year?: number;
+  month?: number;
+  format?: "json" | "csv";
+  page?: number;
+  page_size?: number;
+}
+
+export interface IOutstandingDetailResponse {
+  period: string;
+  generated_at: string;
+  total_packages: number;
+  packages: IPackage[];
+}
+
+export interface IOutstandingSummaryData {
+  period: string;
+  generated_at: string;
+  summary: {
+    total_outstanding_credits: number;
+    total_outstanding_value_idr: number;
+    total_customers: number;
+    total_active_packages: number;
+    avg_credits_per_customer: number;
+    opening_credits: number;
+    credits_issued: number;
+    credits_used: number;
+    credits_expired: number;
+    closing_credits: number;
+  };
+  by_expiry_status: { validity_status: string; credits: number; value_idr: number; packages: number }[];
+  by_package_type: { package_id: string; package_name: string; credits: number; value_idr: number; percentage: number }[];
+}
+
+export interface IOutstandingReportsParams {
+  year?: number;
+  page?: number;
+  page_size?: number;
+}
+
+export interface IOutstandingReportItem {
+  report_id: string;
+  period: string;
+  period_start?: string;
+  period_end?: string;
+  summary_file: ISummaryFile;
+  detail_file: IDetailFile;
+  generated_at: string;
+  is_incomplete: boolean;
+}
+
+export type TOutstandingDetail = (params: IOutstandingDetailParams) => Promise<IResponseData<IOutstandingDetailResponse>>;
+export type TOutstandingSummary = (params: Omit<IOutstandingDetailParams, "format">) => Promise<IResponseData<IOutstandingSummaryData>>;
+export type TOutstandingReports = (params: IOutstandingReportsParams) => Promise<IResponseData<IOutstandingReportItem[]>>;
 
 // /reports/cash-movement
 
@@ -199,6 +257,9 @@ export interface ICreditsLedgerItem {
   balance_after_value_idr?: number | null;
   is_outstanding?: boolean;
   is_package_outstanding?: boolean;
+  is_revenue?: boolean | null;
+  recognition_type?: "attended" | "no_show_forfeit" | "breakage" | null;
+  recognized_at?: string | null;
 }
 
 export interface ICreditsLedgerMeta {
@@ -217,6 +278,13 @@ export interface ICreditsLedgerMeta {
   total_items: number;
 }
 
+export interface IDeferredBucket {
+  count: number;
+  credits: number;
+  value_idr: number;
+  journal: string;
+}
+
 export interface ICreditsLedgerSummary {
   periode: string;
   total_movements: number;
@@ -228,6 +296,14 @@ export interface ICreditsLedgerSummary {
   outstanding_packages?: number;
   outstanding_credits?: number;
   outstanding_value_idr?: number;
+  deferred_buckets?: {
+    terjual: IDeferredBucket;
+    diakui_hadir: IDeferredBucket;
+    diakui_no_show: IDeferredBucket;
+    breakage: IDeferredBucket;
+    diakui_total: { value_idr: number; journal: string };
+    saldo_tangguhan_akhir: { value_idr: number; credits: number; packages: number; journal: string };
+  };
 }
 
 export type TCreditsLedger = (params: ICreditsLedgerParams) => Promise<IResponseData<ICreditsLedgerItem[]> & { meta?: ICreditsLedgerMeta }>;

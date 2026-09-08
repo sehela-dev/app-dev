@@ -2,11 +2,15 @@ import { axiosx } from "@/lib/axiosx";
 import { MAIN_API_URL } from "@/lib/config";
 import {
   ICreditsLedgerParams,
+  IOutstandingDetailParams,
   TCashFlowReport,
   TCreditsLedger,
   TCreditsLedgerSummary,
   TGenerateReportOutstandingCredit,
   TOutstandingCreditTable,
+  TOutstandingDetail,
+  TOutstandingReports,
+  TOutstandingSummary,
 } from "@/types/report.interface";
 
 export const generateTableOutstandingCredit: TOutstandingCreditTable = async (params) => {
@@ -21,6 +25,60 @@ export const generateTableOutstandingCredit: TOutstandingCreditTable = async (pa
 
 export const generateOutstandingReport: TGenerateReportOutstandingCredit = async (data) => {
   const res = await axiosx(true).post(`${MAIN_API_URL}/admin/credits/outstanding/generate`, data);
+  return res.data;
+};
+
+// Outstanding snapshot — as_of (YYYY-MM-DD) or year/month, format json|csv
+export const getOutstandingDetail: TOutstandingDetail = async (params) => {
+  const isCsv = params.format === "csv";
+  const res = await axiosx(true).get(`${MAIN_API_URL}/admin/credits/outstanding/detail`, {
+    params: {
+      ...(params.asOf ? { as_of: params.asOf } : {}),
+      ...(params.year ? { year: params.year } : {}),
+      ...(params.month ? { month: params.month } : {}),
+      ...(params.format ? { format: params.format } : {}),
+      ...(params.page ? { page: params.page } : {}),
+      ...(params.page_size ? { page_size: params.page_size } : {}),
+    },
+    ...(isCsv ? { responseType: "blob" as const } : {}),
+  });
+  if (isCsv) return res.data as unknown as never;
+  const d = res.data as { success?: boolean; data: unknown; statusCode?: number; message?: string; pagination?: unknown };
+  if (d.success !== undefined) {
+    return { statusCode: d.statusCode ?? 200, message: d.message ?? "ok", data: d.data as never, pagination: d.pagination as never } as never;
+  }
+  return res.data;
+};
+
+export const exportOutstandingDetailCsv = async (params: Omit<IOutstandingDetailParams, "format">): Promise<Blob> => {
+  const res = await axiosx(true).get(`${MAIN_API_URL}/admin/credits/outstanding/detail`, {
+    params: { ...(params.asOf ? { as_of: params.asOf } : {}), ...(params.year ? { year: params.year } : {}), ...(params.month ? { month: params.month } : {}), format: "csv" },
+    responseType: "blob",
+  });
+  return res.data as unknown as Blob;
+};
+
+export const getOutstandingSummary: TOutstandingSummary = async (params) => {
+  const res = await axiosx(true).get(`${MAIN_API_URL}/admin/credits/outstanding/summary`, {
+    params: {
+      ...(params.asOf ? { as_of: params.asOf } : {}),
+      ...(params.year ? { year: params.year } : {}),
+      ...(params.month ? { month: params.month } : {}),
+    },
+  });
+  const d = res.data as { success?: boolean; data: unknown; statusCode?: number; message?: string };
+  if (d.success !== undefined) {
+    return { statusCode: d.statusCode ?? 200, message: d.message ?? "ok", data: d.data as never } as never;
+  }
+  return res.data;
+};
+
+export const listOutstandingReports: TOutstandingReports = async (params) => {
+  const res = await axiosx(true).get(`${MAIN_API_URL}/admin/credits/outstanding/reports`, { params });
+  const d = res.data as { success?: boolean; data: unknown; statusCode?: number; message?: string; pagination?: unknown };
+  if (d.success !== undefined) {
+    return { statusCode: d.statusCode ?? 200, message: d.message ?? "ok", data: d.data as never, pagination: d.pagination as never } as never;
+  }
   return res.data;
 };
 

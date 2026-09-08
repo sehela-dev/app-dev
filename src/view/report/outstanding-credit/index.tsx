@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
 
 import { DateRangePicker } from "@/components/base/date-range-picker";
@@ -15,12 +14,14 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectGroup, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { MONTH_LIST, YEAR_LIST } from "@/constants/sample-data";
-import { exportCreditsLedger } from "@/api-req/report";
+import { exportCreditsLedger, exportOutstandingDetailCsv } from "@/api-req/report";
 import { useGenerateOutstandingReport } from "@/hooks/api/mutations/admin";
 import { useGetCreditsLedger } from "@/hooks/api/queries/admin/report/outstanding-credit/use-get-credits-ledger";
 import { useGetCreditsLedgerSummary } from "@/hooks/api/queries/admin/report/outstanding-credit/use-get-credits-ledger-summary";
-import { useGetOutstandingCreditTable } from "@/hooks/api/queries/admin/report/outstanding-credit";
-import { defaultDate, formatCurrency, formatDateHelper } from "@/lib/helper";
+import { useGetOutstandingDetail } from "@/hooks/api/queries/admin/report/outstanding-credit/use-get-outstanding-detail";
+import { useGetOutstandingSummary } from "@/hooks/api/queries/admin/report/outstanding-credit/use-get-outstanding-summary";
+import { useListOutstandingReports } from "@/hooks/api/queries/admin/report/outstanding-credit/use-list-outstanding-reports";
+import { formatCurrency, formatDateHelper } from "@/lib/helper";
 import { ICreditsLedgerItem, ICreditsLedgerSummary, IGeenrateOutstandingResponse, IPackage, LedgerEntryType } from "@/types/report.interface";
 import { BadgeDollarSign, DollarSign, Download, FileText, Loader2, Search } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
@@ -31,26 +32,16 @@ import { useGetCustomers } from "@/hooks/api/queries/admin/customers";
 import { useDebounce } from "@/hooks";
 import ReactSelect from "react-select";
 
-// •⁠  ⁠Active: Green
-// •⁠  ⁠Not Started: Gray
-// •⁠  ⁠Expiring Soon: Orange
-// •⁠  ⁠Fully Used: Blue
-// •⁠  ⁠Expired: Red
-
-const PACKAGE_STATUS = {
-  active: {
-    label: "Active",
-    color: "green-500",
-  },
-
-  not_started: {
-    label: "Not Started",
-    color: "gray-400",
-  },
-
-  expiring_soon: { label: "Expires Soon", color: "yellow-200" },
-  fully_used: { label: "Fully Used", color: "blue-800" },
-  expired: { label: "Expired", color: "red-500" },
+// Tailwind needs literal classes — do not use `bg-${color}` (purged)
+const PACKAGE_STATUS: Record<string, { label: string; className: string }> = {
+  active: { label: "Active", className: "bg-green-500 text-white border-green-600" },
+  not_started: { label: "Not Started", className: "bg-gray-400 text-white border-gray-500" },
+  expiring_soon: { label: "Expires Soon", className: "bg-yellow-200 text-yellow-900 border-yellow-300" },
+  fully_used: { label: "Fully Used", className: "bg-blue-800 text-white border-blue-900" },
+  expired: { label: "Expired", className: "bg-red-500 text-white border-red-600" },
+  // BE validity_status aliases
+  expiring_0_7_days: { label: "Expires Soon", className: "bg-yellow-200 text-yellow-900 border-yellow-300" },
+  t_started: { label: "Not Started", className: "bg-gray-400 text-white border-gray-500" },
 };
 
 const tabOption = [
@@ -83,39 +74,54 @@ export const OutstandingCreditView = () => {
   const initialSubTab = searchParams.get("subview") === "export" || legacyView === "export" ? "export" : "preview";
   const [tabs, setTabs] = useState(initialTab);
   const [snapshotTab, setSnapshotTab] = useState(initialSubTab);
-  const [selectedRange, setSelectedRange] = useState({
-    from: defaultDate().formattedTwoWeeksBefore,
-    to: defaultDate().formattedToday,
-  });
 
-  // sync tab to URL ?view=log feature flag; snapshot export uses ?subview=export (snapshot is default, so ?view absent)
+  const todayStr = new Date().toISOString().slice(0, 10);
+  const [asOf, setAsOf] = useState(searchParams.get("as_of") ?? todayStr);
+  const [page, setPage] = useState(1);
+  const [csvExporting, setCsvExporting] = useState(false);
+
+  const handleAsOfChange = (startDate: string) => {
+    if (!startDate) return;
+    if (startDate > todayStr) {
+      toast.error("as_of tidak boleh future");
+      return;
+    }
+    setPage(1);
+    setAsOf(startDate);
+  };
+
+  // sync tab + as_of to URL
   useEffect(() => {
     const p = new URLSearchParams(searchParams.toString());
     if (tabs === "log") {
       p.set("view", "log");
       p.delete("subview");
+      p.delete("as_of");
     } else {
       p.delete("view");
       if (snapshotTab === "export") p.set("subview", "export");
       else p.delete("subview");
+      if (snapshotTab === "preview" && asOf) p.set("as_of", asOf);
+      else if (snapshotTab !== "preview") p.delete("as_of");
     }
     const qs = p.toString();
     router.replace(qs ? `?${qs}` : "?", { scroll: false } as never);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [tabs, snapshotTab]);
+  }, [tabs, snapshotTab, asOf]);
 
   const formField = methods.watch();
 
   const [generatedFile, setGeneratedFile] = useState<IGeenrateOutstandingResponse | null>(null);
 
-  const { data, isLoading, refetch, isFetching, isSuccess } = useGetOutstandingCreditTable({
-    startDate: selectedRange.from,
-    endDate: selectedRange.to,
-  });
-
-  const handleDateRangeChangeDual = (startDate: string, endDate?: string) => {
-    setSelectedRange((prev) => ({ ...prev, from: startDate, to: endDate ?? "" }));
-  };
+  // Outstanding as_of checkpoint — snapshot harian (BE: as_of 23:59:59 WIB)
+  const {
+    data: detailData,
+    isLoading: detailLoading,
+    isFetching: detailFetching,
+    isError: detailError,
+    error: detailErr,
+  } = useGetOutstandingDetail({ asOf: asOf });
+  const { data: summaryData, isLoading: summaryLoading } = useGetOutstandingSummary({ asOf: asOf });
 
   const { mutateAsync, isPending } = useGenerateOutstandingReport();
 
@@ -134,11 +140,11 @@ export const OutstandingCreditView = () => {
     {
       id: "package_status",
       text: "Package Status",
-      value: (row: IPackage) => (
-        <Badge className={`bg-${(PACKAGE_STATUS as any)[row.package_status].color} text-brand-999`}>
-          {(PACKAGE_STATUS as any)[row.package_status].label}
-        </Badge>
-      ),
+      value: (row: IPackage) => {
+        const key = (row as unknown as { package_status?: string; validity_status?: string }).validity_status ?? row.package_status ?? "";
+        const s = PACKAGE_STATUS[key] ?? { label: key ? key.replace(/_/g, " ") : "-", className: "bg-gray-100 text-gray-700 border-gray-200" };
+        return <Badge className={`${s.className} capitalize`}>{s.label}</Badge>;
+      },
     },
     {
       id: "total-credits",
@@ -163,7 +169,16 @@ export const OutstandingCreditView = () => {
     {
       id: "outstanding-value-idr",
       text: "Outstanding Value (IDR)",
-      value: (row: IPackage) => formatCurrency(row.outstanding_value_idr),
+      value: (row: IPackage) => (
+        <span className="flex items-center gap-2">
+          {formatCurrency(row.outstanding_value_idr)}
+          {(row.package_type === "refund" || row.package_type === "rollover") && (
+            <Badge variant="outline" className="text-[10px] bg-amber-50 text-amber-700 border-amber-200">
+              {row.package_type}
+            </Badge>
+          )}
+        </span>
+      ),
     },
     {
       id: "purchased-at",
@@ -197,92 +212,155 @@ export const OutstandingCreditView = () => {
     }
   });
   return (
-    <div className="flex flex-col gap-4">
+    <div className="flex flex-col gap-4 min-w-0 w-full max-w-full overflow-hidden">
       <GeneralTabComponent tabs={tabOption} selecetedTab={tabs} setTab={setTabs} />
       {tabs === "snapshot" && (
-        <div className="flex flex-col gap-4">
+        <div className="flex flex-col gap-4 min-w-0 max-w-full overflow-hidden">
           <GeneralTabComponent tabs={snapshotTabOption} selecetedTab={snapshotTab} setTab={setSnapshotTab} variant="line" />
           {snapshotTab === "preview" && (
             <>
               <Card>
                 <CardHeader className="text-2xl font-semibold">Preview Outstanding Credit</CardHeader>
                 <CardContent>
-                  <div className="flex flex-row items-center w-full">
-                    <div className="flex flex-col gap-4 w-full">
-                      <div className="w-full flex flex-col gap-1">
-                        <p className="text-sm font-medium">Date From</p>
-                        <DateRangePicker
-                          mode="range"
-                          onDateRangeChange={handleDateRangeChangeDual}
-                          startDate={selectedRange.from}
-                          endDate={selectedRange.to}
-                          allowPastDates
-                          maxSelectionDays={14}
-                        />
-                      </div>
-                      <div className="flex justify-end items-end w-full">
-                        <Button
-                          onClick={() => {
-                            refetch();
-                          }}
-                        >
-                          Generate Table
-                        </Button>
-                      </div>
+                  <div className="flex flex-col gap-1 w-full">
+                    <p className="text-sm font-medium">As of (checkpoint harian)</p>
+                    <div className="flex w-full">
+                      <DateRangePicker mode="single" startDate={asOf} onDateRangeChange={handleAsOfChange} allowPastDates allowFutureDates={false} />
                     </div>
                   </div>
                 </CardContent>
               </Card>
-              {isLoading && isFetching ? (
+              {(detailLoading || summaryLoading) && (detailFetching || summaryLoading) ? (
                 <div className="flex items-center justify-center py-6">
                   <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
                 </div>
+              ) : detailError ? (
+                <Card>
+                  <CardContent className="py-6 text-center text-sm text-muted-foreground">
+                    <p className="font-medium">Failed to load outstanding snapshot</p>
+                    <p className="text-xs">
+                      {(detailErr as unknown as { response?: { data?: { error?: { message?: string } } } })?.response?.data?.error?.message ??
+                        (detailErr as Error)?.message ??
+                        "Check BE /admin/credits/outstanding/detail?as_of=" + asOf}
+                    </p>
+                    <p className="text-xs mt-1">Fallback: coba tanpa as_of (year/month) atau pastikan permission outstanding:view.</p>
+                  </CardContent>
+                </Card>
               ) : (
                 <>
-                  {data?.data && (
-                    <div className="flex flex-col gap-4 pt-4 w-full">
-                      <div className="flex flex-row items-center w-full gap-4">
+                  {(() => {
+                    const summary = (
+                      summaryData as unknown as { data?: { summary?: { total_outstanding_value_idr: number; total_outstanding_credits: number } } }
+                    )?.data as unknown as
+                      | {
+                          summary?: {
+                            total_outstanding_value_idr: number;
+                            total_outstanding_credits: number;
+                            total_customers?: number;
+                            total_active_packages?: number;
+                          };
+                        }
+                      | undefined;
+                    const s =
+                      (
+                        summary as unknown as {
+                          summary?: { total_outstanding_value_idr: number; total_outstanding_credits: number; total_customers?: number };
+                        }
+                      )?.summary ?? (summary as unknown as { total_outstanding_value_idr?: number; total_outstanding_credits?: number } | undefined);
+                    const totalCredits =
+                      (s as unknown as { total_outstanding_credits?: number })?.total_outstanding_credits ??
+                      (detailData as unknown as { data?: { total_packages?: number } })?.data?.total_packages ??
+                      0;
+                    const totalValue = (s as unknown as { total_outstanding_value_idr?: number })?.total_outstanding_value_idr ?? 0;
+                    return (
+                      <div className="flex flex-row items-center w-full gap-4 pt-4">
                         <div className="w-full">
                           <CardRevenueComponent
-                            amount={`${String(data?.data?.summary?.totals.total_credits_remaining)} / ${String(
-                              data?.data?.summary?.totals.total_credits_purchased,
-                            )}`}
-                            title="Total Credit Remaining"
-                            icon={
-                              <BadgeDollarSign
-                                style={{
-                                  color: "var(--color-gray-400)",
-                                }}
-                                size={18}
-                              />
-                            }
+                            amount={String(totalCredits)}
+                            title={`Total Outstanding Credits (${asOf})`}
+                            icon={<BadgeDollarSign style={{ color: "var(--color-gray-400)" }} size={18} />}
                           />
                         </div>
                         <div className="w-full">
                           <CardRevenueComponent
-                            amount={formatCurrency(String(data?.data?.summary?.totals.total_outstanding_value_idr))}
-                            title="Oustanding Value (IDR)"
-                            icon={
-                              <DollarSign
-                                style={{
-                                  color: "var(--color-gray-400)",
-                                }}
-                                size={18}
-                              />
-                            }
+                            amount={formatCurrency(String(totalValue))}
+                            title="Outstanding Value (IDR)"
+                            icon={<DollarSign style={{ color: "var(--color-gray-400)" }} size={18} />}
                           />
                         </div>
                       </div>
-                      <Card>
-                        <CardHeader className="text-lg font-semibold">
-                          Outstanding Credit {selectedRange.from} to {selectedRange?.to}
-                        </CardHeader>
-                        <CardContent>
-                          <CustomTable headers={headers} data={data?.data.packages ?? []} />
-                        </CardContent>
-                      </Card>
-                    </div>
-                  )}
+                    );
+                  })()}
+                  <Card className="overflow-hidden min-w-0 max-w-full">
+                    <CardHeader className="text-lg font-semibold flex flex-row items-center justify-between">
+                      <span>
+                        Outstanding Credit — as of {asOf}{" "}
+                        {detailData && (detailData as unknown as { data?: { total_packages?: number } })?.data?.total_packages != null
+                          ? `(${(detailData as unknown as { data: { total_packages: number } }).data.total_packages} packages)`
+                          : ""}
+                      </span>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        disabled={csvExporting}
+                        onClick={async () => {
+                          try {
+                            setCsvExporting(true);
+                            const blob = await exportOutstandingDetailCsv({ asOf });
+                            const url = window.URL.createObjectURL(blob);
+                            const a = document.createElement("a");
+                            a.href = url;
+                            a.download = `outstanding_detail_${asOf}.csv`;
+                            a.click();
+                            window.URL.revokeObjectURL(url);
+                          } catch (e: unknown) {
+                            toast.error("Export failed", {
+                              description:
+                                (e as { response?: { data?: { error?: { message?: string } } } })?.response?.data?.error?.message ??
+                                "Please try again",
+                            });
+                          } finally {
+                            setCsvExporting(false);
+                          }
+                        }}
+                      >
+                        {csvExporting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
+                        CSV
+                      </Button>
+                    </CardHeader>
+                    <CardContent className="p-0 pt-6 min-w-0 max-w-full overflow-hidden">
+                      {(() => {
+                        const pkgs = ((detailData as unknown as { data?: { packages?: IPackage[] } })?.data?.packages ?? []) as IPackage[];
+                        const pageSize = 20;
+                        const total = pkgs.length;
+                        const paged = pkgs.slice((page - 1) * pageSize, page * pageSize);
+                        return (
+                          <div className="flex flex-col gap-4 min-w-0 max-w-full">
+                            <div className="overflow-x-auto max-w-full px-6">
+                              <CustomTable headers={headers} data={paged} />
+                            </div>
+                            {total > pageSize && (
+                              <div className="px-6 pb-6">
+                                <CustomPagination
+                                  currentPage={page}
+                                  totalItems={total}
+                                  totalPages={Math.ceil(total / pageSize)}
+                                  limit={pageSize}
+                                  hasNextPage={page * pageSize < total}
+                                  hasPrevPage={page > 1}
+                                  onPageChange={setPage}
+                                  showTotal
+                                />
+                              </div>
+                            )}
+                            {total === 0 && (
+                              <p className="text-sm text-muted-foreground text-center py-4 px-6">No outstanding packages as of {asOf}.</p>
+                            )}
+                          </div>
+                        );
+                      })()}
+                    </CardContent>
+                  </Card>
                 </>
               )}
             </>
@@ -405,6 +483,7 @@ export const OutstandingCreditView = () => {
                   />
                 </div>
               )}
+              <OutstandingReportsList year={formField.year ? Number(formField.year) : undefined} visible={snapshotTab === "export"} />
             </>
           )}
         </div>
@@ -458,7 +537,10 @@ function CreditsLedgerLog() {
   const selectedMember = useMemo(() => {
     if (!userId) return null;
     const list = (memberData?.data as unknown as { id: string; full_name: string; phone: string }[] | undefined) ?? [];
-    return list.find((m) => m.id === userId) ?? { id: userId, full_name: "Selected member", phone: "" } as unknown as { id: string; full_name: string; phone: string };
+    return (
+      list.find((m) => m.id === userId) ??
+      ({ id: userId, full_name: "Selected member", phone: "" } as unknown as { id: string; full_name: string; phone: string })
+    );
   }, [userId, memberData]);
 
   // debounce q (package name only)
@@ -563,8 +645,7 @@ function CreditsLedgerLog() {
     }
   };
 
-  const toggleEntryType = (v: string) =>
-    setEntryTypes((prev) => (prev.includes(v) ? prev.filter((x) => x !== v) : [...prev, v]));
+  const toggleEntryType = (v: string) => setEntryTypes((prev) => (prev.includes(v) ? prev.filter((x) => x !== v) : [...prev, v]));
 
   const headers = useMemo(
     () => [
@@ -622,7 +703,9 @@ function CreditsLedgerLog() {
         id: "balance_credits",
         text: "Balance (Credits)",
         value: (row: ICreditsLedgerItem) =>
-          row.balance_before_credits == null && row.balance_after_credits == null ? "-" : `${row.balance_before_credits ?? "-"} → ${row.balance_after_credits ?? "-"}`,
+          row.balance_before_credits == null && row.balance_after_credits == null
+            ? "-"
+            : `${row.balance_before_credits ?? "-"} → ${row.balance_after_credits ?? "-"}`,
       },
       {
         id: "balance_value",
@@ -630,7 +713,9 @@ function CreditsLedgerLog() {
         value: (row: ICreditsLedgerItem) =>
           row.balance_before_value_idr == null && row.balance_after_value_idr == null
             ? "-"
-            : `${row.balance_before_value_idr == null ? "-" : formatCurrency(row.balance_before_value_idr)} → ${row.balance_after_value_idr == null ? "-" : formatCurrency(row.balance_after_value_idr)}`,
+            : `${row.balance_before_value_idr == null ? "-" : formatCurrency(row.balance_before_value_idr)} → ${
+                row.balance_after_value_idr == null ? "-" : formatCurrency(row.balance_after_value_idr)
+              }`,
       },
       {
         id: "package",
@@ -681,10 +766,10 @@ function CreditsLedgerLog() {
   );
 
   return (
-    <div className="flex flex-col gap-4">
-      <Card>
+    <div className="flex flex-col gap-4 w-full">
+      <Card className="w-full max-w-vw">
         <CardHeader className="text-lg font-semibold">Credit Movement Log (credits_ledger)</CardHeader>
-        <CardContent className="flex flex-col gap-4">
+        <CardContent className="flex flex-col gap-4 w-full">
           {/* filters — q is package name only; customer filter via user_id member select */}
           <div className="grid grid-cols-1 gap-4 md:grid-cols-12">
             <div className="flex flex-col gap-1 md:col-span-4">
@@ -694,13 +779,21 @@ function CreditsLedgerLog() {
                 <Input className="pl-8" placeholder="Search package name..." value={qInput} onChange={(e) => setQInput(e.target.value)} />
               </div>
             </div>
-            <div className="flex flex-col gap-1 md:col-span-3">
-              <p className="text-sm font-medium">Start Date</p>
-              <Input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} />
-            </div>
-            <div className="flex flex-col gap-1 md:col-span-3">
-              <p className="text-sm font-medium">End Date</p>
-              <Input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} />
+            <div className="flex flex-col gap-1 md:col-span-6">
+              <p className="text-sm font-medium">Date Range</p>
+              <DateRangePicker
+                mode="range"
+                startDate={startDate}
+                endDate={endDate}
+                onDateRangeChange={(s, e) => {
+                  if (!s && !e) return;
+                  if (s) setStartDate(s);
+                  if (e) setEndDate(e);
+                }}
+                allowPastDates
+                allowFutureDates={false}
+                maxSelectionDays={31}
+              />
             </div>
             <div className="flex flex-col gap-1 md:col-span-2">
               <p className="text-sm font-medium">Order</p>
@@ -723,15 +816,24 @@ function CreditsLedgerLog() {
               placeholder="Select member..."
               value={
                 selectedMember
-                  ? { value: (selectedMember as unknown as { id: string }).id, label: `${(selectedMember as unknown as { full_name: string }).full_name} - ${(selectedMember as unknown as { phone: string }).phone ?? ""}`, id: (selectedMember as unknown as { id: string }).id } as unknown as never
+                  ? ({
+                      value: (selectedMember as unknown as { id: string }).id,
+                      label: `${(selectedMember as unknown as { full_name: string }).full_name} - ${
+                        (selectedMember as unknown as { phone: string }).phone ?? ""
+                      }`,
+                      id: (selectedMember as unknown as { id: string }).id,
+                    } as unknown as never)
                   : null
               }
               options={
-                (memberData?.data as unknown as { id: string; full_name: string; phone: string }[] | undefined)?.map((m) => ({
-                  value: m.id,
-                  label: `${m.full_name} - ${m.phone ?? ""}`,
-                  id: m.id,
-                } as unknown as never)) ?? []
+                (memberData?.data as unknown as { id: string; full_name: string; phone: string }[] | undefined)?.map(
+                  (m) =>
+                    ({
+                      value: m.id,
+                      label: `${m.full_name} - ${m.phone ?? ""}`,
+                      id: m.id,
+                    } as unknown as never),
+                ) ?? []
               }
               onInputChange={(v) => setMemberSearch(v)}
               inputValue={memberSearch}
@@ -750,7 +852,9 @@ function CreditsLedgerLog() {
               getOptionValue={(opt) => (opt as unknown as { value: string }).value}
               getOptionLabel={(opt) => (opt as unknown as { label: string }).label}
             />
-            <p className="text-xs text-muted-foreground">Filters ledger by member via <code>user_id</code>; package search uses <code>q</code>.</p>
+            <p className="text-xs text-muted-foreground">
+              Filters ledger by member via <code>user_id</code>; package search uses <code>q</code>.
+            </p>
           </div>
 
           <div className="flex flex-wrap items-center gap-3">
@@ -783,11 +887,13 @@ function CreditsLedgerLog() {
 
       {/* KPI header from GET /admin/credits/ledger/summary — no pagination, whole filtered set — English copy */}
       {(() => {
-        const s = (summaryRes as unknown as { data?: ICreditsLedgerSummary | { data: ICreditsLedgerSummary } })?.data as unknown as ICreditsLedgerSummary | undefined;
+        const s = (summaryRes as unknown as { data?: ICreditsLedgerSummary | { data: ICreditsLedgerSummary } })?.data as unknown as
+          | ICreditsLedgerSummary
+          | undefined;
         const summary = (s as unknown as { data?: ICreditsLedgerSummary })?.data ?? s;
         if (summaryLoading) {
           return (
-            <Card>
+            <Card className="w-full max-w-vw">
               <CardContent className="py-6 flex items-center justify-center">
                 <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
               </CardContent>
@@ -801,14 +907,24 @@ function CreditsLedgerLog() {
         const usage = getByType("credit_spend");
         const refund = getByType("credit_refund");
         const expired = getByType("credit_expired");
-        const out = summary.outstanding ?? (summary.outstanding_credits != null ? { packages: summary.outstanding_packages ?? 0, credits: summary.outstanding_credits ?? 0, value_idr: summary.outstanding_value_idr ?? 0 } : null);
+        const out =
+          summary.outstanding ??
+          (summary.outstanding_credits != null
+            ? {
+                packages: summary.outstanding_packages ?? 0,
+                credits: summary.outstanding_credits ?? 0,
+                value_idr: summary.outstanding_value_idr ?? 0,
+              }
+            : null);
         const netEmpty = summary.net_credits === 0 && summary.net_value_idr === 0;
         return (
-          <Card className="border-muted-foreground/10">
+          <Card className="w-full max-w-vw border-muted-foreground/10">
             <CardHeader className="pb-3">
               <div className="flex flex-col gap-1">
                 <h3 className="text-base font-semibold tracking-tight">Summary</h3>
-                <p className="text-xs text-muted-foreground">Period: {summary.periode} · {summary.total_movements.toLocaleString("id-ID")} movements</p>
+                <p className="text-xs text-muted-foreground">
+                  Period: {summary.periode} · {summary.total_movements.toLocaleString("id-ID")} movements
+                </p>
               </div>
             </CardHeader>
             <CardContent className="flex flex-col gap-5">
@@ -817,7 +933,9 @@ function CreditsLedgerLog() {
                 <div className="rounded-xl border bg-card p-4">
                   <p className="text-xs font-medium text-muted-foreground">Issuance</p>
                   <p className="mt-1 text-xs text-muted-foreground">credit_issue</p>
-                  <p className="mt-2 text-lg font-semibold text-emerald-600">{issuance.credits > 0 ? `+${issuance.credits}` : issuance.credits} credits</p>
+                  <p className="mt-2 text-lg font-semibold text-emerald-600">
+                    {issuance.credits > 0 ? `+${issuance.credits}` : issuance.credits} credits
+                  </p>
                   <p className="text-sm font-medium text-emerald-600">{formatCurrency(issuance.value_idr)}</p>
                   <p className="mt-1 text-xs text-muted-foreground">{issuance.count} transactions</p>
                 </div>
@@ -855,7 +973,8 @@ function CreditsLedgerLog() {
                           <span className="cursor-help rounded-full border px-1.5 py-0.5 text-[10px] leading-none text-muted-foreground">?</span>
                         </TooltipTrigger>
                         <TooltipContent className="max-w-[320px] text-xs leading-relaxed">
-                          Issuance + Usage + Refund + Expired in period {summary.periode}. Negative = usage greater than issuance (liability decreased, revenue recognized).
+                          Issuance + Usage + Refund + Expired in period {summary.periode}. Negative = usage greater than issuance (liability
+                          decreased, revenue recognized).
                         </TooltipContent>
                       </Tooltip>
                     </TooltipProvider>
@@ -864,8 +983,20 @@ function CreditsLedgerLog() {
                     <p className="mt-2 text-sm text-muted-foreground">No net movement in this period.</p>
                   ) : (
                     <>
-                      <p className={`mt-2 text-lg font-semibold ${summary.net_credits < 0 ? "text-red-600" : summary.net_credits > 0 ? "text-emerald-600" : ""}`}>{summary.net_credits > 0 ? `+${summary.net_credits}` : summary.net_credits} credits</p>
-                      <p className={`text-sm font-medium ${summary.net_value_idr < 0 ? "text-red-600" : summary.net_value_idr > 0 ? "text-emerald-600" : ""}`}>{formatCurrency(summary.net_value_idr)}</p>
+                      <p
+                        className={`mt-2 text-lg font-semibold ${
+                          summary.net_credits < 0 ? "text-red-600" : summary.net_credits > 0 ? "text-emerald-600" : ""
+                        }`}
+                      >
+                        {summary.net_credits > 0 ? `+${summary.net_credits}` : summary.net_credits} credits
+                      </p>
+                      <p
+                        className={`text-sm font-medium ${
+                          summary.net_value_idr < 0 ? "text-red-600" : summary.net_value_idr > 0 ? "text-emerald-600" : ""
+                        }`}
+                      >
+                        {formatCurrency(summary.net_value_idr)}
+                      </p>
                     </>
                   )}
                   <p className="mt-2 text-xs leading-relaxed text-muted-foreground">Net = total in-out in the filtered period.</p>
@@ -879,7 +1010,8 @@ function CreditsLedgerLog() {
                           <span className="cursor-help rounded-full border px-1.5 py-0.5 text-[10px] leading-none text-muted-foreground">?</span>
                         </TooltipTrigger>
                         <TooltipContent className="max-w-[320px] text-xs leading-relaxed">
-                          Remaining credits still available now (as of now) for packages that appear in this filter. Different from net — this is advance received liability.
+                          Remaining credits still available now (as of now) for packages that appear in this filter. Different from net — this is
+                          advance received liability.
                         </TooltipContent>
                       </Tooltip>
                     </TooltipProvider>
@@ -896,13 +1028,79 @@ function CreditsLedgerLog() {
                   <p className="mt-2 text-xs leading-relaxed text-muted-foreground">Outstanding = remaining still active now.</p>
                 </div>
               </div>
+              {(
+                summary as unknown as {
+                  deferred_buckets?: {
+                    terjual: { count: number; credits: number; value_idr: number; journal: string };
+                    diakui_hadir: { count: number; credits: number; value_idr: number; journal: string };
+                    diakui_no_show: { count: number; credits: number; value_idr: number; journal: string };
+                    breakage: { count: number; credits: number; value_idr: number; journal: string };
+                    diakui_total: { value_idr: number; journal: string };
+                    saldo_tangguhan_akhir: { value_idr: number; credits: number; packages: number; journal: string };
+                  };
+                }
+              )?.deferred_buckets && (
+                <div className="rounded-xl border bg-card p-4">
+                  <p className="text-xs font-semibold text-muted-foreground">Reconcile Deferred → Recognized (accrual)</p>
+                  <p className="text-[11px] text-muted-foreground">Kas vs Diakui · recognized_at for diakui, created_at for terjual</p>
+                  <div className="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-5 text-xs">
+                    {[
+                      {
+                        k: "Terjual",
+                        v: (summary as unknown as { deferred_buckets: { terjual: { value_idr: number; credits: number; journal: string } } })
+                          .deferred_buckets.terjual,
+                      },
+                      {
+                        k: "Diakui Hadir",
+                        v: (summary as unknown as { deferred_buckets: { diakui_hadir: { value_idr: number; credits: number; journal: string } } })
+                          .deferred_buckets.diakui_hadir,
+                      },
+                      {
+                        k: "Diakui No-show",
+                        v: (summary as unknown as { deferred_buckets: { diakui_no_show: { value_idr: number; credits: number; journal: string } } })
+                          .deferred_buckets.diakui_no_show,
+                      },
+                      {
+                        k: "Breakage",
+                        v: (summary as unknown as { deferred_buckets: { breakage: { value_idr: number; credits: number; journal: string } } })
+                          .deferred_buckets.breakage,
+                      },
+                      {
+                        k: "Saldo Tangguhan",
+                        v: {
+                          value_idr: (summary as unknown as { deferred_buckets: { saldo_tangguhan_akhir: { value_idr: number } } }).deferred_buckets
+                            .saldo_tangguhan_akhir.value_idr,
+                          credits: (summary as unknown as { deferred_buckets: { saldo_tangguhan_akhir: { credits: number } } }).deferred_buckets
+                            .saldo_tangguhan_akhir.credits,
+                          journal: (summary as unknown as { deferred_buckets: { saldo_tangguhan_akhir: { journal: string } } }).deferred_buckets
+                            .saldo_tangguhan_akhir.journal,
+                        } as unknown as { value_idr: number; credits: number; journal: string },
+                      },
+                    ].map((b) => (
+                      <div key={b.k} className="rounded-lg border p-2">
+                        <p className="font-medium">{b.k}</p>
+                        <p className="font-semibold">{formatCurrency((b.v as { value_idr: number }).value_idr)}</p>
+                        <p className="text-muted-foreground">{(b.v as { credits: number }).credits ?? "-"} credits</p>
+                        <p className="text-[10px] text-muted-foreground">{(b.v as { journal: string }).journal}</p>
+                      </div>
+                    ))}
+                  </div>
+                  <p className="mt-2 text-[11px] text-muted-foreground">
+                    Diakui total:{" "}
+                    {formatCurrency(
+                      (summary as unknown as { deferred_buckets: { diakui_total: { value_idr: number } } }).deferred_buckets.diakui_total.value_idr,
+                    )}{" "}
+                    · {(summary as unknown as { deferred_buckets: { diakui_total: { journal: string } } }).deferred_buckets.diakui_total.journal}
+                  </p>
+                </div>
+              )}
             </CardContent>
           </Card>
         );
       })()}
 
-      <Card>
-        <CardContent className="pt-6">
+      <Card className="overflow-hidden min-w-0 max-w-full">
+        <CardContent className="pt-6 min-w-0 max-w-full overflow-hidden">
           {isLoading || isFetching ? (
             <div className="flex items-center justify-center py-6">
               <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
@@ -911,12 +1109,18 @@ function CreditsLedgerLog() {
             <div className="py-6 text-center text-sm text-muted-foreground">
               {/* BE not yet deployed — show spec shape hint */}
               <p className="font-medium">Failed to load log</p>
-              <p className="text-xs">{(error as unknown as { response?: { data?: { error?: { message?: string } } } })?.response?.data?.error?.message ?? (error as Error)?.message ?? "Endpoint /admin/credits/ledger not yet available. Use ?view=log for mock."}</p>
+              <p className="text-xs">
+                {(error as unknown as { response?: { data?: { error?: { message?: string } } } })?.response?.data?.error?.message ??
+                  (error as Error)?.message ??
+                  "Endpoint /admin/credits/ledger not yet available. Use ?view=log for mock."}
+              </p>
               <p className="text-xs mt-2">Fallback: try the Outstanding Detail snapshot in the Preview tab.</p>
             </div>
           ) : (
-            <>
-              <CustomTable headers={headers} data={(data?.data as ICreditsLedgerItem[]) ?? []} />
+            <div className="flex flex-col gap-4 min-w-0 max-w-full">
+              <div className="overflow-x-auto max-w-full">
+                <CustomTable headers={headers} data={(data?.data as ICreditsLedgerItem[]) ?? []} />
+              </div>
               <CustomPagination
                 currentPage={data?.pagination?.page ?? page}
                 totalItems={data?.pagination?.total_items ?? 0}
@@ -927,11 +1131,92 @@ function CreditsLedgerLog() {
                 onPageChange={setPage}
                 showTotal
               />
-            </>
+            </div>
           )}
         </CardContent>
       </Card>
     </div>
+  );
+}
+
+function OutstandingReportsList({ year, visible }: { year?: number; visible: boolean }) {
+  const { data, isLoading } = useListOutstandingReports({ year, page: 1, page_size: 20 }, visible);
+  const items = (
+    data as unknown as {
+      data?: {
+        report_id: string;
+        period: string;
+        summary_file: { download_url: string; file_name: string };
+        detail_file: { download_url: string; file_name: string };
+        generated_at: string;
+      }[];
+    }
+  )?.data as unknown as
+    | {
+        report_id: string;
+        period: string;
+        summary_file: { download_url: string; file_name: string };
+        detail_file: { download_url: string; file_name: string };
+        generated_at: string;
+      }[]
+    | undefined;
+  const list = Array.isArray(items)
+    ? items
+    : (items as unknown as { data?: unknown })
+    ? []
+    : ((data as unknown as { data?: unknown[] })?.data as unknown[]) ?? [];
+  if (!visible) return null;
+  return (
+    <Card className="mt-4">
+      <CardHeader className="text-base font-semibold">Previous Reports {year ? `(${year})` : ""} — GET /admin/credits/outstanding/reports</CardHeader>
+      <CardContent>
+        {isLoading ? (
+          <div className="flex justify-center py-4">
+            <Loader2 className="h-4 w-4 animate-spin" />
+          </div>
+        ) : !list || (list as unknown[]).length === 0 ? (
+          <p className="text-sm text-muted-foreground">No reports found{year ? ` for ${year}` : ""}. Generate one above.</p>
+        ) : (
+          <div className="flex flex-col gap-2">
+            {(
+              list as {
+                report_id: string;
+                period: string;
+                summary_file: { download_url: string; file_name: string };
+                detail_file: { download_url: string; file_name: string };
+                generated_at: string;
+                is_incomplete?: boolean;
+              }[]
+            ).map((r) => (
+              <div key={r.report_id} className="flex items-center justify-between rounded border p-3 text-sm">
+                <div>
+                  <p className="font-medium">{r.period}</p>
+                  <p className="text-xs text-muted-foreground">
+                    {formatDateHelper(r.generated_at)} {r.is_incomplete ? "(incomplete)" : ""}
+                  </p>
+                </div>
+                <div className="flex gap-2">
+                  {r.summary_file?.download_url && (
+                    <Button asChild variant="outline" size="sm">
+                      <a href={r.summary_file.download_url} download>
+                        <Download className="h-3 w-3" /> Summary
+                      </a>
+                    </Button>
+                  )}
+                  {r.detail_file?.download_url && (
+                    <Button asChild variant="outline" size="sm">
+                      <a href={r.detail_file.download_url} download>
+                        <Download className="h-3 w-3" /> Detail
+                      </a>
+                    </Button>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </CardContent>
+    </Card>
   );
 }
 
