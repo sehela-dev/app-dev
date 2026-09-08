@@ -136,6 +136,9 @@ export interface IDetailOrder {
     name: string;
     discount_applied: number;
   };
+  created_by?: { id: string; name: string | null } | null;
+  payment_status?: string;
+  order_code?: string;
 }
 
 export interface IOrderedItem {

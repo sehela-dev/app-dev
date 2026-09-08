@@ -210,6 +210,7 @@ export const EnrollStudentView = () => {
               />
             </CardFooter>
           </Card>
+          {/* update */}
           <div ref={targetDivRef}>
             {sessionData && tabs === "credit" && <SelectStudentWithCreditComponent selectedSession={sessionData} />}
             {sessionData && tabs === "3rd" && (
