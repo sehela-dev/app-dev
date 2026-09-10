@@ -60,7 +60,7 @@ export type TCreateBooking = (body: ICreateBookingRequest) => Promise<IResponseD
 
 export interface ICreatePublicBookingRequest {
   class_session_id: string;
-  payment_method: "cash" | "midtrans";
+  payment_method: "credits" | "midtrans";
   voucher_code?: string;
   notes?: string;
 }
