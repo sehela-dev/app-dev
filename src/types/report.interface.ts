@@ -217,16 +217,29 @@ export interface ICashFlowTransaction {
   created_at: string;
 }
 
-// GET /admin/credits/ledger — log view over credits_ledger
+// GET /admin/credits/ledger — handoff 2026-09-10 (admin v239): 12-col table, no technical balances
 export type LedgerEntryType = "credit_issue" | "credit_spend" | "credit_refund" | "credit_expired" | "adjustment";
+
+// Response entry_type labels (BE returns Title-case in data rows)
+export type LedgerRowEntryType = "Issue" | "Spend" | "Expired" | "Refund" | "Adjustment";
+
+export type RecognitionStatus =
+  | "Recognized Revenue"
+  | "Deferred Future Revenue"
+  | "Credit Reserved"
+  | "Credit Refunded"
+  | "Refund Future Revenue";
+
+export type LedgerAttendance = "attended" | "no_show" | null;
 
 export interface ICreditsLedgerParams {
   user_id?: string;
   package_purchase_id?: string;
   entry_type?: string; // csv e.g. "credit_spend,credit_refund"
+  status?: string; // csv of RecognitionStatus labels (post-enrich filter)
   start_date?: string; // YYYY-MM-DD
   end_date?: string;
-  q?: string;
+  q?: string; // customer name OR package name OR note
   page?: number;
   page_size?: number;
   order?: "asc" | "desc";
@@ -235,31 +248,20 @@ export interface ICreditsLedgerParams {
 
 export interface ICreditsLedgerItem {
   id: string;
-  entry_type: LedgerEntryType;
+  entry_type: LedgerRowEntryType;
+  customer_name: string | null;
   amount: number;
-  unit_value_idr: number | null;
-  total_value_idr: number | null;
+  nilai_idr: number;
+  package_name: string | null;
+  expiry_date: string | null;
+  session_date: string | null;
+  attendance: LedgerAttendance;
+  recognition_status: RecognitionStatus;
+  recognition_month: string | null; // YYYY-MM
   note: string | null;
+  recognized_at: string | null;
   created_at: string;
   created_at_wib: string;
-  ref_id: string | null;
-  booking: {
-    id: string;
-    customer_name: string;
-    attendance_status: string | null;
-    class_session: { session_name: string; start_datetime: string } | null;
-  } | null;
-  package_purchase: { id: string; package_name: string; purchased_at: string; expires_at: string } | null;
-  customer: { user_id: string; full_name: string; phone: string } | null;
-  balance_before_credits?: number | null;
-  balance_after_credits?: number | null;
-  balance_before_value_idr?: number | null;
-  balance_after_value_idr?: number | null;
-  is_outstanding?: boolean;
-  is_package_outstanding?: boolean;
-  is_revenue?: boolean | null;
-  recognition_type?: "attended" | "no_show_forfeit" | "breakage" | null;
-  recognized_at?: string | null;
 }
 
 export interface ICreditsLedgerMeta {
@@ -270,6 +272,7 @@ export interface ICreditsLedgerMeta {
     user_id?: string | null;
     package_purchase_id?: string | null;
     entry_type?: string | string[] | null;
+    status?: string[] | null;
     start_date: string | null;
     end_date: string | null;
     q: string | null;
@@ -308,6 +311,15 @@ export interface ICreditsLedgerSummary {
 
 export type TCreditsLedger = (params: ICreditsLedgerParams) => Promise<IResponseData<ICreditsLedgerItem[]> & { meta?: ICreditsLedgerMeta }>;
 
-export type TCreditsLedgerSummary = (params: Omit<ICreditsLedgerParams, "page" | "page_size" | "order" | "format">) => Promise<IResponseData<ICreditsLedgerSummary>>;
+export type TCreditsLedgerSummary = (params: Omit<ICreditsLedgerParams, "page" | "page_size" | "order" | "format" | "status">) => Promise<IResponseData<ICreditsLedgerSummary>>;
+
+export interface IRecognitionRunResult {
+  job_date: string;
+  credit_attended: number;
+  credit_no_show: number;
+  cash_attended: number;
+  cash_no_show: number;
+  breakage: number;
+}
 
 export type TCashFlowReport = (data: IParamsCashFlowReport) => Promise<IResponseData<ICashFlowResponse>>;
