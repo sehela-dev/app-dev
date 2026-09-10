@@ -225,11 +225,11 @@ export const SessionDetailView = () => {
                   }
                 />
               )}
-              <p className="text-xs text-brand-500/60">Credit only — cash payment not available.</p>
+              <p className="text-xs text-brand-500/60">Credit only — drop-in payment not available.</p>
             </>
           ) : (
             <>
-              {session.price_idr > 0 && <InfoRow label="Cash" value={`Rp ${session.price_idr.toLocaleString("id-ID")}`} />}
+              {session.price_idr > 0 && <InfoRow label="Drop In" value={`Rp ${session.price_idr.toLocaleString("id-ID")}`} />}
               {allowCredit && (
                 <InfoRow
                   label="Credit"
@@ -241,7 +241,7 @@ export const SessionDetailView = () => {
                 />
               )}
               {allowCredit && session.price_idr > 0 && (
-                <p className="text-xs text-brand-500/60">Pay with cash or credits — whichever suits you.</p>
+                <p className="text-xs text-brand-500/60">Pay with drop-in or credits — whichever suits you.</p>
               )}
             </>
           )}

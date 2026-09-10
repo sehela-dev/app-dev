@@ -14,7 +14,7 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectGroup, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { MONTH_LIST, YEAR_LIST } from "@/constants/sample-data";
-import { exportCreditsLedger, exportOutstandingDetailCsv } from "@/api-req/report";
+import { exportCreditsLedger, exportOutstandingDetailCsv, runRecognition } from "@/api-req/report";
 import { useGenerateOutstandingReport } from "@/hooks/api/mutations/admin";
 import { useGetCreditsLedger } from "@/hooks/api/queries/admin/report/outstanding-credit/use-get-credits-ledger";
 import { useGetCreditsLedgerSummary } from "@/hooks/api/queries/admin/report/outstanding-credit/use-get-credits-ledger-summary";
@@ -22,7 +22,7 @@ import { useGetOutstandingDetail } from "@/hooks/api/queries/admin/report/outsta
 import { useGetOutstandingSummary } from "@/hooks/api/queries/admin/report/outstanding-credit/use-get-outstanding-summary";
 import { useListOutstandingReports } from "@/hooks/api/queries/admin/report/outstanding-credit/use-list-outstanding-reports";
 import { formatCurrency, formatDateHelper } from "@/lib/helper";
-import { ICreditsLedgerItem, ICreditsLedgerSummary, IGeenrateOutstandingResponse, IPackage, LedgerEntryType } from "@/types/report.interface";
+import { ICreditsLedgerItem, ICreditsLedgerSummary, IGeenrateOutstandingResponse, IPackage, LedgerEntryType, RecognitionStatus } from "@/types/report.interface";
 import { BadgeDollarSign, DollarSign, Download, FileText, Loader2, Search } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { FormProvider, useForm } from "react-hook-form";
@@ -507,7 +507,26 @@ const ENTRY_TYPE_CHIP: Record<string, string> = {
   credit_refund: "bg-blue-100 text-blue-700 border-blue-200",
   credit_expired: "bg-gray-100 text-gray-600 border-gray-200",
   adjustment: "bg-amber-100 text-amber-700 border-amber-200",
+  Issue: "bg-green-100 text-green-700 border-green-200",
+  Spend: "bg-red-100 text-red-700 border-red-200",
+  Refund: "bg-blue-100 text-blue-700 border-blue-200",
+  Expired: "bg-gray-100 text-gray-600 border-gray-200",
+  Adjustment: "bg-amber-100 text-amber-700 border-amber-200",
 };
+
+const RECOGNITION_STATUS_OPTIONS: { value: RecognitionStatus; label: string; className: string }[] = [
+  { value: "Recognized Revenue", label: "Recognized Revenue", className: "bg-green-100 text-green-700 border-green-200" },
+  { value: "Deferred Future Revenue", label: "Deferred Future Revenue", className: "bg-yellow-100 text-yellow-800 border-yellow-200" },
+  { value: "Credit Reserved", label: "Credit Reserved", className: "bg-gray-100 text-gray-600 border-gray-200" },
+  { value: "Credit Refunded", label: "Credit Refunded", className: "bg-slate-100 text-slate-600 border-slate-200" },
+  { value: "Refund Future Revenue", label: "Refund Future Revenue", className: "bg-red-100 text-red-700 border-red-200" },
+];
+
+const RECOGNITION_CHIP: Record<string, string> = Object.fromEntries(RECOGNITION_STATUS_OPTIONS.map((o) => [o.value, o.className]));
+
+// ponytail: single shared copy — paste §6 verbatim on every revenue/session surface
+const RECOGNITION_DISCLAIMER =
+  "Pendapatan dihitung earned per cek harian 23:59 WIB (bukan kas-basis): kelas yang berakhir hari ini tercatat sebagai pendapatan setelah run malam. Angka intraday bersifat sementara.";
 
 function CreditsLedgerLog() {
   const searchParams = useSearchParams();
@@ -522,6 +541,9 @@ function CreditsLedgerLog() {
   const [q, setQ] = useState(searchParams.get("q") ?? "");
   const [entryTypes, setEntryTypes] = useState<string[]>(
     searchParams.get("entry_type") ? (searchParams.get("entry_type") as string).split(",").filter(Boolean) : [],
+  );
+  const [statuses, setStatuses] = useState<string[]>(
+    searchParams.get("status") ? (searchParams.get("status") as string).split(",").filter(Boolean) : [],
   );
   const [startDate, setStartDate] = useState(searchParams.get("start_date") ?? fmt(d30));
   const [endDate, setEndDate] = useState(searchParams.get("end_date") ?? fmt(today));
@@ -552,7 +574,7 @@ function CreditsLedgerLog() {
   // reset page on filter change
   useEffect(() => {
     setPage(1);
-  }, [q, entryTypes, startDate, endDate, order, userId]);
+  }, [q, entryTypes, statuses, startDate, endDate, order, userId]);
 
   // persist to URL
   useEffect(() => {
@@ -562,6 +584,8 @@ function CreditsLedgerLog() {
     else p.delete("q");
     if (entryTypes.length) p.set("entry_type", entryTypes.join(","));
     else p.delete("entry_type");
+    if (statuses.length) p.set("status", statuses.join(","));
+    else p.delete("status");
     if (startDate) p.set("start_date", startDate);
     if (endDate) p.set("end_date", endDate);
     p.set("page", String(page));
@@ -570,7 +594,7 @@ function CreditsLedgerLog() {
     if (userId) p.set("user_id", userId);
     router.replace(`?${p.toString()}`, { scroll: false } as never);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [q, entryTypes, startDate, endDate, page, pageSize, order]);
+  }, [q, entryTypes, statuses, startDate, endDate, page, pageSize, order]);
 
   const rangeError = useMemo(() => {
     if (!startDate || !endDate) return null;
@@ -586,6 +610,7 @@ function CreditsLedgerLog() {
     () => ({
       q: q || undefined,
       entry_type: entryTypes.length ? entryTypes.join(",") : undefined,
+      status: statuses.length ? statuses.join(",") : undefined,
       start_date: !rangeError ? startDate : undefined,
       end_date: !rangeError ? endDate : undefined,
       page,
@@ -593,10 +618,10 @@ function CreditsLedgerLog() {
       order,
       user_id: userId || undefined,
     }),
-    [q, entryTypes, startDate, endDate, page, pageSize, order, userId, rangeError],
+    [q, entryTypes, statuses, startDate, endDate, page, pageSize, order, userId, rangeError],
   );
 
-  const { data, isLoading, isFetching, isError, error } = useGetCreditsLedger(params);
+  const { data, isLoading, isFetching, isError, error, refetch } = useGetCreditsLedger(params);
 
   const summaryParams = useMemo(
     () => ({
@@ -608,9 +633,29 @@ function CreditsLedgerLog() {
     }),
     [q, entryTypes, startDate, endDate, userId, rangeError],
   );
-  const { data: summaryRes, isLoading: summaryLoading } = useGetCreditsLedgerSummary(summaryParams, !rangeError);
+  const { data: summaryRes, isLoading: summaryLoading, refetch: refetchSummary } = useGetCreditsLedgerSummary(summaryParams, !rangeError);
 
   const [exporting, setExporting] = useState(false);
+  const [running, setRunning] = useState(false);
+
+  const handleRunRecognition = async () => {
+    if (running) return;
+    try {
+      setRunning(true);
+      const r = await runRecognition(endDate || undefined);
+      toast.success("Recognition run selesai", {
+        description: `Hadir kredit ${r.credit_attended} · no-show kredit ${r.credit_no_show} · hadir kas ${r.cash_attended} · breakage ${r.breakage} (job ${r.job_date})`,
+        position: "top-center",
+      });
+      refetch();
+      refetchSummary();
+    } catch (e: unknown) {
+      const err = e as { response?: { data?: { error?: { message?: string } } } };
+      toast.error("Recognition run gagal", { description: err?.response?.data?.error?.message ?? "Please try again", position: "top-center" });
+    } finally {
+      setRunning(false);
+    }
+  };
 
   const handleExportCsv = async () => {
     if (rangeError) {
@@ -622,6 +667,7 @@ function CreditsLedgerLog() {
       const blob = await exportCreditsLedger({
         q: q || undefined,
         entry_type: entryTypes.length ? entryTypes.join(",") : undefined,
+        status: statuses.length ? statuses.join(",") : undefined,
         start_date: startDate || undefined,
         end_date: endDate || undefined,
         order,
@@ -646,29 +692,31 @@ function CreditsLedgerLog() {
   };
 
   const toggleEntryType = (v: string) => setEntryTypes((prev) => (prev.includes(v) ? prev.filter((x) => x !== v) : [...prev, v]));
+  const toggleStatus = (v: string) => setStatuses((prev) => (prev.includes(v) ? prev.filter((x) => x !== v) : [...prev, v]));
 
+  // §4: 12 kolom bisnis — Entry Type | Customer | Amount | Nilai IDR | Package | Expiry | Session | Attendance | Recognition Status | Note | Recognized at | created_at
   const headers = useMemo(
     () => [
       {
-        id: "created_at_wib",
-        text: "Time (WIB)",
-        value: (row: ICreditsLedgerItem) => row.created_at_wib || formatDateHelper(row.created_at, "dd MMM yyyy HH:mm") + " WIB",
-      },
-      {
         id: "entry_type",
-        text: "Type",
+        text: "Entry Type",
         value: (row: ICreditsLedgerItem) => (
           <Badge variant="outline" className={`capitalize text-xs ${ENTRY_TYPE_CHIP[row.entry_type] ?? ""}`}>
-            {row.entry_type.replace("credit_", "")}
+            {row.entry_type}
           </Badge>
         ),
+      },
+      {
+        id: "customer_name",
+        text: "Customer",
+        value: (row: ICreditsLedgerItem) => row.customer_name ?? "—",
       },
       {
         id: "amount",
         text: "Amount",
         value: (row: ICreditsLedgerItem) =>
           row.amount == null ? (
-            "-"
+            "—"
           ) : (
             <span className={row.amount < 0 ? "text-red-600 font-semibold" : row.amount > 0 ? "text-green-600 font-semibold" : ""}>
               {row.amount > 0 ? `+${row.amount}` : row.amount}
@@ -676,90 +724,74 @@ function CreditsLedgerLog() {
           ),
       },
       {
-        id: "unit_value_idr",
-        text: "Unit Value (IDR)",
+        id: "nilai_idr",
+        text: "Nilai IDR",
         value: (row: ICreditsLedgerItem) =>
-          row.unit_value_idr == null ? (
-            "-"
+          row.nilai_idr == null ? (
+            "—"
           ) : (
-            <span className={row.amount < 0 ? "text-red-600 font-semibold" : row.amount > 0 ? "text-green-600 font-semibold" : ""}>
-              {formatCurrency(row.unit_value_idr)}
+            <span className={row.nilai_idr < 0 ? "text-red-600 font-semibold" : row.nilai_idr > 0 ? "text-green-600 font-semibold" : ""}>
+              {row.nilai_idr < 0 ? `-${formatCurrency(Math.abs(row.nilai_idr))}` : formatCurrency(row.nilai_idr)}
             </span>
           ),
       },
       {
-        id: "total_value_idr",
-        text: "Total Value (IDR)",
-        value: (row: ICreditsLedgerItem) =>
-          row.total_value_idr == null ? (
-            "-"
-          ) : (
-            <span className={row.amount < 0 ? "text-red-600 font-semibold" : row.amount > 0 ? "text-green-600 font-semibold" : ""}>
-              {formatCurrency(row.total_value_idr)}
-            </span>
-          ),
-      },
-      {
-        id: "balance_credits",
-        text: "Balance (Credits)",
-        value: (row: ICreditsLedgerItem) =>
-          row.balance_before_credits == null && row.balance_after_credits == null
-            ? "-"
-            : `${row.balance_before_credits ?? "-"} → ${row.balance_after_credits ?? "-"}`,
-      },
-      {
-        id: "balance_value",
-        text: "Balance Value (IDR)",
-        value: (row: ICreditsLedgerItem) =>
-          row.balance_before_value_idr == null && row.balance_after_value_idr == null
-            ? "-"
-            : `${row.balance_before_value_idr == null ? "-" : formatCurrency(row.balance_before_value_idr)} → ${
-                row.balance_after_value_idr == null ? "-" : formatCurrency(row.balance_after_value_idr)
-              }`,
-      },
-      {
-        id: "package",
+        id: "package_name",
         text: "Package",
-        value: (row: ICreditsLedgerItem) => row.package_purchase?.package_name ?? "-",
+        value: (row: ICreditsLedgerItem) => row.package_name ?? "—",
       },
       {
-        id: "booking",
-        text: "Booking / Session",
-        value: (row: ICreditsLedgerItem) => {
-          if (!row.booking) return "-";
-          const isSpendNoAttendance = row.entry_type === "credit_spend" && !row.booking.attendance_status;
-          const sessionName = row.booking.class_session?.session_name ?? "-";
-          const sessionDate = row.booking.class_session?.start_datetime
-            ? formatDateHelper(row.booking.class_session.start_datetime, "dd MMM yyyy HH:mm")
-            : "-";
-          const content = (
-            <span className="flex flex-col">
-              <span className="font-medium">{sessionName}</span>
-              <span className="text-xs text-muted-foreground">{sessionDate}</span>
-            </span>
-          );
-          if (!isSpendNoAttendance) return content;
-          return (
-            <TooltipProvider>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <span className="cursor-help underline decoration-dotted">{content}</span>
-                </TooltipTrigger>
-                <TooltipContent>Credit was deducted at booking; attendance not yet recorded</TooltipContent>
-              </Tooltip>
-            </TooltipProvider>
-          );
-        },
+        id: "expiry_date",
+        text: "Expiry Date",
+        value: (row: ICreditsLedgerItem) => (row.expiry_date ? formatDateHelper(row.expiry_date, "dd MMM yyyy") : "—"),
       },
       {
-        id: "customer",
-        text: "Customer",
-        value: (row: ICreditsLedgerItem) => (row.customer ? `${row.customer.full_name} (${row.customer.phone})` : "-"),
+        id: "session_date",
+        text: "Class / Session Date",
+        value: (row: ICreditsLedgerItem) => (row.session_date ? formatDateHelper(row.session_date, "dd MMM yyyy HH:mm") : "—"),
+      },
+      {
+        id: "attendance",
+        text: "Attendance",
+        value: (row: ICreditsLedgerItem) =>
+          !row.attendance ? (
+            "—"
+          ) : (
+            <Badge variant="outline" className={`capitalize text-xs ${row.attendance === "attended" ? "bg-green-100 text-green-700 border-green-200" : "bg-red-100 text-red-700 border-red-200"}`}>
+              {row.attendance.replace("_", " ")}
+            </Badge>
+          ),
+      },
+      {
+        id: "recognition_status",
+        text: "Recognition Status",
+        value: (row: ICreditsLedgerItem) => (
+          <span className="flex flex-col gap-0.5">
+            <Badge variant="outline" className={`text-xs whitespace-nowrap ${RECOGNITION_CHIP[row.recognition_status] ?? ""}`}>
+              {row.recognition_status}
+            </Badge>
+            {row.recognition_month && <span className="text-[10px] text-muted-foreground">{row.recognition_month}</span>}
+          </span>
+        ),
       },
       {
         id: "note",
         text: "Note",
-        value: (row: ICreditsLedgerItem) => row.note ?? "-",
+        value: (row: ICreditsLedgerItem) => (
+          <span className="block max-w-[240px] truncate" title={row.note ?? ""}>
+            {row.note ?? "—"}
+          </span>
+        ),
+      },
+      {
+        id: "recognized_at",
+        text: "Recognized at",
+        value: (row: ICreditsLedgerItem) => (row.recognized_at ? formatDateHelper(row.recognized_at, "dd MMM yyyy HH:mm") : "—"),
+      },
+      {
+        id: "created_at",
+        text: "Created at",
+        value: (row: ICreditsLedgerItem) => row.created_at_wib || formatDateHelper(row.created_at, "dd MMM yyyy HH:mm") + " WIB",
       },
     ],
     [],
@@ -768,15 +800,16 @@ function CreditsLedgerLog() {
   return (
     <div className="flex flex-col gap-4 w-full">
       <Card className="w-full max-w-vw">
-        <CardHeader className="text-lg font-semibold">Credit Movement Log (credits_ledger)</CardHeader>
+        <CardHeader className="text-lg font-semibold">Credit Ledger (earned 23:59 WIB)</CardHeader>
         <CardContent className="flex flex-col gap-4 w-full">
-          {/* filters — q is package name only; customer filter via user_id member select */}
+          <p className="rounded-lg border bg-muted/30 px-3 py-2 text-xs leading-relaxed text-muted-foreground">{RECOGNITION_DISCLAIMER}</p>
+          {/* filters — q = customer OR package OR note; member select narrows via user_id */}
           <div className="grid grid-cols-1 gap-4 md:grid-cols-12">
             <div className="flex flex-col gap-1 md:col-span-4">
-              <p className="text-sm font-medium">Search package</p>
+              <p className="text-sm font-medium">Search customer / package / note</p>
               <div className="relative">
                 <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
-                <Input className="pl-8" placeholder="Search package name..." value={qInput} onChange={(e) => setQInput(e.target.value)} />
+                <Input className="pl-8" placeholder="Search customer, package, note..." value={qInput} onChange={(e) => setQInput(e.target.value)} />
               </div>
             </div>
             <div className="flex flex-col gap-1 md:col-span-6">
@@ -853,7 +886,7 @@ function CreditsLedgerLog() {
               getOptionLabel={(opt) => (opt as unknown as { label: string }).label}
             />
             <p className="text-xs text-muted-foreground">
-              Filters ledger by member via <code>user_id</code>; package search uses <code>q</code>.
+              Filters ledger by member via <code>user_id</code>; free text <code>q</code> matches customer / package / note.
             </p>
           </div>
 
@@ -874,14 +907,38 @@ function CreditsLedgerLog() {
             )}
           </div>
 
+          <div className="flex flex-wrap items-center gap-3">
+            <span className="text-sm font-medium">Status:</span>
+            {RECOGNITION_STATUS_OPTIONS.map((o) => (
+              <label key={o.value} className="flex items-center gap-1.5 text-sm cursor-pointer">
+                <Checkbox checked={statuses.includes(o.value)} onCheckedChange={() => toggleStatus(o.value)} />
+                <Badge variant="outline" className={`${o.className} text-xs`}>
+                  {o.label}
+                </Badge>
+              </label>
+            ))}
+            {statuses.length > 0 && (
+              <Button variant="ghost" size="sm" onClick={() => setStatuses([])}>
+                Clear
+              </Button>
+            )}
+          </div>
+
           {rangeError && <p className="text-sm text-red-600">{rangeError}</p>}
 
-          <div className="flex justify-end pt-2">
+          <div className="flex flex-wrap justify-end gap-2 pt-2">
+            <Button onClick={handleRunRecognition} disabled={!!rangeError || running} variant="default" size="sm">
+              {running ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
+              Run Recognition ({endDate || "today"})
+            </Button>
             <Button onClick={handleExportCsv} disabled={!!rangeError || exporting} variant="outline" size="sm">
               {exporting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
               Export CSV
             </Button>
           </div>
+          <p className="text-[11px] text-muted-foreground">
+            Status dihitung as-of {endDate || "hari ini"} · run harian otomatis 23:59 WIB, tombol hanya untuk backfill/koreksi (idempoten).
+          </p>
         </CardContent>
       </Card>
 
@@ -1107,12 +1164,11 @@ function CreditsLedgerLog() {
             </div>
           ) : isError ? (
             <div className="py-6 text-center text-sm text-muted-foreground">
-              {/* BE not yet deployed — show spec shape hint */}
-              <p className="font-medium">Failed to load log</p>
+              <p className="font-medium">Failed to load ledger</p>
               <p className="text-xs">
                 {(error as unknown as { response?: { data?: { error?: { message?: string } } } })?.response?.data?.error?.message ??
                   (error as Error)?.message ??
-                  "Endpoint /admin/credits/ledger not yet available. Use ?view=log for mock."}
+                  "Check GET /admin/credits/ledger with the current filters."}
               </p>
               <p className="text-xs mt-2">Fallback: try the Outstanding Detail snapshot in the Preview tab.</p>
             </div>

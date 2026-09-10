@@ -473,7 +473,7 @@ export const CheckoutSessionView = () => {
               <div className="flex items-start gap-2.5 rounded-xl border border-brand-100 bg-brand-25 p-4">
                 <CircleInfoSvg />
                 <p className="text-xs leading-relaxed text-brand-500/70">
-                  Drop In payment is settled directly at the studio before the class starts. Cash and QRIS are accepted.
+                  Drop In payment is settled directly at the studio before the class starts.
                 </p>
               </div>
             </>

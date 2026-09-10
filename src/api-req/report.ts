@@ -3,6 +3,7 @@ import { MAIN_API_URL } from "@/lib/config";
 import {
   ICreditsLedgerParams,
   IOutstandingDetailParams,
+  IRecognitionRunResult,
   TCashFlowReport,
   TCreditsLedger,
   TCreditsLedgerSummary,
@@ -138,4 +139,10 @@ export const getCreditsLedgerSummary: TCreditsLedgerSummary = async (params) => 
     return { statusCode: d.statusCode ?? 200, message: d.message ?? "ok", data: d.data as never } as never;
   }
   return res.data;
+};
+
+export const runRecognition = async (job_date?: string): Promise<IRecognitionRunResult> => {
+  const res = await axiosx(true).post(`${MAIN_API_URL}/admin/credits/ledger/recognition-run`, job_date ? { job_date } : {});
+  const d = res.data as { success?: boolean; data?: IRecognitionRunResult };
+  return (d.data ?? res.data) as IRecognitionRunResult;
 };
