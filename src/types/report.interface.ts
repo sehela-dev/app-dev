@@ -289,9 +289,12 @@ export interface IDeferredBucket {
 }
 
 export interface ICreditsLedgerSummary {
-  periode: string;
+  period: string;
+  // legacy alias (BE used `periode` before 2026-09-11)
+  periode?: string;
   total_movements: number;
   by_type: Record<string, { count: number; credits: number; value_idr: number }>;
+  by_status?: Record<string, { count: number; credits: number; value_idr: number; journal: string }>;
   net_credits: number;
   net_value_idr: number;
   outstanding: { packages: number; credits: number; value_idr: number };
@@ -299,13 +302,33 @@ export interface ICreditsLedgerSummary {
   outstanding_packages?: number;
   outstanding_credits?: number;
   outstanding_value_idr?: number;
+  filters?: {
+    user_id?: string | null;
+    package_purchase_id?: string | null;
+    entry_type?: string | null;
+    start_date: string | null;
+    end_date: string | null;
+    q?: string | null;
+  };
   deferred_buckets?: {
-    terjual: IDeferredBucket;
-    diakui_hadir: IDeferredBucket;
-    diakui_no_show: IDeferredBucket;
-    breakage: IDeferredBucket;
-    diakui_total: { value_idr: number; journal: string };
-    saldo_tangguhan_akhir: { value_idr: number; credits: number; packages: number; journal: string };
+    // new keys (BE >= 2026-09-11)
+    sold?: IDeferredBucket;
+    recognized_attended?: IDeferredBucket;
+    recognized_no_show?: IDeferredBucket;
+    breakage?: IDeferredBucket;
+    cash?: {
+      sold: { count: number; value_idr: number; journal: string };
+      recognized_attended: { count: number; value_idr: number; journal: string };
+      recognized_no_show: { count: number; value_idr: number; journal: string };
+    };
+    recognized_total?: { value_idr: number; journal: string };
+    ending_deferred_balance?: { value_idr: number; credits: number; packages: number; journal: string };
+    // legacy keys (BE < 2026-09-11)
+    terjual?: IDeferredBucket;
+    diakui_hadir?: IDeferredBucket;
+    diakui_no_show?: IDeferredBucket;
+    diakui_total?: { value_idr: number; journal: string };
+    saldo_tangguhan_akhir?: { value_idr: number; credits: number; packages: number; journal: string };
   };
 }
 

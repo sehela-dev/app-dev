@@ -12,7 +12,6 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectGroup, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { MONTH_LIST, YEAR_LIST } from "@/constants/sample-data";
 import { exportCreditsLedger, exportOutstandingDetailCsv, runRecognition } from "@/api-req/report";
 import { useGenerateOutstandingReport } from "@/hooks/api/mutations/admin";
@@ -23,7 +22,7 @@ import { useGetOutstandingSummary } from "@/hooks/api/queries/admin/report/outst
 import { useListOutstandingReports } from "@/hooks/api/queries/admin/report/outstanding-credit/use-list-outstanding-reports";
 import { formatCurrency, formatDateHelper } from "@/lib/helper";
 import { ICreditsLedgerItem, ICreditsLedgerSummary, IGeenrateOutstandingResponse, IPackage, LedgerEntryType, RecognitionStatus } from "@/types/report.interface";
-import { BadgeDollarSign, DollarSign, Download, FileText, Loader2, Search } from "lucide-react";
+import { Activity, ArrowDownRight, ArrowUpRight, BadgeCheck, BadgeDollarSign, DollarSign, Download, FileText, Hourglass, Landmark, Loader2, RotateCcw, Search, ShoppingBag, TimerOff, UserX, Wallet } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { FormProvider, useForm } from "react-hook-form";
 import { useRouter, useSearchParams } from "next/navigation";
@@ -975,182 +974,190 @@ function CreditsLedgerLog() {
             : null);
         const netEmpty = summary.net_credits === 0 && summary.net_value_idr === 0;
         return (
-          <Card className="w-full max-w-vw border-muted-foreground/10">
+          <Card className="w-full max-w-vw overflow-hidden border-muted-foreground/10">
             <CardHeader className="pb-3">
-              <div className="flex flex-col gap-1">
-                <h3 className="text-base font-semibold tracking-tight">Summary</h3>
-                <p className="text-xs text-muted-foreground">
-                  Period: {summary.periode} · {summary.total_movements.toLocaleString("id-ID")} movements
-                </p>
+              <div className="flex flex-wrap items-start justify-between gap-2">
+                <div className="flex flex-col gap-1">
+                  <h3 className="text-base font-semibold tracking-tight">Credit Movement Summary</h3>
+                  <p className="text-xs text-muted-foreground">
+                    {summary.period ?? summary.periode} · {summary.total_movements.toLocaleString("id-ID")} movements in the selected period
+                  </p>
+                </div>
+                <Badge variant="outline" className="text-xs font-medium">
+                  Net {summary.net_credits > 0 ? `+${summary.net_credits}` : summary.net_credits} credits
+                </Badge>
               </div>
             </CardHeader>
             <CardContent className="flex flex-col gap-5">
-              {/* Row 1: 4 cards — by_type breakdown */}
+              {/* Row 1: movement breakdown by entry type */}
               <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
-                <div className="rounded-xl border bg-card p-4">
-                  <p className="text-xs font-medium text-muted-foreground">Issuance</p>
-                  <p className="mt-1 text-xs text-muted-foreground">credit_issue</p>
-                  <p className="mt-2 text-lg font-semibold text-emerald-600">
-                    {issuance.credits > 0 ? `+${issuance.credits}` : issuance.credits} credits
-                  </p>
-                  <p className="text-sm font-medium text-emerald-600">{formatCurrency(issuance.value_idr)}</p>
-                  <p className="mt-1 text-xs text-muted-foreground">{issuance.count} transactions</p>
-                </div>
-                <div className="rounded-xl border bg-card p-4">
-                  <p className="text-xs font-medium text-muted-foreground">Usage</p>
-                  <p className="mt-1 text-xs text-muted-foreground">credit_spend</p>
-                  <p className="mt-2 text-lg font-semibold text-red-600">{usage.credits} credits</p>
-                  <p className="text-sm font-medium text-red-600">{formatCurrency(usage.value_idr)}</p>
-                  <p className="mt-1 text-xs text-muted-foreground">{usage.count} transactions</p>
-                </div>
-                <div className="rounded-xl border bg-card p-4">
-                  <p className="text-xs font-medium text-muted-foreground">Refund</p>
-                  <p className="mt-1 text-xs text-muted-foreground">credit_refund</p>
-                  <p className="mt-2 text-lg font-semibold text-blue-600">{refund.credits > 0 ? `+${refund.credits}` : refund.credits} credits</p>
-                  <p className="text-sm font-medium text-blue-600">{formatCurrency(refund.value_idr)}</p>
-                  <p className="mt-1 text-xs text-muted-foreground">{refund.count} transactions</p>
-                </div>
-                <div className="rounded-xl border bg-card p-4">
-                  <p className="text-xs font-medium text-muted-foreground">Expired</p>
-                  <p className="mt-1 text-xs text-muted-foreground">credit_expired</p>
-                  <p className="mt-2 text-lg font-semibold text-zinc-500">{expired.credits} credits</p>
-                  <p className="text-sm font-medium text-zinc-500">{formatCurrency(expired.value_idr)}</p>
-                  <p className="mt-1 text-xs text-muted-foreground">{expired.count} transactions</p>
-                </div>
+                <CardRevenueComponent
+                  title="Issuance"
+                  amount={`${issuance.credits > 0 ? `+${issuance.credits}` : issuance.credits} credits`}
+                  amountClassName="text-emerald-600"
+                  subtitle={formatCurrency(issuance.value_idr)}
+                  footer={`${issuance.count} transactions`}
+                  icon={
+                    <span className="flex h-8 w-8 items-center justify-center rounded-full bg-emerald-500/10 text-emerald-600">
+                      <ArrowDownRight size={16} />
+                    </span>
+                  }
+                />
+                <CardRevenueComponent
+                  title="Usage"
+                  amount={`${usage.credits} credits`}
+                  amountClassName="text-red-600"
+                  subtitle={formatCurrency(usage.value_idr)}
+                  footer={`${usage.count} transactions`}
+                  icon={
+                    <span className="flex h-8 w-8 items-center justify-center rounded-full bg-red-500/10 text-red-600">
+                      <ArrowUpRight size={16} />
+                    </span>
+                  }
+                />
+                <CardRevenueComponent
+                  title="Refunds"
+                  amount={`${refund.credits > 0 ? `+${refund.credits}` : refund.credits} credits`}
+                  amountClassName="text-blue-600"
+                  subtitle={formatCurrency(refund.value_idr)}
+                  footer={`${refund.count} transactions`}
+                  icon={
+                    <span className="flex h-8 w-8 items-center justify-center rounded-full bg-blue-500/10 text-blue-600">
+                      <RotateCcw size={16} />
+                    </span>
+                  }
+                />
+                <CardRevenueComponent
+                  title="Expired"
+                  amount={`${expired.credits} credits`}
+                  amountClassName="text-zinc-500"
+                  subtitle={formatCurrency(expired.value_idr)}
+                  footer={`${expired.count} transactions`}
+                  icon={
+                    <span className="flex h-8 w-8 items-center justify-center rounded-full bg-zinc-500/10 text-zinc-500">
+                      <Hourglass size={16} />
+                    </span>
+                  }
+                />
               </div>
 
               {/* Row 2: highlighted — Net vs Outstanding */}
               <div className="grid grid-cols-1 gap-3 lg:grid-cols-2">
-                <div className="rounded-xl border bg-muted/20 p-4">
-                  <div className="flex items-start justify-between gap-2">
-                    <p className="text-xs font-medium text-muted-foreground">Net Movement</p>
-                    <TooltipProvider>
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <span className="cursor-help rounded-full border px-1.5 py-0.5 text-[10px] leading-none text-muted-foreground">?</span>
-                        </TooltipTrigger>
-                        <TooltipContent className="max-w-[320px] text-xs leading-relaxed">
-                          Issuance + Usage + Refund + Expired in period {summary.periode}. Negative = usage greater than issuance (liability
-                          decreased, revenue recognized).
-                        </TooltipContent>
-                      </Tooltip>
-                    </TooltipProvider>
-                  </div>
-                  {netEmpty ? (
-                    <p className="mt-2 text-sm text-muted-foreground">No net movement in this period.</p>
-                  ) : (
-                    <>
-                      <p
-                        className={`mt-2 text-lg font-semibold ${
-                          summary.net_credits < 0 ? "text-red-600" : summary.net_credits > 0 ? "text-emerald-600" : ""
-                        }`}
-                      >
-                        {summary.net_credits > 0 ? `+${summary.net_credits}` : summary.net_credits} credits
-                      </p>
-                      <p
-                        className={`text-sm font-medium ${
-                          summary.net_value_idr < 0 ? "text-red-600" : summary.net_value_idr > 0 ? "text-emerald-600" : ""
-                        }`}
-                      >
-                        {formatCurrency(summary.net_value_idr)}
-                      </p>
-                    </>
-                  )}
-                  <p className="mt-2 text-xs leading-relaxed text-muted-foreground">Net = total in-out in the filtered period.</p>
-                </div>
-                <div className="rounded-xl border-2 bg-card p-4 shadow-sm">
-                  <div className="flex items-start justify-between gap-2">
-                    <p className="text-xs font-medium text-muted-foreground">Outstanding (Remaining)</p>
-                    <TooltipProvider>
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <span className="cursor-help rounded-full border px-1.5 py-0.5 text-[10px] leading-none text-muted-foreground">?</span>
-                        </TooltipTrigger>
-                        <TooltipContent className="max-w-[320px] text-xs leading-relaxed">
-                          Remaining credits still available now (as of now) for packages that appear in this filter. Different from net — this is
-                          advance received liability.
-                        </TooltipContent>
-                      </Tooltip>
-                    </TooltipProvider>
-                  </div>
-                  {out ? (
-                    <>
-                      <p className="mt-2 text-lg font-semibold">{out.credits.toLocaleString("id-ID")} credits</p>
-                      <p className="text-sm font-medium">{formatCurrency(out.value_idr)}</p>
-                      <p className="mt-1 text-xs text-muted-foreground">{out.packages.toLocaleString("id-ID")} packages</p>
-                    </>
-                  ) : (
-                    <p className="mt-2 text-sm text-muted-foreground">—</p>
-                  )}
-                  <p className="mt-2 text-xs leading-relaxed text-muted-foreground">Outstanding = remaining still active now.</p>
-                </div>
+                <CardRevenueComponent
+                  title="Net Movement"
+                  amount={netEmpty ? "0 credits" : `${summary.net_credits > 0 ? `+${summary.net_credits}` : summary.net_credits} credits`}
+                  amountClassName={summary.net_credits < 0 ? "text-red-600" : summary.net_credits > 0 ? "text-emerald-600" : undefined}
+                  subtitle={netEmpty ? "No net movement in this period" : formatCurrency(summary.net_value_idr)}
+                  footer="Total in minus out for the selected period. Negative means usage exceeded issuance."
+                  icon={
+                    <span className="flex h-8 w-8 items-center justify-center rounded-full bg-violet-500/10 text-violet-600">
+                      <Activity size={16} />
+                    </span>
+                  }
+                />
+                <CardRevenueComponent
+                  className="border-primary/30 bg-primary/[0.03] shadow-sm"
+                  title="Outstanding Balance"
+                  amount={out ? `${out.credits.toLocaleString("id-ID")} credits` : "—"}
+                  subtitle={out ? formatCurrency(out.value_idr) : undefined}
+                  footer={out ? `${out.packages.toLocaleString("id-ID")} packages still active · advance payments held as a liability` : "No outstanding packages in this filter"}
+                  icon={
+                    <span className="flex h-8 w-8 items-center justify-center rounded-full bg-primary/10 text-primary">
+                      <Wallet size={16} />
+                    </span>
+                  }
+                />
               </div>
-              {(
-                summary as unknown as {
-                  deferred_buckets?: {
-                    terjual: { count: number; credits: number; value_idr: number; journal: string };
-                    diakui_hadir: { count: number; credits: number; value_idr: number; journal: string };
-                    diakui_no_show: { count: number; credits: number; value_idr: number; journal: string };
-                    breakage: { count: number; credits: number; value_idr: number; journal: string };
-                    diakui_total: { value_idr: number; journal: string };
-                    saldo_tangguhan_akhir: { value_idr: number; credits: number; packages: number; journal: string };
-                  };
-                }
-              )?.deferred_buckets && (
+              {(() => {
+                const db = summary.deferred_buckets;
+                if (!db) return null;
+                const sold = db.sold ?? db.terjual;
+                const attended = db.recognized_attended ?? db.diakui_hadir;
+                const noShow = db.recognized_no_show ?? db.diakui_no_show;
+                const ending = db.ending_deferred_balance ?? db.saldo_tangguhan_akhir;
+                const total = db.recognized_total ?? db.diakui_total;
+                if (!sold && !attended && !noShow && !db.breakage && !ending) return null;
+                return (
                 <div className="rounded-xl border bg-card p-4">
-                  <p className="text-xs font-semibold text-muted-foreground">Reconcile Deferred → Recognized (accrual)</p>
-                  <p className="text-[11px] text-muted-foreground">Kas vs Diakui · recognized_at for diakui, created_at for terjual</p>
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <p className="text-sm font-semibold">Revenue Recognition (accrual)</p>
+                    {total && (
+                      <Badge variant="outline" className="text-[11px] font-medium">
+                        Total recognized · {formatCurrency(total.value_idr)}
+                      </Badge>
+                    )}
+                  </div>
+                  <p className="mt-0.5 text-[11px] text-muted-foreground">Cash collected vs revenue recognized · sales by creation date, recognition by recognition date</p>
                   <div className="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-5 text-xs">
                     {[
                       {
-                        k: "Terjual",
-                        v: (summary as unknown as { deferred_buckets: { terjual: { value_idr: number; credits: number; journal: string } } })
-                          .deferred_buckets.terjual,
+                        k: "Sold",
+                        hint: "Cash received, revenue deferred",
+                        v: sold,
+                        icon: (
+                          <span className="flex h-7 w-7 items-center justify-center rounded-full bg-sky-500/10 text-sky-600">
+                            <ShoppingBag size={14} />
+                          </span>
+                        ),
                       },
                       {
-                        k: "Diakui Hadir",
-                        v: (summary as unknown as { deferred_buckets: { diakui_hadir: { value_idr: number; credits: number; journal: string } } })
-                          .deferred_buckets.diakui_hadir,
+                        k: "Recognized · Attended",
+                        hint: "Revenue earned on attendance",
+                        v: attended,
+                        icon: (
+                          <span className="flex h-7 w-7 items-center justify-center rounded-full bg-emerald-500/10 text-emerald-600">
+                            <BadgeCheck size={14} />
+                          </span>
+                        ),
                       },
                       {
-                        k: "Diakui No-show",
-                        v: (summary as unknown as { deferred_buckets: { diakui_no_show: { value_idr: number; credits: number; journal: string } } })
-                          .deferred_buckets.diakui_no_show,
+                        k: "Recognized · No-show",
+                        hint: "Revenue forfeited on no-show",
+                        v: noShow,
+                        icon: (
+                          <span className="flex h-7 w-7 items-center justify-center rounded-full bg-amber-500/10 text-amber-600">
+                            <UserX size={14} />
+                          </span>
+                        ),
                       },
                       {
                         k: "Breakage",
-                        v: (summary as unknown as { deferred_buckets: { breakage: { value_idr: number; credits: number; journal: string } } })
-                          .deferred_buckets.breakage,
+                        hint: "Revenue from expired credits",
+                        v: db.breakage,
+                        icon: (
+                          <span className="flex h-7 w-7 items-center justify-center rounded-full bg-orange-500/10 text-orange-600">
+                            <TimerOff size={14} />
+                          </span>
+                        ),
                       },
                       {
-                        k: "Saldo Tangguhan",
-                        v: {
-                          value_idr: (summary as unknown as { deferred_buckets: { saldo_tangguhan_akhir: { value_idr: number } } }).deferred_buckets
-                            .saldo_tangguhan_akhir.value_idr,
-                          credits: (summary as unknown as { deferred_buckets: { saldo_tangguhan_akhir: { credits: number } } }).deferred_buckets
-                            .saldo_tangguhan_akhir.credits,
-                          journal: (summary as unknown as { deferred_buckets: { saldo_tangguhan_akhir: { journal: string } } }).deferred_buckets
-                            .saldo_tangguhan_akhir.journal,
-                        } as unknown as { value_idr: number; credits: number; journal: string },
+                        k: "Ending Deferred Balance",
+                        hint: "Still owed as future sessions",
+                        v: ending as unknown as { value_idr: number; credits: number; journal: string },
+                        icon: (
+                          <span className="flex h-7 w-7 items-center justify-center rounded-full bg-violet-500/10 text-violet-600">
+                            <Landmark size={14} />
+                          </span>
+                        ),
                       },
                     ].map((b) => (
-                      <div key={b.k} className="rounded-lg border p-2">
-                        <p className="font-medium">{b.k}</p>
-                        <p className="font-semibold">{formatCurrency((b.v as { value_idr: number }).value_idr)}</p>
-                        <p className="text-muted-foreground">{(b.v as { credits: number }).credits ?? "-"} credits</p>
-                        <p className="text-[10px] text-muted-foreground">{(b.v as { journal: string }).journal}</p>
+                      <div key={b.k} className="rounded-xl border bg-muted/20 p-3">
+                        <div className="flex items-center gap-2">
+                          {b.icon}
+                          <p className="text-[11px] font-semibold leading-tight">{b.k}</p>
+                        </div>
+                        <p className="mt-2 text-sm font-bold">{formatCurrency((b.v as { value_idr: number })?.value_idr ?? 0)}</p>
+                        <p className="text-[11px] text-muted-foreground">{(b.v as { credits: number })?.credits ?? "-"} credits · {b.hint}</p>
+                        <p className="mt-1 text-[10px] text-muted-foreground">{(b.v as { journal: string })?.journal}</p>
                       </div>
                     ))}
                   </div>
-                  <p className="mt-2 text-[11px] text-muted-foreground">
-                    Diakui total:{" "}
-                    {formatCurrency(
-                      (summary as unknown as { deferred_buckets: { diakui_total: { value_idr: number } } }).deferred_buckets.diakui_total.value_idr,
-                    )}{" "}
-                    · {(summary as unknown as { deferred_buckets: { diakui_total: { journal: string } } }).deferred_buckets.diakui_total.journal}
-                  </p>
+                  {total?.journal && (
+                    <p className="mt-2 text-[11px] text-muted-foreground">Journal: {total.journal}</p>
+                  )}
                 </div>
-              )}
+                );
+              })()}
             </CardContent>
           </Card>
         );
