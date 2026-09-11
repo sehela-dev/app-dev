@@ -64,6 +64,10 @@ export const DetailFormAddTransaction = () => {
   }, [customerData?.branch, selectedBranch]);
 
   const [nameFrom, setNameFrom] = useState(customerData?.name ?? "");
+
+  useEffect(() => {
+    if (customerData?.name) setNameFrom(customerData.name);
+  }, [customerData?.id, customerData?.name]);
   const [openModalSharing, setOpenModalSharing] = useState(false);
   const [selectedItem, setSelectedItem] = useState<IAdminCartItemData | null>(null);
   const [search, setSearch] = useState("");
@@ -163,8 +167,7 @@ export const DetailFormAddTransaction = () => {
       ...(selectedPaymentMethod === "transfer"
         ? {
           transfer_details: {
-            // account_name_from: nameFrom as string,
-            // account_bank_from: selectedBank?.label as string,
+            account_name_from: nameFrom as string,
             account_bank_to: selectedBankTo?.label as string,
           },
         }
@@ -598,6 +601,15 @@ export const DetailFormAddTransaction = () => {
                     </div>
                     {selectedPaymentMethod === "transfer" && (
                       <div className="flex flex-col gap-1">
+                        <div className="flex flex-col gap-1 mt-2">
+                          <Label className="text-gray-500">Transfer From (Name)</Label>
+                          <Input
+                            className="w-full px-4 py-4 border-2 border-gray-200 rounded-lg text-gray-999 placeholder-gray-400 focus:outline-none focus:border-brand-500 transition-colors h-[42px]"
+                            placeholder="Input sender name..."
+                            value={nameFrom}
+                            onChange={(e) => setNameFrom(e.target.value)}
+                          />
+                        </div>
                         <div className="flex flex-col gap-1 mt-2">
                           <Label className="text-gray-500">Transfer To</Label>
                           <Select

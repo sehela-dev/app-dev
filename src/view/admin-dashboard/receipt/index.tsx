@@ -15,10 +15,10 @@ import { useParams } from "next/navigation";
 import { Fragment, useState } from "react";
 
 export const OrderReceiptPage = () => {
-  const { isManager } = useAdminPermission()
+  const { isManager } = useAdminPermission();
   const params = useParams();
   const { id } = params;
-  const [openVoid, setOpenVoid] = useState(false)
+  const [openVoid, setOpenVoid] = useState(false);
   const { data, isLoading, refetch } = useGetOrderDetail(id as string);
 
   const { mutateAsync, isPending } = useSendReceiptEmail();
@@ -67,9 +67,25 @@ export const OrderReceiptPage = () => {
               <p className="text-gray-500  text-sm">Payment Method</p>
               <p className="text-brand-999 text-right text-sm capitalize">{data?.data.payment_method}</p>
             </div>
+            {data?.data?.transfer_details?.account_name_from && (
+              <div className="grid grid-cols-2">
+                <p className="text-gray-500  text-sm">Account Name</p>
+                <p className="text-brand-999 text-right text-sm">
+                  {data.data.transfer_details.account_name_from}
+                  {data.data.transfer_details.account_bank_from ? ` · ${data.data.transfer_details.account_bank_from}` : ""}
+                </p>
+              </div>
+            )}
+
             <div className="grid grid-cols-2">
               <p className="text-gray-500  text-sm">Status</p>
-              <p className={`text-right text-sm capitalize ${data?.data?.status === "paid" ? `text-green-500` : data?.data?.status === 'voided' ? 'text-violet-800' : `text-red-500`}`}>{data?.data?.status}</p>
+              <p
+                className={`text-right text-sm capitalize ${
+                  data?.data?.status === "paid" ? `text-green-500` : data?.data?.status === "voided" ? "text-violet-800" : `text-red-500`
+                }`}
+              >
+                {data?.data?.status}
+              </p>
             </div>
             <div className="grid grid-cols-2">
               <p className="text-gray-500  text-sm">Date</p>
@@ -132,12 +148,20 @@ export const OrderReceiptPage = () => {
                     <div>
                       <p className="text-brand-999 font-medium text-sm">{item.name}</p>
                       <p className="text-gray-500 font-medium text-sm">{item.variant}</p>
-                      {item.shared_with && <div className="flex flex-col gap-1">
-                        <span className="text-[10px] font-normal text-gray-500">Shared with: </span >
-                        <Badge variant={'secondary'} className="cursor-pointer" onClick={() => {
-                          window.open(`/admin/member/${item.shared_with?.user_id}`, "_blank")
-                        }}>{item.shared_with.name}</Badge>
-                      </div>}
+                      {item.shared_with && (
+                        <div className="flex flex-col gap-1">
+                          <span className="text-[10px] font-normal text-gray-500">Shared with: </span>
+                          <Badge
+                            variant={"secondary"}
+                            className="cursor-pointer"
+                            onClick={() => {
+                              window.open(`/admin/member/${item.shared_with?.user_id}`, "_blank");
+                            }}
+                          >
+                            {item.shared_with.name}
+                          </Badge>
+                        </div>
+                      )}
                     </div>
                     <div className="flex flex-row gap-2 justify-end items-center">
                       {/* {item.badge && (
@@ -175,13 +199,13 @@ export const OrderReceiptPage = () => {
               </div>
             </div>
           </div>
-        </CardContent >
-      </Card >
+        </CardContent>
+      </Card>
       <div className="flex flex-row gap-2 pt-4">
-        {isManager && isTransactionVoidable(data?.data?.status) ?
-
+        {isManager && isTransactionVoidable(data?.data?.status) ? (
           <div className="flex w-full">
-            <Button className="w-full !rounded-[10px]"
+            <Button
+              className="w-full !rounded-[10px]"
               variant={"destructive"}
               onClick={() => {
                 // set modal trus for preview void
@@ -191,8 +215,10 @@ export const OrderReceiptPage = () => {
             >
               <Ban /> Void Transaction
             </Button>
-          </div> : ""
-        }
+          </div>
+        ) : (
+          ""
+        )}
 
         <div className="flex w-full">
           <Button className="w-full !rounded-[10px]" onClick={onSendEmail} disabled={!!isPending}>
@@ -209,18 +235,16 @@ export const OrderReceiptPage = () => {
           <Button className="w-full">Print</Button>
         </div> */}
       </div>
-      {
-        openVoid && (
-          <TransactionVoidDialog
-            isOpen={openVoid}
-            trxId={id as string}
-            onClose={() => {
-              setOpenVoid(false);
-            }}
-            refetchOrders={refetch}
-          />
-        )
-      }
-    </div >
+      {openVoid && (
+        <TransactionVoidDialog
+          isOpen={openVoid}
+          trxId={id as string}
+          onClose={() => {
+            setOpenVoid(false);
+          }}
+          refetchOrders={refetch}
+        />
+      )}
+    </div>
   );
 };

@@ -127,6 +127,11 @@ export interface IDetailOrder {
   customer_name: string;
   customer_phone: string;
   customer_email: string;
+  transfer_details?: {
+    account_name_from?: string | null;
+    account_bank_from?: string | null;
+    account_bank_to?: string | null;
+  } | null;
   items: IOrderedItem[];
   total_price: number;
   total_price_formatted: string;
