@@ -1,16 +1,22 @@
 "use client";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
+import { cn } from "@/lib/utils";
 
 interface IProps {
   title: string;
   amount: string;
   percentage?: string | number;
+  subtitle?: string;
+  footer?: React.ReactNode;
+  className?: string;
+  amountClassName?: string;
+  subtitleClassName?: string;
   icon: React.ReactElement;
 }
 
 export const CardRevenueComponent = (props: IProps) => {
   return (
-    <Card className="w-full">
+    <Card className={cn("w-full", props.className)}>
       <CardHeader hidden></CardHeader>
       <CardContent>
         <div className="flex flex-col gap-2">
@@ -24,7 +30,9 @@ export const CardRevenueComponent = (props: IProps) => {
               size={18}
             /> */}
           </div>
-          <p className="text-[24px] font-bold">{props?.amount}</p>
+          <p className={cn("text-[24px] font-bold", props.amountClassName)}>{props?.amount}</p>
+          {props?.subtitle && <p className={cn("text-sm font-medium text-muted-foreground", props.subtitleClassName)}>{props.subtitle}</p>}
+          {props?.footer && <div className="text-xs text-gray-500">{props.footer}</div>}
           {props?.percentage && <p className="text-xs text-gray-500">{props?.percentage}% from last month</p>}
         </div>
       </CardContent>
