@@ -136,6 +136,11 @@ export interface IDetailOrder {
     name: string;
     discount_applied: number;
   };
+  transfer_details?: {
+    account_name_from?: string | null;
+    account_bank_from?: string | null;
+    account_bank_to?: string | null;
+  } | null;
   created_by?: { id: string; name: string | null } | null;
   payment_status?: string;
   order_code?: string;

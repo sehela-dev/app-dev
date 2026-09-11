@@ -21,8 +21,33 @@ import { useGetOutstandingDetail } from "@/hooks/api/queries/admin/report/outsta
 import { useGetOutstandingSummary } from "@/hooks/api/queries/admin/report/outstanding-credit/use-get-outstanding-summary";
 import { useListOutstandingReports } from "@/hooks/api/queries/admin/report/outstanding-credit/use-list-outstanding-reports";
 import { formatCurrency, formatDateHelper } from "@/lib/helper";
-import { ICreditsLedgerItem, ICreditsLedgerSummary, IGeenrateOutstandingResponse, IPackage, LedgerEntryType, RecognitionStatus } from "@/types/report.interface";
-import { Activity, ArrowDownRight, ArrowUpRight, BadgeCheck, BadgeDollarSign, DollarSign, Download, FileText, Hourglass, Landmark, Loader2, RotateCcw, Search, ShoppingBag, TimerOff, UserX, Wallet } from "lucide-react";
+import {
+  ICreditsLedgerItem,
+  ICreditsLedgerSummary,
+  IGeenrateOutstandingResponse,
+  IPackage,
+  LedgerEntryType,
+  RecognitionStatus,
+} from "@/types/report.interface";
+import {
+  Activity,
+  ArrowDownRight,
+  ArrowUpRight,
+  BadgeCheck,
+  BadgeDollarSign,
+  DollarSign,
+  Download,
+  FileText,
+  Hourglass,
+  Landmark,
+  Loader2,
+  RotateCcw,
+  Search,
+  ShoppingBag,
+  TimerOff,
+  UserX,
+  Wallet,
+} from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { FormProvider, useForm } from "react-hook-form";
 import { useRouter, useSearchParams } from "next/navigation";
@@ -82,7 +107,7 @@ export const OutstandingCreditView = () => {
   const handleAsOfChange = (startDate: string) => {
     if (!startDate) return;
     if (startDate > todayStr) {
-      toast.error("as_of tidak boleh future");
+      toast.error("as_of cannot be in the future");
       return;
     }
     setPage(1);
@@ -242,7 +267,7 @@ export const OutstandingCreditView = () => {
                         (detailErr as Error)?.message ??
                         "Check BE /admin/credits/outstanding/detail?as_of=" + asOf}
                     </p>
-                    <p className="text-xs mt-1">Fallback: coba tanpa as_of (year/month) atau pastikan permission outstanding:view.</p>
+                    <p className="text-xs mt-1">Fallback: try without as_of (year/month) or check the outstanding:view permission.</p>
                   </CardContent>
                 </Card>
               ) : (
@@ -525,7 +550,7 @@ const RECOGNITION_CHIP: Record<string, string> = Object.fromEntries(RECOGNITION_
 
 // ponytail: single shared copy — paste §6 verbatim on every revenue/session surface
 const RECOGNITION_DISCLAIMER =
-  "Pendapatan dihitung earned per cek harian 23:59 WIB (bukan kas-basis): kelas yang berakhir hari ini tercatat sebagai pendapatan setelah run malam. Angka intraday bersifat sementara.";
+  "Revenue is recognized as earned at the daily 23:59 WIB checkpoint (not cash basis): classes ending today are recorded as revenue after the nightly run. Intraday figures are provisional.";
 
 function CreditsLedgerLog() {
   const searchParams = useSearchParams();
@@ -622,6 +647,7 @@ function CreditsLedgerLog() {
 
   const { data, isLoading, isFetching, isError, error, refetch } = useGetCreditsLedger(params);
 
+  // Filtered summary reconciles with the table (passes entry_type).
   const summaryParams = useMemo(
     () => ({
       q: q || undefined,
@@ -634,6 +660,24 @@ function CreditsLedgerLog() {
   );
   const { data: summaryRes, isLoading: summaryLoading, refetch: refetchSummary } = useGetCreditsLedgerSummary(summaryParams, !rangeError);
 
+  // Period summary drives the accrual cards — omits entry_type by design.
+  // Credit buckets (sold/recognized/breakage) are derived from the filtered row-set,
+  // so a table-filtered summary would zero them; cash ignores entry_type entirely.
+  const periodParams = useMemo(
+    () => ({
+      q: q || undefined,
+      start_date: !rangeError ? startDate : undefined,
+      end_date: !rangeError ? endDate : undefined,
+      user_id: userId || undefined,
+    }),
+    [q, startDate, endDate, userId, rangeError],
+  );
+  const {
+    data: periodRes,
+    isLoading: periodLoading,
+    refetch: refetchPeriodSummary,
+  } = useGetCreditsLedgerSummary(periodParams, !rangeError);
+
   const [exporting, setExporting] = useState(false);
   const [running, setRunning] = useState(false);
 
@@ -642,15 +686,16 @@ function CreditsLedgerLog() {
     try {
       setRunning(true);
       const r = await runRecognition(endDate || undefined);
-      toast.success("Recognition run selesai", {
-        description: `Hadir kredit ${r.credit_attended} · no-show kredit ${r.credit_no_show} · hadir kas ${r.cash_attended} · breakage ${r.breakage} (job ${r.job_date})`,
+      toast.success("Recognition run completed", {
+        description: `Credit attended ${r.credit_attended} · credit no-show ${r.credit_no_show} · cash attended ${r.cash_attended} · breakage ${r.breakage} (job ${r.job_date})`,
         position: "top-center",
       });
       refetch();
       refetchSummary();
+      refetchPeriodSummary?.();
     } catch (e: unknown) {
       const err = e as { response?: { data?: { error?: { message?: string } } } };
-      toast.error("Recognition run gagal", { description: err?.response?.data?.error?.message ?? "Please try again", position: "top-center" });
+      toast.error("Recognition run failed", { description: err?.response?.data?.error?.message ?? "Please try again", position: "top-center" });
     } finally {
       setRunning(false);
     }
@@ -724,7 +769,7 @@ function CreditsLedgerLog() {
       },
       {
         id: "nilai_idr",
-        text: "Nilai IDR",
+        text: "Value (IDR)",
         value: (row: ICreditsLedgerItem) =>
           row.nilai_idr == null ? (
             "—"
@@ -756,7 +801,12 @@ function CreditsLedgerLog() {
           !row.attendance ? (
             "—"
           ) : (
-            <Badge variant="outline" className={`capitalize text-xs ${row.attendance === "attended" ? "bg-green-100 text-green-700 border-green-200" : "bg-red-100 text-red-700 border-red-200"}`}>
+            <Badge
+              variant="outline"
+              className={`capitalize text-xs ${
+                row.attendance === "attended" ? "bg-green-100 text-green-700 border-green-200" : "bg-red-100 text-red-700 border-red-200"
+              }`}
+            >
               {row.attendance.replace("_", " ")}
             </Badge>
           ),
@@ -936,18 +986,22 @@ function CreditsLedgerLog() {
             </Button>
           </div>
           <p className="text-[11px] text-muted-foreground">
-            Status dihitung as-of {endDate || "hari ini"} · run harian otomatis 23:59 WIB, tombol hanya untuk backfill/koreksi (idempoten).
+            Statuses are calculated as of {endDate || "today"} · daily auto-run at 23:59 WIB; the button is for backfill / corrections only (idempotent).
           </p>
         </CardContent>
       </Card>
 
-      {/* KPI header from GET /admin/credits/ledger/summary — no pagination, whole filtered set — English copy */}
+      {/* KPI header from GET /admin/credits/ledger/summary — filtered set reconciles with the table; accrual cards use the period (unfiltered entry_type) summary */}
       {(() => {
-        const s = (summaryRes as unknown as { data?: ICreditsLedgerSummary | { data: ICreditsLedgerSummary } })?.data as unknown as
-          | ICreditsLedgerSummary
-          | undefined;
-        const summary = (s as unknown as { data?: ICreditsLedgerSummary })?.data ?? s;
-        if (summaryLoading) {
+        const unwrap = (res: unknown) => {
+          const s = (res as unknown as { data?: ICreditsLedgerSummary | { data: ICreditsLedgerSummary } })?.data as unknown as
+            | ICreditsLedgerSummary
+            | undefined;
+          return (s as unknown as { data?: ICreditsLedgerSummary })?.data ?? s;
+        };
+        const summary = unwrap(summaryRes);
+        const period = unwrap(periodRes);
+        if (summaryLoading || periodLoading) {
           return (
             <Card className="w-full max-w-vw">
               <CardContent className="py-6 flex items-center justify-center">
@@ -963,6 +1017,8 @@ function CreditsLedgerLog() {
         const usage = getByType("credit_spend");
         const refund = getByType("credit_refund");
         const expired = getByType("credit_expired");
+        const adjustment = getByType("adjustment");
+        const byStatus = summary.by_status ?? {};
         const out =
           summary.outstanding ??
           (summary.outstanding_credits != null
@@ -973,30 +1029,51 @@ function CreditsLedgerLog() {
               }
             : null);
         const netEmpty = summary.net_credits === 0 && summary.net_value_idr === 0;
+        const outstandingAnomaly = !!out && out.credits > 0 && out.value_idr < 0;
+        const filterEcho = summary.filters;
+        const filterEntry = Array.isArray(filterEcho?.entry_type)
+          ? (filterEcho.entry_type as string[]).join(", ")
+          : (filterEcho?.entry_type as string | undefined);
+        const isFiltered = !!filterEntry;
+        const fmtSigned = (n: number) => (n > 0 ? `+${n.toLocaleString("en-US")}` : n.toLocaleString("en-US"));
         return (
           <Card className="w-full max-w-vw overflow-hidden border-muted-foreground/10">
             <CardHeader className="pb-3">
               <div className="flex flex-wrap items-start justify-between gap-2">
-                <div className="flex flex-col gap-1">
+                <div className="flex flex-col gap-1.5">
                   <h3 className="text-base font-semibold tracking-tight">Credit Movement Summary</h3>
                   <p className="text-xs text-muted-foreground">
-                    {summary.period ?? summary.periode} · {summary.total_movements.toLocaleString("id-ID")} movements in the selected period
+                    {summary.period ?? summary.periode} · {summary.total_movements.toLocaleString("en-US")} movements in the
+                    selected period · reconciles with the table below
                   </p>
+                  <div className="flex flex-wrap items-center gap-1.5">
+                    {filterEntry ? (
+                      <Badge variant="outline" className="bg-amber-50 text-amber-700 border-amber-200 text-[11px]">
+                        Filtered by: {filterEntry}
+                      </Badge>
+                    ) : (
+                      <Badge variant="outline" className="text-[11px]">
+                        Full period (no entry-type filter)
+                      </Badge>
+                    )}
+                    {summary.filters?.user_id ? <Badge variant="outline" className="text-[11px]">Member filtered</Badge> : null}
+                    {summary.filters?.q ? <Badge variant="outline" className="text-[11px]">Search: {summary.filters.q}</Badge> : null}
+                  </div>
                 </div>
                 <Badge variant="outline" className="text-xs font-medium">
-                  Net {summary.net_credits > 0 ? `+${summary.net_credits}` : summary.net_credits} credits
+                  Net {fmtSigned(summary.net_credits)} credits
                 </Badge>
               </div>
             </CardHeader>
             <CardContent className="flex flex-col gap-5">
-              {/* Row 1: movement breakdown by entry type */}
-              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
+              {/* Row 1: movement breakdown by entry type (filtered — matches the ledger table) */}
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-5">
                 <CardRevenueComponent
-                  title="Issuance"
-                  amount={`${issuance.credits > 0 ? `+${issuance.credits}` : issuance.credits} credits`}
+                  title="Issued"
+                  amount={`${fmtSigned(issuance.credits)} credits`}
                   amountClassName="text-emerald-600"
                   subtitle={formatCurrency(issuance.value_idr)}
-                  footer={`${issuance.count} transactions`}
+                  footer={`${issuance.count.toLocaleString("en-US")} movements · Dr Cash / Cr Deferred`}
                   icon={
                     <span className="flex h-8 w-8 items-center justify-center rounded-full bg-emerald-500/10 text-emerald-600">
                       <ArrowDownRight size={16} />
@@ -1004,11 +1081,11 @@ function CreditsLedgerLog() {
                   }
                 />
                 <CardRevenueComponent
-                  title="Usage"
-                  amount={`${usage.credits} credits`}
+                  title="Used"
+                  amount={`${fmtSigned(usage.credits)} credits`}
                   amountClassName="text-red-600"
                   subtitle={formatCurrency(usage.value_idr)}
-                  footer={`${usage.count} transactions`}
+                  footer={`${usage.count.toLocaleString("en-US")} movements · Dr Deferred / Cr Revenue`}
                   icon={
                     <span className="flex h-8 w-8 items-center justify-center rounded-full bg-red-500/10 text-red-600">
                       <ArrowUpRight size={16} />
@@ -1016,11 +1093,11 @@ function CreditsLedgerLog() {
                   }
                 />
                 <CardRevenueComponent
-                  title="Refunds"
-                  amount={`${refund.credits > 0 ? `+${refund.credits}` : refund.credits} credits`}
+                  title="Refunded"
+                  amount={`${fmtSigned(refund.credits)} credits`}
                   amountClassName="text-blue-600"
                   subtitle={formatCurrency(refund.value_idr)}
-                  footer={`${refund.count} transactions`}
+                  footer={`${refund.count.toLocaleString("en-US")} movements`}
                   icon={
                     <span className="flex h-8 w-8 items-center justify-center rounded-full bg-blue-500/10 text-blue-600">
                       <RotateCcw size={16} />
@@ -1029,26 +1106,48 @@ function CreditsLedgerLog() {
                 />
                 <CardRevenueComponent
                   title="Expired"
-                  amount={`${expired.credits} credits`}
+                  amount={`${fmtSigned(expired.credits)} credits`}
                   amountClassName="text-zinc-500"
                   subtitle={formatCurrency(expired.value_idr)}
-                  footer={`${expired.count} transactions`}
+                  footer={`${expired.count.toLocaleString("en-US")} movements · breakage`}
                   icon={
                     <span className="flex h-8 w-8 items-center justify-center rounded-full bg-zinc-500/10 text-zinc-500">
                       <Hourglass size={16} />
                     </span>
                   }
                 />
+                <CardRevenueComponent
+                  title="Adjusted"
+                  amount={`${fmtSigned(adjustment.credits)} credits`}
+                  amountClassName="text-amber-600"
+                  subtitle={formatCurrency(adjustment.value_idr)}
+                  footer={`${adjustment.count.toLocaleString("en-US")} movements`}
+                  icon={
+                    <span className="flex h-8 w-8 items-center justify-center rounded-full bg-amber-500/10 text-amber-600">
+                      <FileText size={16} />
+                    </span>
+                  }
+                />
               </div>
+              {Object.keys(byStatus).length > 0 && (
+                <div className="flex flex-wrap items-center gap-1.5 text-xs">
+                  <span className="text-muted-foreground">By status:</span>
+                  {Object.entries(byStatus).map(([k, v]) => (
+                    <Badge key={k} variant="outline" className={`text-[11px] ${RECOGNITION_CHIP[k] ?? ""}`} title={v.journal}>
+                      {k} · {v.count.toLocaleString("en-US")} · {formatCurrency(v.value_idr)}
+                    </Badge>
+                  ))}
+                </div>
+              )}
 
-              {/* Row 2: highlighted — Net vs Outstanding */}
+              {/* Row 2: highlighted — Net vs Outstanding (remaining now) */}
               <div className="grid grid-cols-1 gap-3 lg:grid-cols-2">
                 <CardRevenueComponent
                   title="Net Movement"
-                  amount={netEmpty ? "0 credits" : `${summary.net_credits > 0 ? `+${summary.net_credits}` : summary.net_credits} credits`}
+                  amount={netEmpty ? "0 credits" : `${fmtSigned(summary.net_credits)} credits`}
                   amountClassName={summary.net_credits < 0 ? "text-red-600" : summary.net_credits > 0 ? "text-emerald-600" : undefined}
                   subtitle={netEmpty ? "No net movement in this period" : formatCurrency(summary.net_value_idr)}
-                  footer="Total in minus out for the selected period. Negative means usage exceeded issuance."
+                  footer="In minus out for the filtered set. Negative means usage exceeded issuance."
                   icon={
                     <span className="flex h-8 w-8 items-center justify-center rounded-full bg-violet-500/10 text-violet-600">
                       <Activity size={16} />
@@ -1057,10 +1156,26 @@ function CreditsLedgerLog() {
                 />
                 <CardRevenueComponent
                   className="border-primary/30 bg-primary/[0.03] shadow-sm"
-                  title="Outstanding Balance"
-                  amount={out ? `${out.credits.toLocaleString("id-ID")} credits` : "—"}
+                  title="Outstanding · remaining now"
+                  amount={out ? `${out.credits.toLocaleString("en-US")} credits` : "—"}
                   subtitle={out ? formatCurrency(out.value_idr) : undefined}
-                  footer={out ? `${out.packages.toLocaleString("id-ID")} packages still active · advance payments held as a liability` : "No outstanding packages in this filter"}
+                  footer={
+                    out ? (
+                      <span className="flex flex-col gap-1">
+                        <span>
+                          {out.packages.toLocaleString("en-US")} packages still hold credit · advance payments held as a liability ·
+                          as of now, not period-end
+                        </span>
+                        {outstandingAnomaly && (
+                          <span className="font-medium text-amber-700">
+                            Data anomaly: positive credits with a negative value — shown as returned, flagged for backend.
+                          </span>
+                        )}
+                      </span>
+                    ) : (
+                      "No outstanding packages in this filter"
+                    )
+                  }
                   icon={
                     <span className="flex h-8 w-8 items-center justify-center rounded-full bg-primary/10 text-primary">
                       <Wallet size={16} />
@@ -1069,93 +1184,183 @@ function CreditsLedgerLog() {
                 />
               </div>
               {(() => {
-                const db = summary.deferred_buckets;
+                // Accrual cards use the period summary (entry_type omitted) — never the table-filtered summary.
+                const src = period ?? summary;
+                const db = src.deferred_buckets;
                 if (!db) return null;
                 const sold = db.sold ?? db.terjual;
                 const attended = db.recognized_attended ?? db.diakui_hadir;
                 const noShow = db.recognized_no_show ?? db.diakui_no_show;
                 const ending = db.ending_deferred_balance ?? db.saldo_tangguhan_akhir;
                 const total = db.recognized_total ?? db.diakui_total;
-                if (!sold && !attended && !noShow && !db.breakage && !ending) return null;
+                const cash = db.cash;
+                if (!sold && !attended && !noShow && !db.breakage && !ending && !cash) return null;
+                const creditCards = [
+                  {
+                    title: "Credit Sold",
+                    hint: "Cash received, revenue deferred",
+                    journal: sold?.journal,
+                    amount: formatCurrency(sold?.value_idr ?? 0),
+                    footer: `${(sold?.credits ?? 0).toLocaleString("en-US")} credits · ${sold?.count ?? 0} movements`,
+                    icon: (
+                      <span className="flex h-8 w-8 items-center justify-center rounded-full bg-sky-500/10 text-sky-600">
+                        <ShoppingBag size={16} />
+                      </span>
+                    ),
+                  },
+                  {
+                    title: "Recognized · Attended",
+                    hint: "Revenue earned on attendance",
+                    journal: attended?.journal,
+                    amount: formatCurrency(attended?.value_idr ?? 0),
+                    footer: `${(attended?.credits ?? 0).toLocaleString("en-US")} credits · ${attended?.count ?? 0} movements`,
+                    icon: (
+                      <span className="flex h-8 w-8 items-center justify-center rounded-full bg-emerald-500/10 text-emerald-600">
+                        <BadgeCheck size={16} />
+                      </span>
+                    ),
+                  },
+                  {
+                    title: "Recognized · No-show",
+                    hint: "Revenue forfeited on no-show",
+                    journal: noShow?.journal,
+                    amount: formatCurrency(noShow?.value_idr ?? 0),
+                    footer: `${(noShow?.credits ?? 0).toLocaleString("en-US")} credits · ${noShow?.count ?? 0} movements`,
+                    icon: (
+                      <span className="flex h-8 w-8 items-center justify-center rounded-full bg-amber-500/10 text-amber-600">
+                        <UserX size={16} />
+                      </span>
+                    ),
+                  },
+                  {
+                    title: "Breakage · Expired",
+                    hint: "Revenue from expired credits",
+                    journal: db.breakage?.journal,
+                    amount: formatCurrency(db.breakage?.value_idr ?? 0),
+                    footer: `${(db.breakage?.credits ?? 0).toLocaleString("en-US")} credits · ${db.breakage?.count ?? 0} movements`,
+                    icon: (
+                      <span className="flex h-8 w-8 items-center justify-center rounded-full bg-orange-500/10 text-orange-600">
+                        <TimerOff size={16} />
+                      </span>
+                    ),
+                  },
+                  {
+                    title: "Ending Deferred Balance",
+                    hint: "Still owed as future sessions (liability)",
+                    journal: (ending as unknown as { journal?: string })?.journal,
+                    amount: formatCurrency((ending as unknown as { value_idr?: number })?.value_idr ?? 0),
+                    footer: `${((ending as unknown as { credits?: number })?.credits ?? 0).toLocaleString("en-US")} credits · ${((ending as unknown as { packages?: number })?.packages ?? 0).toLocaleString("en-US")} packages`,
+                    icon: (
+                      <span className="flex h-8 w-8 items-center justify-center rounded-full bg-violet-500/10 text-violet-600">
+                        <Landmark size={16} />
+                      </span>
+                    ),
+                  },
+                ];
                 return (
-                <div className="rounded-xl border bg-card p-4">
-                  <div className="flex flex-wrap items-center justify-between gap-2">
-                    <p className="text-sm font-semibold">Revenue Recognition (accrual)</p>
-                    {total && (
-                      <Badge variant="outline" className="text-[11px] font-medium">
-                        Total recognized · {formatCurrency(total.value_idr)}
-                      </Badge>
+                  <div className="flex flex-col gap-4 rounded-2xl border border-muted bg-muted/20 p-4 sm:p-5">
+                    <div className="flex flex-wrap items-start justify-between gap-2">
+                      <div className="flex flex-col gap-0.5">
+                        <p className="text-sm font-semibold tracking-tight">Revenue Recognition · Accrual</p>
+                        <p className="text-[11px] text-muted-foreground">
+                          Period totals (entry-type filter omitted) · credit revenue only · cash is a separate bookings
+                          query — never add cash and credit counts together
+                        </p>
+                        {isFiltered && (
+                          <p className="text-[11px] text-amber-700">
+                            Table is filtered ({filterEntry}); cards below still show full-period accrual.
+                          </p>
+                        )}
+                      </div>
+                      {total && (
+                        <Badge variant="outline" className="bg-emerald-50 text-emerald-700 border-emerald-200 text-[11px] font-medium">
+                          Total credit revenue · {formatCurrency(total.value_idr)}
+                        </Badge>
+                      )}
+                    </div>
+                    <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-5">
+                      {creditCards.map((c) => (
+                        <CardRevenueComponent
+                          key={c.title}
+                          title={c.title}
+                          amount={c.amount}
+                          subtitle={c.hint}
+                          footer={
+                            <span className="flex flex-col gap-0.5">
+                              <span>{c.footer}</span>
+                              {c.journal && <span className="font-mono text-[10px]">{c.journal}</span>}
+                            </span>
+                          }
+                          icon={c.icon}
+                        />
+                      ))}
+                    </div>
+                    {cash && (
+                      <div className="flex flex-col gap-2">
+                        <div className="flex flex-wrap items-center justify-between gap-2">
+                          <p className="text-xs font-semibold text-muted-foreground">Cash flow · same dates, bookings-based</p>
+                          <p className="text-[11px] text-muted-foreground">Recognized attended + no-show ≤ sold; the gap is sessions not yet ended.</p>
+                        </div>
+                        <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+                          <CardRevenueComponent
+                            title="Cash Sold"
+                            amount={formatCurrency(cash.sold?.value_idr ?? 0)}
+                            subtitle="Cash collected in period"
+                            footer={
+                              <span className="flex flex-col gap-0.5">
+                                <span>{(cash.sold?.count ?? 0).toLocaleString("en-US")} bookings</span>
+                                {cash.sold?.journal && <span className="font-mono text-[10px]">{cash.sold.journal}</span>}
+                              </span>
+                            }
+                            icon={
+                              <span className="flex h-8 w-8 items-center justify-center rounded-full bg-teal-500/10 text-teal-600">
+                                <DollarSign size={16} />
+                              </span>
+                            }
+                          />
+                          <CardRevenueComponent
+                            title="Cash Recognized · Attended"
+                            amount={formatCurrency(cash.recognized_attended?.value_idr ?? 0)}
+                            subtitle="Cash revenue earned"
+                            footer={
+                              <span className="flex flex-col gap-0.5">
+                                <span>{(cash.recognized_attended?.count ?? 0).toLocaleString("en-US")} bookings</span>
+                                {cash.recognized_attended?.journal && (
+                                  <span className="font-mono text-[10px]">{cash.recognized_attended.journal}</span>
+                                )}
+                              </span>
+                            }
+                            icon={
+                              <span className="flex h-8 w-8 items-center justify-center rounded-full bg-emerald-500/10 text-emerald-600">
+                                <BadgeDollarSign size={16} />
+                              </span>
+                            }
+                          />
+                          <CardRevenueComponent
+                            title="Cash Recognized · No-show"
+                            amount={formatCurrency(cash.recognized_no_show?.value_idr ?? 0)}
+                            subtitle="Cash revenue forfeited"
+                            footer={
+                              <span className="flex flex-col gap-0.5">
+                                <span>{(cash.recognized_no_show?.count ?? 0).toLocaleString("en-US")} bookings</span>
+                                {cash.recognized_no_show?.journal && (
+                                  <span className="font-mono text-[10px]">{cash.recognized_no_show.journal}</span>
+                                )}
+                              </span>
+                            }
+                            icon={
+                              <span className="flex h-8 w-8 items-center justify-center rounded-full bg-amber-500/10 text-amber-600">
+                                <UserX size={16} />
+                              </span>
+                            }
+                          />
+                        </div>
+                      </div>
+                    )}
+                    {total?.journal && (
+                      <p className="text-[11px] text-muted-foreground">Journal (credit total): {total.journal}</p>
                     )}
                   </div>
-                  <p className="mt-0.5 text-[11px] text-muted-foreground">Cash collected vs revenue recognized · sales by creation date, recognition by recognition date</p>
-                  <div className="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-5 text-xs">
-                    {[
-                      {
-                        k: "Sold",
-                        hint: "Cash received, revenue deferred",
-                        v: sold,
-                        icon: (
-                          <span className="flex h-7 w-7 items-center justify-center rounded-full bg-sky-500/10 text-sky-600">
-                            <ShoppingBag size={14} />
-                          </span>
-                        ),
-                      },
-                      {
-                        k: "Recognized · Attended",
-                        hint: "Revenue earned on attendance",
-                        v: attended,
-                        icon: (
-                          <span className="flex h-7 w-7 items-center justify-center rounded-full bg-emerald-500/10 text-emerald-600">
-                            <BadgeCheck size={14} />
-                          </span>
-                        ),
-                      },
-                      {
-                        k: "Recognized · No-show",
-                        hint: "Revenue forfeited on no-show",
-                        v: noShow,
-                        icon: (
-                          <span className="flex h-7 w-7 items-center justify-center rounded-full bg-amber-500/10 text-amber-600">
-                            <UserX size={14} />
-                          </span>
-                        ),
-                      },
-                      {
-                        k: "Breakage",
-                        hint: "Revenue from expired credits",
-                        v: db.breakage,
-                        icon: (
-                          <span className="flex h-7 w-7 items-center justify-center rounded-full bg-orange-500/10 text-orange-600">
-                            <TimerOff size={14} />
-                          </span>
-                        ),
-                      },
-                      {
-                        k: "Ending Deferred Balance",
-                        hint: "Still owed as future sessions",
-                        v: ending as unknown as { value_idr: number; credits: number; journal: string },
-                        icon: (
-                          <span className="flex h-7 w-7 items-center justify-center rounded-full bg-violet-500/10 text-violet-600">
-                            <Landmark size={14} />
-                          </span>
-                        ),
-                      },
-                    ].map((b) => (
-                      <div key={b.k} className="rounded-xl border bg-muted/20 p-3">
-                        <div className="flex items-center gap-2">
-                          {b.icon}
-                          <p className="text-[11px] font-semibold leading-tight">{b.k}</p>
-                        </div>
-                        <p className="mt-2 text-sm font-bold">{formatCurrency((b.v as { value_idr: number })?.value_idr ?? 0)}</p>
-                        <p className="text-[11px] text-muted-foreground">{(b.v as { credits: number })?.credits ?? "-"} credits · {b.hint}</p>
-                        <p className="mt-1 text-[10px] text-muted-foreground">{(b.v as { journal: string })?.journal}</p>
-                      </div>
-                    ))}
-                  </div>
-                  {total?.journal && (
-                    <p className="mt-2 text-[11px] text-muted-foreground">Journal: {total.journal}</p>
-                  )}
-                </div>
                 );
               })()}
             </CardContent>

@@ -72,8 +72,6 @@ export const DetailFormAddTransaction = () => {
   const [selectedUsers, setSelectedUsers] = useState<ICustomerData[]>([]);
   const [openSessionSharing, setOpenSessionSharing] = useState(false);
 
-
-
   const onSearch = (e: string) => {
     setSearch(e);
   };
@@ -133,7 +131,8 @@ export const DetailFormAddTransaction = () => {
         });
       } else if (item.type === "buy_product" || item.type === "rent_product") {
         products.push({
-          variant_id: parseProductCartItemId(item?.id as string).variantId, quantity: item.quantity,
+          variant_id: parseProductCartItemId(item?.id as string).variantId,
+          quantity: item.quantity,
           location_id: item.location_id as string,
         });
       } else if (item.type === "packages") {
@@ -141,8 +140,8 @@ export const DetailFormAddTransaction = () => {
           package_id: item.id as string,
           ...(item.badge === "Sharing"
             ? {
-              share_with_user_id: item.share_with_user_id,
-            }
+                share_with_user_id: item.share_with_user_id,
+              }
             : null),
         });
       }
@@ -154,7 +153,7 @@ export const DetailFormAddTransaction = () => {
       customer_phone: customerData?.phone as string,
       sessions: sessions ?? [],
       products: products ?? [],
-      ...(products?.length as number > 0 ? { location_id: products?.[0].location_id } : null),
+      ...((products?.length as number) > 0 ? { location_id: products?.[0].location_id } : null),
       packages: packages ?? [],
       notes: "Combined purchase",
       status: "paid",
@@ -162,15 +161,15 @@ export const DetailFormAddTransaction = () => {
 
       ...(selectedPaymentMethod === "transfer"
         ? {
-          transfer_details: {
-            // account_name_from: nameFrom as string,
-            // account_bank_from: selectedBank?.label as string,
-            account_bank_to: selectedBankTo?.label as string,
-          },
-        }
+            transfer_details: {
+              account_name_from: nameFrom as string,
+              // account_bank_from: selectedBank?.label as string,
+              account_bank_to: selectedBankTo?.label as string,
+            },
+          }
         : {
-          branch: (selectedBranch?.value ?? customerData?.branch) as string,
-        }),
+            branch: (selectedBranch?.value ?? customerData?.branch) as string,
+          }),
       user_id: customerData?.id as string,
       branch: (selectedBranch?.value ?? customerData?.branch) as string,
       ...(discountData ? { voucher_code: selectedVoucher?.code } : null),
@@ -338,7 +337,14 @@ export const DetailFormAddTransaction = () => {
                                 <p className="text-brand-999 font-medium text-sm">{item.name}</p>
                                 {item?.description && <p className="text-gray-500 font-medium text-sm">{item.description}</p>}
 
-                                {item?.type === "buy_product" || item?.type === 'rent_product' ? <Badge><MapPin />{item.location_name}</Badge> : ""}
+                                {item?.type === "buy_product" || item?.type === "rent_product" ? (
+                                  <Badge>
+                                    <MapPin />
+                                    {item.location_name}
+                                  </Badge>
+                                ) : (
+                                  ""
+                                )}
 
                                 {/* <p className="text-sm font-semibold text-brand-200 flex-1">
                               {item?.variant?.map((v: { name: string; value: string }) => v.value).join(", ")}
@@ -441,7 +447,6 @@ export const DetailFormAddTransaction = () => {
                                 )}
                               </div>
 
-
                               <div className="text-brand-999 font-medium text-sm text-center col-span-1">
                                 {" "}
                                 <div className="flex flex-row gap-2 items-center justify-center">
@@ -535,8 +540,8 @@ export const DetailFormAddTransaction = () => {
                           {!discountData
                             ? formatCurrency(0)
                             : discountData?.discount_type === "percentage"
-                              ? `${formatCurrency(discountData?.calculated_discount)} (${discountData?.discount_value}%)`
-                              : formatCurrency(discountData?.discount_value)}
+                            ? `${formatCurrency(discountData?.calculated_discount)} (${discountData?.discount_value}%)`
+                            : formatCurrency(discountData?.discount_value)}
                         </p>
                       </div>
                     </div>
@@ -599,6 +604,15 @@ export const DetailFormAddTransaction = () => {
                     {selectedPaymentMethod === "transfer" && (
                       <div className="flex flex-col gap-1">
                         <div className="flex flex-col gap-1 mt-2">
+                          <Label className="text-gray-500">Transfer From (Name)</Label>
+                          <Input
+                            className="w-full px-4 py-4 border-2 border-gray-200 rounded-lg text-gray-999 placeholder-gray-400 focus:outline-none focus:border-brand-500 transition-colors h-[42px]"
+                            placeholder="Input sender name..."
+                            value={nameFrom}
+                            onChange={(e) => setNameFrom(e.target.value)}
+                          />
+                        </div>
+                        <div className="flex flex-col gap-1 mt-2">
                           <Label className="text-gray-500">Transfer To</Label>
                           <Select
                             options={SEHELA_BANKS as never}
@@ -616,7 +630,6 @@ export const DetailFormAddTransaction = () => {
                             }}
                           />
                         </div>
-
                       </div>
                     )}
                     <div className="flex flex-col gap-1 mt-2">
