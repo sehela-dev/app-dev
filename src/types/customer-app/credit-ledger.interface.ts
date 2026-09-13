@@ -1,6 +1,12 @@
 import { IResponseData } from "@/lib/config";
 
-export type LedgerEntryType = "credit_issue" | "credit_spend" | "credit_refund" | "adjustment" | "credit_expired";
+export type LedgerEntryType =
+  | "credit_issue"
+  | "credit_spend"
+  | "credit_refund"
+  | "admin_adjustment"
+  | "system_adjustment"
+  | "credit_expired";
 
 export interface ILedgerSharedContext {
   is_shared_package: boolean;

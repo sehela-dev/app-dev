@@ -7,7 +7,7 @@ import { useAuthMember } from "@/context/member.ctx";
 import { useGetCreditLedgerInfinite } from "@/hooks/api/queries/customer/profile";
 import { formatDateHelper } from "@/lib/helper";
 import { LedgerEntryType } from "@/types/customer-app/credit-ledger.interface";
-import { ArrowDownRight, ArrowUpRight, Clock3, History, Loader2, RefreshCw, Sparkles, Trash2, Users } from "lucide-react";
+import { ArrowUpRight, Clock3, Cog, History, Loader2, RefreshCw, Sparkles, Trash2, Users, Wrench } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 
 const typeMeta: Record<string, { label: string; icon: typeof History; dot: string; badge: string }> = {
@@ -15,7 +15,8 @@ const typeMeta: Record<string, { label: string; icon: typeof History; dot: strin
   credit_spend: { label: "Used", icon: ArrowUpRight, dot: "bg-brand-500", badge: "bg-brand-50 text-brand-700 border-brand-100" },
   credit_refund: { label: "Refund", icon: RefreshCw, dot: "bg-amber-500", badge: "bg-amber-50 text-amber-700 border-amber-200" },
   credit_expired: { label: "Expired", icon: Trash2, dot: "bg-gray-400", badge: "bg-gray-100 text-gray-600 border-gray-200" },
-  adjustment: { label: "Adjustment", icon: ArrowDownRight, dot: "bg-violet-500", badge: "bg-violet-50 text-violet-700 border-violet-200" },
+  admin_adjustment: { label: "Admin Adjustment", icon: Wrench, dot: "bg-violet-500", badge: "bg-violet-50 text-violet-700 border-violet-200" },
+  system_adjustment: { label: "System", icon: Cog, dot: "bg-sky-500", badge: "bg-sky-50 text-sky-700 border-sky-200" },
 };
 
 const tabs = [
@@ -57,7 +58,7 @@ export const CreditHistoryView = () => {
 
       <div className="flex flex-col gap-4 px-4 pb-6">
         <div className="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-4">
-          <SummaryCard label="Earned" value={`+${stats.earned}`} sub="issued + refund" tone="green" />
+          <SummaryCard label="Earned" value={`+${stats.earned}`} sub="issued + refund + system" tone="green" />
           <SummaryCard label="Used" value={`${stats.used}`} sub="spent" tone="brand" />
           <SummaryCard label="Expired" value={`${stats.expired}`} sub={stats.expired ? "lost" : "none"} tone="gray" />
           <SummaryCard label="Balance" value={`${stats.balance}`} sub="available" tone="neutral" />
@@ -133,11 +134,11 @@ function LedgerRow({
   entry: import("@/types/customer-app/credit-ledger.interface").ILedgerEntry;
   isSelf?: boolean;
 }) {
-  const meta = typeMeta[entry.entry_type] ?? typeMeta.adjustment;
+  const meta = typeMeta[entry.entry_type] ?? typeMeta.admin_adjustment;
   const Icon = meta.icon;
   const isNeg = entry.amount < 0;
   const isExpired = entry.entry_type === "credit_expired";
-  const isAdj = entry.entry_type === "adjustment";
+  const isAdj = entry.entry_type.includes("adjust");
   const sc = entry.shared_context;
   const actorName =
     sc.shared_by_user_id && entry.user_id === sc.shared_by_user_id

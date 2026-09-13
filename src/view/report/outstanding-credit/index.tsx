@@ -27,6 +27,8 @@ import {
   IGeenrateOutstandingResponse,
   IPackage,
   LedgerEntryType,
+  REVERSAL_JOURNAL,
+  REVERSAL_STATUS,
   RecognitionStatus,
 } from "@/types/report.interface";
 import {
@@ -45,6 +47,7 @@ import {
   Search,
   ShoppingBag,
   TimerOff,
+  Undo2,
   UserX,
   Wallet,
 } from "lucide-react";
@@ -522,20 +525,29 @@ const ENTRY_TYPE_OPTIONS: { value: LedgerEntryType; label: string }[] = [
   { value: "credit_spend", label: "Spend" },
   { value: "credit_refund", label: "Refund" },
   { value: "credit_expired", label: "Expired" },
-  { value: "adjustment", label: "Adjustment" },
+  { value: "admin_adjustment", label: "Admin Adjustment" },
+  { value: "system_adjustment", label: "System Adjustment" },
 ];
+
+// BE may return snake_case or Title-case labels for the adjustment rows
+const ENTRY_TYPE_LABEL: Record<string, string> = {
+  admin_adjustment: "Admin Adjustment",
+  system_adjustment: "System Adjustment",
+};
 
 const ENTRY_TYPE_CHIP: Record<string, string> = {
   credit_issue: "bg-green-100 text-green-700 border-green-200",
   credit_spend: "bg-red-100 text-red-700 border-red-200",
   credit_refund: "bg-blue-100 text-blue-700 border-blue-200",
   credit_expired: "bg-gray-100 text-gray-600 border-gray-200",
-  adjustment: "bg-amber-100 text-amber-700 border-amber-200",
+  admin_adjustment: "bg-amber-100 text-amber-700 border-amber-200",
+  system_adjustment: "bg-sky-100 text-sky-700 border-sky-200",
   Issue: "bg-green-100 text-green-700 border-green-200",
   Spend: "bg-red-100 text-red-700 border-red-200",
   Refund: "bg-blue-100 text-blue-700 border-blue-200",
   Expired: "bg-gray-100 text-gray-600 border-gray-200",
-  Adjustment: "bg-amber-100 text-amber-700 border-amber-200",
+  "Admin Adjustment": "bg-amber-100 text-amber-700 border-amber-200",
+  "System Adjustment": "bg-sky-100 text-sky-700 border-sky-200",
 };
 
 const RECOGNITION_STATUS_OPTIONS: { value: RecognitionStatus; label: string; className: string }[] = [
@@ -544,6 +556,8 @@ const RECOGNITION_STATUS_OPTIONS: { value: RecognitionStatus; label: string; cla
   { value: "Credit Reserved", label: "Credit Reserved", className: "bg-gray-100 text-gray-600 border-gray-200" },
   { value: "Credit Refunded", label: "Credit Refunded", className: "bg-slate-100 text-slate-600 border-slate-200" },
   { value: "Refund Future Revenue", label: "Refund Future Revenue", className: "bg-red-100 text-red-700 border-red-200" },
+  // Reversal = expiry-override restore only, not a refund
+  { value: REVERSAL_STATUS, label: REVERSAL_STATUS, className: "bg-purple-100 text-purple-700 border-purple-200" },
 ];
 
 const RECOGNITION_CHIP: Record<string, string> = Object.fromEntries(RECOGNITION_STATUS_OPTIONS.map((o) => [o.value, o.className]));
@@ -563,11 +577,16 @@ function CreditsLedgerLog() {
 
   const [qInput, setQInput] = useState(searchParams.get("q") ?? "");
   const [q, setQ] = useState(searchParams.get("q") ?? "");
+  // ponytail: drop stale URL vocab (e.g. legacy `adjustment`) — BE 400s out-of-vocab values
   const [entryTypes, setEntryTypes] = useState<string[]>(
-    searchParams.get("entry_type") ? (searchParams.get("entry_type") as string).split(",").filter(Boolean) : [],
+    searchParams.get("entry_type")
+      ? (searchParams.get("entry_type") as string).split(",").filter((v) => ENTRY_TYPE_OPTIONS.some((o) => o.value === v))
+      : [],
   );
   const [statuses, setStatuses] = useState<string[]>(
-    searchParams.get("status") ? (searchParams.get("status") as string).split(",").filter(Boolean) : [],
+    searchParams.get("status")
+      ? (searchParams.get("status") as string).split(",").filter((v) => RECOGNITION_STATUS_OPTIONS.some((o) => o.value === v))
+      : [],
   );
   const [startDate, setStartDate] = useState(searchParams.get("start_date") ?? fmt(d30));
   const [endDate, setEndDate] = useState(searchParams.get("end_date") ?? fmt(today));
@@ -746,7 +765,7 @@ function CreditsLedgerLog() {
         text: "Entry Type",
         value: (row: ICreditsLedgerItem) => (
           <Badge variant="outline" className={`capitalize text-xs ${ENTRY_TYPE_CHIP[row.entry_type] ?? ""}`}>
-            {row.entry_type}
+            {ENTRY_TYPE_LABEL[row.entry_type] ?? row.entry_type}
           </Badge>
         ),
       },
@@ -1017,7 +1036,15 @@ function CreditsLedgerLog() {
         const usage = getByType("credit_spend");
         const refund = getByType("credit_refund");
         const expired = getByType("credit_expired");
-        const adjustment = getByType("adjustment");
+        const rawAdjustment = { count: 0, credits: 0, value_idr: 0 };
+        const adminAdjustment = getByType("admin_adjustment");
+        const systemAdjustment = getByType("system_adjustment");
+        // ponytail: legacy `adjustment` removed (admin v246) — BE adjustment rows are admin/system only
+        const adjustment = {
+          count: rawAdjustment.count + adminAdjustment.count + systemAdjustment.count,
+          credits: rawAdjustment.credits + adminAdjustment.credits + systemAdjustment.credits,
+          value_idr: rawAdjustment.value_idr + adminAdjustment.value_idr + systemAdjustment.value_idr,
+        };
         const byStatus = summary.by_status ?? {};
         const out =
           summary.outstanding ??
@@ -1194,11 +1221,19 @@ function CreditsLedgerLog() {
                 const ending = db.ending_deferred_balance ?? db.saldo_tangguhan_akhir;
                 const total = db.recognized_total ?? db.diakui_total;
                 const cash = db.cash;
-                if (!sold && !attended && !noShow && !db.breakage && !ending && !cash) return null;
+                // Reversal = expiry-override restore only (not a refund); missing key → zeros
+                const reversal = (src.by_status?.[REVERSAL_STATUS] as unknown as typeof db.breakage | undefined) ?? db.reversal ?? {
+                  count: 0,
+                  credits: 0,
+                  value_idr: 0,
+                  journal: REVERSAL_JOURNAL,
+                };
+                const hasReversal = (reversal.count ?? 0) !== 0 || (reversal.value_idr ?? 0) !== 0;
+                if (!sold && !attended && !noShow && !db.breakage && !ending && !cash && !hasReversal) return null;
                 const creditCards = [
                   {
                     title: "Credit Sold",
-                    hint: "Cash received, revenue deferred",
+                    hint: "Cash received, revenue deferred · excl. system re-issues",
                     journal: sold?.journal,
                     amount: formatCurrency(sold?.value_idr ?? 0),
                     footer: `${(sold?.credits ?? 0).toLocaleString("en-US")} credits · ${sold?.count ?? 0} movements`,
@@ -1245,6 +1280,18 @@ function CreditsLedgerLog() {
                     ),
                   },
                   {
+                    title: "Reversal · Breakage Restore",
+                    hint: "Expiry-override restore only — not a refund",
+                    journal: reversal.journal ?? REVERSAL_JOURNAL,
+                    amount: formatCurrency(reversal.value_idr ?? 0),
+                    footer: `${(reversal.credits ?? 0).toLocaleString("en-US")} credits · ${reversal.count ?? 0} movements`,
+                    icon: (
+                      <span className="flex h-8 w-8 items-center justify-center rounded-full bg-purple-500/10 text-purple-600">
+                        <Undo2 size={16} />
+                      </span>
+                    ),
+                  },
+                  {
                     title: "Ending Deferred Balance",
                     hint: "Still owed as future sessions (liability)",
                     journal: (ending as unknown as { journal?: string })?.journal,
@@ -1266,6 +1313,11 @@ function CreditsLedgerLog() {
                           Period totals (entry-type filter omitted) · credit revenue only · cash is a separate bookings
                           query — never add cash and credit counts together
                         </p>
+                        <p className="text-[11px] text-muted-foreground">
+                          Total includes manager credit reductions — don&apos;t re-add attended + no-show + breakage. Sold
+                          excludes system re-issues, so a sold drop isn&apos;t falling sales. Rollover appears twice by
+                          design (source breakage + target spend).
+                        </p>
                         {isFiltered && (
                           <p className="text-[11px] text-amber-700">
                             Table is filtered ({filterEntry}); cards below still show full-period accrual.
@@ -1278,7 +1330,7 @@ function CreditsLedgerLog() {
                         </Badge>
                       )}
                     </div>
-                    <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-5">
+                    <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3">
                       {creditCards.map((c) => (
                         <CardRevenueComponent
                           key={c.title}
