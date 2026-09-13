@@ -217,18 +217,38 @@ export interface ICashFlowTransaction {
   created_at: string;
 }
 
-// GET /admin/credits/ledger — handoff 2026-09-10 (admin v239): 12-col table, no technical balances
-export type LedgerEntryType = "credit_issue" | "credit_spend" | "credit_refund" | "credit_expired" | "adjustment";
+// GET /admin/credits/ledger — handoff 2026-09-10 (admin v239) + reversal update.
+// BE dev (admin v246): legacy `adjustment` removed, 6 ENTRY_TYPES, validation rejects `adjustment`.
+export type LedgerEntryType =
+  | "credit_issue"
+  | "credit_spend"
+  | "credit_refund"
+  | "credit_expired"
+  | "admin_adjustment"
+  | "system_adjustment";
 
-// Response entry_type labels (BE returns Title-case in data rows)
-export type LedgerRowEntryType = "Issue" | "Spend" | "Expired" | "Refund" | "Adjustment";
+// Response entry_type labels (BE returns Title-case in data rows; plus snake_case adjust rows)
+export type LedgerRowEntryType =
+  | "Issue"
+  | "Spend"
+  | "Expired"
+  | "Refund"
+  | "Adjustment"
+  | "Admin Adjustment"
+  | "System Adjustment"
+  | "admin_adjustment"
+  | "system_adjustment";
+
+export const REVERSAL_STATUS = "Reversal of Breakage - Reduce Revenue";
+export const REVERSAL_JOURNAL = "Dr Revenue / Cr Deferred";
 
 export type RecognitionStatus =
   | "Recognized Revenue"
   | "Deferred Future Revenue"
   | "Credit Reserved"
   | "Credit Refunded"
-  | "Refund Future Revenue";
+  | "Refund Future Revenue"
+  | typeof REVERSAL_STATUS;
 
 export type LedgerAttendance = "attended" | "no_show" | null;
 
@@ -316,6 +336,7 @@ export interface ICreditsLedgerSummary {
     recognized_attended?: IDeferredBucket;
     recognized_no_show?: IDeferredBucket;
     breakage?: IDeferredBucket;
+    reversal?: IDeferredBucket;
     cash?: {
       sold: { count: number; value_idr: number; journal: string };
       recognized_attended: { count: number; value_idr: number; journal: string };
