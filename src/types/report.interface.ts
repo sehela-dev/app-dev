@@ -131,16 +131,51 @@ export interface IOutstandingSummaryData {
   period: string;
   generated_at: string;
   summary: {
+    // legacy compat — keep fallback
     total_outstanding_credits: number;
     total_outstanding_value_idr: number;
     total_customers: number;
     total_active_packages: number;
     avg_credits_per_customer: number;
     opening_credits: number;
+    opening_value_idr?: number;
     credits_issued: number;
+    issued_value_idr?: number;
     credits_used: number;
+    used_value_idr?: number;
     credits_expired: number;
+    expired_value_idr?: number;
+    credits_adjusted?: number;
+    adjusted_value_idr?: number;
     closing_credits: number;
+    closing_value_idr?: number;
+    report_period?: string;
+    // dual-track reconciliation WIB 23:59:59 — per CONTEXT.md Outstanding Bulanan
+    pembelian_units?: number;
+    pembelian_value_idr?: number;
+    pemakaian_units?: number;
+    pemakaian_value_idr?: number;
+    expired_units?: number;
+    expired_value?: number;
+    reversal_units?: number;
+    reversal_value_idr?: number;
+    refund_units?: number;
+    refund_value_idr?: number;
+    admin_adj_units?: number;
+    admin_adj_value_idr?: number;
+    system_units?: number;
+    system_value_idr?: number;
+    // BE may send system_adj_* alias
+    system_adj_units?: number;
+    system_adj_value_idr?: number;
+    net_breakage_units?: number;
+    net_breakage_value_idr?: number;
+    closing_snapshot_units?: number;
+    closing_snapshot_value_idr?: number;
+    closing_formula_units?: number;
+    closing_formula_value_idr?: number;
+    diff_units?: number;
+    diff_value_idr?: number;
   };
   by_expiry_status: { validity_status: string; credits: number; value_idr: number; packages: number }[];
   by_package_type: { package_id: string; package_name: string; credits: number; value_idr: number; percentage: number }[];
@@ -148,6 +183,7 @@ export interface IOutstandingSummaryData {
 
 export interface IOutstandingReportsParams {
   year?: number;
+  month?: number;
   page?: number;
   page_size?: number;
 }
@@ -161,6 +197,34 @@ export interface IOutstandingReportItem {
   detail_file: IDetailFile;
   generated_at: string;
   is_incomplete: boolean;
+  // mirrors summary buckets for list rows — optional until edge ships
+  total_outstanding_credits?: number;
+  total_outstanding_value_idr?: number;
+  credits_issued?: number;
+  credits_used?: number;
+  credits_expired?: number;
+  opening_credits?: number;
+  opening_value_idr?: number;
+  closing_credits?: number;
+  closing_value_idr?: number;
+  reversal_units?: number;
+  reversal_value_idr?: number;
+  refund_units?: number;
+  refund_value_idr?: number;
+  admin_adj_units?: number;
+  admin_adj_value_idr?: number;
+  system_units?: number;
+  system_value_idr?: number;
+  system_adj_units?: number;
+  system_adj_value_idr?: number;
+  net_breakage_units?: number;
+  net_breakage_value_idr?: number;
+  closing_snapshot_units?: number;
+  closing_snapshot_value_idr?: number;
+  closing_formula_units?: number;
+  closing_formula_value_idr?: number;
+  diff_units?: number;
+  diff_value_idr?: number;
 }
 
 export type TOutstandingDetail = (params: IOutstandingDetailParams) => Promise<IResponseData<IOutstandingDetailResponse>>;

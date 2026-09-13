@@ -5,10 +5,15 @@ import { CustomTable } from "@/components/general/custom-table";
 import { CustomPagination } from "@/components/general/pagination-component";
 import { GeneralTabComponent } from "@/components/general/tabs-component";
 import { CardRevenueComponent } from "@/components/page/dashboard";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader } from "@/components/ui/card";
+import { Card, CardAction, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Separator } from "@/components/ui/separator";
+import { Skeleton } from "@/components/ui/skeleton";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectGroup, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -33,10 +38,14 @@ import {
 } from "@/types/report.interface";
 import {
   Activity,
+  AlertTriangle,
   ArrowDownRight,
   ArrowUpRight,
   BadgeCheck,
   BadgeDollarSign,
+  CalendarDays,
+  CheckCircle2,
+  Clock3,
   DollarSign,
   Download,
   FileText,
@@ -103,52 +112,75 @@ export const OutstandingCreditView = () => {
   const [snapshotTab, setSnapshotTab] = useState(initialSubTab);
 
   const todayStr = new Date().toISOString().slice(0, 10);
-  const [asOf, setAsOf] = useState(searchParams.get("as_of") ?? todayStr);
+  // YYYY-MM is source of truth for monthly closing (wib_month_end) — as_of is lazy daily preview only
+  const initialYear = Number(searchParams.get("year") ?? searchParams.get("as_of")?.slice(0, 4) ?? todayStr.slice(0, 4));
+  const initialMonth = Number(searchParams.get("month") ?? searchParams.get("as_of")?.slice(5, 7) ?? todayStr.slice(5, 7));
+  const initialAsOf = searchParams.get("as_of") ?? "";
+  const [closingYear, setClosingYear] = useState(initialYear);
+  const [closingMonth, setClosingMonth] = useState(initialMonth);
+  const [previewAsOf, setPreviewAsOf] = useState(initialAsOf);
   const [page, setPage] = useState(1);
   const [csvExporting, setCsvExporting] = useState(false);
+  const [snapshotMetric, setSnapshotMetric] = useState<"idr" | "units">("idr");
 
-  const handleAsOfChange = (startDate: string) => {
-    if (!startDate) return;
-    if (startDate > todayStr) {
+  const handleClosingChange = (y: number, m: number) => {
+    setClosingYear(y);
+    setClosingMonth(m);
+    setPage(1);
+  };
+  const handlePreviewAsOfChange = (startDate: string) => {
+    if (startDate && startDate > todayStr) {
       toast.error("as_of cannot be in the future");
       return;
     }
     setPage(1);
-    setAsOf(startDate);
+    setPreviewAsOf(startDate);
   };
 
-  // sync tab + as_of to URL
+  // sync tab + YYYY-MM / as_of to URL — closing book is year+month, as_of daily preview is optional
   useEffect(() => {
     const p = new URLSearchParams(searchParams.toString());
     if (tabs === "log") {
       p.set("view", "log");
       p.delete("subview");
       p.delete("as_of");
+      p.delete("year");
+      p.delete("month");
     } else {
       p.delete("view");
       if (snapshotTab === "export") p.set("subview", "export");
       else p.delete("subview");
-      if (snapshotTab === "preview" && asOf) p.set("as_of", asOf);
-      else if (snapshotTab !== "preview") p.delete("as_of");
+      if (snapshotTab === "preview") {
+        if (previewAsOf) p.set("as_of", previewAsOf);
+        else p.delete("as_of");
+        // always persist closing month so refresh lands same book — even when as_of drives query
+        p.set("year", String(closingYear));
+        p.set("month", String(closingMonth));
+      } else if (snapshotTab !== "preview") {
+        p.delete("as_of");
+        p.delete("year");
+        p.delete("month");
+      }
     }
     const qs = p.toString();
     router.replace(qs ? `?${qs}` : "?", { scroll: false } as never);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [tabs, snapshotTab, asOf]);
+  }, [tabs, snapshotTab, previewAsOf, closingYear, closingMonth]);
 
   const formField = methods.watch();
 
   const [generatedFile, setGeneratedFile] = useState<IGeenrateOutstandingResponse | null>(null);
 
-  // Outstanding as_of checkpoint — snapshot harian (BE: as_of 23:59:59 WIB)
+  // Closing book is YYYY-MM (prev_end→curr_end via wib_month_end) — as_of is optional daily preview deriving WIB month
+  const outstandingQuery = previewAsOf ? { asOf: previewAsOf } : { year: closingYear, month: closingMonth };
   const {
     data: detailData,
     isLoading: detailLoading,
     isFetching: detailFetching,
     isError: detailError,
     error: detailErr,
-  } = useGetOutstandingDetail({ asOf: asOf });
-  const { data: summaryData, isLoading: summaryLoading } = useGetOutstandingSummary({ asOf: asOf });
+  } = useGetOutstandingDetail(outstandingQuery);
+  const { data: summaryData, isLoading: summaryLoading } = useGetOutstandingSummary(outstandingQuery);
 
   const { mutateAsync, isPending } = useGenerateOutstandingReport();
 
@@ -246,98 +278,203 @@ export const OutstandingCreditView = () => {
           <GeneralTabComponent tabs={snapshotTabOption} selecetedTab={snapshotTab} setTab={setSnapshotTab} variant="line" />
           {snapshotTab === "preview" && (
             <>
-              <Card>
-                <CardHeader className="text-2xl font-semibold">Preview Outstanding Credit</CardHeader>
-                <CardContent>
-                  <div className="flex flex-col gap-1 w-full">
-                    <p className="text-sm font-medium">As of (checkpoint harian)</p>
-                    <div className="flex w-full">
-                      <DateRangePicker mode="single" startDate={asOf} onDateRangeChange={handleAsOfChange} allowPastDates allowFutureDates={false} />
+              <Card className="overflow-hidden">
+                <CardHeader className="border-b bg-muted/20 pb-4">
+                  <CardTitle className="flex items-center gap-2 text-base">
+                    <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-brand-500 text-white"><CalendarDays size={14} /></span>
+                    Preview Outstanding Credit
+                  </CardTitle>
+                  <CardDescription>Monthly closing book · WIB 23:59:59 cutoff. Daily preview is optional and derived — not a range.</CardDescription>
+                </CardHeader>
+                <CardContent className="pt-5">
+                  <div className="grid gap-4 lg:grid-cols-[1.1fr_0.9fr]">
+                    <div className="rounded-xl border bg-card p-4">
+                      <div className="mb-3 flex items-center justify-between">
+                        <p className="text-sm font-semibold">Closing month</p>
+                        <Badge variant="outline" className="bg-white text-[11px]">Source of truth</Badge>
+                      </div>
+                      <div className="flex gap-2">
+                        <Select value={String(closingMonth)} onValueChange={(v) => handleClosingChange(closingYear, Number(v))}>
+                          <SelectTrigger className="w-full h-10"><SelectValue placeholder="Month" /></SelectTrigger>
+                          <SelectContent>{MONTH_LIST.map((m) => <SelectItem key={m.value} value={m.value}>{m.label}</SelectItem>)}</SelectContent>
+                        </Select>
+                        <Select value={String(closingYear)} onValueChange={(v) => handleClosingChange(Number(v), closingMonth)}>
+                          <SelectTrigger className="w-full h-10"><SelectValue placeholder="Year" /></SelectTrigger>
+                          <SelectContent>{YEAR_LIST.map((y) => <SelectItem key={y} value={y}>{y}</SelectItem>)}</SelectContent>
+                        </Select>
+                      </div>
+                      <p className="mt-2 flex items-center gap-1.5 text-[11px] text-muted-foreground"><Clock3 size={12} /> Cutoff WIB via <code className="rounded bg-muted px-1">wib_month_end</code> · <code className="rounded bg-muted px-1">GET /summary?year&month</code></p>
+                    </div>
+                    <div className="rounded-xl border bg-muted/20 p-4">
+                      <p className="mb-3 text-sm font-semibold">Daily preview <span className="font-normal text-muted-foreground">(optional)</span></p>
+                      <DateRangePicker mode="single" startDate={previewAsOf} onDateRangeChange={handlePreviewAsOfChange} allowPastDates allowFutureDates={false} />
+                      <p className="mt-2 text-[11px] text-muted-foreground"><code className="rounded bg-white px-1 py-0.5">?as_of=YYYY-MM-DD</code> → WIB month derived <span className="text-[10px]">(index.ts:14336)</span></p>
+                      {previewAsOf ? (
+                        <Button variant="ghost" size="sm" className="mt-2 h-7 text-xs" onClick={() => setPreviewAsOf("")}>Clear — back to YYYY-MM</Button>
+                      ) : (
+                        <p className="mt-2 text-[11px] text-muted-foreground">Empty = use closing month on the left. No range picker for this report.</p>
+                      )}
                     </div>
                   </div>
                 </CardContent>
               </Card>
               {(detailLoading || summaryLoading) && (detailFetching || summaryLoading) ? (
-                <div className="flex items-center justify-center py-6">
-                  <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
-                </div>
-              ) : detailError ? (
                 <Card>
-                  <CardContent className="py-6 text-center text-sm text-muted-foreground">
-                    <p className="font-medium">Failed to load outstanding snapshot</p>
+                  <CardContent className="space-y-3 py-6">
+                    <Skeleton className="h-5 w-32" />
+                    <div className="grid gap-4 sm:grid-cols-2">
+                      <Skeleton className="h-28 w-full rounded-xl" />
+                      <Skeleton className="h-28 w-full rounded-xl" />
+                    </div>
+                    <Skeleton className="h-64 w-full rounded-xl" />
+                  </CardContent>
+                </Card>
+              ) : detailError ? (
+                <Alert variant="destructive">
+                  <AlertTriangle size={16} />
+                  <AlertTitle>Failed to load outstanding snapshot</AlertTitle>
+                  <AlertDescription>
                     <p className="text-xs">
                       {(detailErr as unknown as { response?: { data?: { error?: { message?: string } } } })?.response?.data?.error?.message ??
                         (detailErr as Error)?.message ??
-                        "Check BE /admin/credits/outstanding/detail?as_of=" + asOf}
+                        (previewAsOf
+                          ? `Check BE /admin/credits/outstanding/detail?as_of=${previewAsOf}`
+                          : `Check BE /admin/credits/outstanding/detail?year=${closingYear}&month=${closingMonth}`)}
                     </p>
-                    <p className="text-xs mt-1">Fallback: try without as_of (year/month) or check the outstanding:view permission.</p>
-                  </CardContent>
-                </Card>
+                    <p className="mt-1 text-xs">Fallback: try without as_of (year/month) or check the outstanding:view permission.</p>
+                  </AlertDescription>
+                </Alert>
               ) : (
                 <>
                   {(() => {
-                    const summary = (
-                      summaryData as unknown as { data?: { summary?: { total_outstanding_value_idr: number; total_outstanding_credits: number } } }
-                    )?.data as unknown as
-                      | {
-                          summary?: {
-                            total_outstanding_value_idr: number;
-                            total_outstanding_credits: number;
-                            total_customers?: number;
-                            total_active_packages?: number;
-                          };
-                        }
+                    const raw = (summaryData as unknown as { data?: { summary?: Record<string, unknown> } })?.data as unknown as
+                      | { summary?: Record<string, unknown> }
                       | undefined;
-                    const s =
-                      (
-                        summary as unknown as {
-                          summary?: { total_outstanding_value_idr: number; total_outstanding_credits: number; total_customers?: number };
-                        }
-                      )?.summary ?? (summary as unknown as { total_outstanding_value_idr?: number; total_outstanding_credits?: number } | undefined);
-                    const totalCredits =
-                      (s as unknown as { total_outstanding_credits?: number })?.total_outstanding_credits ??
+                    const unwrapped =
+                      (raw as unknown as { summary?: Record<string, unknown> })?.summary ?? (raw as unknown as Record<string, unknown> | undefined);
+                    const s = (unwrapped ?? {}) as Record<string, unknown>;
+                    const n = (v: unknown) => (typeof v === "number" ? v : 0);
+                    // snapshot is source of truth per handoff §1 — closing_snapshot wins over closing_formula
+                    const snapUnits = (s.closing_snapshot_units as number | undefined) ?? (s.total_outstanding_credits as number | undefined) ?? 0;
+                    const snapIdr = (s.closing_snapshot_value_idr as number | undefined) ?? (s.total_outstanding_value_idr as number | undefined) ?? 0;
+                    // compat fallback when dual-track not yet shipped (edge v246)
+                    const hasRecon = s.pembelian_units !== undefined || s.diff_units !== undefined;
+                    const totalCreditsFbk =
+                      (s.total_outstanding_credits as number | undefined) ??
                       (detailData as unknown as { data?: { total_packages?: number } })?.data?.total_packages ??
-                      0;
-                    const totalValue = (s as unknown as { total_outstanding_value_idr?: number })?.total_outstanding_value_idr ?? 0;
+                      snapUnits;
+                    const totalValueFbk = (s.total_outstanding_value_idr as number | undefined) ?? snapIdr;
+                    const totalCredits = hasRecon ? snapUnits : totalCreditsFbk;
+                    const totalValue = hasRecon ? snapIdr : totalValueFbk;
+                    const closingMm = `${String(closingYear).padStart(4, "0")}-${String(closingMonth).padStart(2, "0")}`;
+                    const periodLabel = (s.report_period as string | undefined) ?? (s.period as string | undefined) ?? (previewAsOf ? previewAsOf.slice(0, 7) : closingMm);
+                    const openingUnits = n(s.opening_credits);
+                    const openingIdr = n((s.opening_value_idr as number | undefined) ?? 0);
+                    const diffUnits = s.diff_units as number | undefined;
+                    const diffIdr = s.diff_value_idr as number | undefined;
+                    const diffNonZero = (diffUnits !== undefined && diffUnits !== 0) || (diffIdr !== undefined && diffIdr !== 0);
                     return (
-                      <div className="flex flex-row items-center w-full gap-4 pt-4">
-                        <div className="w-full">
-                          <CardRevenueComponent
-                            amount={String(totalCredits)}
-                            title={`Total Outstanding Credits (${asOf})`}
-                            icon={<BadgeDollarSign style={{ color: "var(--color-gray-400)" }} size={18} />}
-                          />
+                      <div className="flex flex-col gap-4 pt-2">
+                        <div className="flex flex-wrap items-start justify-between gap-3 rounded-xl border bg-card px-4 py-3">
+                          <div className="flex items-center gap-3">
+                            <span className="hidden h-9 w-9 items-center justify-center rounded-lg bg-brand-50 text-brand-700 sm:flex"><Wallet size={16} /></span>
+                            <div>
+                              <div className="flex items-center gap-2">
+                                <p className="text-sm font-semibold tracking-tight">{periodLabel}</p>
+                                <Badge variant="outline" className="text-[11px] font-normal">WIB 23:59:59</Badge>
+                                {!hasRecon && <Badge variant="outline" className="bg-amber-50 text-amber-700 border-amber-200 text-[11px]">Legacy</Badge>}
+                              </div>
+                              <p className="text-[11px] text-muted-foreground">Cutoff WIB 23:59:59 — 23:59 WIB entries land in the restore month, not the expiry month</p>
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-1 rounded-full border bg-muted p-1">
+                            <button
+                              type="button"
+                              onClick={() => setSnapshotMetric("idr")}
+                              className={`rounded-full px-3.5 py-1.5 text-xs font-medium transition-colors ${snapshotMetric === "idr" ? "bg-white shadow-sm text-foreground" : "text-muted-foreground hover:text-foreground"}`}
+                            >
+                              IDR
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => setSnapshotMetric("units")}
+                              className={`rounded-full px-3.5 py-1.5 text-xs font-medium transition-colors ${snapshotMetric === "units" ? "bg-white shadow-sm text-foreground" : "text-muted-foreground hover:text-foreground"}`}
+                            >
+                              Units
+                            </button>
+                          </div>
                         </div>
-                        <div className="w-full">
+                        <div className="grid gap-4 sm:grid-cols-2">
+                          <CardRevenueComponent
+                            amount={snapshotMetric === "idr" ? formatCurrency(String(totalValue)) : `${totalCredits.toLocaleString("en-US")}`}
+                            title={`Closing Snapshot · ${periodLabel}`}
+                            subtitle={snapshotMetric === "idr" ? `${totalCredits.toLocaleString("en-US")} credits` : formatCurrency(totalValue)}
+                            footer={
+                              <span className="inline-flex items-center gap-1.5">
+                                Opening {openingUnits.toLocaleString("en-US")} · {formatCurrency(openingIdr)}
+                                <Separator orientation="vertical" className="h-3" />
+                                {previewAsOf ? `preview ${previewAsOf}` : `closing WIB 23:59:59`}
+                              </span>
+                            }
+                            icon={<Wallet style={{ color: "var(--color-gray-400)" }} size={18} />}
+                            className="border-brand-100 shadow-sm hover:shadow-md transition-shadow"
+                          />
                           <CardRevenueComponent
                             amount={formatCurrency(String(totalValue))}
-                            title="Outstanding Value (IDR)"
+                            title="Outstanding Value · snapshot"
+                            subtitle={`${totalCredits.toLocaleString("en-US")} credits · IDR is primary`}
+                            footer="Source of truth is closing_snapshot (≤ curr_end) — never closing_formula"
                             icon={<DollarSign style={{ color: "var(--color-gray-400)" }} size={18} />}
+                            className="border-brand-100 shadow-sm hover:shadow-md transition-shadow"
                           />
                         </div>
+                        {hasRecon && (
+                          <ReconciliationTable summary={s as unknown as import("@/types/report.interface").IOutstandingSummaryData["summary"]} />
+                        )}
+                        {hasRecon && diffNonZero && (
+                          <Alert variant="destructive" className="bg-red-50 border-red-200 text-red-700 [&>svg]:text-red-600">
+                            <AlertTriangle size={16} />
+                            <AlertTitle className="text-red-700">Reconciliation diff ≠ 0</AlertTitle>
+                            <AlertDescription className="text-red-700/90">
+                              Snapshot vs formula gap — investigate sweep/cap timing. Do not auto-correct. Diff:{" "}
+                              <span className="font-mono font-medium">{diffUnits != null ? `${diffUnits.toLocaleString("en-US")} units` : "—"}</span> ·{" "}
+                              <span className="font-mono font-medium">{diffIdr != null ? formatCurrency(diffIdr) : "—"}</span>
+                              <span className="text-[11px] opacity-80"> · diff = closing_snapshot − closing_formula</span>
+                            </AlertDescription>
+                          </Alert>
+                        )}
+                        {hasRecon && !diffNonZero && diffUnits !== undefined && (
+                          <div className="flex items-center gap-1.5 text-xs font-medium text-emerald-700"><CheckCircle2 size={14} /> Reconciled — diff 0 (snapshot = formula).</div>
+                        )}
                       </div>
                     );
                   })()}
                   <Card className="overflow-hidden min-w-0 max-w-full">
-                    <CardHeader className="text-lg font-semibold flex flex-row items-center justify-between">
-                      <span>
-                        Outstanding Credit — as of {asOf}{" "}
-                        {detailData && (detailData as unknown as { data?: { total_packages?: number } })?.data?.total_packages != null
-                          ? `(${(detailData as unknown as { data: { total_packages: number } }).data.total_packages} packages)`
-                          : ""}
-                      </span>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        disabled={csvExporting}
+                    <CardHeader className="flex flex-row items-center justify-between space-y-0">
+                      <div>
+                        <CardTitle className="text-sm">
+                          Outstanding Detail — {previewAsOf ? `preview ${previewAsOf}` : `closing ${String(closingYear).padStart(4, "0")}-${String(closingMonth).padStart(2, "0")}`}
+                        </CardTitle>
+                        <CardDescription className="text-xs">
+                          WIB 23:59:59 · {detailData && (detailData as unknown as { data?: { total_packages?: number } })?.data?.total_packages != null
+                            ? `${(detailData as unknown as { data: { total_packages: number } }).data.total_packages} packages · `
+                            : ""}shares deduped · in_house excluded
+                        </CardDescription>
+                      </div>
+                      <CardAction>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          disabled={csvExporting}
                         onClick={async () => {
                           try {
                             setCsvExporting(true);
-                            const blob = await exportOutstandingDetailCsv({ asOf });
+                            const q = previewAsOf ? { asOf: previewAsOf } : { year: closingYear, month: closingMonth };
+                            const blob = await exportOutstandingDetailCsv(q);
                             const url = window.URL.createObjectURL(blob);
                             const a = document.createElement("a");
                             a.href = url;
-                            a.download = `outstanding_detail_${asOf}.csv`;
+                            a.download = `outstanding_detail_${previewAsOf ? previewAsOf : `${closingYear}-${String(closingMonth).padStart(2, "0")}`}.csv`;
                             a.click();
                             window.URL.revokeObjectURL(url);
                           } catch (e: unknown) {
@@ -354,8 +491,10 @@ export const OutstandingCreditView = () => {
                         {csvExporting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
                         CSV
                       </Button>
+                      </CardAction>
                     </CardHeader>
-                    <CardContent className="p-0 pt-6 min-w-0 max-w-full overflow-hidden">
+                    <CardContent className="p-0 pt-2 min-w-0 max-w-full overflow-hidden">
+                      <Separator className="mb-4" />
                       {(() => {
                         const pkgs = ((detailData as unknown as { data?: { packages?: IPackage[] } })?.data?.packages ?? []) as IPackage[];
                         const pageSize = 20;
@@ -381,7 +520,7 @@ export const OutstandingCreditView = () => {
                               </div>
                             )}
                             {total === 0 && (
-                              <p className="text-sm text-muted-foreground text-center py-4 px-6">No outstanding packages as of {asOf}.</p>
+                              <p className="text-sm text-muted-foreground text-center py-4 px-6">No outstanding packages {previewAsOf ? `as of ${previewAsOf}` : `for closing ${String(closingYear).padStart(4, "0")}-${String(closingMonth).padStart(2, "0")}` }.</p>
                             )}
                           </div>
                         );
@@ -1421,21 +1560,27 @@ function CreditsLedgerLog() {
       })()}
 
       <Card className="overflow-hidden min-w-0 max-w-full">
-        <CardContent className="pt-6 min-w-0 max-w-full overflow-hidden">
+        <CardHeader className="pb-3">
+          <CardTitle className="text-sm">Outstanding Detail</CardTitle>
+          <CardDescription className="text-xs">Package-level snapshot · shares already deduped by BE · in_house excluded</CardDescription>
+        </CardHeader>
+        <CardContent className="pt-0 min-w-0 max-w-full overflow-hidden">
           {isLoading || isFetching ? (
-            <div className="flex items-center justify-center py-6">
-              <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+            <div className="space-y-2 py-4">
+              <Skeleton className="h-10 w-full" />
+              <Skeleton className="h-10 w-full" />
+              <Skeleton className="h-10 w-full" />
             </div>
           ) : isError ? (
-            <div className="py-6 text-center text-sm text-muted-foreground">
-              <p className="font-medium">Failed to load ledger</p>
-              <p className="text-xs">
+            <Alert variant="destructive">
+              <AlertTriangle size={16} />
+              <AlertTitle>Failed to load ledger</AlertTitle>
+              <AlertDescription className="text-xs">
                 {(error as unknown as { response?: { data?: { error?: { message?: string } } } })?.response?.data?.error?.message ??
                   (error as Error)?.message ??
                   "Check GET /admin/credits/ledger with the current filters."}
-              </p>
-              <p className="text-xs mt-2">Fallback: try the Outstanding Detail snapshot in the Preview tab.</p>
-            </div>
+              </AlertDescription>
+            </Alert>
           ) : (
             <div className="flex flex-col gap-4 min-w-0 max-w-full">
               <div className="overflow-x-auto max-w-full">
@@ -1456,6 +1601,77 @@ function CreditsLedgerLog() {
         </CardContent>
       </Card>
     </div>
+  );
+}
+
+function ReconciliationTable({ summary }: { summary: import("@/types/report.interface").IOutstandingSummaryData["summary"] }) {
+  const s = summary as unknown as Record<string, unknown>;
+  const n = (k: string) => (typeof s[k] === "number" ? (s[k] as number) : 0);
+  // ponytail: 11-row RECONCILIATION — units + value_idr from BE, never FE unit×amount
+  const rows: { bucket: string; label: string; units: number; valueIdr: number; subtle?: string; icon?: React.ReactNode }[] = [
+    { bucket: "pembelian", label: "Pembelian", units: n("pembelian_units"), valueIdr: n("pembelian_value_idr"), subtle: "credit_issue excl. in_house", icon: <ShoppingBag size={13} className="text-sky-600" /> },
+    { bucket: "pemakaian", label: "Pemakaian", units: n("pemakaian_units"), valueIdr: n("pemakaian_value_idr"), subtle: "Recognized only", icon: <BadgeCheck size={13} className="text-emerald-600" /> },
+    { bucket: "expired", label: "Expired", units: n("expired_units"), valueIdr: n("expired_value_idr") ?? n("expired_value"), icon: <TimerOff size={13} className="text-orange-600" /> },
+    { bucket: "reversal", label: "Reversal of Breakage", units: n("reversal_units"), valueIdr: n("reversal_value_idr"), subtle: "restore month", icon: <Undo2 size={13} className="text-purple-600" /> },
+    { bucket: "refund", label: "Refund", units: n("refund_units"), valueIdr: n("refund_value_idr"), icon: <RotateCcw size={13} /> },
+    { bucket: "admin_adj", label: "Admin Adj", units: n("admin_adj_units"), valueIdr: n("admin_adj_value_idr"), subtle: "non-reversal" },
+    { bucket: "system", label: "System Adj", units: n("system_units") || n("system_adj_units"), valueIdr: n("system_value_idr") || n("system_adj_value_idr"), subtle: "not pembelian", icon: <Activity size={13} className="text-sky-600" /> },
+    { bucket: "net_breakage", label: "Net Breakage", units: n("net_breakage_units"), valueIdr: n("net_breakage_value_idr"), subtle: "expired − reversal", icon: <Hourglass size={13} className="text-zinc-500" /> },
+    { bucket: "closing_snapshot", label: "Closing Snapshot", units: n("closing_snapshot_units") || n("total_outstanding_credits"), valueIdr: n("closing_snapshot_value_idr") || n("total_outstanding_value_idr"), subtle: "source of truth" },
+    { bucket: "closing_formula", label: "Closing Formula", units: n("closing_formula_units"), valueIdr: n("closing_formula_value_idr"), subtle: "formula" },
+    { bucket: "diff", label: "Reconciliation Diff", units: n("diff_units"), valueIdr: n("diff_value_idr"), subtle: "must be 0" },
+  ];
+  const fmtU = (u: number) => u.toLocaleString("en-US");
+  return (
+    <Card className="overflow-hidden">
+      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
+        <div>
+          <CardTitle className="text-sm">Reconciliation</CardTitle>
+          <CardDescription className="text-xs">WIB 23:59:59 · units + IDR · never FE unit×amount</CardDescription>
+        </div>
+        <Badge variant="outline" className="hidden sm:inline-flex text-[11px]">11 buckets</Badge>
+      </CardHeader>
+      <CardContent className="p-0">
+        <Table>
+          <TableHeader>
+            <TableRow className="bg-muted/40 hover:bg-muted/40">
+              <TableHead className="w-[42%]">Bucket</TableHead>
+              <TableHead className="text-right">Units</TableHead>
+              <TableHead className="text-right">Value IDR</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {rows.map((r) => {
+              const isDiff = r.bucket === "diff";
+              const diffBad = isDiff && (r.units !== 0 || r.valueIdr !== 0);
+              const isSnapshot = r.bucket === "closing_snapshot";
+              return (
+                <TooltipProvider key={r.bucket}>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <TableRow className={`${isDiff ? "font-semibold bg-muted/30" : ""} ${diffBad ? "!bg-red-50 !text-red-700 hover:!bg-red-50" : ""} ${isSnapshot ? "bg-brand-50/40" : ""}`}>
+                        <TableCell>
+                          <span className="inline-flex items-center gap-2">
+                            {r.icon && <span className="hidden h-6 w-6 items-center justify-center rounded-md bg-muted sm:inline-flex">{r.icon}</span>}
+                            <span>{r.label}</span>
+                            {r.subtle && <span className="hidden text-[11px] text-muted-foreground lg:inline">· {r.subtle}</span>}
+                          </span>
+                        </TableCell>
+                        <TableCell className="text-right tabular-nums">{fmtU(r.units)}</TableCell>
+                        <TableCell className="text-right tabular-nums">{formatCurrency(r.valueIdr)}</TableCell>
+                      </TableRow>
+                    </TooltipTrigger>
+                    <TooltipContent side="left" className="max-w-[260px] text-xs">
+                      {isDiff && diffBad ? "diff = closing_snapshot − closing_formula — investigate sweep delay or cap; do not auto-correct" : r.subtle ?? r.label}
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+              );
+            })}
+          </TableBody>
+        </Table>
+      </CardContent>
+    </Card>
   );
 }
 
