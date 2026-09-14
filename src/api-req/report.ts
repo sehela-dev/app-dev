@@ -25,7 +25,12 @@ export const generateTableOutstandingCredit: TOutstandingCreditTable = async (pa
 };
 
 export const generateOutstandingReport: TGenerateReportOutstandingCredit = async (data) => {
-  const res = await axiosx(true).post(`${MAIN_API_URL}/admin/credits/outstanding/generate`, data);
+  const res = await axiosx(true).post(`${MAIN_API_URL}/admin/credits/outstanding/generate`, {
+    year: Number(data.year),
+    month: Number(data.month),
+    ...(data.allow_incomplete ? { allow_incomplete: true } : {}),
+    ...(data.force_regenerate ? { force_regenerate: true } : {}),
+  });
   return res.data;
 };
 

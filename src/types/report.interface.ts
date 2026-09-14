@@ -68,8 +68,10 @@ export interface IPackage {
 }
 
 export interface IGenerateReportOutstanding {
-  month?: string;
-  year?: string;
+  month: string | number;
+  year: string | number;
+  allow_incomplete?: boolean;
+  force_regenerate?: boolean;
 }
 
 export interface IGeenrateOutstandingResponse {
@@ -176,9 +178,24 @@ export interface IOutstandingSummaryData {
     closing_formula_value_idr?: number;
     diff_units?: number;
     diff_value_idr?: number;
+    report_generated_at?: string;
+  };
+  previous_month?: {
+    period: string;
+    closing_credits: number;
+    closing_value_idr: number;
+    opening_credits: number;
+    opening_value_idr: number;
+  };
+  previous_previous_month?: {
+    period: string;
+    closing_credits: number;
+    closing_value_idr: number;
+    opening_credits: number;
+    opening_value_idr: number;
   };
   by_expiry_status: { validity_status: string; credits: number; value_idr: number; packages: number }[];
-  by_package_type: { package_id: string; package_name: string; credits: number; value_idr: number; percentage: number }[];
+  by_package_type: { package_id: string; package_name: string; package_type?: string; credits: number; value_idr: number; packages?: number; percentage: number }[];
 }
 
 export interface IOutstandingReportsParams {
