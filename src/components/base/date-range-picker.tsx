@@ -296,7 +296,7 @@ export function DateRangePicker({
 
           <div className="mt-4 pt-4 border-t border-border flex justify-between gap-2">
             <div>
-              {mode === "range" && (dateRange.start || dateRange.end) && (
+              {(mode === "single" ? dateRange.start : dateRange.start || dateRange.end) && (
                 <Button variant="ghost" onClick={handleReset} className="px-4 py-2 text-muted-foreground">
                   Reset
                 </Button>

@@ -10,6 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardAction, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -30,6 +31,7 @@ import {
   ICreditsLedgerItem,
   ICreditsLedgerSummary,
   IGeenrateOutstandingResponse,
+  IOutstandingReportItem,
   IPackage,
   LedgerEntryType,
   REVERSAL_JOURNAL,
@@ -136,6 +138,15 @@ export const OutstandingCreditView = () => {
     setPage(1);
     setPreviewAsOf(startDate);
   };
+  const todayYear = Number(todayStr.slice(0, 4));
+  const todayMonth = Number(todayStr.slice(5, 7));
+  const isPreviewFilterDirty = previewAsOf !== "" || closingYear !== todayYear || closingMonth !== todayMonth;
+  const handleResetPreviewFilter = () => {
+    setClosingYear(todayYear);
+    setClosingMonth(todayMonth);
+    setPreviewAsOf("");
+    setPage(1);
+  };
 
   // sync tab + YYYY-MM / as_of to URL — closing book is year+month, as_of daily preview is optional
   useEffect(() => {
@@ -170,6 +181,29 @@ export const OutstandingCreditView = () => {
   const formField = methods.watch();
 
   const [generatedFile, setGeneratedFile] = useState<IGeenrateOutstandingResponse | null>(null);
+  const [confirmOpen, setConfirmOpen] = useState(false);
+  const [forceRegen, setForceRegen] = useState(false);
+  const [allowIncomplete, setAllowIncomplete] = useState(false);
+  const [periodNotEnded, setPeriodNotEnded] = useState(false);
+
+  const runGenerate = async (opts: { allow_incomplete?: boolean; force_regenerate?: boolean }) => {
+    const payload = {
+      month: formField.month as string,
+      year: formField.year as string,
+      ...(opts.allow_incomplete ? { allow_incomplete: true } : {}),
+      ...(opts.force_regenerate ? { force_regenerate: true } : {}),
+    };
+    try {
+      setPeriodNotEnded(false);
+      const res = await mutateAsync(payload);
+      if (res) setGeneratedFile(res?.data);
+    } catch (e: unknown) {
+      const code = (e as { response?: { data?: { error?: { code?: string } } } })?.response?.data?.error?.code;
+      if (code === "PERIOD_NOT_ENDED") setPeriodNotEnded(true);
+    }
+  };
+
+  const onSubmit = methods.handleSubmit(() => setConfirmOpen(true));
 
   // Closing book is YYYY-MM (prev_end→curr_end via wib_month_end) — as_of is optional daily preview deriving WIB month
   const outstandingQuery = previewAsOf ? { asOf: previewAsOf } : { year: closingYear, month: closingMonth };
@@ -255,21 +289,6 @@ export const OutstandingCreditView = () => {
       value: "days_until_expiry",
     },
   ];
-
-  const onSubmit = methods.handleSubmit(async (data) => {
-    try {
-      const paylaod = {
-        month: data?.month as string,
-        year: data?.year as string,
-      };
-      const res = await mutateAsync(paylaod);
-      if (res) {
-        setGeneratedFile(res?.data);
-      }
-    } catch (error) {
-      console.log(error);
-    }
-  });
   return (
     <div className="flex flex-col gap-4 min-w-0 w-full max-w-full overflow-hidden">
       <GeneralTabComponent tabs={tabOption} selecetedTab={tabs} setTab={setTabs} />
@@ -280,17 +299,39 @@ export const OutstandingCreditView = () => {
             <>
               <Card className="overflow-hidden">
                 <CardHeader className="border-b bg-muted/20 pb-4">
-                  <CardTitle className="flex items-center gap-2 text-base">
-                    <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-brand-500 text-white"><CalendarDays size={14} /></span>
-                    Preview Outstanding Credit
-                  </CardTitle>
-                  <CardDescription>Monthly closing book · WIB 23:59:59 cutoff. Daily preview is optional and derived — not a range.</CardDescription>
+                  <div className="flex items-start justify-between gap-3">
+                    <div>
+                      <CardTitle className="flex items-center gap-2 text-base">
+                        <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-brand-500 text-white"><CalendarDays size={14} /></span>
+                        Preview Outstanding Credit
+                      </CardTitle>
+                      <CardDescription>Buku bulanan per cutoff WIB 23:59:59. Pilih Closing month untuk angka resmi, atau isi Daily preview untuk cek harian.</CardDescription>
+                    </div>
+                    <Button variant="outline" size="sm" className="h-8 shrink-0 text-xs" disabled={!isPreviewFilterDirty} onClick={handleResetPreviewFilter}>
+                      <RotateCcw className="h-3.5 w-3.5" /> Reset filter
+                    </Button>
+                  </div>
+                  <div className="mt-3 rounded-lg border bg-card px-3 py-2.5 text-xs leading-relaxed text-muted-foreground">
+                    <p className="font-semibold text-foreground">Cara baca filter ini:</p>
+                    <ul className="mt-1 list-disc space-y-0.5 pl-4">
+                      <li><span className="font-medium text-foreground">Closing month</span> = buku resmi bulan itu (sumber kebenaran). Cutoff akhir bulan jam 23:59:59 WIB. Ini yang dikunci saat Generate.</li>
+                      <li><span className="font-medium text-foreground">Daily preview (opsional)</span> = intip posisi pada tanggal tertentu. Begitu tanggal diisi, data di bawah memakai tanggal itu (<code className="rounded bg-muted px-1">as_of</code>) dan pilihan Closing month diabaikan — bulan WIB diturunkan otomatis dari tanggal tersebut.</li>
+                      <li>Kosongkan tanggal untuk kembali ke angka Closing month. Tombol <span className="font-medium">Reset filter</span> mengembalikan keduanya ke bulan berjalan.</li>
+                    </ul>
+                  </div>
                 </CardHeader>
                 <CardContent className="pt-5">
+                  <div className="mb-3 flex flex-wrap items-center gap-2 text-xs">
+                    {previewAsOf ? (
+                      <Badge variant="outline" className="bg-sky-50 text-sky-700 border-sky-200">Mode: Daily preview · {previewAsOf} (Closing month diabaikan)</Badge>
+                    ) : (
+                      <Badge variant="outline" className="bg-white">Mode: Closing month · {String(closingYear)}-{String(closingMonth).padStart(2, "0")}</Badge>
+                    )}
+                  </div>
                   <div className="grid gap-4 lg:grid-cols-[1.1fr_0.9fr]">
                     <div className="rounded-xl border bg-card p-4">
                       <div className="mb-3 flex items-center justify-between">
-                        <p className="text-sm font-semibold">Closing month</p>
+                        <p className="text-sm font-semibold">Closing month <span className="font-normal text-muted-foreground">— angka resmi</span></p>
                         <Badge variant="outline" className="bg-white text-[11px]">Source of truth</Badge>
                       </div>
                       <div className="flex gap-2">
@@ -306,13 +347,13 @@ export const OutstandingCreditView = () => {
                       <p className="mt-2 flex items-center gap-1.5 text-[11px] text-muted-foreground"><Clock3 size={12} /> Cutoff WIB via <code className="rounded bg-muted px-1">wib_month_end</code> · <code className="rounded bg-muted px-1">GET /summary?year&month</code></p>
                     </div>
                     <div className="rounded-xl border bg-muted/20 p-4">
-                      <p className="mb-3 text-sm font-semibold">Daily preview <span className="font-normal text-muted-foreground">(optional)</span></p>
+                      <p className="mb-3 text-sm font-semibold">Daily preview <span className="font-normal text-muted-foreground">(opsional — cek harian)</span></p>
                       <DateRangePicker mode="single" startDate={previewAsOf} onDateRangeChange={handlePreviewAsOfChange} allowPastDates allowFutureDates={false} />
-                      <p className="mt-2 text-[11px] text-muted-foreground"><code className="rounded bg-white px-1 py-0.5">?as_of=YYYY-MM-DD</code> → WIB month derived <span className="text-[10px]">(index.ts:14336)</span></p>
+                      <p className="mt-2 text-[11px] text-muted-foreground">Tanggal terisi = query pakai <code className="rounded bg-white px-1 py-0.5">?as_of=YYYY-MM-DD</code>, bulan WIB ikut tanggal itu. Tanggal masa depan ditolak.</p>
                       {previewAsOf ? (
-                        <Button variant="ghost" size="sm" className="mt-2 h-7 text-xs" onClick={() => setPreviewAsOf("")}>Clear — back to YYYY-MM</Button>
+                        <Button variant="ghost" size="sm" className="mt-2 h-7 text-xs" onClick={() => { setPreviewAsOf(""); setPage(1); }}>Clear — kembali ke Closing month</Button>
                       ) : (
-                        <p className="mt-2 text-[11px] text-muted-foreground">Empty = use closing month on the left. No range picker for this report.</p>
+                        <p className="mt-2 text-[11px] text-muted-foreground">Kosong = tampilkan angka Closing month di sebelah kiri. Bukan rentang tanggal.</p>
                       )}
                     </div>
                   </div>
@@ -347,9 +388,8 @@ export const OutstandingCreditView = () => {
               ) : (
                 <>
                   {(() => {
-                    const raw = (summaryData as unknown as { data?: { summary?: Record<string, unknown> } })?.data as unknown as
-                      | { summary?: Record<string, unknown> }
-                      | undefined;
+                    const root = (summaryData as unknown as { data?: Record<string, unknown> })?.data ?? {};
+                    const raw = root as unknown as { summary?: Record<string, unknown> } | undefined;
                     const unwrapped =
                       (raw as unknown as { summary?: Record<string, unknown> })?.summary ?? (raw as unknown as Record<string, unknown> | undefined);
                     const s = (unwrapped ?? {}) as Record<string, unknown>;
@@ -373,6 +413,12 @@ export const OutstandingCreditView = () => {
                     const diffUnits = s.diff_units as number | undefined;
                     const diffIdr = s.diff_value_idr as number | undefined;
                     const diffNonZero = (diffUnits !== undefined && diffUnits !== 0) || (diffIdr !== undefined && diffIdr !== 0);
+                    // rantai opening(n) = closing(n-1) — BE kirim previous_month sejajar summary
+                    const prev = (root as unknown as { previous_month?: { period: string; closing_credits: number; closing_value_idr: number } }).previous_month;
+                    const prevPrev = (root as unknown as { previous_previous_month?: { period: string; closing_credits: number; closing_value_idr: number } }).previous_previous_month;
+                    const chainUnitsOk = prev ? openingUnits === (prev.closing_credits ?? 0) : true;
+                    const chainIdrOk = prev ? openingIdr === (prev.closing_value_idr ?? 0) : true;
+                    const chainOk = chainUnitsOk && chainIdrOk;
                     return (
                       <div className="flex flex-col gap-4 pt-2">
                         <div className="flex flex-wrap items-start justify-between gap-3 rounded-xl border bg-card px-4 py-3">
@@ -404,6 +450,41 @@ export const OutstandingCreditView = () => {
                             </button>
                           </div>
                         </div>
+                        {prev && !previewAsOf && (
+                          chainOk ? (
+                            <div className="flex items-center gap-1.5 text-xs font-medium text-emerald-700"><CheckCircle2 size={14} /> Rantai OK — opening = closing {prev.period} ({(prev.closing_credits ?? 0).toLocaleString("en-US")} · {formatCurrency(prev.closing_value_idr ?? 0)}).</div>
+                          ) : (
+                            <Alert className="bg-amber-50 border-amber-200 text-amber-800 [&>svg]:text-amber-600">
+                              <AlertTriangle size={16} />
+                              <AlertTitle className="text-amber-800">Opening ≠ closing bulan lalu</AlertTitle>
+                              <AlertDescription className="text-amber-800/90">
+                                Opening {openingUnits.toLocaleString("en-US")} · {formatCurrency(openingIdr)} vs closing {prev.period} {(prev.closing_credits ?? 0).toLocaleString("en-US")} · {formatCurrency(prev.closing_value_idr ?? 0)}.
+                                Cek backfill urut tua → muda, atau dokumentasikan bila reset akuntansi yang disengaja.
+                              </AlertDescription>
+                            </Alert>
+                          )
+                        )}
+                        {(prev || prevPrev) && (
+                          <div className="flex flex-wrap items-stretch gap-2 rounded-xl border bg-card px-4 py-3">
+                            <p className="w-full text-[11px] font-medium text-muted-foreground">Bulan sebelumnya — closing per WIB 23:59:59 (IDR utama)</p>
+                            {[
+                              prevPrev ? { period: prevPrev.period, credits: prevPrev.closing_credits ?? 0, idr: prevPrev.closing_value_idr ?? 0 } : null,
+                              prev ? { period: prev.period, credits: prev.closing_credits ?? 0, idr: prev.closing_value_idr ?? 0 } : null,
+                              { period: periodLabel, credits: totalCredits, idr: totalValue },
+                            ]
+                              .filter((x): x is { period: string; credits: number; idr: number } => x !== null)
+                              .map((b, i, arr) => (
+                                <div key={b.period} className="flex min-w-0 flex-1 items-center gap-2">
+                                  {i > 0 && <span className="shrink-0 text-muted-foreground">→</span>}
+                                  <div className={`min-w-0 flex-1 rounded-lg px-3 py-2 ${i === arr.length - 1 ? "bg-brand-50/60" : "bg-muted/40"}`}>
+                                    <p className="text-[11px] text-muted-foreground">{b.period}{i === arr.length - 1 ? " · kini" : " · closing"}</p>
+                                    <p className="truncate text-sm font-semibold tabular-nums">{formatCurrency(b.idr)}</p>
+                                    <p className="text-[11px] text-muted-foreground tabular-nums">{b.credits.toLocaleString("en-US")} credits</p>
+                                  </div>
+                                </div>
+                              ))}
+                          </div>
+                        )}
                         <div className="grid gap-4 sm:grid-cols-2">
                           <CardRevenueComponent
                             amount={snapshotMetric === "idr" ? formatCurrency(String(totalValue)) : `${totalCredits.toLocaleString("en-US")}`}
@@ -534,7 +615,7 @@ export const OutstandingCreditView = () => {
           {snapshotTab === "export" && (
             <>
               <Card>
-                <CardHeader className="text-2xl font-semibold">Export Data - Outstanding Credit</CardHeader>
+                <CardHeader className="text-2xl font-semibold">Lock Month — Outstanding Credit</CardHeader>
                 <CardContent>
                   <FormProvider {...methods}>
                     <form onSubmit={onSubmit}>
@@ -624,19 +705,70 @@ export const OutstandingCreditView = () => {
                             onClick={() => {
                               methods.reset();
                               setGeneratedFile(null);
+                              setPeriodNotEnded(false);
                             }}
                           >
                             Clear
                           </Button>
                         </div>
                         <div>
-                          <Button disabled={!methods.formState.isValid || isPending}>Export Report</Button>
+                          <Button disabled={!methods.formState.isValid || isPending}>
+                            {isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : null} Lock Month
+                          </Button>
                         </div>
                       </div>
                     </form>
                   </FormProvider>
+                  {periodNotEnded && (
+                    <div className="px-6 pb-6">
+                      <Alert className="bg-amber-50 border-amber-200 text-amber-800 [&>svg]:text-amber-600">
+                        <AlertTriangle size={16} />
+                        <AlertTitle className="text-amber-800">Bulan belum berakhir (PERIOD_NOT_ENDED)</AlertTitle>
+                        <AlertDescription className="flex flex-wrap items-center gap-2 text-amber-800/90">
+                          Cutoff WIB 23:59:59 akhir bulan belum lewat. Untuk arsip final tunggu T+1; atau simpan sebagai DRAFT.
+                          <Button size="sm" variant="outline" disabled={isPending} onClick={() => runGenerate({ allow_incomplete: true, force_regenerate: forceRegen })}>
+                            Generate draft (incomplete)
+                          </Button>
+                        </AlertDescription>
+                      </Alert>
+                    </div>
+                  )}
                 </CardContent>
               </Card>
+              <Dialog open={confirmOpen} onOpenChange={setConfirmOpen}>
+                <DialogContent>
+                  <DialogHeader>
+                    <DialogTitle>
+                      Kunci bulan {MONTH_LIST.find((p) => p.value === formField.month)?.label} {formField.year}?
+                    </DialogTitle>
+                    <DialogDescription>
+                      Generate mengunci snapshot WIB 23:59:59 ke tabel historis + CSV. Pastikan preview diff = 0 sebelum mengunci.
+                    </DialogDescription>
+                  </DialogHeader>
+                  <div className="flex flex-col gap-3 py-1">
+                    <label className="flex items-start gap-2 text-sm">
+                      <Checkbox checked={forceRegen} onCheckedChange={(v) => setForceRegen(v === true)} />
+                      <span>Tulis ulang bila bulan ini sudah ada (force_regenerate). Tanpa ini bulan terkunci dikembalikan dari cache.</span>
+                    </label>
+                    <label className="flex items-start gap-2 text-sm">
+                      <Checkbox checked={allowIncomplete} onCheckedChange={(v) => setAllowIncomplete(v === true)} />
+                      <span>Simpan sebagai DRAFT bulan berjalan (allow_incomplete). Arsip final jangan pakai flag ini.</span>
+                    </label>
+                  </div>
+                  <DialogFooter>
+                    <Button variant="outline" onClick={() => setConfirmOpen(false)}>Batal</Button>
+                    <Button
+                      disabled={isPending}
+                      onClick={async () => {
+                        setConfirmOpen(false);
+                        await runGenerate({ allow_incomplete: allowIncomplete, force_regenerate: forceRegen });
+                      }}
+                    >
+                      {isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : null} Generate
+                    </Button>
+                  </DialogFooter>
+                </DialogContent>
+              </Dialog>
               {generatedFile && (
                 <div className="flex flex-col gap-4 w-full items-center pt-4">
                   <ReportDownloads
@@ -646,6 +778,8 @@ export const OutstandingCreditView = () => {
                     summaryFileName={generatedFile?.summary_file?.file_name as string}
                     month={formField.month}
                     year={formField.year}
+                    isCached={generatedFile?.is_cached}
+                    isIncomplete={generatedFile?.is_incomplete}
                   />
                 </div>
               )}
@@ -1676,79 +1810,116 @@ function ReconciliationTable({ summary }: { summary: import("@/types/report.inte
 }
 
 function OutstandingReportsList({ year, visible }: { year?: number; visible: boolean }) {
-  const { data, isLoading } = useListOutstandingReports({ year, page: 1, page_size: 20 }, visible);
-  const items = (
-    data as unknown as {
-      data?: {
-        report_id: string;
-        period: string;
-        summary_file: { download_url: string; file_name: string };
-        detail_file: { download_url: string; file_name: string };
-        generated_at: string;
-      }[];
+  const [page, setPage] = useState(1);
+  const pageSize = 10;
+  const { data, isLoading, refetch, isFetching } = useListOutstandingReports({ year, page, page_size: pageSize }, visible);
+  const rawItems = (data as unknown as { data?: unknown })?.data;
+  const list = (Array.isArray(rawItems) ? rawItems : []) as IOutstandingReportItem[];
+  const pagination = (data as unknown as { pagination?: { page: number; total_pages: number; total_items: number; page_size: number; has_next: boolean; has_prev: boolean } })?.pagination;
+  const [downloadingId, setDownloadingId] = useState<string | null>(null);
+
+  // Signed URL 1 jam — refresh list dulu agar link fresh, baru buka
+  const handleDownload = async (reportId: string, kind: "summary" | "detail") => {
+    try {
+      setDownloadingId(`${reportId}-${kind}`);
+      const fresh = await refetch();
+      const items = ((fresh.data as unknown as { data?: unknown })?.data ?? []) as IOutstandingReportItem[];
+      const item = (Array.isArray(items) ? items : []).find((r) => r.report_id === reportId);
+      const url = kind === "summary" ? item?.summary_file?.download_url : item?.detail_file?.download_url;
+      if (url) window.open(url, "_blank", "noopener");
+      else toast.error("Download URL tidak tersedia", { description: "Klik Refresh lalu coba lagi." });
+    } finally {
+      setDownloadingId(null);
     }
-  )?.data as unknown as
-    | {
-        report_id: string;
-        period: string;
-        summary_file: { download_url: string; file_name: string };
-        detail_file: { download_url: string; file_name: string };
-        generated_at: string;
-      }[]
-    | undefined;
-  const list = Array.isArray(items)
-    ? items
-    : (items as unknown as { data?: unknown })
-    ? []
-    : ((data as unknown as { data?: unknown[] })?.data as unknown[]) ?? [];
+  };
+
   if (!visible) return null;
+  const idr = (v: number | undefined) => (v == null ? "—" : formatCurrency(v));
   return (
     <Card className="mt-4">
-      <CardHeader className="text-base font-semibold">Previous Reports {year ? `(${year})` : ""} — GET /admin/credits/outstanding/reports</CardHeader>
+      <CardHeader className="flex flex-row items-center justify-between space-y-0">
+        <p className="text-base font-semibold">Previous Reports {year ? `(${year})` : ""} — GET /admin/credits/outstanding/reports</p>
+        <Button variant="outline" size="sm" disabled={isFetching} onClick={() => refetch()}>
+          {isFetching ? <Loader2 className="h-3 w-3 animate-spin" /> : <RotateCcw className="h-3 w-3" />} Refresh
+        </Button>
+      </CardHeader>
       <CardContent>
+        <p className="mb-3 text-[11px] text-muted-foreground">Link download kedaluwarsa 1 jam — halaman me-refresh otomatis saat klik download. IDR primary.</p>
         {isLoading ? (
           <div className="flex justify-center py-4">
             <Loader2 className="h-4 w-4 animate-spin" />
           </div>
-        ) : !list || (list as unknown[]).length === 0 ? (
+        ) : list.length === 0 ? (
           <p className="text-sm text-muted-foreground">No reports found{year ? ` for ${year}` : ""}. Generate one above.</p>
         ) : (
-          <div className="flex flex-col gap-2">
-            {(
-              list as {
-                report_id: string;
-                period: string;
-                summary_file: { download_url: string; file_name: string };
-                detail_file: { download_url: string; file_name: string };
-                generated_at: string;
-                is_incomplete?: boolean;
-              }[]
-            ).map((r) => (
-              <div key={r.report_id} className="flex items-center justify-between rounded border p-3 text-sm">
-                <div>
-                  <p className="font-medium">{r.period}</p>
-                  <p className="text-xs text-muted-foreground">
-                    {formatDateHelper(r.generated_at)} {r.is_incomplete ? "(incomplete)" : ""}
-                  </p>
-                </div>
-                <div className="flex gap-2">
-                  {r.summary_file?.download_url && (
-                    <Button asChild variant="outline" size="sm">
-                      <a href={r.summary_file.download_url} download>
-                        <Download className="h-3 w-3" /> Summary
-                      </a>
-                    </Button>
-                  )}
-                  {r.detail_file?.download_url && (
-                    <Button asChild variant="outline" size="sm">
-                      <a href={r.detail_file.download_url} download>
-                        <Download className="h-3 w-3" /> Detail
-                      </a>
-                    </Button>
-                  )}
-                </div>
-              </div>
-            ))}
+          <div className="flex flex-col gap-3">
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow className="bg-muted/40 hover:bg-muted/40">
+                    <TableHead>Period</TableHead>
+                    <TableHead className="text-right">Opening</TableHead>
+                    <TableHead className="text-right">Pembelian</TableHead>
+                    <TableHead className="text-right">Pemakaian</TableHead>
+                    <TableHead className="text-right">Net Breakage</TableHead>
+                    <TableHead className="text-right">Closing</TableHead>
+                    <TableHead className="text-right">Diff</TableHead>
+                    <TableHead className="text-right">Files</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {list.map((r) => {
+                    const rr = r as unknown as Record<string, number | undefined>;
+                    const closing = rr.closing_snapshot_value_idr ?? rr.closing_value_idr ?? rr.total_outstanding_value_idr;
+                    const diff = rr.diff_value_idr;
+                    const diffBad = diff !== undefined && diff !== 0;
+                    return (
+                      <TableRow key={r.report_id} className={diffBad ? "!bg-red-50" : ""}>
+                        <TableCell>
+                          <span className="font-medium">{r.period}</span>
+                          <span className="block text-[11px] text-muted-foreground">
+                            {r.generated_at ? formatDateHelper(r.generated_at) : ""} {r.is_incomplete ? "· DRAFT" : ""}
+                          </span>
+                          {r.is_incomplete && <Badge variant="outline" className="mt-1 bg-amber-50 text-amber-700 border-amber-200 text-[10px]">incomplete</Badge>}
+                        </TableCell>
+                        <TableCell className="text-right tabular-nums">{idr(rr.opening_value_idr)}</TableCell>
+                        <TableCell className="text-right tabular-nums">{idr(rr.pembelian_value_idr ?? rr.issued_value_idr ?? rr.credits_issued)}</TableCell>
+                        <TableCell className="text-right tabular-nums">{idr(rr.pemakaian_value_idr ?? rr.used_value_idr ?? rr.credits_used)}</TableCell>
+                        <TableCell className="text-right tabular-nums">{idr(rr.net_breakage_value_idr)}</TableCell>
+                        <TableCell className="text-right tabular-nums font-medium">{idr(closing)}</TableCell>
+                        <TableCell className={`text-right tabular-nums ${diffBad ? "text-red-700 font-semibold" : ""}`}>{idr(diff)}</TableCell>
+                        <TableCell className="text-right">
+                          <span className="inline-flex gap-1.5">
+                            {r.summary_file?.download_url && (
+                              <Button variant="outline" size="sm" disabled={downloadingId === `${r.report_id}-summary`} onClick={() => handleDownload(r.report_id, "summary")}>
+                                {downloadingId === `${r.report_id}-summary` ? <Loader2 className="h-3 w-3 animate-spin" /> : <Download className="h-3 w-3" />} CSV-S
+                              </Button>
+                            )}
+                            {r.detail_file?.download_url && (
+                              <Button variant="outline" size="sm" disabled={downloadingId === `${r.report_id}-detail`} onClick={() => handleDownload(r.report_id, "detail")}>
+                                {downloadingId === `${r.report_id}-detail` ? <Loader2 className="h-3 w-3 animate-spin" /> : <Download className="h-3 w-3" />} CSV-D
+                              </Button>
+                            )}
+                          </span>
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
+                </TableBody>
+              </Table>
+            </div>
+            {pagination && pagination.total_pages > 1 && (
+              <CustomPagination
+                currentPage={pagination.page ?? page}
+                totalItems={pagination.total_items ?? list.length}
+                totalPages={pagination.total_pages}
+                limit={pagination.page_size ?? pageSize}
+                hasNextPage={pagination.has_next ?? false}
+                hasPrevPage={pagination.has_prev ?? false}
+                onPageChange={setPage}
+                showTotal
+              />
+            )}
           </div>
         )}
       </CardContent>
@@ -1764,16 +1935,20 @@ interface ReportDownloadsProps {
   detailFileName?: string;
   month?: string;
   year?: string;
+  isCached?: boolean;
+  isIncomplete?: boolean;
 }
 
-export function ReportDownloads({ detailLink, summaryLink, isLoading = false, summaryFileName, detailFileName, month, year }: ReportDownloadsProps) {
+export function ReportDownloads({ detailLink, summaryLink, isLoading = false, summaryFileName, detailFileName, month, year, isCached, isIncomplete }: ReportDownloadsProps) {
   return (
     <div className="w-full space-y-4">
       <div className="mb-2">
-        <h3 className="text-lg font-semibold text-foreground">
+        <h3 className="flex flex-wrap items-center gap-2 text-lg font-semibold text-foreground">
           Your Reports for {MONTH_LIST.find((p) => p.value === month)?.label} {year} Are Ready
+          {isCached && <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200 text-[11px]">cached — bulan sudah terkunci</Badge>}
+          {isIncomplete && <Badge variant="outline" className="bg-amber-50 text-amber-700 border-amber-200 text-[11px]">DRAFT incomplete</Badge>}
         </h3>
-        <p className="text-sm text-muted-foreground">Download your generated reports below</p>
+        <p className="text-sm text-muted-foreground">Download your generated reports below · link 1 jam</p>
       </div>
 
       <div className="grid gap-4 md:grid-cols-2">
