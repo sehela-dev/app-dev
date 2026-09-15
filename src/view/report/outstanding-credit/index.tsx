@@ -84,18 +84,18 @@ const PACKAGE_STATUS: Record<string, { label: string; className: string }> = {
 
 const tabOption = [
   {
-    name: "Snapshot (Outstanding)",
+    name: "Ringkasan (Sisa)",
     value: "snapshot",
   },
   {
-    name: "Log (Movements)",
+    name: "Log (Pergerakan)",
     value: "log",
   },
 ];
 
 const snapshotTabOption = [
-  { name: "Preview", value: "preview" },
-  { name: "Export", value: "export" },
+  { name: "Pratinjau", value: "preview" },
+  { name: "Ekspor", value: "export" },
 ];
 
 const defaultValues = {
@@ -132,7 +132,7 @@ export const OutstandingCreditView = () => {
   };
   const handlePreviewAsOfChange = (startDate: string) => {
     if (startDate && startDate > todayStr) {
-      toast.error("as_of cannot be in the future");
+      toast.error("Tanggal tidak boleh di masa depan");
       return;
     }
     setPage(1);
@@ -221,18 +221,18 @@ export const OutstandingCreditView = () => {
   const headers = [
     {
       id: "customer-name",
-      text: "Customer Name",
+      text: "Nama Customer",
       value: "customer_name",
     },
 
     {
       id: "package-name",
-      text: "Package Name",
+      text: "Nama Paket",
       value: "package_name",
     },
     {
       id: "package_status",
-      text: "Package Status",
+      text: "Status Paket",
       value: (row: IPackage) => {
         const key = (row as unknown as { package_status?: string; validity_status?: string }).validity_status ?? row.package_status ?? "";
         const s = PACKAGE_STATUS[key] ?? { label: key ? key.replace(/_/g, " ") : "-", className: "bg-gray-100 text-gray-700 border-gray-200" };
@@ -241,27 +241,27 @@ export const OutstandingCreditView = () => {
     },
     {
       id: "total-credits",
-      text: "Total Credits",
+      text: "Total Kredit",
       value: "total_credits",
     },
     {
       id: "credits-remaining",
-      text: "Credits Remaining",
+      text: "Sisa Kredit",
       value: "credits_remaining",
     },
     {
       id: "credits-used",
-      text: "Credits Used",
+      text: "Kredit Terpakai",
       value: "credits_used",
     },
     {
       id: "credits-expired",
-      text: "Credits Expired",
+      text: "Kredit Kedaluwarsa",
       value: "credits_expired",
     },
     {
       id: "outstanding-value-idr",
-      text: "Outstanding Value (IDR)",
+      text: "Nilai Sisa (IDR)",
       value: (row: IPackage) => (
         <span className="flex items-center gap-2">
           {formatCurrency(row.outstanding_value_idr)}
@@ -275,17 +275,17 @@ export const OutstandingCreditView = () => {
     },
     {
       id: "purchased-at",
-      text: "Purchased at",
+      text: "Dibeli pada",
       value: (row: IPackage) => (row?.purchased_at ? formatDateHelper(row.purchased_at as string) : "-"),
     },
     {
       id: "expired-at",
-      text: "Expired at",
+      text: "Kedaluwarsa pada",
       value: (row: IPackage) => (row?.expires_at ? formatDateHelper(row.expires_at as string) : "-"),
     },
     {
       id: "days-until-expiry",
-      text: "Days until Expiry",
+      text: "Hari hingga Kedaluwarsa",
       value: "days_until_expiry",
     },
   ];
@@ -303,9 +303,9 @@ export const OutstandingCreditView = () => {
                     <div>
                       <CardTitle className="flex items-center gap-2 text-base">
                         <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-brand-500 text-white"><CalendarDays size={14} /></span>
-                        Preview Outstanding Credit
+                        Pratinjau Sisa Kredit
                       </CardTitle>
-                      <CardDescription>Buku bulanan per cutoff WIB 23:59:59. Pilih Closing month untuk angka resmi, atau isi Daily preview untuk cek harian.</CardDescription>
+                      <CardDescription>Buku bulanan per cutoff WIB 23:59:59. Pilih Bulan closing untuk angka resmi, atau isi Pratinjau harian untuk cek harian.</CardDescription>
                     </div>
                     <Button variant="outline" size="sm" className="h-8 shrink-0 text-xs" disabled={!isPreviewFilterDirty} onClick={handleResetPreviewFilter}>
                       <RotateCcw className="h-3.5 w-3.5" /> Reset filter
@@ -314,46 +314,46 @@ export const OutstandingCreditView = () => {
                   <div className="mt-3 rounded-lg border bg-card px-3 py-2.5 text-xs leading-relaxed text-muted-foreground">
                     <p className="font-semibold text-foreground">Cara baca filter ini:</p>
                     <ul className="mt-1 list-disc space-y-0.5 pl-4">
-                      <li><span className="font-medium text-foreground">Closing month</span> = buku resmi bulan itu (sumber kebenaran). Cutoff akhir bulan jam 23:59:59 WIB. Ini yang dikunci saat Generate.</li>
-                      <li><span className="font-medium text-foreground">Daily preview (opsional)</span> = intip posisi pada tanggal tertentu. Begitu tanggal diisi, data di bawah memakai tanggal itu (<code className="rounded bg-muted px-1">as_of</code>) dan pilihan Closing month diabaikan — bulan WIB diturunkan otomatis dari tanggal tersebut.</li>
-                      <li>Kosongkan tanggal untuk kembali ke angka Closing month. Tombol <span className="font-medium">Reset filter</span> mengembalikan keduanya ke bulan berjalan.</li>
+                      <li><span className="font-medium text-foreground">Bulan closing</span> = buku resmi bulan itu (acuan utama). Cutoff akhir bulan jam 23:59:59 WIB. Ini yang dikunci saat Generate.</li>
+                      <li><span className="font-medium text-foreground">Pratinjau harian (opsional)</span> = intip posisi pada tanggal tertentu. Begitu tanggal diisi, data di bawah memakai tanggal itu dan pilihan Bulan closing diabaikan — bulan otomatis mengikuti tanggal tersebut.</li>
+                      <li>Kosongkan tanggal untuk kembali ke angka Bulan closing. Tombol <span className="font-medium">Reset filter</span> mengembalikan keduanya ke bulan berjalan.</li>
                     </ul>
                   </div>
                 </CardHeader>
                 <CardContent className="pt-5">
                   <div className="mb-3 flex flex-wrap items-center gap-2 text-xs">
                     {previewAsOf ? (
-                      <Badge variant="outline" className="bg-sky-50 text-sky-700 border-sky-200">Mode: Daily preview · {previewAsOf} (Closing month diabaikan)</Badge>
+                      <Badge variant="outline" className="bg-sky-50 text-sky-700 border-sky-200">Mode: Pratinjau harian · {previewAsOf} (Bulan closing diabaikan)</Badge>
                     ) : (
-                      <Badge variant="outline" className="bg-white">Mode: Closing month · {String(closingYear)}-{String(closingMonth).padStart(2, "0")}</Badge>
+                      <Badge variant="outline" className="bg-white">Mode: Bulan closing · {String(closingYear)}-{String(closingMonth).padStart(2, "0")}</Badge>
                     )}
                   </div>
                   <div className="grid gap-4 lg:grid-cols-[1.1fr_0.9fr]">
                     <div className="rounded-xl border bg-card p-4">
                       <div className="mb-3 flex items-center justify-between">
-                        <p className="text-sm font-semibold">Closing month <span className="font-normal text-muted-foreground">— angka resmi</span></p>
-                        <Badge variant="outline" className="bg-white text-[11px]">Source of truth</Badge>
+                        <p className="text-sm font-semibold">Bulan closing <span className="font-normal text-muted-foreground">— angka resmi</span></p>
+                        <Badge variant="outline" className="bg-white text-[11px]">Angka resmi</Badge>
                       </div>
                       <div className="flex gap-2">
                         <Select value={String(closingMonth)} onValueChange={(v) => handleClosingChange(closingYear, Number(v))}>
-                          <SelectTrigger className="w-full h-10"><SelectValue placeholder="Month" /></SelectTrigger>
+                          <SelectTrigger className="w-full h-10"><SelectValue placeholder="Bulan" /></SelectTrigger>
                           <SelectContent>{MONTH_LIST.map((m) => <SelectItem key={m.value} value={m.value}>{m.label}</SelectItem>)}</SelectContent>
                         </Select>
                         <Select value={String(closingYear)} onValueChange={(v) => handleClosingChange(Number(v), closingMonth)}>
-                          <SelectTrigger className="w-full h-10"><SelectValue placeholder="Year" /></SelectTrigger>
+                          <SelectTrigger className="w-full h-10"><SelectValue placeholder="Tahun" /></SelectTrigger>
                           <SelectContent>{YEAR_LIST.map((y) => <SelectItem key={y} value={y}>{y}</SelectItem>)}</SelectContent>
                         </Select>
                       </div>
-                      <p className="mt-2 flex items-center gap-1.5 text-[11px] text-muted-foreground"><Clock3 size={12} /> Cutoff WIB via <code className="rounded bg-muted px-1">wib_month_end</code> · <code className="rounded bg-muted px-1">GET /summary?year&month</code></p>
+                      <p className="mt-2 flex items-center gap-1.5 text-[11px] text-muted-foreground"><Clock3 size={12} /> Cutoff WIB akhir bulan jam 23:59:59</p>
                     </div>
                     <div className="rounded-xl border bg-muted/20 p-4">
-                      <p className="mb-3 text-sm font-semibold">Daily preview <span className="font-normal text-muted-foreground">(opsional — cek harian)</span></p>
+                      <p className="mb-3 text-sm font-semibold">Pratinjau harian <span className="font-normal text-muted-foreground">(opsional — cek harian)</span></p>
                       <DateRangePicker mode="single" startDate={previewAsOf} onDateRangeChange={handlePreviewAsOfChange} allowPastDates allowFutureDates={false} />
-                      <p className="mt-2 text-[11px] text-muted-foreground">Tanggal terisi = query pakai <code className="rounded bg-white px-1 py-0.5">?as_of=YYYY-MM-DD</code>, bulan WIB ikut tanggal itu. Tanggal masa depan ditolak.</p>
+                      <p className="mt-2 text-[11px] text-muted-foreground">Tanggal terisi = data memakai tanggal itu, bulan otomatis ikut tanggal tersebut. Tanggal masa depan ditolak.</p>
                       {previewAsOf ? (
-                        <Button variant="ghost" size="sm" className="mt-2 h-7 text-xs" onClick={() => { setPreviewAsOf(""); setPage(1); }}>Clear — kembali ke Closing month</Button>
+                        <Button variant="ghost" size="sm" className="mt-2 h-7 text-xs" onClick={() => { setPreviewAsOf(""); setPage(1); }}>Hapus — kembali ke Bulan closing</Button>
                       ) : (
-                        <p className="mt-2 text-[11px] text-muted-foreground">Kosong = tampilkan angka Closing month di sebelah kiri. Bukan rentang tanggal.</p>
+                        <p className="mt-2 text-[11px] text-muted-foreground">Kosong = tampilkan angka Bulan closing di sebelah kiri. Bukan rentang tanggal.</p>
                       )}
                     </div>
                   </div>
@@ -373,16 +373,14 @@ export const OutstandingCreditView = () => {
               ) : detailError ? (
                 <Alert variant="destructive">
                   <AlertTriangle size={16} />
-                  <AlertTitle>Failed to load outstanding snapshot</AlertTitle>
+                  <AlertTitle>Gagal memuat ringkasan sisa kredit</AlertTitle>
                   <AlertDescription>
                     <p className="text-xs">
                       {(detailErr as unknown as { response?: { data?: { error?: { message?: string } } } })?.response?.data?.error?.message ??
                         (detailErr as Error)?.message ??
-                        (previewAsOf
-                          ? `Check BE /admin/credits/outstanding/detail?as_of=${previewAsOf}`
-                          : `Check BE /admin/credits/outstanding/detail?year=${closingYear}&month=${closingMonth}`)}
+                        "Silakan coba lagi atau ubah filternya."}
                     </p>
-                    <p className="mt-1 text-xs">Fallback: try without as_of (year/month) or check the outstanding:view permission.</p>
+                    <p className="mt-1 text-xs">Tips: kosongkan tanggal pratinjau dan gunakan filter bulan/tahun.</p>
                   </AlertDescription>
                 </Alert>
               ) : (
@@ -428,9 +426,9 @@ export const OutstandingCreditView = () => {
                               <div className="flex items-center gap-2">
                                 <p className="text-sm font-semibold tracking-tight">{periodLabel}</p>
                                 <Badge variant="outline" className="text-[11px] font-normal">WIB 23:59:59</Badge>
-                                {!hasRecon && <Badge variant="outline" className="bg-amber-50 text-amber-700 border-amber-200 text-[11px]">Legacy</Badge>}
+                                {!hasRecon && <Badge variant="outline" className="bg-amber-50 text-amber-700 border-amber-200 text-[11px]">Lama</Badge>}
                               </div>
-                              <p className="text-[11px] text-muted-foreground">Cutoff WIB 23:59:59 — 23:59 WIB entries land in the restore month, not the expiry month</p>
+                              <p className="text-[11px] text-muted-foreground">Cutoff WIB 23:59:59 — data jam 23:59 WIB masuk ke bulan pemulihan, bukan bulan kedaluwarsa</p>
                             </div>
                           </div>
                           <div className="flex items-center gap-1 rounded-full border bg-muted p-1">
@@ -446,27 +444,27 @@ export const OutstandingCreditView = () => {
                               onClick={() => setSnapshotMetric("units")}
                               className={`rounded-full px-3.5 py-1.5 text-xs font-medium transition-colors ${snapshotMetric === "units" ? "bg-white shadow-sm text-foreground" : "text-muted-foreground hover:text-foreground"}`}
                             >
-                              Units
+                              Unit
                             </button>
                           </div>
                         </div>
                         {prev && !previewAsOf && (
                           chainOk ? (
-                            <div className="flex items-center gap-1.5 text-xs font-medium text-emerald-700"><CheckCircle2 size={14} /> Rantai OK — opening = closing {prev.period} ({(prev.closing_credits ?? 0).toLocaleString("en-US")} · {formatCurrency(prev.closing_value_idr ?? 0)}).</div>
+                            <div className="flex items-center gap-1.5 text-xs font-medium text-emerald-700"><CheckCircle2 size={14} /> Rantai OK — saldo awal = saldo akhir {prev.period} ({(prev.closing_credits ?? 0).toLocaleString("en-US")} · {formatCurrency(prev.closing_value_idr ?? 0)}).</div>
                           ) : (
                             <Alert className="bg-amber-50 border-amber-200 text-amber-800 [&>svg]:text-amber-600">
                               <AlertTriangle size={16} />
                               <AlertTitle className="text-amber-800">Opening ≠ closing bulan lalu</AlertTitle>
                               <AlertDescription className="text-amber-800/90">
-                                Opening {openingUnits.toLocaleString("en-US")} · {formatCurrency(openingIdr)} vs closing {prev.period} {(prev.closing_credits ?? 0).toLocaleString("en-US")} · {formatCurrency(prev.closing_value_idr ?? 0)}.
-                                Cek backfill urut tua → muda, atau dokumentasikan bila reset akuntansi yang disengaja.
+                                Saldo awal {openingUnits.toLocaleString("en-US")} · {formatCurrency(openingIdr)} vs saldo akhir {prev.period} {(prev.closing_credits ?? 0).toLocaleString("en-US")} · {formatCurrency(prev.closing_value_idr ?? 0)}.
+                                Periksa urutan pengisian data dari yang terlama, atau catat bila ini reset akuntansi yang disengaja.
                               </AlertDescription>
                             </Alert>
                           )
                         )}
                         {(prev || prevPrev) && (
                           <div className="flex flex-wrap items-stretch gap-2 rounded-xl border bg-card px-4 py-3">
-                            <p className="w-full text-[11px] font-medium text-muted-foreground">Bulan sebelumnya — closing per WIB 23:59:59 (IDR utama)</p>
+                            <p className="w-full text-[11px] font-medium text-muted-foreground">Bulan sebelumnya — saldo akhir per 23:59:59 WIB (utama Rupiah)</p>
                             {[
                               prevPrev ? { period: prevPrev.period, credits: prevPrev.closing_credits ?? 0, idr: prevPrev.closing_value_idr ?? 0 } : null,
                               prev ? { period: prev.period, credits: prev.closing_credits ?? 0, idr: prev.closing_value_idr ?? 0 } : null,
@@ -477,9 +475,9 @@ export const OutstandingCreditView = () => {
                                 <div key={b.period} className="flex min-w-0 flex-1 items-center gap-2">
                                   {i > 0 && <span className="shrink-0 text-muted-foreground">→</span>}
                                   <div className={`min-w-0 flex-1 rounded-lg px-3 py-2 ${i === arr.length - 1 ? "bg-brand-50/60" : "bg-muted/40"}`}>
-                                    <p className="text-[11px] text-muted-foreground">{b.period}{i === arr.length - 1 ? " · kini" : " · closing"}</p>
-                                    <p className="truncate text-sm font-semibold tabular-nums">{formatCurrency(b.idr)}</p>
-                                    <p className="text-[11px] text-muted-foreground tabular-nums">{b.credits.toLocaleString("en-US")} credits</p>
+                                      <p className="text-[11px] text-muted-foreground">{b.period}{i === arr.length - 1 ? " · kini" : " · saldo akhir"}</p>
+                                      <p className="truncate text-sm font-semibold tabular-nums">{formatCurrency(b.idr)}</p>
+                                      <p className="text-[11px] text-muted-foreground tabular-nums">{b.credits.toLocaleString("en-US")} kredit</p>
                                   </div>
                                 </div>
                               ))}
@@ -488,13 +486,13 @@ export const OutstandingCreditView = () => {
                         <div className="grid gap-4 sm:grid-cols-2">
                           <CardRevenueComponent
                             amount={snapshotMetric === "idr" ? formatCurrency(String(totalValue)) : `${totalCredits.toLocaleString("en-US")}`}
-                            title={`Closing Snapshot · ${periodLabel}`}
-                            subtitle={snapshotMetric === "idr" ? `${totalCredits.toLocaleString("en-US")} credits` : formatCurrency(totalValue)}
+                            title={`Saldo Akhir · ${periodLabel}`}
+                            subtitle={snapshotMetric === "idr" ? `${totalCredits.toLocaleString("en-US")} kredit` : formatCurrency(totalValue)}
                             footer={
                               <span className="inline-flex items-center gap-1.5">
-                                Opening {openingUnits.toLocaleString("en-US")} · {formatCurrency(openingIdr)}
+                                Saldo awal {openingUnits.toLocaleString("en-US")} · {formatCurrency(openingIdr)}
                                 <Separator orientation="vertical" className="h-3" />
-                                {previewAsOf ? `preview ${previewAsOf}` : `closing WIB 23:59:59`}
+                                {previewAsOf ? `pratinjau ${previewAsOf}` : `cutoff WIB 23:59:59`}
                               </span>
                             }
                             icon={<Wallet style={{ color: "var(--color-gray-400)" }} size={18} />}
@@ -502,9 +500,9 @@ export const OutstandingCreditView = () => {
                           />
                           <CardRevenueComponent
                             amount={formatCurrency(String(totalValue))}
-                            title="Outstanding Value · snapshot"
-                            subtitle={`${totalCredits.toLocaleString("en-US")} credits · IDR is primary`}
-                            footer="Source of truth is closing_snapshot (≤ curr_end) — never closing_formula"
+                            title="Nilai Sisa"
+                            subtitle={`${totalCredits.toLocaleString("en-US")} kredit · utama dalam Rupiah`}
+                            footer="Angka resmi bulan berjalan"
                             icon={<DollarSign style={{ color: "var(--color-gray-400)" }} size={18} />}
                             className="border-brand-100 shadow-sm hover:shadow-md transition-shadow"
                           />
@@ -515,17 +513,16 @@ export const OutstandingCreditView = () => {
                         {hasRecon && diffNonZero && (
                           <Alert variant="destructive" className="bg-red-50 border-red-200 text-red-700 [&>svg]:text-red-600">
                             <AlertTriangle size={16} />
-                            <AlertTitle className="text-red-700">Reconciliation diff ≠ 0</AlertTitle>
+                            <AlertTitle className="text-red-700">Ada selisih</AlertTitle>
                             <AlertDescription className="text-red-700/90">
-                              Snapshot vs formula gap — investigate sweep/cap timing. Do not auto-correct. Diff:{" "}
-                              <span className="font-mono font-medium">{diffUnits != null ? `${diffUnits.toLocaleString("en-US")} units` : "—"}</span> ·{" "}
+                              Ada perbedaan antara saldo akhir dan hasil hitungan — hubungi tim terkait, jangan koreksi manual. Selisih:{" "}
+                              <span className="font-mono font-medium">{diffUnits != null ? `${diffUnits.toLocaleString("en-US")} unit` : "—"}</span> ·{" "}
                               <span className="font-mono font-medium">{diffIdr != null ? formatCurrency(diffIdr) : "—"}</span>
-                              <span className="text-[11px] opacity-80"> · diff = closing_snapshot − closing_formula</span>
                             </AlertDescription>
                           </Alert>
                         )}
                         {hasRecon && !diffNonZero && diffUnits !== undefined && (
-                          <div className="flex items-center gap-1.5 text-xs font-medium text-emerald-700"><CheckCircle2 size={14} /> Reconciled — diff 0 (snapshot = formula).</div>
+                          <div className="flex items-center gap-1.5 text-xs font-medium text-emerald-700"><CheckCircle2 size={14} /> Sudah cocok — tidak ada selisih.</div>
                         )}
                       </div>
                     );
@@ -537,9 +534,9 @@ export const OutstandingCreditView = () => {
                           Outstanding Detail — {previewAsOf ? `preview ${previewAsOf}` : `closing ${String(closingYear).padStart(4, "0")}-${String(closingMonth).padStart(2, "0")}`}
                         </CardTitle>
                         <CardDescription className="text-xs">
-                          WIB 23:59:59 · {detailData && (detailData as unknown as { data?: { total_packages?: number } })?.data?.total_packages != null
-                            ? `${(detailData as unknown as { data: { total_packages: number } }).data.total_packages} packages · `
-                            : ""}shares deduped · in_house excluded
+                          Cutoff 23:59:59 WIB{detailData && (detailData as unknown as { data?: { total_packages?: number } })?.data?.total_packages != null
+                            ? ` · ${(detailData as unknown as { data: { total_packages: number } }).data.total_packages} paket`
+                            : ""}
                         </CardDescription>
                       </div>
                       <CardAction>
@@ -559,10 +556,10 @@ export const OutstandingCreditView = () => {
                             a.click();
                             window.URL.revokeObjectURL(url);
                           } catch (e: unknown) {
-                            toast.error("Export failed", {
+                            toast.error("Gagal mengunduh", {
                               description:
                                 (e as { response?: { data?: { error?: { message?: string } } } })?.response?.data?.error?.message ??
-                                "Please try again",
+                                "Silakan coba lagi",
                             });
                           } finally {
                             setCsvExporting(false);
@@ -601,7 +598,7 @@ export const OutstandingCreditView = () => {
                               </div>
                             )}
                             {total === 0 && (
-                              <p className="text-sm text-muted-foreground text-center py-4 px-6">No outstanding packages {previewAsOf ? `as of ${previewAsOf}` : `for closing ${String(closingYear).padStart(4, "0")}-${String(closingMonth).padStart(2, "0")}` }.</p>
+                              <p className="text-sm text-muted-foreground text-center py-4 px-6">Tidak ada sisa paket {previewAsOf ? `per ${previewAsOf}` : `untuk tutup bulan ${String(closingYear).padStart(4, "0")}-${String(closingMonth).padStart(2, "0")}` }.</p>
                             )}
                           </div>
                         );
@@ -615,7 +612,7 @@ export const OutstandingCreditView = () => {
           {snapshotTab === "export" && (
             <>
               <Card>
-                <CardHeader className="text-2xl font-semibold">Lock Month — Outstanding Credit</CardHeader>
+                <CardHeader className="text-2xl font-semibold">Kunci Bulan — Sisa Kredit</CardHeader>
                 <CardContent>
                   <FormProvider {...methods}>
                     <form onSubmit={onSubmit}>
@@ -624,12 +621,12 @@ export const OutstandingCreditView = () => {
                           control={methods.control}
                           name={`month`}
                           rules={{
-                            required: "Field Required!",
+                            required: "Wajib diisi!",
                           }}
                           render={({ field }) => (
                             <FormItem className="flex flex-col">
                               <FormLabel className=" text-brand-999 font-medium text-sm" required>
-                                Select Month
+                                Pilih Bulan
                               </FormLabel>
                               <FormControl>
                                 <Select
@@ -640,8 +637,8 @@ export const OutstandingCreditView = () => {
                                   defaultValue={field.value ?? ""}
                                   value={field.value ?? ""}
                                 >
-                                  <SelectTrigger className="w-full px-4 py-4 border-2 border-gray-200 rounded-lg text-gray-999  placeholder-gray-400 focus:outline-none focus:border-brand-500 transition-colors h-[42px]">
-                                    <SelectValue placeholder="Select Month" className="!text-gray-400" />
+                                    <SelectTrigger className="w-full px-4 py-4 border-2 border-gray-200 rounded-lg text-gray-999  placeholder-gray-400 focus:outline-none focus:border-brand-500 transition-colors h-[42px]">
+                                      <SelectValue placeholder="Pilih Bulan" className="!text-gray-400" />
                                   </SelectTrigger>
                                   <SelectContent>
                                     <SelectGroup>
@@ -662,12 +659,12 @@ export const OutstandingCreditView = () => {
                           control={methods.control}
                           name={`year`}
                           rules={{
-                            required: "Field Required!",
+                            required: "Wajib diisi!",
                           }}
                           render={({ field }) => (
                             <FormItem className="flex flex-col">
                               <FormLabel className=" text-brand-999 font-medium text-sm" required>
-                                Select Year
+                                Pilih Tahun
                               </FormLabel>
                               <FormControl>
                                 <Select
@@ -679,7 +676,7 @@ export const OutstandingCreditView = () => {
                                   value={field.value ?? ""}
                                 >
                                   <SelectTrigger className="w-full px-4 py-4 border-2 border-gray-200 rounded-lg text-gray-999  placeholder-gray-400 focus:outline-none focus:border-brand-500 transition-colors h-[42px]">
-                                    <SelectValue placeholder="Select Year" className="!text-gray-400" />
+                                      <SelectValue placeholder="Pilih Tahun" className="!text-gray-400" />
                                   </SelectTrigger>
                                   <SelectContent>
                                     <SelectGroup>
@@ -708,12 +705,12 @@ export const OutstandingCreditView = () => {
                               setPeriodNotEnded(false);
                             }}
                           >
-                            Clear
+                            Bersihkan
                           </Button>
                         </div>
                         <div>
                           <Button disabled={!methods.formState.isValid || isPending}>
-                            {isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : null} Lock Month
+                            {isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : null} Kunci Bulan
                           </Button>
                         </div>
                       </div>
@@ -723,11 +720,11 @@ export const OutstandingCreditView = () => {
                     <div className="px-6 pb-6">
                       <Alert className="bg-amber-50 border-amber-200 text-amber-800 [&>svg]:text-amber-600">
                         <AlertTriangle size={16} />
-                        <AlertTitle className="text-amber-800">Bulan belum berakhir (PERIOD_NOT_ENDED)</AlertTitle>
+                        <AlertTitle className="text-amber-800">Bulan belum berakhir</AlertTitle>
                         <AlertDescription className="flex flex-wrap items-center gap-2 text-amber-800/90">
-                          Cutoff WIB 23:59:59 akhir bulan belum lewat. Untuk arsip final tunggu T+1; atau simpan sebagai DRAFT.
+                          Cutoff WIB 23:59:59 akhir bulan belum lewat. Untuk arsip final tunggu T+1; atau simpan sebagai draf.
                           <Button size="sm" variant="outline" disabled={isPending} onClick={() => runGenerate({ allow_incomplete: true, force_regenerate: forceRegen })}>
-                            Generate draft (incomplete)
+                            Simpan sebagai draf
                           </Button>
                         </AlertDescription>
                       </Alert>
@@ -742,17 +739,17 @@ export const OutstandingCreditView = () => {
                       Kunci bulan {MONTH_LIST.find((p) => p.value === formField.month)?.label} {formField.year}?
                     </DialogTitle>
                     <DialogDescription>
-                      Generate mengunci snapshot WIB 23:59:59 ke tabel historis + CSV. Pastikan preview diff = 0 sebelum mengunci.
+                      Generate mengunci angka resmi WIB 23:59:59 ke arsip + CSV. Pastikan tidak ada selisih sebelum mengunci.
                     </DialogDescription>
                   </DialogHeader>
                   <div className="flex flex-col gap-3 py-1">
                     <label className="flex items-start gap-2 text-sm">
                       <Checkbox checked={forceRegen} onCheckedChange={(v) => setForceRegen(v === true)} />
-                      <span>Tulis ulang bila bulan ini sudah ada (force_regenerate). Tanpa ini bulan terkunci dikembalikan dari cache.</span>
+                      <span>Tulis ulang bila bulan ini sudah dikunci. Tanpa ini data lama dipakai kembali.</span>
                     </label>
                     <label className="flex items-start gap-2 text-sm">
                       <Checkbox checked={allowIncomplete} onCheckedChange={(v) => setAllowIncomplete(v === true)} />
-                      <span>Simpan sebagai DRAFT bulan berjalan (allow_incomplete). Arsip final jangan pakai flag ini.</span>
+                      <span>Simpan sebagai draf untuk bulan berjalan. Arsip final jangan pakai opsi ini.</span>
                     </label>
                   </div>
                   <DialogFooter>
@@ -806,6 +803,10 @@ const ENTRY_TYPE_OPTIONS: { value: LedgerEntryType; label: string }[] = [
 const ENTRY_TYPE_LABEL: Record<string, string> = {
   admin_adjustment: "Admin Adjustment",
   system_adjustment: "System Adjustment",
+  credit_issue: "Issue",
+  credit_spend: "Spend",
+  credit_refund: "Refund",
+  credit_expired: "Expired",
 };
 
 const ENTRY_TYPE_CHIP: Record<string, string> = {
@@ -837,7 +838,7 @@ const RECOGNITION_CHIP: Record<string, string> = Object.fromEntries(RECOGNITION_
 
 // ponytail: single shared copy — paste §6 verbatim on every revenue/session surface
 const RECOGNITION_DISCLAIMER =
-  "Revenue is recognized as earned at the daily 23:59 WIB checkpoint (not cash basis): classes ending today are recorded as revenue after the nightly run. Intraday figures are provisional.";
+  "Pendapatan dihitung setiap hari jam 23:59 WIB (bukan saat uang masuk): kelas yang berakhir hari ini baru tercatat sebagai pendapatan setelah proses malam hari. Angka hari ini masih sementara.";
 
 function CreditsLedgerLog() {
   const searchParams = useSearchParams();
@@ -877,7 +878,7 @@ function CreditsLedgerLog() {
     const list = (memberData?.data as unknown as { id: string; full_name: string; phone: string }[] | undefined) ?? [];
     return (
       list.find((m) => m.id === userId) ??
-      ({ id: userId, full_name: "Selected member", phone: "" } as unknown as { id: string; full_name: string; phone: string })
+      ({ id: userId, full_name: "Member terpilih", phone: "" } as unknown as { id: string; full_name: string; phone: string })
     );
   }, [userId, memberData]);
 
@@ -916,9 +917,9 @@ function CreditsLedgerLog() {
     if (!startDate || !endDate) return null;
     const s = new Date(startDate).getTime();
     const e = new Date(endDate).getTime();
-    if (s > e) return "start_date > end_date";
+    if (s > e) return "Tanggal mulai tidak boleh lebih besar dari tanggal akhir";
     const diff = Math.ceil((e - s) / (1000 * 60 * 60 * 24)) + 1;
-    if (diff > 31) return "Maximum range is 31 days";
+    if (diff > 31) return "Rentang maksimal 31 hari";
     return null;
   }, [startDate, endDate]);
 
@@ -978,8 +979,8 @@ function CreditsLedgerLog() {
     try {
       setRunning(true);
       const r = await runRecognition(endDate || undefined);
-      toast.success("Recognition run completed", {
-        description: `Credit attended ${r.credit_attended} · credit no-show ${r.credit_no_show} · cash attended ${r.cash_attended} · breakage ${r.breakage} (job ${r.job_date})`,
+      toast.success("Perhitungan pendapatan selesai", {
+        description: `Hadir ${r.credit_attended} · tidak hadir ${r.credit_no_show} · cash hadir ${r.cash_attended} · kedaluwarsa ${r.breakage} (tanggal ${r.job_date})`,
         position: "top-center",
       });
       refetch();
@@ -987,7 +988,7 @@ function CreditsLedgerLog() {
       refetchPeriodSummary?.();
     } catch (e: unknown) {
       const err = e as { response?: { data?: { error?: { message?: string } } } };
-      toast.error("Recognition run failed", { description: err?.response?.data?.error?.message ?? "Please try again", position: "top-center" });
+      toast.error("Perhitungan pendapatan gagal", { description: err?.response?.data?.error?.message ?? "Silakan coba lagi", position: "top-center" });
     } finally {
       setRunning(false);
     }
@@ -995,7 +996,7 @@ function CreditsLedgerLog() {
 
   const handleExportCsv = async () => {
     if (rangeError) {
-      toast.error("Invalid date range", { description: rangeError, position: "top-center" });
+      toast.error("Rentang tanggal tidak valid", { description: rangeError, position: "top-center" });
       return;
     }
     try {
@@ -1018,10 +1019,10 @@ function CreditsLedgerLog() {
       a.download = `credits_ledger_${startDate}_${endDate}${typeSuffix}${qSuffix}.csv`;
       a.click();
       window.URL.revokeObjectURL(url);
-      toast.success("Export started", { description: "CSV downloaded", position: "top-center" });
+      toast.success("Ekspor dimulai", { description: "File CSV terunduh", position: "top-center" });
     } catch (e: unknown) {
       const err = e as { response?: { status?: number; data?: { error?: { message?: string } } } };
-      toast.error("Export failed", { description: err?.response?.data?.error?.message ?? "Please try again", position: "top-center" });
+      toast.error("Ekspor gagal", { description: err?.response?.data?.error?.message ?? "Silakan coba lagi", position: "top-center" });
     } finally {
       setExporting(false);
     }
@@ -1030,12 +1031,12 @@ function CreditsLedgerLog() {
   const toggleEntryType = (v: string) => setEntryTypes((prev) => (prev.includes(v) ? prev.filter((x) => x !== v) : [...prev, v]));
   const toggleStatus = (v: string) => setStatuses((prev) => (prev.includes(v) ? prev.filter((x) => x !== v) : [...prev, v]));
 
-  // §4: 12 kolom bisnis — Entry Type | Customer | Amount | Nilai IDR | Package | Expiry | Session | Attendance | Recognition Status | Note | Recognized at | created_at
+  // §4: 12 kolom bisnis — Tipe | Customer | Jumlah | Nilai IDR | Paket | Kedaluwarsa | Sesi | Kehadiran | Status Pendapatan | Catatan | Diakui pada | Dibuat pada
   const headers = useMemo(
     () => [
       {
         id: "entry_type",
-        text: "Entry Type",
+        text: "Tipe",
         value: (row: ICreditsLedgerItem) => (
           <Badge variant="outline" className={`capitalize text-xs ${ENTRY_TYPE_CHIP[row.entry_type] ?? ""}`}>
             {ENTRY_TYPE_LABEL[row.entry_type] ?? row.entry_type}
@@ -1049,7 +1050,7 @@ function CreditsLedgerLog() {
       },
       {
         id: "amount",
-        text: "Amount",
+        text: "Jumlah",
         value: (row: ICreditsLedgerItem) =>
           row.amount == null ? (
             "—"
@@ -1061,7 +1062,7 @@ function CreditsLedgerLog() {
       },
       {
         id: "nilai_idr",
-        text: "Value (IDR)",
+        text: "Nilai (IDR)",
         value: (row: ICreditsLedgerItem) =>
           row.nilai_idr == null ? (
             "—"
@@ -1073,22 +1074,22 @@ function CreditsLedgerLog() {
       },
       {
         id: "package_name",
-        text: "Package",
+        text: "Paket",
         value: (row: ICreditsLedgerItem) => row.package_name ?? "—",
       },
       {
         id: "expiry_date",
-        text: "Expiry Date",
+        text: "Tanggal Kedaluwarsa",
         value: (row: ICreditsLedgerItem) => (row.expiry_date ? formatDateHelper(row.expiry_date, "dd MMM yyyy") : "—"),
       },
       {
         id: "session_date",
-        text: "Class / Session Date",
+        text: "Tanggal Kelas / Sesi",
         value: (row: ICreditsLedgerItem) => (row.session_date ? formatDateHelper(row.session_date, "dd MMM yyyy HH:mm") : "—"),
       },
       {
         id: "attendance",
-        text: "Attendance",
+        text: "Kehadiran",
         value: (row: ICreditsLedgerItem) =>
           !row.attendance ? (
             "—"
@@ -1105,7 +1106,7 @@ function CreditsLedgerLog() {
       },
       {
         id: "recognition_status",
-        text: "Recognition Status",
+        text: "Status Pendapatan",
         value: (row: ICreditsLedgerItem) => (
           <span className="flex flex-col gap-0.5">
             <Badge variant="outline" className={`text-xs whitespace-nowrap ${RECOGNITION_CHIP[row.recognition_status] ?? ""}`}>
@@ -1117,7 +1118,7 @@ function CreditsLedgerLog() {
       },
       {
         id: "note",
-        text: "Note",
+        text: "Catatan",
         value: (row: ICreditsLedgerItem) => (
           <span className="block max-w-[240px] truncate" title={row.note ?? ""}>
             {row.note ?? "—"}
@@ -1126,12 +1127,12 @@ function CreditsLedgerLog() {
       },
       {
         id: "recognized_at",
-        text: "Recognized at",
+        text: "Diakui pada",
         value: (row: ICreditsLedgerItem) => (row.recognized_at ? formatDateHelper(row.recognized_at, "dd MMM yyyy HH:mm") : "—"),
       },
       {
         id: "created_at",
-        text: "Created at",
+        text: "Dibuat pada",
         value: (row: ICreditsLedgerItem) => row.created_at_wib || formatDateHelper(row.created_at, "dd MMM yyyy HH:mm") + " WIB",
       },
     ],
@@ -1141,20 +1142,20 @@ function CreditsLedgerLog() {
   return (
     <div className="flex flex-col gap-4 w-full">
       <Card className="w-full max-w-vw">
-        <CardHeader className="text-lg font-semibold">Credit Ledger (earned 23:59 WIB)</CardHeader>
+        <CardHeader className="text-lg font-semibold">Buku Kredit (pendapatan dihitung 23:59 WIB)</CardHeader>
         <CardContent className="flex flex-col gap-4 w-full">
           <p className="rounded-lg border bg-muted/30 px-3 py-2 text-xs leading-relaxed text-muted-foreground">{RECOGNITION_DISCLAIMER}</p>
-          {/* filters — q = customer OR package OR note; member select narrows via user_id */}
+          {/* filter — cari customer / paket / catatan; pilihan member mempersempit hasil */}
           <div className="grid grid-cols-1 gap-4 md:grid-cols-12">
             <div className="flex flex-col gap-1 md:col-span-4">
-              <p className="text-sm font-medium">Search customer / package / note</p>
+              <p className="text-sm font-medium">Cari customer / paket / catatan</p>
               <div className="relative">
                 <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
-                <Input className="pl-8" placeholder="Search customer, package, note..." value={qInput} onChange={(e) => setQInput(e.target.value)} />
+                <Input className="pl-8" placeholder="Cari customer, paket, catatan..." value={qInput} onChange={(e) => setQInput(e.target.value)} />
               </div>
             </div>
             <div className="flex flex-col gap-1 md:col-span-6">
-              <p className="text-sm font-medium">Date Range</p>
+              <p className="text-sm font-medium">Rentang tanggal</p>
               <DateRangePicker
                 mode="range"
                 startDate={startDate}
@@ -1170,14 +1171,14 @@ function CreditsLedgerLog() {
               />
             </div>
             <div className="flex flex-col gap-1 md:col-span-2">
-              <p className="text-sm font-medium">Order</p>
+              <p className="text-sm font-medium">Urutan</p>
               <Select value={order} onValueChange={(v) => setOrder(v as "asc" | "desc")}>
                 <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="desc">Newest</SelectItem>
-                  <SelectItem value="asc">Oldest</SelectItem>
+                  <SelectItem value="desc">Terbaru</SelectItem>
+                  <SelectItem value="asc">Terlama</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -1187,7 +1188,7 @@ function CreditsLedgerLog() {
             <ReactSelect
               isClearable
               isLoading={memberLoading}
-              placeholder="Select member..."
+              placeholder="Pilih member..."
               value={
                 selectedMember
                   ? ({
@@ -1227,12 +1228,12 @@ function CreditsLedgerLog() {
               getOptionLabel={(opt) => (opt as unknown as { label: string }).label}
             />
             <p className="text-xs text-muted-foreground">
-              Filters ledger by member via <code>user_id</code>; free text <code>q</code> matches customer / package / note.
+              Pilih member untuk memfilter buku berdasarkan customer; kolom pencarian cocok dengan nama customer / paket / catatan.
             </p>
           </div>
 
           <div className="flex flex-wrap items-center gap-3">
-            <span className="text-sm font-medium">Type:</span>
+            <span className="text-sm font-medium">Tipe:</span>
             {ENTRY_TYPE_OPTIONS.map((o) => (
               <label key={o.value} className="flex items-center gap-1.5 text-sm cursor-pointer">
                 <Checkbox checked={entryTypes.includes(o.value)} onCheckedChange={() => toggleEntryType(o.value)} />
@@ -1243,7 +1244,7 @@ function CreditsLedgerLog() {
             ))}
             {entryTypes.length > 0 && (
               <Button variant="ghost" size="sm" onClick={() => setEntryTypes([])}>
-                Clear
+                Hapus
               </Button>
             )}
           </div>
@@ -1260,7 +1261,7 @@ function CreditsLedgerLog() {
             ))}
             {statuses.length > 0 && (
               <Button variant="ghost" size="sm" onClick={() => setStatuses([])}>
-                Clear
+                Hapus
               </Button>
             )}
           </div>
@@ -1270,20 +1271,20 @@ function CreditsLedgerLog() {
           <div className="flex flex-wrap justify-end gap-2 pt-2">
             <Button onClick={handleRunRecognition} disabled={!!rangeError || running} variant="default" size="sm">
               {running ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
-              Run Recognition ({endDate || "today"})
+              Hitung Ulang ({endDate || "hari ini"})
             </Button>
             <Button onClick={handleExportCsv} disabled={!!rangeError || exporting} variant="outline" size="sm">
               {exporting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
-              Export CSV
+              Unduh CSV
             </Button>
           </div>
           <p className="text-[11px] text-muted-foreground">
-            Statuses are calculated as of {endDate || "today"} · daily auto-run at 23:59 WIB; the button is for backfill / corrections only (idempotent).
+            Status dihitung per {endDate || "hari ini"} · perhitungan otomatis setiap hari jam 23:59 WIB; tombol ini hanya untuk mengisi ulang data yang tertinggal / koreksi.
           </p>
         </CardContent>
       </Card>
 
-      {/* KPI header from GET /admin/credits/ledger/summary — filtered set reconciles with the table; accrual cards use the period (unfiltered entry_type) summary */}
+      {/* Ringkasan pergerakan kredit — angka mengikuti filter tabel; kartu akrual memakai ringkasan periode */}
       {(() => {
         const unwrap = (res: unknown) => {
           const s = (res as unknown as { data?: ICreditsLedgerSummary | { data: ICreditsLedgerSummary } })?.data as unknown as
@@ -1331,9 +1332,15 @@ function CreditsLedgerLog() {
         const netEmpty = summary.net_credits === 0 && summary.net_value_idr === 0;
         const outstandingAnomaly = !!out && out.credits > 0 && out.value_idr < 0;
         const filterEcho = summary.filters;
-        const filterEntry = Array.isArray(filterEcho?.entry_type)
-          ? (filterEcho.entry_type as string[]).join(", ")
-          : (filterEcho?.entry_type as string | undefined);
+        const rawFilterEntry = Array.isArray(filterEcho?.entry_type)
+          ? (filterEcho.entry_type as string[]).join(",")
+          : ((filterEcho?.entry_type as string | undefined) ?? "");
+        const filterEntry = rawFilterEntry
+          ? rawFilterEntry
+              .split(",")
+              .map((v) => ENTRY_TYPE_LABEL[v.trim()] ?? v.trim())
+              .join(", ")
+          : "";
         const isFiltered = !!filterEntry;
         const fmtSigned = (n: number) => (n > 0 ? `+${n.toLocaleString("en-US")}` : n.toLocaleString("en-US"));
         return (
@@ -1341,39 +1348,39 @@ function CreditsLedgerLog() {
             <CardHeader className="pb-3">
               <div className="flex flex-wrap items-start justify-between gap-2">
                 <div className="flex flex-col gap-1.5">
-                  <h3 className="text-base font-semibold tracking-tight">Credit Movement Summary</h3>
+                  <h3 className="text-base font-semibold tracking-tight">Ringkasan Pergerakan Kredit</h3>
                   <p className="text-xs text-muted-foreground">
-                    {summary.period ?? summary.periode} · {summary.total_movements.toLocaleString("en-US")} movements in the
-                    selected period · reconciles with the table below
+                    {summary.period ?? summary.periode} · {summary.total_movements.toLocaleString("en-US")} pergerakan pada
+                    periode ini · sesuai dengan tabel di bawah
                   </p>
                   <div className="flex flex-wrap items-center gap-1.5">
                     {filterEntry ? (
                       <Badge variant="outline" className="bg-amber-50 text-amber-700 border-amber-200 text-[11px]">
-                        Filtered by: {filterEntry}
+                        Filter: {filterEntry}
                       </Badge>
                     ) : (
                       <Badge variant="outline" className="text-[11px]">
-                        Full period (no entry-type filter)
+                        1 periode penuh (tanpa filter tipe)
                       </Badge>
                     )}
-                    {summary.filters?.user_id ? <Badge variant="outline" className="text-[11px]">Member filtered</Badge> : null}
-                    {summary.filters?.q ? <Badge variant="outline" className="text-[11px]">Search: {summary.filters.q}</Badge> : null}
+                    {summary.filters?.user_id ? <Badge variant="outline" className="text-[11px]">Member terfilter</Badge> : null}
+                    {summary.filters?.q ? <Badge variant="outline" className="text-[11px]">Cari: {summary.filters.q}</Badge> : null}
                   </div>
                 </div>
                 <Badge variant="outline" className="text-xs font-medium">
-                  Net {fmtSigned(summary.net_credits)} credits
+                  Bersih {fmtSigned(summary.net_credits)} kredit
                 </Badge>
               </div>
             </CardHeader>
             <CardContent className="flex flex-col gap-5">
-              {/* Row 1: movement breakdown by entry type (filtered — matches the ledger table) */}
+              {/* Baris 1: rincian pergerakan per tipe (mengikuti filter — sama dengan tabel) */}
               <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-5">
                 <CardRevenueComponent
-                  title="Issued"
-                  amount={`${fmtSigned(issuance.credits)} credits`}
+                  title="Issue"
+                  amount={`${fmtSigned(issuance.credits)} kredit`}
                   amountClassName="text-emerald-600"
                   subtitle={formatCurrency(issuance.value_idr)}
-                  footer={`${issuance.count.toLocaleString("en-US")} movements · Dr Cash / Cr Deferred`}
+                  footer={`${issuance.count.toLocaleString("en-US")} pergerakan`}
                   icon={
                     <span className="flex h-8 w-8 items-center justify-center rounded-full bg-emerald-500/10 text-emerald-600">
                       <ArrowDownRight size={16} />
@@ -1381,11 +1388,11 @@ function CreditsLedgerLog() {
                   }
                 />
                 <CardRevenueComponent
-                  title="Used"
-                  amount={`${fmtSigned(usage.credits)} credits`}
+                  title="Spend"
+                  amount={`${fmtSigned(usage.credits)} kredit`}
                   amountClassName="text-red-600"
                   subtitle={formatCurrency(usage.value_idr)}
-                  footer={`${usage.count.toLocaleString("en-US")} movements · Dr Deferred / Cr Revenue`}
+                  footer={`${usage.count.toLocaleString("en-US")} pergerakan`}
                   icon={
                     <span className="flex h-8 w-8 items-center justify-center rounded-full bg-red-500/10 text-red-600">
                       <ArrowUpRight size={16} />
@@ -1393,11 +1400,11 @@ function CreditsLedgerLog() {
                   }
                 />
                 <CardRevenueComponent
-                  title="Refunded"
-                  amount={`${fmtSigned(refund.credits)} credits`}
+                  title="Refund"
+                  amount={`${fmtSigned(refund.credits)} kredit`}
                   amountClassName="text-blue-600"
                   subtitle={formatCurrency(refund.value_idr)}
-                  footer={`${refund.count.toLocaleString("en-US")} movements`}
+                  footer={`${refund.count.toLocaleString("en-US")} pergerakan`}
                   icon={
                     <span className="flex h-8 w-8 items-center justify-center rounded-full bg-blue-500/10 text-blue-600">
                       <RotateCcw size={16} />
@@ -1406,10 +1413,10 @@ function CreditsLedgerLog() {
                 />
                 <CardRevenueComponent
                   title="Expired"
-                  amount={`${fmtSigned(expired.credits)} credits`}
+                  amount={`${fmtSigned(expired.credits)} kredit`}
                   amountClassName="text-zinc-500"
                   subtitle={formatCurrency(expired.value_idr)}
-                  footer={`${expired.count.toLocaleString("en-US")} movements · breakage`}
+                  footer={`${expired.count.toLocaleString("en-US")} pergerakan · hangus`}
                   icon={
                     <span className="flex h-8 w-8 items-center justify-center rounded-full bg-zinc-500/10 text-zinc-500">
                       <Hourglass size={16} />
@@ -1417,11 +1424,11 @@ function CreditsLedgerLog() {
                   }
                 />
                 <CardRevenueComponent
-                  title="Adjusted"
-                  amount={`${fmtSigned(adjustment.credits)} credits`}
+                  title="Adjustment"
+                  amount={`${fmtSigned(adjustment.credits)} kredit`}
                   amountClassName="text-amber-600"
                   subtitle={formatCurrency(adjustment.value_idr)}
-                  footer={`${adjustment.count.toLocaleString("en-US")} movements`}
+                  footer={`${adjustment.count.toLocaleString("en-US")} pergerakan`}
                   icon={
                     <span className="flex h-8 w-8 items-center justify-center rounded-full bg-amber-500/10 text-amber-600">
                       <FileText size={16} />
@@ -1431,23 +1438,23 @@ function CreditsLedgerLog() {
               </div>
               {Object.keys(byStatus).length > 0 && (
                 <div className="flex flex-wrap items-center gap-1.5 text-xs">
-                  <span className="text-muted-foreground">By status:</span>
+                  <span className="text-muted-foreground">Per status:</span>
                   {Object.entries(byStatus).map(([k, v]) => (
-                    <Badge key={k} variant="outline" className={`text-[11px] ${RECOGNITION_CHIP[k] ?? ""}`} title={v.journal}>
+                    <Badge key={k} variant="outline" className={`text-[11px] ${RECOGNITION_CHIP[k] ?? ""}`}>
                       {k} · {v.count.toLocaleString("en-US")} · {formatCurrency(v.value_idr)}
                     </Badge>
                   ))}
                 </div>
               )}
 
-              {/* Row 2: highlighted — Net vs Outstanding (remaining now) */}
+              {/* Baris 2: sorotan — Bersih vs Sisa (saat ini) */}
               <div className="grid grid-cols-1 gap-3 lg:grid-cols-2">
                 <CardRevenueComponent
-                  title="Net Movement"
-                  amount={netEmpty ? "0 credits" : `${fmtSigned(summary.net_credits)} credits`}
+                  title="Pergerakan Bersih"
+                  amount={netEmpty ? "0 kredit" : `${fmtSigned(summary.net_credits)} kredit`}
                   amountClassName={summary.net_credits < 0 ? "text-red-600" : summary.net_credits > 0 ? "text-emerald-600" : undefined}
-                  subtitle={netEmpty ? "No net movement in this period" : formatCurrency(summary.net_value_idr)}
-                  footer="In minus out for the filtered set. Negative means usage exceeded issuance."
+                  subtitle={netEmpty ? "Tidak ada pergerakan bersih pada periode ini" : formatCurrency(summary.net_value_idr)}
+                  footer="Masuk dikurangi keluar untuk data yang tampil. Negatif berarti pemakaian lebih besar dari penerbitan."
                   icon={
                     <span className="flex h-8 w-8 items-center justify-center rounded-full bg-violet-500/10 text-violet-600">
                       <Activity size={16} />
@@ -1456,24 +1463,24 @@ function CreditsLedgerLog() {
                 />
                 <CardRevenueComponent
                   className="border-primary/30 bg-primary/[0.03] shadow-sm"
-                  title="Outstanding · remaining now"
-                  amount={out ? `${out.credits.toLocaleString("en-US")} credits` : "—"}
+                  title="Sisa · saat ini"
+                  amount={out ? `${out.credits.toLocaleString("en-US")} kredit` : "—"}
                   subtitle={out ? formatCurrency(out.value_idr) : undefined}
                   footer={
                     out ? (
                       <span className="flex flex-col gap-1">
                         <span>
-                          {out.packages.toLocaleString("en-US")} packages still hold credit · advance payments held as a liability ·
-                          as of now, not period-end
+                          {out.packages.toLocaleString("en-US")} paket masih menyimpan kredit · uang muka yang ditahan ·
+                          posisi saat ini, bukan akhir periode
                         </span>
                         {outstandingAnomaly && (
                           <span className="font-medium text-amber-700">
-                            Data anomaly: positive credits with a negative value — shown as returned, flagged for backend.
+                            Perlu perhatian: kredit positif dengan nilai negatif — harap hubungi tim terkait.
                           </span>
                         )}
                       </span>
                     ) : (
-                      "No outstanding packages in this filter"
+                      "Tidak ada sisa paket pada filter ini"
                     )
                   }
                   icon={
@@ -1484,7 +1491,7 @@ function CreditsLedgerLog() {
                 />
               </div>
               {(() => {
-                // Accrual cards use the period summary (entry_type omitted) — never the table-filtered summary.
+                // Kartu akrual memakai ringkasan periode — bukan ringkasan yang terfilter tabel.
                 const src = period ?? summary;
                 const db = src.deferred_buckets;
                 if (!db) return null;
@@ -1494,7 +1501,7 @@ function CreditsLedgerLog() {
                 const ending = db.ending_deferred_balance ?? db.saldo_tangguhan_akhir;
                 const total = db.recognized_total ?? db.diakui_total;
                 const cash = db.cash;
-                // Reversal = expiry-override restore only (not a refund); missing key → zeros
+                // Pemulihan = pengembalian kredit kedaluwarsa saja (bukan refund); bila kosong → nol
                 const reversal = (src.by_status?.[REVERSAL_STATUS] as unknown as typeof db.breakage | undefined) ?? db.reversal ?? {
                   count: 0,
                   credits: 0,
@@ -1505,11 +1512,10 @@ function CreditsLedgerLog() {
                 if (!sold && !attended && !noShow && !db.breakage && !ending && !cash && !hasReversal) return null;
                 const creditCards = [
                   {
-                    title: "Credit Sold",
-                    hint: "Cash received, revenue deferred · excl. system re-issues",
-                    journal: sold?.journal,
+                    title: "Kredit Terjual",
+                    hint: "Uang diterima, pendapatan ditunda",
                     amount: formatCurrency(sold?.value_idr ?? 0),
-                    footer: `${(sold?.credits ?? 0).toLocaleString("en-US")} credits · ${sold?.count ?? 0} movements`,
+                    footer: `${(sold?.credits ?? 0).toLocaleString("en-US")} kredit · ${sold?.count ?? 0} pergerakan`,
                     icon: (
                       <span className="flex h-8 w-8 items-center justify-center rounded-full bg-sky-500/10 text-sky-600">
                         <ShoppingBag size={16} />
@@ -1517,11 +1523,10 @@ function CreditsLedgerLog() {
                     ),
                   },
                   {
-                    title: "Recognized · Attended",
-                    hint: "Revenue earned on attendance",
-                    journal: attended?.journal,
+                    title: "Diakui · Hadir",
+                    hint: "Pendapatan dari kehadiran",
                     amount: formatCurrency(attended?.value_idr ?? 0),
-                    footer: `${(attended?.credits ?? 0).toLocaleString("en-US")} credits · ${attended?.count ?? 0} movements`,
+                    footer: `${(attended?.credits ?? 0).toLocaleString("en-US")} kredit · ${attended?.count ?? 0} pergerakan`,
                     icon: (
                       <span className="flex h-8 w-8 items-center justify-center rounded-full bg-emerald-500/10 text-emerald-600">
                         <BadgeCheck size={16} />
@@ -1529,11 +1534,10 @@ function CreditsLedgerLog() {
                     ),
                   },
                   {
-                    title: "Recognized · No-show",
-                    hint: "Revenue forfeited on no-show",
-                    journal: noShow?.journal,
+                    title: "Diakui · Tidak hadir",
+                    hint: "Pendapatan dari ketidakhadiran",
                     amount: formatCurrency(noShow?.value_idr ?? 0),
-                    footer: `${(noShow?.credits ?? 0).toLocaleString("en-US")} credits · ${noShow?.count ?? 0} movements`,
+                    footer: `${(noShow?.credits ?? 0).toLocaleString("en-US")} kredit · ${noShow?.count ?? 0} pergerakan`,
                     icon: (
                       <span className="flex h-8 w-8 items-center justify-center rounded-full bg-amber-500/10 text-amber-600">
                         <UserX size={16} />
@@ -1541,11 +1545,10 @@ function CreditsLedgerLog() {
                     ),
                   },
                   {
-                    title: "Breakage · Expired",
-                    hint: "Revenue from expired credits",
-                    journal: db.breakage?.journal,
+                    title: "Hangus · Kedaluwarsa",
+                    hint: "Pendapatan dari kredit kedaluwarsa",
                     amount: formatCurrency(db.breakage?.value_idr ?? 0),
-                    footer: `${(db.breakage?.credits ?? 0).toLocaleString("en-US")} credits · ${db.breakage?.count ?? 0} movements`,
+                    footer: `${(db.breakage?.credits ?? 0).toLocaleString("en-US")} kredit · ${db.breakage?.count ?? 0} pergerakan`,
                     icon: (
                       <span className="flex h-8 w-8 items-center justify-center rounded-full bg-orange-500/10 text-orange-600">
                         <TimerOff size={16} />
@@ -1553,11 +1556,10 @@ function CreditsLedgerLog() {
                     ),
                   },
                   {
-                    title: "Reversal · Breakage Restore",
-                    hint: "Expiry-override restore only — not a refund",
-                    journal: reversal.journal ?? REVERSAL_JOURNAL,
+                    title: "Pemulihan · Kedaluwarsa",
+                    hint: "Pengembalian kredit kedaluwarsa — bukan refund",
                     amount: formatCurrency(reversal.value_idr ?? 0),
-                    footer: `${(reversal.credits ?? 0).toLocaleString("en-US")} credits · ${reversal.count ?? 0} movements`,
+                    footer: `${(reversal.credits ?? 0).toLocaleString("en-US")} kredit · ${reversal.count ?? 0} pergerakan`,
                     icon: (
                       <span className="flex h-8 w-8 items-center justify-center rounded-full bg-purple-500/10 text-purple-600">
                         <Undo2 size={16} />
@@ -1565,11 +1567,10 @@ function CreditsLedgerLog() {
                     ),
                   },
                   {
-                    title: "Ending Deferred Balance",
-                    hint: "Still owed as future sessions (liability)",
-                    journal: (ending as unknown as { journal?: string })?.journal,
+                    title: "Sisa Pendapatan Ditunda",
+                    hint: "Masih terutang sebagai sesi mendatang",
                     amount: formatCurrency((ending as unknown as { value_idr?: number })?.value_idr ?? 0),
-                    footer: `${((ending as unknown as { credits?: number })?.credits ?? 0).toLocaleString("en-US")} credits · ${((ending as unknown as { packages?: number })?.packages ?? 0).toLocaleString("en-US")} packages`,
+                    footer: `${((ending as unknown as { credits?: number })?.credits ?? 0).toLocaleString("en-US")} kredit · ${((ending as unknown as { packages?: number })?.packages ?? 0).toLocaleString("en-US")} paket`,
                     icon: (
                       <span className="flex h-8 w-8 items-center justify-center rounded-full bg-violet-500/10 text-violet-600">
                         <Landmark size={16} />
@@ -1581,25 +1582,20 @@ function CreditsLedgerLog() {
                   <div className="flex flex-col gap-4 rounded-2xl border border-muted bg-muted/20 p-4 sm:p-5">
                     <div className="flex flex-wrap items-start justify-between gap-2">
                       <div className="flex flex-col gap-0.5">
-                        <p className="text-sm font-semibold tracking-tight">Revenue Recognition · Accrual</p>
+                        <p className="text-sm font-semibold tracking-tight">Pengakuan Pendapatan · Akrual</p>
                         <p className="text-[11px] text-muted-foreground">
-                          Period totals (entry-type filter omitted) · credit revenue only · cash is a separate bookings
-                          query — never add cash and credit counts together
-                        </p>
-                        <p className="text-[11px] text-muted-foreground">
-                          Total includes manager credit reductions — don&apos;t re-add attended + no-show + breakage. Sold
-                          excludes system re-issues, so a sold drop isn&apos;t falling sales. Rollover appears twice by
-                          design (source breakage + target spend).
+                          Total 1 periode penuh (tanpa filter tipe) · khusus pendapatan kredit · cash dihitung terpisah —
+                          jangan jumlahkan angka cash dan kredit
                         </p>
                         {isFiltered && (
                           <p className="text-[11px] text-amber-700">
-                            Table is filtered ({filterEntry}); cards below still show full-period accrual.
+                            Tabel sedang difilter ({filterEntry}); kartu di bawah tetap menampilkan 1 periode penuh.
                           </p>
                         )}
                       </div>
                       {total && (
                         <Badge variant="outline" className="bg-emerald-50 text-emerald-700 border-emerald-200 text-[11px] font-medium">
-                          Total credit revenue · {formatCurrency(total.value_idr)}
+                          Total pendapatan kredit · {formatCurrency(total.value_idr)}
                         </Badge>
                       )}
                     </div>
@@ -1610,12 +1606,7 @@ function CreditsLedgerLog() {
                           title={c.title}
                           amount={c.amount}
                           subtitle={c.hint}
-                          footer={
-                            <span className="flex flex-col gap-0.5">
-                              <span>{c.footer}</span>
-                              {c.journal && <span className="font-mono text-[10px]">{c.journal}</span>}
-                            </span>
-                          }
+                          footer={<span className="flex flex-col gap-0.5"><span>{c.footer}</span></span>}
                           icon={c.icon}
                         />
                       ))}
@@ -1623,18 +1614,17 @@ function CreditsLedgerLog() {
                     {cash && (
                       <div className="flex flex-col gap-2">
                         <div className="flex flex-wrap items-center justify-between gap-2">
-                          <p className="text-xs font-semibold text-muted-foreground">Cash flow · same dates, bookings-based</p>
-                          <p className="text-[11px] text-muted-foreground">Recognized attended + no-show ≤ sold; the gap is sessions not yet ended.</p>
+                          <p className="text-xs font-semibold text-muted-foreground">Arus cash · tanggal yang sama, berbasis booking</p>
+                          <p className="text-[11px] text-muted-foreground">Selisih terjual dengan yang sudah diakui adalah sesi yang belum berakhir.</p>
                         </div>
                         <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
                           <CardRevenueComponent
-                            title="Cash Sold"
+                            title="Cash Terjual"
                             amount={formatCurrency(cash.sold?.value_idr ?? 0)}
-                            subtitle="Cash collected in period"
+                            subtitle="Cash yang terkumpul pada periode ini"
                             footer={
                               <span className="flex flex-col gap-0.5">
-                                <span>{(cash.sold?.count ?? 0).toLocaleString("en-US")} bookings</span>
-                                {cash.sold?.journal && <span className="font-mono text-[10px]">{cash.sold.journal}</span>}
+                                <span>{(cash.sold?.count ?? 0).toLocaleString("en-US")} booking</span>
                               </span>
                             }
                             icon={
@@ -1644,15 +1634,12 @@ function CreditsLedgerLog() {
                             }
                           />
                           <CardRevenueComponent
-                            title="Cash Recognized · Attended"
+                            title="Cash Diakui · Hadir"
                             amount={formatCurrency(cash.recognized_attended?.value_idr ?? 0)}
-                            subtitle="Cash revenue earned"
+                            subtitle="Pendapatan cash yang sudah diakui"
                             footer={
                               <span className="flex flex-col gap-0.5">
-                                <span>{(cash.recognized_attended?.count ?? 0).toLocaleString("en-US")} bookings</span>
-                                {cash.recognized_attended?.journal && (
-                                  <span className="font-mono text-[10px]">{cash.recognized_attended.journal}</span>
-                                )}
+                                <span>{(cash.recognized_attended?.count ?? 0).toLocaleString("en-US")} booking</span>
                               </span>
                             }
                             icon={
@@ -1662,15 +1649,12 @@ function CreditsLedgerLog() {
                             }
                           />
                           <CardRevenueComponent
-                            title="Cash Recognized · No-show"
+                            title="Cash Diakui · Tidak hadir"
                             amount={formatCurrency(cash.recognized_no_show?.value_idr ?? 0)}
-                            subtitle="Cash revenue forfeited"
+                            subtitle="Pendapatan cash dari ketidakhadiran"
                             footer={
                               <span className="flex flex-col gap-0.5">
-                                <span>{(cash.recognized_no_show?.count ?? 0).toLocaleString("en-US")} bookings</span>
-                                {cash.recognized_no_show?.journal && (
-                                  <span className="font-mono text-[10px]">{cash.recognized_no_show.journal}</span>
-                                )}
+                                <span>{(cash.recognized_no_show?.count ?? 0).toLocaleString("en-US")} booking</span>
                               </span>
                             }
                             icon={
@@ -1682,9 +1666,6 @@ function CreditsLedgerLog() {
                         </div>
                       </div>
                     )}
-                    {total?.journal && (
-                      <p className="text-[11px] text-muted-foreground">Journal (credit total): {total.journal}</p>
-                    )}
                   </div>
                 );
               })()}
@@ -1695,8 +1676,8 @@ function CreditsLedgerLog() {
 
       <Card className="overflow-hidden min-w-0 max-w-full">
         <CardHeader className="pb-3">
-          <CardTitle className="text-sm">Outstanding Detail</CardTitle>
-          <CardDescription className="text-xs">Package-level snapshot · shares already deduped by BE · in_house excluded</CardDescription>
+          <CardTitle className="text-sm">Rincian Pergerakan</CardTitle>
+          <CardDescription className="text-xs">Per paket · data per customer sudah digabung</CardDescription>
         </CardHeader>
         <CardContent className="pt-0 min-w-0 max-w-full overflow-hidden">
           {isLoading || isFetching ? (
@@ -1708,11 +1689,11 @@ function CreditsLedgerLog() {
           ) : isError ? (
             <Alert variant="destructive">
               <AlertTriangle size={16} />
-              <AlertTitle>Failed to load ledger</AlertTitle>
+              <AlertTitle>Gagal memuat buku kredit</AlertTitle>
               <AlertDescription className="text-xs">
                 {(error as unknown as { response?: { data?: { error?: { message?: string } } } })?.response?.data?.error?.message ??
                   (error as Error)?.message ??
-                  "Check GET /admin/credits/ledger with the current filters."}
+                  "Silakan coba lagi atau ubah filternya."}
               </AlertDescription>
             </Alert>
           ) : (
@@ -1741,37 +1722,51 @@ function CreditsLedgerLog() {
 function ReconciliationTable({ summary }: { summary: import("@/types/report.interface").IOutstandingSummaryData["summary"] }) {
   const s = summary as unknown as Record<string, unknown>;
   const n = (k: string) => (typeof s[k] === "number" ? (s[k] as number) : 0);
-  // ponytail: 11-row RECONCILIATION — units + value_idr from BE, never FE unit×amount
+  // Penjelasan tiap pos untuk tooltip (bahasa non-teknis untuk admin/manager)
+  const tooltips: Record<string, string> = {
+    pembelian: "Kredit baru dari pembelian paket bulan ini",
+    pemakaian: "Kredit yang dipakai untuk booking bulan ini",
+    expired: "Kredit yang hangus karena lewat masa berlaku",
+    reversal: "Kredit hangus yang dihidupkan kembali bulan ini",
+    refund: "Kredit yang dikembalikan ke pelanggan",
+    admin_adj: "Koreksi manual oleh admin",
+    system: "Koreksi otomatis oleh sistem",
+    net_breakage: "Kedaluwarsa dikurangi Pemulihan — yang benar-benar hangus",
+    closing_snapshot: "Total sisa kredit di akhir bulan (angka resmi)",
+    closing_formula: "Hasil hitungan dari semua mutasi bulan ini",
+    diff: "Selisih Saldo Akhir dan Saldo Hitungan — seharusnya 0",
+  };
+  // ponytail: 11 baris REKONSILIASI — unit + value_idr dari server, jangan hitung ulang di FE
   const rows: { bucket: string; label: string; units: number; valueIdr: number; subtle?: string; icon?: React.ReactNode }[] = [
-    { bucket: "pembelian", label: "Pembelian", units: n("pembelian_units"), valueIdr: n("pembelian_value_idr"), subtle: "credit_issue excl. in_house", icon: <ShoppingBag size={13} className="text-sky-600" /> },
-    { bucket: "pemakaian", label: "Pemakaian", units: n("pemakaian_units"), valueIdr: n("pemakaian_value_idr"), subtle: "Recognized only", icon: <BadgeCheck size={13} className="text-emerald-600" /> },
-    { bucket: "expired", label: "Expired", units: n("expired_units"), valueIdr: n("expired_value_idr") ?? n("expired_value"), icon: <TimerOff size={13} className="text-orange-600" /> },
-    { bucket: "reversal", label: "Reversal of Breakage", units: n("reversal_units"), valueIdr: n("reversal_value_idr"), subtle: "restore month", icon: <Undo2 size={13} className="text-purple-600" /> },
+    { bucket: "pembelian", label: "Pembelian", units: n("pembelian_units"), valueIdr: n("pembelian_value_idr"), subtle: "kredit terbit", icon: <ShoppingBag size={13} className="text-sky-600" /> },
+    { bucket: "pemakaian", label: "Pemakaian", units: n("pemakaian_units"), valueIdr: n("pemakaian_value_idr"), subtle: "yang sudah diakui", icon: <BadgeCheck size={13} className="text-emerald-600" /> },
+    { bucket: "expired", label: "Kedaluwarsa", units: n("expired_units"), valueIdr: n("expired_value_idr") ?? n("expired_value"), icon: <TimerOff size={13} className="text-orange-600" /> },
+    { bucket: "reversal", label: "Pemulihan Kedaluwarsa", units: n("reversal_units"), valueIdr: n("reversal_value_idr"), subtle: "pengembalian bulan ini", icon: <Undo2 size={13} className="text-purple-600" /> },
     { bucket: "refund", label: "Refund", units: n("refund_units"), valueIdr: n("refund_value_idr"), icon: <RotateCcw size={13} /> },
-    { bucket: "admin_adj", label: "Admin Adj", units: n("admin_adj_units"), valueIdr: n("admin_adj_value_idr"), subtle: "non-reversal" },
-    { bucket: "system", label: "System Adj", units: n("system_units") || n("system_adj_units"), valueIdr: n("system_value_idr") || n("system_adj_value_idr"), subtle: "not pembelian", icon: <Activity size={13} className="text-sky-600" /> },
-    { bucket: "net_breakage", label: "Net Breakage", units: n("net_breakage_units"), valueIdr: n("net_breakage_value_idr"), subtle: "expired − reversal", icon: <Hourglass size={13} className="text-zinc-500" /> },
-    { bucket: "closing_snapshot", label: "Closing Snapshot", units: n("closing_snapshot_units") || n("total_outstanding_credits"), valueIdr: n("closing_snapshot_value_idr") || n("total_outstanding_value_idr"), subtle: "source of truth" },
-    { bucket: "closing_formula", label: "Closing Formula", units: n("closing_formula_units"), valueIdr: n("closing_formula_value_idr"), subtle: "formula" },
-    { bucket: "diff", label: "Reconciliation Diff", units: n("diff_units"), valueIdr: n("diff_value_idr"), subtle: "must be 0" },
+    { bucket: "admin_adj", label: "Penyesuaian Admin", units: n("admin_adj_units"), valueIdr: n("admin_adj_value_idr"), subtle: "di luar pemulihan" },
+    { bucket: "system", label: "Penyesuaian Sistem", units: n("system_units") || n("system_adj_units"), valueIdr: n("system_value_idr") || n("system_adj_value_idr"), subtle: "otomatis oleh sistem", icon: <Activity size={13} className="text-sky-600" /> },
+    { bucket: "net_breakage", label: "Hangus Bersih", units: n("net_breakage_units"), valueIdr: n("net_breakage_value_idr"), subtle: "kedaluwarsa − pemulihan", icon: <Hourglass size={13} className="text-zinc-500" /> },
+    { bucket: "closing_snapshot", label: "Saldo Akhir", units: n("closing_snapshot_units") || n("total_outstanding_credits"), valueIdr: n("closing_snapshot_value_idr") || n("total_outstanding_value_idr"), subtle: "angka resmi" },
+    { bucket: "closing_formula", label: "Saldo Hitungan", units: n("closing_formula_units"), valueIdr: n("closing_formula_value_idr"), subtle: "hasil perhitungan" },
+    { bucket: "diff", label: "Selisih", units: n("diff_units"), valueIdr: n("diff_value_idr"), subtle: "harus 0" },
   ];
   const fmtU = (u: number) => u.toLocaleString("en-US");
   return (
     <Card className="overflow-hidden">
       <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
         <div>
-          <CardTitle className="text-sm">Reconciliation</CardTitle>
-          <CardDescription className="text-xs">WIB 23:59:59 · units + IDR · never FE unit×amount</CardDescription>
+          <CardTitle className="text-sm">Rekonsiliasi</CardTitle>
+          <CardDescription className="text-xs">Cutoff 23:59:59 WIB · unit + IDR</CardDescription>
         </div>
-        <Badge variant="outline" className="hidden sm:inline-flex text-[11px]">11 buckets</Badge>
+        <Badge variant="outline" className="hidden sm:inline-flex text-[11px]">11 pos</Badge>
       </CardHeader>
       <CardContent className="p-0">
         <Table>
           <TableHeader>
             <TableRow className="bg-muted/40 hover:bg-muted/40">
-              <TableHead className="w-[42%]">Bucket</TableHead>
-              <TableHead className="text-right">Units</TableHead>
-              <TableHead className="text-right">Value IDR</TableHead>
+              <TableHead className="w-[42%]">Pos</TableHead>
+              <TableHead className="text-right">Unit</TableHead>
+              <TableHead className="text-right">Nilai IDR</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -1796,7 +1791,7 @@ function ReconciliationTable({ summary }: { summary: import("@/types/report.inte
                       </TableRow>
                     </TooltipTrigger>
                     <TooltipContent side="left" className="max-w-[260px] text-xs">
-                      {isDiff && diffBad ? "diff = closing_snapshot − closing_formula — investigate sweep delay or cap; do not auto-correct" : r.subtle ?? r.label}
+                      {isDiff && diffBad ? "Ada selisih antara saldo akhir dan hasil hitungan — hubungi tim Finance/Tech; jangan koreksi manual" : (tooltips[r.bucket] ?? r.subtle ?? r.label)}
                     </TooltipContent>
                   </Tooltip>
                 </TooltipProvider>
@@ -1827,7 +1822,7 @@ function OutstandingReportsList({ year, visible }: { year?: number; visible: boo
       const item = (Array.isArray(items) ? items : []).find((r) => r.report_id === reportId);
       const url = kind === "summary" ? item?.summary_file?.download_url : item?.detail_file?.download_url;
       if (url) window.open(url, "_blank", "noopener");
-      else toast.error("Download URL tidak tersedia", { description: "Klik Refresh lalu coba lagi." });
+      else toast.error("Tautan unduh tidak tersedia", { description: "Klik Muat ulang lalu coba lagi." });
     } finally {
       setDownloadingId(null);
     }
@@ -1838,33 +1833,33 @@ function OutstandingReportsList({ year, visible }: { year?: number; visible: boo
   return (
     <Card className="mt-4">
       <CardHeader className="flex flex-row items-center justify-between space-y-0">
-        <p className="text-base font-semibold">Previous Reports {year ? `(${year})` : ""} — GET /admin/credits/outstanding/reports</p>
+        <p className="text-base font-semibold">Laporan Sebelumnya {year ? `(${year})` : ""}</p>
         <Button variant="outline" size="sm" disabled={isFetching} onClick={() => refetch()}>
-          {isFetching ? <Loader2 className="h-3 w-3 animate-spin" /> : <RotateCcw className="h-3 w-3" />} Refresh
+          {isFetching ? <Loader2 className="h-3 w-3 animate-spin" /> : <RotateCcw className="h-3 w-3" />} Muat ulang
         </Button>
       </CardHeader>
       <CardContent>
-        <p className="mb-3 text-[11px] text-muted-foreground">Link download kedaluwarsa 1 jam — halaman me-refresh otomatis saat klik download. IDR primary.</p>
+        <p className="mb-3 text-[11px] text-muted-foreground">Tautan unduh berlaku 1 jam — daftar dimuat ulang otomatis saat klik unduh. Nilai utama dalam Rupiah.</p>
         {isLoading ? (
           <div className="flex justify-center py-4">
             <Loader2 className="h-4 w-4 animate-spin" />
           </div>
         ) : list.length === 0 ? (
-          <p className="text-sm text-muted-foreground">No reports found{year ? ` for ${year}` : ""}. Generate one above.</p>
+          <p className="text-sm text-muted-foreground">Belum ada laporan{year ? ` untuk ${year}` : ""}. Buat laporan baru di atas.</p>
         ) : (
           <div className="flex flex-col gap-3">
             <div className="overflow-x-auto">
               <Table>
                 <TableHeader>
                   <TableRow className="bg-muted/40 hover:bg-muted/40">
-                    <TableHead>Period</TableHead>
-                    <TableHead className="text-right">Opening</TableHead>
+                    <TableHead>Periode</TableHead>
+                    <TableHead className="text-right">Saldo Awal</TableHead>
                     <TableHead className="text-right">Pembelian</TableHead>
                     <TableHead className="text-right">Pemakaian</TableHead>
-                    <TableHead className="text-right">Net Breakage</TableHead>
-                    <TableHead className="text-right">Closing</TableHead>
-                    <TableHead className="text-right">Diff</TableHead>
-                    <TableHead className="text-right">Files</TableHead>
+                    <TableHead className="text-right">Hangus Bersih</TableHead>
+                    <TableHead className="text-right">Saldo Akhir</TableHead>
+                    <TableHead className="text-right">Selisih</TableHead>
+                    <TableHead className="text-right">Berkas</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -1892,12 +1887,12 @@ function OutstandingReportsList({ year, visible }: { year?: number; visible: boo
                           <span className="inline-flex gap-1.5">
                             {r.summary_file?.download_url && (
                               <Button variant="outline" size="sm" disabled={downloadingId === `${r.report_id}-summary`} onClick={() => handleDownload(r.report_id, "summary")}>
-                                {downloadingId === `${r.report_id}-summary` ? <Loader2 className="h-3 w-3 animate-spin" /> : <Download className="h-3 w-3" />} CSV-S
+                                {downloadingId === `${r.report_id}-summary` ? <Loader2 className="h-3 w-3 animate-spin" /> : <Download className="h-3 w-3" />} CSV Ringkasan
                               </Button>
                             )}
                             {r.detail_file?.download_url && (
                               <Button variant="outline" size="sm" disabled={downloadingId === `${r.report_id}-detail`} onClick={() => handleDownload(r.report_id, "detail")}>
-                                {downloadingId === `${r.report_id}-detail` ? <Loader2 className="h-3 w-3 animate-spin" /> : <Download className="h-3 w-3" />} CSV-D
+                                {downloadingId === `${r.report_id}-detail` ? <Loader2 className="h-3 w-3 animate-spin" /> : <Download className="h-3 w-3" />} CSV Rincian
                               </Button>
                             )}
                           </span>
@@ -1944,11 +1939,11 @@ export function ReportDownloads({ detailLink, summaryLink, isLoading = false, su
     <div className="w-full space-y-4">
       <div className="mb-2">
         <h3 className="flex flex-wrap items-center gap-2 text-lg font-semibold text-foreground">
-          Your Reports for {MONTH_LIST.find((p) => p.value === month)?.label} {year} Are Ready
-          {isCached && <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200 text-[11px]">cached — bulan sudah terkunci</Badge>}
-          {isIncomplete && <Badge variant="outline" className="bg-amber-50 text-amber-700 border-amber-200 text-[11px]">DRAFT incomplete</Badge>}
+          Laporan {MONTH_LIST.find((p) => p.value === month)?.label} {year} Siap
+          {isCached && <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200 text-[11px]">Bulan sudah terkunci</Badge>}
+          {isIncomplete && <Badge variant="outline" className="bg-amber-50 text-amber-700 border-amber-200 text-[11px]">Draf</Badge>}
         </h3>
-        <p className="text-sm text-muted-foreground">Download your generated reports below · link 1 jam</p>
+        <p className="text-sm text-muted-foreground">Unduh laporan di bawah · tautan berlaku 1 jam</p>
       </div>
 
       <div className="grid gap-4 md:grid-cols-2">
@@ -1960,14 +1955,14 @@ export function ReportDownloads({ detailLink, summaryLink, isLoading = false, su
                 <FileText className="h-6 w-6 text-primary" />
               </div>
               <div>
-                <h4 className="font-semibold text-foreground">Detail Report</h4>
+                <h4 className="font-semibold text-foreground">Laporan Rincian</h4>
                 <p className="text-xs text-muted-foreground">{detailFileName}</p>
               </div>
             </div>
             <Button asChild disabled={isLoading} className="w-full gap-2">
               <a href={detailLink} download>
                 <Download className="h-4 w-4" />
-                Download Detail
+                Unduh Rincian
               </a>
             </Button>
           </Card>
@@ -1981,14 +1976,14 @@ export function ReportDownloads({ detailLink, summaryLink, isLoading = false, su
                 <FileText className="h-6 w-6 text-secondary" />
               </div>
               <div>
-                <h4 className="font-semibold text-foreground">Summary Report</h4>
+                <h4 className="font-semibold text-foreground">Laporan Ringkasan</h4>
                 <p className="text-xs text-muted-foreground">{summaryFileName}</p>
               </div>
             </div>
             <Button asChild disabled={isLoading} className="w-full gap-2" variant={"secondary"}>
               <a href={summaryLink} download>
                 <Download className="h-4 w-4" />
-                Download Summary
+                Unduh Ringkasan
               </a>
             </Button>
           </Card>

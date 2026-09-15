@@ -35,9 +35,9 @@ const useConfig = () => {
   }, []);
 
   const onSuccess = useCallback((data: any) => {
-    toast.success("Success!", {
+    toast.success("Berhasil!", {
       id: "sucess",
-      description: "Transaction has been voided!",
+      description: "Transaksi berhasil di-void!",
       position: "top-center",
     });
   }, []);
