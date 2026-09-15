@@ -25,6 +25,20 @@ export interface TransactionVoidDialogProps {
   refetchOrders: () => void;
 }
 
+// Info admin: bahasa bisnis non-teknis (tanpa istilah DB/endpoint/status gateway).
+const DISPOSITION_META: Record<string, { title: string; desc: string }> = {
+  refund_not_required: {
+    title: "Tidak perlu kembalikan uang",
+    desc: "Uang tidak dibalikkan — paket gratis / voucher 100%, salah input, customer setuju hangus, atau kredensial gratis.",
+  },
+  refunded_externally: {
+    title: "Sudah dikembalikan manual di luar aplikasi",
+    desc: "Uang sudah dibalikkan manual (transfer / cash / EDC). Sistem hanya mencatat, tidak memproses refund otomatis.",
+  },
+};
+
+const dispositionText = (disp: string) => DISPOSITION_META[disp] ?? { title: disp.replace(/_/g, " "), desc: "" };
+
 export const TransactionVoidDialog = ({ isOpen, onClose, onConfirm, isDisabled = false, trxId, refetchOrders }: TransactionVoidDialogProps) => {
   const { isManager } = useAdminPermission();
   const [step, setStep] = useState<"preview" | "reason">("preview");
@@ -34,7 +48,7 @@ export const TransactionVoidDialog = ({ isOpen, onClose, onConfirm, isDisabled =
 
   const { data, isLoading } = useGetVoidPreview(trxId);
 
-  const { mutateAsync } = useCommitVoidTrx();
+  const { mutateAsync, isPending } = useCommitVoidTrx();
 
   const payment = data?.data?.payment || {};
 
@@ -57,10 +71,8 @@ export const TransactionVoidDialog = ({ isOpen, onClose, onConfirm, isDisabled =
         };
         const res = await mutateAsync({ id: trxId, payload });
         if (res) {
-          console.log(res);
           refetchOrders();
-          setExternalRefrence("");
-          setReason("");
+          handleClose();
         }
       } else {
         if (reason.trim() && onConfirm) {
@@ -76,6 +88,7 @@ export const TransactionVoidDialog = ({ isOpen, onClose, onConfirm, isDisabled =
   const resetForm = () => {
     setStep("preview");
     setReason("");
+    setExternalRefrence("");
     setSelectedDisposition("refunded_externally");
   };
 
@@ -89,8 +102,8 @@ export const TransactionVoidDialog = ({ isOpen, onClose, onConfirm, isDisabled =
       <AlertDialogContent className="min-w-[55vw] max-h-[90vh] overflow-y-auto">
         <AlertDialogHeader>
           <AlertDialogTitle className="text-brand-500">
-            {step === "preview" ? "Preview Transaction Void" : "Confirm Void Reason"}{" "}
-            {data?.data?.possible ? <Badge>Voidable</Badge> : <Badge variant={"destructive"}>Non Voidable</Badge>}
+            {step === "preview" ? "Pratinjau Pembatalan (Void) Transaksi" : "Konfirmasi Alasan Void"}{" "}
+            {data?.data?.possible ? <Badge>Bisa di-void</Badge> : <Badge variant={"destructive"}>Tidak bisa di-void</Badge>}
           </AlertDialogTitle>
         </AlertDialogHeader>
         {isLoading ? (
@@ -120,7 +133,7 @@ export const TransactionVoidDialog = ({ isOpen, onClose, onConfirm, isDisabled =
               <div className="flex flex-row w-full gap-2.5">
                 <div className="w-full">
                   <Button type="button" variant="secondary" className="w-full" onClick={step === "preview" ? handleClose : () => setStep("preview")}>
-                    {step === "preview" ? "Cancel" : "Back"}
+                    {step === "preview" ? "Batal" : "Kembali"}
                   </Button>
                 </div>
                 <div className="w-full">
@@ -129,9 +142,15 @@ export const TransactionVoidDialog = ({ isOpen, onClose, onConfirm, isDisabled =
                     variant="destructive"
                     className="w-full"
                     onClick={step === "preview" ? handleProceedToReason : handleSubmitVoid}
-                    disabled={!isManager || isDisabled || (step === "preview" ? !data?.data?.possible || (data?.data?.blockers?.length ?? 0) > 0 : !reason.trim())}
+                    disabled={
+                      !isManager ||
+                      isDisabled ||
+                      isPending ||
+                      (step === "preview" ? !data?.data?.possible || (data?.data?.blockers?.length ?? 0) > 0 : !reason.trim())
+                    }
                   >
-                    {step === "preview" ? "Proceed to Void" : "Confirm Void"}
+                    {isPending && step === "reason" ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
+                    {step === "preview" ? "Lanjut ke Void" : isPending ? "Memproses..." : "Konfirmasi Void"}
                   </Button>
                 </div>
               </div>
@@ -145,7 +164,7 @@ export const TransactionVoidDialog = ({ isOpen, onClose, onConfirm, isDisabled =
 
 interface PreviewStepProps {
   data?: {
-    data: IVoidPreviewData
+    data: IVoidPreviewData;
   };
   payment: any;
   selectedDisposition: string;
@@ -153,12 +172,11 @@ interface PreviewStepProps {
 }
 
 const PreviewStep = ({ data, payment, selectedDisposition, onDispositionChange }: PreviewStepProps) => {
-
   return (
     <>
       {/* Amount Summary */}
       <div className="bg-muted/50 rounded-lg p-4 border">
-        <p className="text-sm text-muted-foreground">Transaction Amount</p>
+        <p className="text-sm text-muted-foreground">Nominal Transaksi</p>
         <p className="text-3xl font-bold mt-1">IDR {payment.gross_amount_idr?.toLocaleString("id-ID")}</p>
         <p className="text-xs text-muted-foreground mt-2">{payment.order_id}</p>
       </div>
@@ -169,13 +187,15 @@ const PreviewStep = ({ data, payment, selectedDisposition, onDispositionChange }
           <div className="flex gap-3">
             <AlertCircle className="w-5 h-5 text-red-600 flex-shrink-0 mt-0.5" />
             <div>
-              <h4 className="font-semibold text-red-900">Blockers</h4>
+              <h4 className="font-semibold text-red-900">Kendala</h4>
               <ul className="mt-2 space-y-1 text-sm text-red-800">
                 {data?.data.blockers?.map((b, i) => (
-                  <li key={i} className="flex flex-row items-start gap-2">•<div>
-                    <p className="text-md font-semibold">{b.code}</p>
-                    <p className="text-sm font-normal">{b.message}</p>
-                  </div>
+                  <li key={i} className="flex flex-row items-start gap-2">
+                    •
+                    <div>
+                      <p className="text-md font-semibold">{b.code}</p>
+                      <p className="text-sm font-normal">{b.message}</p>
+                    </div>
                   </li>
                 ))}
               </ul>
@@ -190,13 +210,15 @@ const PreviewStep = ({ data, payment, selectedDisposition, onDispositionChange }
           <div className="flex gap-3">
             <AlertTriangle className="w-5 h-5 text-yellow-600 flex-shrink-0 mt-0.5" />
             <div>
-              <h4 className="font-semibold text-yellow-900">Warnings</h4>
+              <h4 className="font-semibold text-yellow-900">Peringatan</h4>
               <ul className="mt-2 space-y-1 text-sm text-yellow-800">
                 {data?.data.warnings?.map((w, i) => (
-                  <li key={i} className="flex flex-row items-start gap-2">•<div>
-                    <p className="text-md font-semibold">{w.code}</p>
-                    <p className="text-sm font-normal">{w.message}</p>
-                  </div>
+                  <li key={i} className="flex flex-row items-start gap-2">
+                    •
+                    <div>
+                      <p className="text-md font-semibold">{w.code}</p>
+                      <p className="text-sm font-normal">{w.message}</p>
+                    </div>
                   </li>
                 ))}
               </ul>
@@ -208,32 +230,32 @@ const PreviewStep = ({ data, payment, selectedDisposition, onDispositionChange }
       {/* Effects Sections */}
       <div className="space-y-3">
         <h3 className="font-semibold flex items-center gap-2">
-          <CheckCircle2 className="w-5 h-5" /> Effects
+          <CheckCircle2 className="w-5 h-5" /> Dampak
         </h3>
 
         {/* Payment Status */}
-        <EffectSection title="Payment Status">
+        <EffectSection title="Status Pembayaran">
           <div className="space-y-2 text-sm">
             <div className="flex justify-between py-1">
-              <span className="text-muted-foreground">From:</span>
+              <span className="text-muted-foreground">Dari:</span>
               <span className="font-medium capitalize">{data?.data.effects?.payment?.from_status}</span>
             </div>
             <div className="flex justify-between py-1">
-              <span className="text-muted-foreground">To:</span>
+              <span className="text-muted-foreground">Ke:</span>
               <span className="font-medium capitalize text-red-600">{data?.data.effects?.payment?.to_status}</span>
             </div>
           </div>
         </EffectSection>
 
         {/* Refund */}
-        <EffectSection title="Refund Processing">
+        <EffectSection title="Proses Refund">
           <div className="space-y-2 text-sm">
             <div className="flex justify-between py-1">
-              <span className="text-muted-foreground">Amount:</span>
+              <span className="text-muted-foreground">Nominal:</span>
               <span className="font-medium">{formatCurrency(data?.data.effects?.refund?.amount_idr)}</span>
             </div>
             <div className="flex justify-between py-1">
-              <span className="text-muted-foreground">Type:</span>
+              <span className="text-muted-foreground">Jenis:</span>
               <span className="font-medium capitalize">{data?.data.effects?.refund?.refund_type?.replace(/_/g, " ")}</span>
             </div>
             <div className="flex justify-between py-1">
@@ -245,7 +267,7 @@ const PreviewStep = ({ data, payment, selectedDisposition, onDispositionChange }
 
         {/* Packages */}
         {(data?.data.effects?.packages?.length ?? 0) > 0 && (
-          <EffectSection title={`Package Adjustments (${data?.data.effects?.packages?.length})`}>
+          <EffectSection title={`Penyesuaian Paket (${data?.data.effects?.packages?.length})`}>
             {data?.data.effects?.packages?.map((pkg: any, i: number) => (
               <div key={i} className="text-sm space-y-1">
                 <div className="flex justify-between py-1">
@@ -253,15 +275,15 @@ const PreviewStep = ({ data, payment, selectedDisposition, onDispositionChange }
                   <span className="font-medium capitalize">{pkg.to_status}</span>
                 </div>
                 <div className="flex justify-between py-1">
-                  <span className="text-muted-foreground">Balance Change:</span>
+                  <span className="text-muted-foreground">Perubahan Saldo:</span>
                   <span className="font-medium">
                     {pkg.ledger_adjustment > 0 ? "+" : ""}
                     {pkg.ledger_adjustment}
                   </span>
                 </div>
                 <div className="flex justify-between py-1">
-                  <span className="text-muted-foreground">Root Purchase:</span>
-                  <span className="font-medium">{pkg.root_purchase ? "Yes" : "No"}</span>
+                  <span className="text-muted-foreground">Pembelian Awal:</span>
+                  <span className="font-medium">{pkg.root_purchase ? "Ya" : "Tidak"}</span>
                 </div>
               </div>
             ))}
@@ -272,22 +294,30 @@ const PreviewStep = ({ data, payment, selectedDisposition, onDispositionChange }
       {/* Financial Disposition */}
       {data?.data.financial_disposition?.required && (
         <div className="border rounded-lg p-4 space-y-3">
-          <h4 className="font-semibold">Financial Disposition Required</h4>
-          <p className="text-sm text-muted-foreground">How to handle {formatCurrency(data?.data.financial_disposition?.amount_idr)}?</p>
+          <h4 className="font-semibold">Penanganan dana wajib dipilih</h4>
+          <p className="text-sm text-muted-foreground">
+            Bagaimana penanganan dana sebesar {formatCurrency(data?.data.financial_disposition?.amount_idr)}?
+          </p>
           <div className="space-y-2">
-            {data?.data.financial_disposition?.allowed_dispositions?.map((disp: string) => (
-              <label key={disp} className="flex items-center gap-3 p-3 border rounded hover:bg-muted cursor-pointer">
-                <input
-                  type="radio"
-                  name="disposition"
-                  value={disp}
-                  checked={selectedDisposition === disp}
-                  onChange={(e) => onDispositionChange(e.target.value)}
-                  className="w-4 h-4"
-                />
-                <span className="font-medium text-sm capitalize">{disp.replace(/_/g, " ")}</span>
-              </label>
-            ))}
+            {data?.data.financial_disposition?.allowed_dispositions?.map((disp: string) => {
+              const meta = dispositionText(disp);
+              return (
+                <label key={disp} className="flex items-start gap-3 p-3 border rounded hover:bg-muted cursor-pointer">
+                  <input
+                    type="radio"
+                    name="disposition"
+                    value={disp}
+                    checked={selectedDisposition === disp}
+                    onChange={(e) => onDispositionChange(e.target.value)}
+                    className="w-4 h-4 mt-1"
+                  />
+                  <span className="flex flex-col gap-1">
+                    <span className="font-medium text-sm">{meta.title}</span>
+                    {meta.desc ? <span className="text-xs text-muted-foreground leading-relaxed">{meta.desc}</span> : null}
+                  </span>
+                </label>
+              );
+            })}
           </div>
         </div>
       )}
@@ -321,57 +351,63 @@ const ReasonStep = ({
       <div className="space-y-4">
         <div>
           <label htmlFor="reason" className="block text-sm font-semibold mb-2">
-            Reason for Void
+            Alasan void
           </label>
           <Textarea
             id="reason"
             value={reason}
             onChange={(e) => onReasonChange(e.target.value.slice(0, 500))}
-            placeholder="Enter the reason for voiding this transaction..."
+            placeholder="Tulis alasan pembatalan transaksi ini..."
             className="resize-none"
           />
-          <p className="text-xs text-muted-foreground mt-1">{reason.length}/500 characters</p>
+          <p className="text-xs text-muted-foreground mt-1">{reason.length}/500 karakter</p>
         </div>
 
         {data?.data.financial_disposition?.required && (
           <div className="border rounded-lg p-4 space-y-3">
-            <h4 className="font-semibold">Financial Disposition</h4>
+            <h4 className="font-semibold">Penanganan dana</h4>
             <div className="space-y-2">
-              {data?.data.financial_disposition?.allowed_dispositions?.map((disp: string) => (
-                <label key={disp} className="flex items-center gap-3 p-3 border rounded hover:bg-muted cursor-pointer">
-                  <input
-                    type="radio"
-                    name="disposition"
-                    value={disp}
-                    checked={selectedDisposition === disp}
-                    onChange={(e) => onDispositionChange(e.target.value)}
-                    className="w-4 h-4"
-                  />
-                  <span className="font-medium text-sm capitalize">{disp.replace(/_/g, " ")}</span>
-                </label>
-              ))}
+              {data?.data.financial_disposition?.allowed_dispositions?.map((disp: string) => {
+                const meta = dispositionText(disp);
+                return (
+                  <label key={disp} className="flex items-start gap-3 p-3 border rounded hover:bg-muted cursor-pointer">
+                    <input
+                      type="radio"
+                      name="disposition"
+                      value={disp}
+                      checked={selectedDisposition === disp}
+                      onChange={(e) => onDispositionChange(e.target.value)}
+                      className="w-4 h-4 mt-1"
+                    />
+                    <span className="flex flex-col gap-1">
+                      <span className="font-medium text-sm">{meta.title}</span>
+                      {meta.desc ? <span className="text-xs text-muted-foreground leading-relaxed">{meta.desc}</span> : null}
+                    </span>
+                  </label>
+                );
+              })}
             </div>
           </div>
         )}
         {selectedDisposition === "refunded_externally" && (
           <div>
             <label htmlFor="reason" className="block text-sm font-semibold mb-2">
-              Refrence Code
+              Kode referensi
             </label>
             <Input
               id="external-refrence"
               value={externalRefrence}
               onChange={(e) => onExternalRefrenceChange(e.target.value.slice(0, 500))}
-              placeholder="Enter the refrence code if any..."
+              placeholder="Isi kode/bukti refund manual jika ada..."
               className="resize-none"
             />
-            <p className="text-xs text-muted-foreground mt-1">{externalRefrence.length}/500 characters</p>
+            <p className="text-xs text-muted-foreground mt-1">{externalRefrence.length}/500 karakter</p>
           </div>
         )}
 
         <div className="bg-muted/50 rounded-lg p-3 text-sm">
           <p className="text-muted-foreground">
-            This action will void order {payment.order_id} for IDR {payment.gross_amount_idr?.toLocaleString("id-ID")}
+            Tindakan ini akan membatalkan (void) order {payment.order_id} sebesar IDR {payment.gross_amount_idr?.toLocaleString("id-ID")}
           </p>
         </div>
       </div>
