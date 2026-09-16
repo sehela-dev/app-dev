@@ -965,10 +965,11 @@ function CreditsLedgerLog() {
   const searchParams = useSearchParams();
   const router = useRouter();
 
-  const today = new Date();
-  const d30 = new Date();
-  d30.setDate(today.getDate() - 30);
-  const fmt = (d: Date) => d.toISOString().slice(0, 10);
+  // default rentang: awal bulan berjalan s/d hari ini (mis. tgl 16 → filter 01–16)
+  const now = new Date();
+  const pad2 = (n: number) => String(n).padStart(2, "0");
+  const todayStr = `${now.getFullYear()}-${pad2(now.getMonth() + 1)}-${pad2(now.getDate())}`;
+  const monthStartStr = `${now.getFullYear()}-${pad2(now.getMonth() + 1)}-01`;
 
   const [qInput, setQInput] = useState(searchParams.get("q") ?? "");
   const [q, setQ] = useState(searchParams.get("q") ?? "");
@@ -983,8 +984,14 @@ function CreditsLedgerLog() {
       ? (searchParams.get("status") as string).split(",").filter((v) => RECOGNITION_STATUS_OPTIONS.some((o) => o.value === v))
       : [],
   );
-  const [startDate, setStartDate] = useState(searchParams.get("start_date") ?? fmt(d30));
-  const [endDate, setEndDate] = useState(searchParams.get("end_date") ?? fmt(today));
+  const [startDate, setStartDate] = useState(searchParams.get("start_date") ?? monthStartStr);
+  const [endDate, setEndDate] = useState(searchParams.get("end_date") ?? todayStr);
+  // bulan pembelian paket — dua Select gaya rumah (MONTH_LIST/YEAR_LIST), digabung jadi YYYY-MM
+  const _pm = searchParams.get("purchased_month") ?? "";
+  const _pmMatch = _pm.match(/^(\d{4})-(0[1-9]|1[0-2])$/);
+  const [pmMonth, setPmMonth] = useState(_pmMatch ? String(Number(_pmMatch[2])) : "");
+  const [pmYear, setPmYear] = useState(_pmMatch ? _pmMatch[1] : "");
+  const purchasedMonth = pmMonth && pmYear ? `${pmYear}-${pmMonth.padStart(2, "0")}` : "";
   const [page, setPage] = useState(Number(searchParams.get("page") ?? "1"));
   const [pageSize] = useState(Number(searchParams.get("page_size") ?? "20"));
   const [order, setOrder] = useState<"asc" | "desc">((searchParams.get("order") as "asc" | "desc") ?? "desc");
@@ -1012,7 +1019,7 @@ function CreditsLedgerLog() {
   // reset page on filter change
   useEffect(() => {
     setPage(1);
-  }, [q, entryTypes, statuses, startDate, endDate, order, userId]);
+  }, [q, entryTypes, statuses, startDate, endDate, order, userId, purchasedMonth]);
 
   // persist to URL
   useEffect(() => {
@@ -1025,14 +1032,19 @@ function CreditsLedgerLog() {
     if (statuses.length) p.set("status", statuses.join(","));
     else p.delete("status");
     if (startDate) p.set("start_date", startDate);
+    else p.delete("start_date");
     if (endDate) p.set("end_date", endDate);
+    else p.delete("end_date");
+    if (purchasedMonth) p.set("purchased_month", purchasedMonth);
+    else p.delete("purchased_month");
     p.set("page", String(page));
     p.set("page_size", String(pageSize));
     p.set("order", order);
     if (userId) p.set("user_id", userId);
+    else p.delete("user_id");
     router.replace(`?${p.toString()}`, { scroll: false } as never);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [q, entryTypes, statuses, startDate, endDate, page, pageSize, order]);
+  }, [q, entryTypes, statuses, startDate, endDate, purchasedMonth, page, pageSize, order, userId]);
 
   const rangeError = useMemo(() => {
     if (!startDate || !endDate) return null;
@@ -1044,47 +1056,54 @@ function CreditsLedgerLog() {
     return null;
   }, [startDate, endDate]);
 
+  // YYYY-MM valid → dikirim ke ledger + summary; BE 400 untuk format salah
+  const purchasedMonthParam = /^\d{4}-(0[1-9]|1[0-2])$/.test(purchasedMonth) ? purchasedMonth : undefined;
+
   const params = useMemo(
     () => ({
       q: q || undefined,
       entry_type: entryTypes.length ? entryTypes.join(",") : undefined,
       status: statuses.length ? statuses.join(",") : undefined,
-      start_date: !rangeError ? startDate : undefined,
-      end_date: !rangeError ? endDate : undefined,
+      start_date: !rangeError && startDate ? startDate : undefined,
+      end_date: !rangeError && endDate ? endDate : undefined,
+      purchased_month: purchasedMonthParam,
       page,
       page_size: pageSize,
       order,
       user_id: userId || undefined,
     }),
-    [q, entryTypes, statuses, startDate, endDate, page, pageSize, order, userId, rangeError],
+    [q, entryTypes, statuses, startDate, endDate, purchasedMonthParam, page, pageSize, order, userId, rangeError],
   );
 
   const { data, isLoading, isFetching, isError, error, refetch } = useGetCreditsLedger(params);
 
-  // Filtered summary reconciles with the table (passes entry_type).
+  // Filtered summary reconciles with the table (passes entry_type + purchased_month).
   const summaryParams = useMemo(
     () => ({
       q: q || undefined,
       entry_type: entryTypes.length ? entryTypes.join(",") : undefined,
-      start_date: !rangeError ? startDate : undefined,
-      end_date: !rangeError ? endDate : undefined,
+      start_date: !rangeError && startDate ? startDate : undefined,
+      end_date: !rangeError && endDate ? endDate : undefined,
+      purchased_month: purchasedMonthParam,
       user_id: userId || undefined,
     }),
-    [q, entryTypes, startDate, endDate, userId, rangeError],
+    [q, entryTypes, startDate, endDate, purchasedMonthParam, userId, rangeError],
   );
   const { data: summaryRes, isLoading: summaryLoading, refetch: refetchSummary } = useGetCreditsLedgerSummary(summaryParams, !rangeError);
 
-  // Period summary drives the accrual cards — omits entry_type by design.
+  // Period summary drives the accrual cards — omits entry_type by design,
+  // but follows purchased_month (BE: credit buckets + outstanding only for that cohort; cash excluded).
   // Credit buckets (sold/recognized/breakage) are derived from the filtered row-set,
   // so a table-filtered summary would zero them; cash ignores entry_type entirely.
   const periodParams = useMemo(
     () => ({
       q: q || undefined,
-      start_date: !rangeError ? startDate : undefined,
-      end_date: !rangeError ? endDate : undefined,
+      start_date: !rangeError && startDate ? startDate : undefined,
+      end_date: !rangeError && endDate ? endDate : undefined,
+      purchased_month: purchasedMonthParam,
       user_id: userId || undefined,
     }),
-    [q, startDate, endDate, userId, rangeError],
+    [q, startDate, endDate, purchasedMonthParam, userId, rangeError],
   );
   const { data: periodRes, isLoading: periodLoading, refetch: refetchPeriodSummary } = useGetCreditsLedgerSummary(periodParams, !rangeError);
 
@@ -1127,6 +1146,7 @@ function CreditsLedgerLog() {
         status: statuses.length ? statuses.join(",") : undefined,
         start_date: startDate || undefined,
         end_date: endDate || undefined,
+        purchased_month: purchasedMonthParam,
         order,
         user_id: userId || undefined,
         // dedicated export: no pagination — BE ignores page when format=csv
@@ -1136,7 +1156,9 @@ function CreditsLedgerLog() {
       a.href = url;
       const typeSuffix = entryTypes.length ? `_${entryTypes.join("-")}` : "";
       const qSuffix = q ? `_q-${q.replace(/\s+/g, "_")}` : "";
-      a.download = `credits_ledger_${startDate}_${endDate}${typeSuffix}${qSuffix}.csv`;
+      const pmSuffix = purchasedMonth ? `_beli-${purchasedMonth}` : "";
+      const rangeSuffix = startDate && endDate ? `_${startDate}_${endDate}` : startDate ? `_${startDate}` : endDate ? `_${endDate}` : "_semua-tanggal";
+      a.download = `credits_ledger${rangeSuffix}${typeSuffix}${qSuffix}${pmSuffix}.csv`;
       a.click();
       window.URL.revokeObjectURL(url);
       toast.success("Ekspor dimulai", { description: "File CSV terunduh", position: "top-center" });
@@ -1151,7 +1173,24 @@ function CreditsLedgerLog() {
   const toggleEntryType = (v: string) => setEntryTypes((prev) => (prev.includes(v) ? prev.filter((x) => x !== v) : [...prev, v]));
   const toggleStatus = (v: string) => setStatuses((prev) => (prev.includes(v) ? prev.filter((x) => x !== v) : [...prev, v]));
 
-  // §4: 12 kolom bisnis — Tipe | Customer | Jumlah | Nilai IDR | Paket | Kedaluwarsa | Sesi | Kehadiran | Status Pendapatan | Catatan | Diakui pada | Dibuat pada
+  // reset semua filter — tanggal kembali ke default awal bulan s/d hari ini;
+  // effect persist URL ikut membersihkan/menulis start_date/end_date/dll ke URL + query API
+  const handleResetFilters = () => {
+    setQInput("");
+    setQ("");
+    setEntryTypes([]);
+    setStatuses([]);
+    setStartDate(monthStartStr);
+    setEndDate(todayStr);
+    setPmMonth("");
+    setPmYear("");
+    setUserId("");
+    setMemberSearch("");
+    setOrder("desc");
+    setPage(1);
+  };
+
+  // §4: 12 kolom bisnis + Tgl Beli (purchased_month filter) — Tipe | Customer | Jumlah | Nilai IDR | Paket | Tgl Beli | Kedaluwarsa | Sesi | Kehadiran | Status Pendapatan | Catatan | Diakui pada | Dibuat pada
   const headers = useMemo(
     () => [
       {
@@ -1196,6 +1235,12 @@ function CreditsLedgerLog() {
         id: "package_name",
         text: "Paket",
         value: (row: ICreditsLedgerItem) => row.package_name ?? "—",
+      },
+      {
+        id: "purchased_at",
+        text: "Tgl Beli",
+        value: (row: ICreditsLedgerItem) =>
+          row.purchased_at ? formatDateHelper(row.purchased_at, "dd MMMM yyyy") : row.purchased_at_wib || "—",
       },
       {
         id: "expiry_date",
@@ -1274,21 +1319,51 @@ function CreditsLedgerLog() {
                 <Input className="pl-8" placeholder="Cari customer, paket, catatan..." value={qInput} onChange={(e) => setQInput(e.target.value)} />
               </div>
             </div>
-            <div className="flex flex-col gap-1 md:col-span-6">
+            <div className="flex flex-col gap-1 md:col-span-3">
               <p className="text-sm font-medium">Rentang tanggal</p>
               <DateRangePicker
                 mode="range"
                 startDate={startDate}
                 endDate={endDate}
                 onDateRangeChange={(s, e) => {
-                  if (!s && !e) return;
-                  if (s) setStartDate(s);
-                  if (e) setEndDate(e);
+                  setStartDate(s ?? "");
+                  setEndDate(e ?? "");
                 }}
                 allowPastDates
                 allowFutureDates={false}
                 maxSelectionDays={31}
               />
+            </div>
+            <div className="flex flex-col gap-1 md:col-span-3">
+              <p className="text-sm font-medium">Bulan pembelian paket</p>
+              <div className="flex gap-2">
+                <Select value={pmMonth} onValueChange={(v) => setPmMonth(v === "__all__" ? "" : v)}>
+                  <SelectTrigger className="w-full h-10">
+                    <SelectValue placeholder="Bulan" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="__all__">Semua</SelectItem>
+                    {MONTH_LIST.map((m) => (
+                      <SelectItem key={m.value} value={m.value}>
+                        {m.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <Select value={pmYear} onValueChange={(v) => setPmYear(v === "__all__" ? "" : v)}>
+                  <SelectTrigger className="w-full h-10">
+                    <SelectValue placeholder="Tahun" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="__all__">Semua</SelectItem>
+                    {[...new Set([pmYear, ...YEAR_LIST].filter(Boolean))].map((y) => (
+                      <SelectItem key={y} value={y}>
+                        {y}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
             <div className="flex flex-col gap-1 md:col-span-2">
               <p className="text-sm font-medium">Urutan</p>
@@ -1389,6 +1464,9 @@ function CreditsLedgerLog() {
           {rangeError && <p className="text-sm text-red-600">{rangeError}</p>}
 
           <div className="flex flex-wrap justify-end gap-2 pt-2">
+            <Button onClick={handleResetFilters} variant="ghost" size="sm">
+              Reset filter
+            </Button>
             <Button onClick={handleRunRecognition} disabled={!!rangeError || running} variant="default" size="sm">
               {running ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
               Hitung Ulang ({endDate || "hari ini"})
