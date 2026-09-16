@@ -64,6 +64,10 @@ export const DetailFormAddTransaction = () => {
   }, [customerData?.branch, selectedBranch]);
 
   const [nameFrom, setNameFrom] = useState(customerData?.name ?? "");
+
+  useEffect(() => {
+    if (customerData?.name) setNameFrom(customerData.name);
+  }, [customerData?.id, customerData?.name]);
   const [openModalSharing, setOpenModalSharing] = useState(false);
   const [selectedItem, setSelectedItem] = useState<IAdminCartItemData | null>(null);
   const [search, setSearch] = useState("");
@@ -163,7 +167,6 @@ export const DetailFormAddTransaction = () => {
         ? {
             transfer_details: {
               account_name_from: nameFrom as string,
-              // account_bank_from: selectedBank?.label as string,
               account_bank_to: selectedBankTo?.label as string,
             },
           }
