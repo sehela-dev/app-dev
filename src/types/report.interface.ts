@@ -340,6 +340,7 @@ export interface ICreditsLedgerParams {
   status?: string; // csv of RecognitionStatus labels (post-enrich filter)
   start_date?: string; // YYYY-MM-DD
   end_date?: string;
+  purchased_month?: string; // YYYY-MM — bulan paket dibeli (WIB)
   q?: string; // customer name OR package name OR note
   page?: number;
   page_size?: number;
@@ -354,6 +355,8 @@ export interface ICreditsLedgerItem {
   amount: number;
   nilai_idr: number;
   package_name: string | null;
+  purchased_at: string | null;
+  purchased_at_wib: string;
   expiry_date: string | null;
   session_date: string | null;
   attendance: LedgerAttendance;
@@ -376,6 +379,7 @@ export interface ICreditsLedgerMeta {
     status?: string[] | null;
     start_date: string | null;
     end_date: string | null;
+    purchased_month?: string | null;
     q: string | null;
     order?: string | null;
   };

@@ -302,58 +302,126 @@ export const OutstandingCreditView = () => {
                   <div className="flex items-start justify-between gap-3">
                     <div>
                       <CardTitle className="flex items-center gap-2 text-base">
-                        <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-brand-500 text-white"><CalendarDays size={14} /></span>
+                        <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-brand-500 text-white">
+                          <CalendarDays size={14} />
+                        </span>
                         Pratinjau Sisa Kredit
                       </CardTitle>
-                      <CardDescription>Buku bulanan per cutoff WIB 23:59:59. Pilih Bulan closing untuk angka resmi, atau isi Pratinjau harian untuk cek harian.</CardDescription>
+                      <CardDescription>
+                        Buku bulanan per cutoff WIB 23:59:59. Pilih Bulan closing untuk angka resmi, atau isi Pratinjau harian untuk cek harian.
+                      </CardDescription>
                     </div>
-                    <Button variant="outline" size="sm" className="h-8 shrink-0 text-xs" disabled={!isPreviewFilterDirty} onClick={handleResetPreviewFilter}>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="h-8 shrink-0 text-xs"
+                      disabled={!isPreviewFilterDirty}
+                      onClick={handleResetPreviewFilter}
+                    >
                       <RotateCcw className="h-3.5 w-3.5" /> Reset filter
                     </Button>
                   </div>
                   <div className="mt-3 rounded-lg border bg-card px-3 py-2.5 text-xs leading-relaxed text-muted-foreground">
                     <p className="font-semibold text-foreground">Cara baca filter ini:</p>
                     <ul className="mt-1 list-disc space-y-0.5 pl-4">
-                      <li><span className="font-medium text-foreground">Bulan closing</span> = buku resmi bulan itu (acuan utama). Cutoff akhir bulan jam 23:59:59 WIB. Ini yang dikunci saat Generate.</li>
-                      <li><span className="font-medium text-foreground">Pratinjau harian (opsional)</span> = intip posisi pada tanggal tertentu. Begitu tanggal diisi, data di bawah memakai tanggal itu dan pilihan Bulan closing diabaikan — bulan otomatis mengikuti tanggal tersebut.</li>
-                      <li>Kosongkan tanggal untuk kembali ke angka Bulan closing. Tombol <span className="font-medium">Reset filter</span> mengembalikan keduanya ke bulan berjalan.</li>
+                      <li>
+                        <span className="font-medium text-foreground">Bulan closing</span> = buku resmi bulan itu (acuan utama). Cutoff akhir bulan
+                        jam 23:59:59 WIB. Ini yang dikunci saat Generate.
+                      </li>
+                      <li>
+                        <span className="font-medium text-foreground">Pratinjau harian (opsional)</span> = intip posisi pada tanggal tertentu. Begitu
+                        tanggal diisi, data di bawah memakai tanggal itu dan pilihan Bulan closing diabaikan — bulan otomatis mengikuti tanggal
+                        tersebut.
+                      </li>
+                      <li>
+                        Kosongkan tanggal untuk kembali ke angka Bulan closing. Tombol <span className="font-medium">Reset filter</span> mengembalikan
+                        keduanya ke bulan berjalan.
+                      </li>
                     </ul>
                   </div>
                 </CardHeader>
                 <CardContent className="pt-5">
                   <div className="mb-3 flex flex-wrap items-center gap-2 text-xs">
                     {previewAsOf ? (
-                      <Badge variant="outline" className="bg-sky-50 text-sky-700 border-sky-200">Mode: Pratinjau harian · {previewAsOf} (Bulan closing diabaikan)</Badge>
+                      <Badge variant="outline" className="bg-sky-50 text-sky-700 border-sky-200">
+                        Mode: Pratinjau harian · {previewAsOf} (Bulan closing diabaikan)
+                      </Badge>
                     ) : (
-                      <Badge variant="outline" className="bg-white">Mode: Bulan closing · {String(closingYear)}-{String(closingMonth).padStart(2, "0")}</Badge>
+                      <Badge variant="outline" className="bg-white">
+                        Mode: Bulan closing · {String(closingYear)}-{String(closingMonth).padStart(2, "0")}
+                      </Badge>
                     )}
                   </div>
                   <div className="grid gap-4 lg:grid-cols-[1.1fr_0.9fr]">
                     <div className="rounded-xl border bg-card p-4">
                       <div className="mb-3 flex items-center justify-between">
-                        <p className="text-sm font-semibold">Bulan closing <span className="font-normal text-muted-foreground">— angka resmi</span></p>
-                        <Badge variant="outline" className="bg-white text-[11px]">Angka resmi</Badge>
+                        <p className="text-sm font-semibold">
+                          Bulan closing <span className="font-normal text-muted-foreground">— angka resmi</span>
+                        </p>
+                        <Badge variant="outline" className="bg-white text-[11px]">
+                          Angka resmi
+                        </Badge>
                       </div>
                       <div className="flex gap-2">
                         <Select value={String(closingMonth)} onValueChange={(v) => handleClosingChange(closingYear, Number(v))}>
-                          <SelectTrigger className="w-full h-10"><SelectValue placeholder="Bulan" /></SelectTrigger>
-                          <SelectContent>{MONTH_LIST.map((m) => <SelectItem key={m.value} value={m.value}>{m.label}</SelectItem>)}</SelectContent>
+                          <SelectTrigger className="w-full h-10">
+                            <SelectValue placeholder="Bulan" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {MONTH_LIST.map((m) => (
+                              <SelectItem key={m.value} value={m.value}>
+                                {m.label}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
                         </Select>
                         <Select value={String(closingYear)} onValueChange={(v) => handleClosingChange(Number(v), closingMonth)}>
-                          <SelectTrigger className="w-full h-10"><SelectValue placeholder="Tahun" /></SelectTrigger>
-                          <SelectContent>{YEAR_LIST.map((y) => <SelectItem key={y} value={y}>{y}</SelectItem>)}</SelectContent>
+                          <SelectTrigger className="w-full h-10">
+                            <SelectValue placeholder="Tahun" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {YEAR_LIST.map((y) => (
+                              <SelectItem key={y} value={y}>
+                                {y}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
                         </Select>
                       </div>
-                      <p className="mt-2 flex items-center gap-1.5 text-[11px] text-muted-foreground"><Clock3 size={12} /> Cutoff WIB akhir bulan jam 23:59:59</p>
+                      <p className="mt-2 flex items-center gap-1.5 text-[11px] text-muted-foreground">
+                        <Clock3 size={12} /> Cutoff WIB akhir bulan jam 23:59:59
+                      </p>
                     </div>
                     <div className="rounded-xl border bg-muted/20 p-4">
-                      <p className="mb-3 text-sm font-semibold">Pratinjau harian <span className="font-normal text-muted-foreground">(opsional — cek harian)</span></p>
-                      <DateRangePicker mode="single" startDate={previewAsOf} onDateRangeChange={handlePreviewAsOfChange} allowPastDates allowFutureDates={false} />
-                      <p className="mt-2 text-[11px] text-muted-foreground">Tanggal terisi = data memakai tanggal itu, bulan otomatis ikut tanggal tersebut. Tanggal masa depan ditolak.</p>
+                      <p className="mb-3 text-sm font-semibold">
+                        Pratinjau harian <span className="font-normal text-muted-foreground">(opsional — cek harian)</span>
+                      </p>
+                      <DateRangePicker
+                        mode="single"
+                        startDate={previewAsOf}
+                        onDateRangeChange={handlePreviewAsOfChange}
+                        allowPastDates
+                        allowFutureDates={false}
+                      />
+                      <p className="mt-2 text-[11px] text-muted-foreground">
+                        Tanggal terisi = data memakai tanggal itu, bulan otomatis ikut tanggal tersebut. Tanggal masa depan ditolak.
+                      </p>
                       {previewAsOf ? (
-                        <Button variant="ghost" size="sm" className="mt-2 h-7 text-xs" onClick={() => { setPreviewAsOf(""); setPage(1); }}>Hapus — kembali ke Bulan closing</Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="mt-2 h-7 text-xs"
+                          onClick={() => {
+                            setPreviewAsOf("");
+                            setPage(1);
+                          }}
+                        >
+                          Hapus — kembali ke Bulan closing
+                        </Button>
                       ) : (
-                        <p className="mt-2 text-[11px] text-muted-foreground">Kosong = tampilkan angka Bulan closing di sebelah kiri. Bukan rentang tanggal.</p>
+                        <p className="mt-2 text-[11px] text-muted-foreground">
+                          Kosong = tampilkan angka Bulan closing di sebelah kiri. Bukan rentang tanggal.
+                        </p>
                       )}
                     </div>
                   </div>
@@ -394,7 +462,8 @@ export const OutstandingCreditView = () => {
                     const n = (v: unknown) => (typeof v === "number" ? v : 0);
                     // snapshot is source of truth per handoff §1 — closing_snapshot wins over closing_formula
                     const snapUnits = (s.closing_snapshot_units as number | undefined) ?? (s.total_outstanding_credits as number | undefined) ?? 0;
-                    const snapIdr = (s.closing_snapshot_value_idr as number | undefined) ?? (s.total_outstanding_value_idr as number | undefined) ?? 0;
+                    const snapIdr =
+                      (s.closing_snapshot_value_idr as number | undefined) ?? (s.total_outstanding_value_idr as number | undefined) ?? 0;
                     // compat fallback when dual-track not yet shipped (edge v246)
                     const hasRecon = s.pembelian_units !== undefined || s.diff_units !== undefined;
                     const totalCreditsFbk =
@@ -405,15 +474,21 @@ export const OutstandingCreditView = () => {
                     const totalCredits = hasRecon ? snapUnits : totalCreditsFbk;
                     const totalValue = hasRecon ? snapIdr : totalValueFbk;
                     const closingMm = `${String(closingYear).padStart(4, "0")}-${String(closingMonth).padStart(2, "0")}`;
-                    const periodLabel = (s.report_period as string | undefined) ?? (s.period as string | undefined) ?? (previewAsOf ? previewAsOf.slice(0, 7) : closingMm);
+                    const periodLabel =
+                      (s.report_period as string | undefined) ??
+                      (s.period as string | undefined) ??
+                      (previewAsOf ? previewAsOf.slice(0, 7) : closingMm);
                     const openingUnits = n(s.opening_credits);
                     const openingIdr = n((s.opening_value_idr as number | undefined) ?? 0);
                     const diffUnits = s.diff_units as number | undefined;
                     const diffIdr = s.diff_value_idr as number | undefined;
                     const diffNonZero = (diffUnits !== undefined && diffUnits !== 0) || (diffIdr !== undefined && diffIdr !== 0);
                     // rantai opening(n) = closing(n-1) — BE kirim previous_month sejajar summary
-                    const prev = (root as unknown as { previous_month?: { period: string; closing_credits: number; closing_value_idr: number } }).previous_month;
-                    const prevPrev = (root as unknown as { previous_previous_month?: { period: string; closing_credits: number; closing_value_idr: number } }).previous_previous_month;
+                    const prev = (root as unknown as { previous_month?: { period: string; closing_credits: number; closing_value_idr: number } })
+                      .previous_month;
+                    const prevPrev = (
+                      root as unknown as { previous_previous_month?: { period: string; closing_credits: number; closing_value_idr: number } }
+                    ).previous_previous_month;
                     const chainUnitsOk = prev ? openingUnits === (prev.closing_credits ?? 0) : true;
                     const chainIdrOk = prev ? openingIdr === (prev.closing_value_idr ?? 0) : true;
                     const chainOk = chainUnitsOk && chainIdrOk;
@@ -421,52 +496,74 @@ export const OutstandingCreditView = () => {
                       <div className="flex flex-col gap-4 pt-2">
                         <div className="flex flex-wrap items-start justify-between gap-3 rounded-xl border bg-card px-4 py-3">
                           <div className="flex items-center gap-3">
-                            <span className="hidden h-9 w-9 items-center justify-center rounded-lg bg-brand-50 text-brand-700 sm:flex"><Wallet size={16} /></span>
+                            <span className="hidden h-9 w-9 items-center justify-center rounded-lg bg-brand-50 text-brand-700 sm:flex">
+                              <Wallet size={16} />
+                            </span>
                             <div>
                               <div className="flex items-center gap-2">
                                 <p className="text-sm font-semibold tracking-tight">{periodLabel}</p>
-                                <Badge variant="outline" className="text-[11px] font-normal">WIB 23:59:59</Badge>
-                                {!hasRecon && <Badge variant="outline" className="bg-amber-50 text-amber-700 border-amber-200 text-[11px]">Lama</Badge>}
+                                <Badge variant="outline" className="text-[11px] font-normal">
+                                  WIB 23:59:59
+                                </Badge>
+                                {!hasRecon && (
+                                  <Badge variant="outline" className="bg-amber-50 text-amber-700 border-amber-200 text-[11px]">
+                                    Lama
+                                  </Badge>
+                                )}
                               </div>
-                              <p className="text-[11px] text-muted-foreground">Cutoff WIB 23:59:59 — data jam 23:59 WIB masuk ke bulan pemulihan, bukan bulan kedaluwarsa</p>
+                              <p className="text-[11px] text-muted-foreground">
+                                Cutoff WIB 23:59:59 — data jam 23:59 WIB masuk ke bulan pemulihan, bukan bulan kedaluwarsa
+                              </p>
                             </div>
                           </div>
                           <div className="flex items-center gap-1 rounded-full border bg-muted p-1">
                             <button
                               type="button"
                               onClick={() => setSnapshotMetric("idr")}
-                              className={`rounded-full px-3.5 py-1.5 text-xs font-medium transition-colors ${snapshotMetric === "idr" ? "bg-white shadow-sm text-foreground" : "text-muted-foreground hover:text-foreground"}`}
+                              className={`rounded-full px-3.5 py-1.5 text-xs font-medium transition-colors ${
+                                snapshotMetric === "idr" ? "bg-white shadow-sm text-foreground" : "text-muted-foreground hover:text-foreground"
+                              }`}
                             >
                               IDR
                             </button>
                             <button
                               type="button"
                               onClick={() => setSnapshotMetric("units")}
-                              className={`rounded-full px-3.5 py-1.5 text-xs font-medium transition-colors ${snapshotMetric === "units" ? "bg-white shadow-sm text-foreground" : "text-muted-foreground hover:text-foreground"}`}
+                              className={`rounded-full px-3.5 py-1.5 text-xs font-medium transition-colors ${
+                                snapshotMetric === "units" ? "bg-white shadow-sm text-foreground" : "text-muted-foreground hover:text-foreground"
+                              }`}
                             >
                               Unit
                             </button>
                           </div>
                         </div>
-                        {prev && !previewAsOf && (
-                          chainOk ? (
-                            <div className="flex items-center gap-1.5 text-xs font-medium text-emerald-700"><CheckCircle2 size={14} /> Rantai OK — saldo awal = saldo akhir {prev.period} ({(prev.closing_credits ?? 0).toLocaleString("en-US")} · {formatCurrency(prev.closing_value_idr ?? 0)}).</div>
+                        {prev &&
+                          !previewAsOf &&
+                          (chainOk ? (
+                            <div className="flex items-center gap-1.5 text-xs font-medium text-emerald-700">
+                              <CheckCircle2 size={14} /> Rantai OK — saldo awal = saldo akhir {prev.period} (
+                              {(prev.closing_credits ?? 0).toLocaleString("en-US")} · {formatCurrency(prev.closing_value_idr ?? 0)}).
+                            </div>
                           ) : (
                             <Alert className="bg-amber-50 border-amber-200 text-amber-800 [&>svg]:text-amber-600">
                               <AlertTriangle size={16} />
                               <AlertTitle className="text-amber-800">Opening ≠ closing bulan lalu</AlertTitle>
                               <AlertDescription className="text-amber-800/90">
-                                Saldo awal {openingUnits.toLocaleString("en-US")} · {formatCurrency(openingIdr)} vs saldo akhir {prev.period} {(prev.closing_credits ?? 0).toLocaleString("en-US")} · {formatCurrency(prev.closing_value_idr ?? 0)}.
-                                Periksa urutan pengisian data dari yang terlama, atau catat bila ini reset akuntansi yang disengaja.
+                                Saldo awal {openingUnits.toLocaleString("en-US")} · {formatCurrency(openingIdr)} vs saldo akhir {prev.period}{" "}
+                                {(prev.closing_credits ?? 0).toLocaleString("en-US")} · {formatCurrency(prev.closing_value_idr ?? 0)}. Periksa urutan
+                                pengisian data dari yang terlama, atau catat bila ini reset akuntansi yang disengaja.
                               </AlertDescription>
                             </Alert>
-                          )
-                        )}
+                          ))}
                         {(prev || prevPrev) && (
                           <div className="flex flex-wrap items-stretch gap-2 rounded-xl border bg-card px-4 py-3">
-                            <p className="w-full text-[11px] font-medium text-muted-foreground">Bulan sebelumnya — saldo akhir per 23:59:59 WIB (utama Rupiah)</p>
+                            <p className="w-full text-[11px] font-medium text-muted-foreground">
+                              Bulan sebelumnya — saldo akhir per 23:59:59 WIB (utama Rupiah)
+                            </p>
                             {[
-                              prevPrev ? { period: prevPrev.period, credits: prevPrev.closing_credits ?? 0, idr: prevPrev.closing_value_idr ?? 0 } : null,
+                              prevPrev
+                                ? { period: prevPrev.period, credits: prevPrev.closing_credits ?? 0, idr: prevPrev.closing_value_idr ?? 0 }
+                                : null,
                               prev ? { period: prev.period, credits: prev.closing_credits ?? 0, idr: prev.closing_value_idr ?? 0 } : null,
                               { period: periodLabel, credits: totalCredits, idr: totalValue },
                             ]
@@ -475,9 +572,12 @@ export const OutstandingCreditView = () => {
                                 <div key={b.period} className="flex min-w-0 flex-1 items-center gap-2">
                                   {i > 0 && <span className="shrink-0 text-muted-foreground">→</span>}
                                   <div className={`min-w-0 flex-1 rounded-lg px-3 py-2 ${i === arr.length - 1 ? "bg-brand-50/60" : "bg-muted/40"}`}>
-                                      <p className="text-[11px] text-muted-foreground">{b.period}{i === arr.length - 1 ? " · kini" : " · saldo akhir"}</p>
-                                      <p className="truncate text-sm font-semibold tabular-nums">{formatCurrency(b.idr)}</p>
-                                      <p className="text-[11px] text-muted-foreground tabular-nums">{b.credits.toLocaleString("en-US")} kredit</p>
+                                    <p className="text-[11px] text-muted-foreground">
+                                      {b.period}
+                                      {i === arr.length - 1 ? " · kini" : " · saldo akhir"}
+                                    </p>
+                                    <p className="truncate text-sm font-semibold tabular-nums">{formatCurrency(b.idr)}</p>
+                                    <p className="text-[11px] text-muted-foreground tabular-nums">{b.credits.toLocaleString("en-US")} kredit</p>
                                   </div>
                                 </div>
                               ))}
@@ -522,7 +622,9 @@ export const OutstandingCreditView = () => {
                           </Alert>
                         )}
                         {hasRecon && !diffNonZero && diffUnits !== undefined && (
-                          <div className="flex items-center gap-1.5 text-xs font-medium text-emerald-700"><CheckCircle2 size={14} /> Sudah cocok — tidak ada selisih.</div>
+                          <div className="flex items-center gap-1.5 text-xs font-medium text-emerald-700">
+                            <CheckCircle2 size={14} /> Sudah cocok — tidak ada selisih.
+                          </div>
                         )}
                       </div>
                     );
@@ -531,10 +633,14 @@ export const OutstandingCreditView = () => {
                     <CardHeader className="flex flex-row items-center justify-between space-y-0">
                       <div>
                         <CardTitle className="text-sm">
-                          Outstanding Detail — {previewAsOf ? `preview ${previewAsOf}` : `closing ${String(closingYear).padStart(4, "0")}-${String(closingMonth).padStart(2, "0")}`}
+                          Outstanding Detail —{" "}
+                          {previewAsOf
+                            ? `preview ${previewAsOf}`
+                            : `closing ${String(closingYear).padStart(4, "0")}-${String(closingMonth).padStart(2, "0")}`}
                         </CardTitle>
                         <CardDescription className="text-xs">
-                          Cutoff 23:59:59 WIB{detailData && (detailData as unknown as { data?: { total_packages?: number } })?.data?.total_packages != null
+                          Cutoff 23:59:59 WIB
+                          {detailData && (detailData as unknown as { data?: { total_packages?: number } })?.data?.total_packages != null
                             ? ` · ${(detailData as unknown as { data: { total_packages: number } }).data.total_packages} paket`
                             : ""}
                         </CardDescription>
@@ -544,31 +650,33 @@ export const OutstandingCreditView = () => {
                           variant="outline"
                           size="sm"
                           disabled={csvExporting}
-                        onClick={async () => {
-                          try {
-                            setCsvExporting(true);
-                            const q = previewAsOf ? { asOf: previewAsOf } : { year: closingYear, month: closingMonth };
-                            const blob = await exportOutstandingDetailCsv(q);
-                            const url = window.URL.createObjectURL(blob);
-                            const a = document.createElement("a");
-                            a.href = url;
-                            a.download = `outstanding_detail_${previewAsOf ? previewAsOf : `${closingYear}-${String(closingMonth).padStart(2, "0")}`}.csv`;
-                            a.click();
-                            window.URL.revokeObjectURL(url);
-                          } catch (e: unknown) {
-                            toast.error("Gagal mengunduh", {
-                              description:
-                                (e as { response?: { data?: { error?: { message?: string } } } })?.response?.data?.error?.message ??
-                                "Silakan coba lagi",
-                            });
-                          } finally {
-                            setCsvExporting(false);
-                          }
-                        }}
-                      >
-                        {csvExporting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
-                        CSV
-                      </Button>
+                          onClick={async () => {
+                            try {
+                              setCsvExporting(true);
+                              const q = previewAsOf ? { asOf: previewAsOf } : { year: closingYear, month: closingMonth };
+                              const blob = await exportOutstandingDetailCsv(q);
+                              const url = window.URL.createObjectURL(blob);
+                              const a = document.createElement("a");
+                              a.href = url;
+                              a.download = `outstanding_detail_${
+                                previewAsOf ? previewAsOf : `${closingYear}-${String(closingMonth).padStart(2, "0")}`
+                              }.csv`;
+                              a.click();
+                              window.URL.revokeObjectURL(url);
+                            } catch (e: unknown) {
+                              toast.error("Gagal mengunduh", {
+                                description:
+                                  (e as { response?: { data?: { error?: { message?: string } } } })?.response?.data?.error?.message ??
+                                  "Silakan coba lagi",
+                              });
+                            } finally {
+                              setCsvExporting(false);
+                            }
+                          }}
+                        >
+                          {csvExporting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
+                          CSV
+                        </Button>
                       </CardAction>
                     </CardHeader>
                     <CardContent className="p-0 pt-2 min-w-0 max-w-full overflow-hidden">
@@ -598,7 +706,13 @@ export const OutstandingCreditView = () => {
                               </div>
                             )}
                             {total === 0 && (
-                              <p className="text-sm text-muted-foreground text-center py-4 px-6">Tidak ada sisa paket {previewAsOf ? `per ${previewAsOf}` : `untuk tutup bulan ${String(closingYear).padStart(4, "0")}-${String(closingMonth).padStart(2, "0")}` }.</p>
+                              <p className="text-sm text-muted-foreground text-center py-4 px-6">
+                                Tidak ada sisa paket{" "}
+                                {previewAsOf
+                                  ? `per ${previewAsOf}`
+                                  : `untuk tutup bulan ${String(closingYear).padStart(4, "0")}-${String(closingMonth).padStart(2, "0")}`}
+                                .
+                              </p>
                             )}
                           </div>
                         );
@@ -637,8 +751,8 @@ export const OutstandingCreditView = () => {
                                   defaultValue={field.value ?? ""}
                                   value={field.value ?? ""}
                                 >
-                                    <SelectTrigger className="w-full px-4 py-4 border-2 border-gray-200 rounded-lg text-gray-999  placeholder-gray-400 focus:outline-none focus:border-brand-500 transition-colors h-[42px]">
-                                      <SelectValue placeholder="Pilih Bulan" className="!text-gray-400" />
+                                  <SelectTrigger className="w-full px-4 py-4 border-2 border-gray-200 rounded-lg text-gray-999  placeholder-gray-400 focus:outline-none focus:border-brand-500 transition-colors h-[42px]">
+                                    <SelectValue placeholder="Pilih Bulan" className="!text-gray-400" />
                                   </SelectTrigger>
                                   <SelectContent>
                                     <SelectGroup>
@@ -676,7 +790,7 @@ export const OutstandingCreditView = () => {
                                   value={field.value ?? ""}
                                 >
                                   <SelectTrigger className="w-full px-4 py-4 border-2 border-gray-200 rounded-lg text-gray-999  placeholder-gray-400 focus:outline-none focus:border-brand-500 transition-colors h-[42px]">
-                                      <SelectValue placeholder="Pilih Tahun" className="!text-gray-400" />
+                                    <SelectValue placeholder="Pilih Tahun" className="!text-gray-400" />
                                   </SelectTrigger>
                                   <SelectContent>
                                     <SelectGroup>
@@ -723,7 +837,12 @@ export const OutstandingCreditView = () => {
                         <AlertTitle className="text-amber-800">Bulan belum berakhir</AlertTitle>
                         <AlertDescription className="flex flex-wrap items-center gap-2 text-amber-800/90">
                           Cutoff WIB 23:59:59 akhir bulan belum lewat. Untuk arsip final tunggu T+1; atau simpan sebagai draf.
-                          <Button size="sm" variant="outline" disabled={isPending} onClick={() => runGenerate({ allow_incomplete: true, force_regenerate: forceRegen })}>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            disabled={isPending}
+                            onClick={() => runGenerate({ allow_incomplete: true, force_regenerate: forceRegen })}
+                          >
                             Simpan sebagai draf
                           </Button>
                         </AlertDescription>
@@ -753,7 +872,9 @@ export const OutstandingCreditView = () => {
                     </label>
                   </div>
                   <DialogFooter>
-                    <Button variant="outline" onClick={() => setConfirmOpen(false)}>Batal</Button>
+                    <Button variant="outline" onClick={() => setConfirmOpen(false)}>
+                      Batal
+                    </Button>
                     <Button
                       disabled={isPending}
                       onClick={async () => {
@@ -844,10 +965,11 @@ function CreditsLedgerLog() {
   const searchParams = useSearchParams();
   const router = useRouter();
 
-  const today = new Date();
-  const d30 = new Date();
-  d30.setDate(today.getDate() - 30);
-  const fmt = (d: Date) => d.toISOString().slice(0, 10);
+  // default rentang: awal bulan berjalan s/d hari ini (mis. tgl 16 → filter 01–16)
+  const now = new Date();
+  const pad2 = (n: number) => String(n).padStart(2, "0");
+  const todayStr = `${now.getFullYear()}-${pad2(now.getMonth() + 1)}-${pad2(now.getDate())}`;
+  const monthStartStr = `${now.getFullYear()}-${pad2(now.getMonth() + 1)}-01`;
 
   const [qInput, setQInput] = useState(searchParams.get("q") ?? "");
   const [q, setQ] = useState(searchParams.get("q") ?? "");
@@ -862,8 +984,14 @@ function CreditsLedgerLog() {
       ? (searchParams.get("status") as string).split(",").filter((v) => RECOGNITION_STATUS_OPTIONS.some((o) => o.value === v))
       : [],
   );
-  const [startDate, setStartDate] = useState(searchParams.get("start_date") ?? fmt(d30));
-  const [endDate, setEndDate] = useState(searchParams.get("end_date") ?? fmt(today));
+  const [startDate, setStartDate] = useState(searchParams.get("start_date") ?? monthStartStr);
+  const [endDate, setEndDate] = useState(searchParams.get("end_date") ?? todayStr);
+  // bulan pembelian paket — dua Select gaya rumah (MONTH_LIST/YEAR_LIST), digabung jadi YYYY-MM
+  const _pm = searchParams.get("purchased_month") ?? "";
+  const _pmMatch = _pm.match(/^(\d{4})-(0[1-9]|1[0-2])$/);
+  const [pmMonth, setPmMonth] = useState(_pmMatch ? String(Number(_pmMatch[2])) : "");
+  const [pmYear, setPmYear] = useState(_pmMatch ? _pmMatch[1] : "");
+  const purchasedMonth = pmMonth && pmYear ? `${pmYear}-${pmMonth.padStart(2, "0")}` : "";
   const [page, setPage] = useState(Number(searchParams.get("page") ?? "1"));
   const [pageSize] = useState(Number(searchParams.get("page_size") ?? "20"));
   const [order, setOrder] = useState<"asc" | "desc">((searchParams.get("order") as "asc" | "desc") ?? "desc");
@@ -891,7 +1019,7 @@ function CreditsLedgerLog() {
   // reset page on filter change
   useEffect(() => {
     setPage(1);
-  }, [q, entryTypes, statuses, startDate, endDate, order, userId]);
+  }, [q, entryTypes, statuses, startDate, endDate, order, userId, purchasedMonth]);
 
   // persist to URL
   useEffect(() => {
@@ -904,14 +1032,19 @@ function CreditsLedgerLog() {
     if (statuses.length) p.set("status", statuses.join(","));
     else p.delete("status");
     if (startDate) p.set("start_date", startDate);
+    else p.delete("start_date");
     if (endDate) p.set("end_date", endDate);
+    else p.delete("end_date");
+    if (purchasedMonth) p.set("purchased_month", purchasedMonth);
+    else p.delete("purchased_month");
     p.set("page", String(page));
     p.set("page_size", String(pageSize));
     p.set("order", order);
     if (userId) p.set("user_id", userId);
+    else p.delete("user_id");
     router.replace(`?${p.toString()}`, { scroll: false } as never);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [q, entryTypes, statuses, startDate, endDate, page, pageSize, order]);
+  }, [q, entryTypes, statuses, startDate, endDate, purchasedMonth, page, pageSize, order, userId]);
 
   const rangeError = useMemo(() => {
     if (!startDate || !endDate) return null;
@@ -923,53 +1056,56 @@ function CreditsLedgerLog() {
     return null;
   }, [startDate, endDate]);
 
+  // YYYY-MM valid → dikirim ke ledger + summary; BE 400 untuk format salah
+  const purchasedMonthParam = /^\d{4}-(0[1-9]|1[0-2])$/.test(purchasedMonth) ? purchasedMonth : undefined;
+
   const params = useMemo(
     () => ({
       q: q || undefined,
       entry_type: entryTypes.length ? entryTypes.join(",") : undefined,
       status: statuses.length ? statuses.join(",") : undefined,
-      start_date: !rangeError ? startDate : undefined,
-      end_date: !rangeError ? endDate : undefined,
+      start_date: !rangeError && startDate ? startDate : undefined,
+      end_date: !rangeError && endDate ? endDate : undefined,
+      purchased_month: purchasedMonthParam,
       page,
       page_size: pageSize,
       order,
       user_id: userId || undefined,
     }),
-    [q, entryTypes, statuses, startDate, endDate, page, pageSize, order, userId, rangeError],
+    [q, entryTypes, statuses, startDate, endDate, purchasedMonthParam, page, pageSize, order, userId, rangeError],
   );
 
   const { data, isLoading, isFetching, isError, error, refetch } = useGetCreditsLedger(params);
 
-  // Filtered summary reconciles with the table (passes entry_type).
+  // Filtered summary reconciles with the table (passes entry_type + purchased_month).
   const summaryParams = useMemo(
     () => ({
       q: q || undefined,
       entry_type: entryTypes.length ? entryTypes.join(",") : undefined,
-      start_date: !rangeError ? startDate : undefined,
-      end_date: !rangeError ? endDate : undefined,
+      start_date: !rangeError && startDate ? startDate : undefined,
+      end_date: !rangeError && endDate ? endDate : undefined,
+      purchased_month: purchasedMonthParam,
       user_id: userId || undefined,
     }),
-    [q, entryTypes, startDate, endDate, userId, rangeError],
+    [q, entryTypes, startDate, endDate, purchasedMonthParam, userId, rangeError],
   );
   const { data: summaryRes, isLoading: summaryLoading, refetch: refetchSummary } = useGetCreditsLedgerSummary(summaryParams, !rangeError);
 
-  // Period summary drives the accrual cards — omits entry_type by design.
+  // Period summary drives the accrual cards — omits entry_type by design,
+  // but follows purchased_month (BE: credit buckets + outstanding only for that cohort; cash excluded).
   // Credit buckets (sold/recognized/breakage) are derived from the filtered row-set,
   // so a table-filtered summary would zero them; cash ignores entry_type entirely.
   const periodParams = useMemo(
     () => ({
       q: q || undefined,
-      start_date: !rangeError ? startDate : undefined,
-      end_date: !rangeError ? endDate : undefined,
+      start_date: !rangeError && startDate ? startDate : undefined,
+      end_date: !rangeError && endDate ? endDate : undefined,
+      purchased_month: purchasedMonthParam,
       user_id: userId || undefined,
     }),
-    [q, startDate, endDate, userId, rangeError],
+    [q, startDate, endDate, purchasedMonthParam, userId, rangeError],
   );
-  const {
-    data: periodRes,
-    isLoading: periodLoading,
-    refetch: refetchPeriodSummary,
-  } = useGetCreditsLedgerSummary(periodParams, !rangeError);
+  const { data: periodRes, isLoading: periodLoading, refetch: refetchPeriodSummary } = useGetCreditsLedgerSummary(periodParams, !rangeError);
 
   const [exporting, setExporting] = useState(false);
   const [running, setRunning] = useState(false);
@@ -988,7 +1124,10 @@ function CreditsLedgerLog() {
       refetchPeriodSummary?.();
     } catch (e: unknown) {
       const err = e as { response?: { data?: { error?: { message?: string } } } };
-      toast.error("Perhitungan pendapatan gagal", { description: err?.response?.data?.error?.message ?? "Silakan coba lagi", position: "top-center" });
+      toast.error("Perhitungan pendapatan gagal", {
+        description: err?.response?.data?.error?.message ?? "Silakan coba lagi",
+        position: "top-center",
+      });
     } finally {
       setRunning(false);
     }
@@ -1007,6 +1146,7 @@ function CreditsLedgerLog() {
         status: statuses.length ? statuses.join(",") : undefined,
         start_date: startDate || undefined,
         end_date: endDate || undefined,
+        purchased_month: purchasedMonthParam,
         order,
         user_id: userId || undefined,
         // dedicated export: no pagination — BE ignores page when format=csv
@@ -1016,7 +1156,9 @@ function CreditsLedgerLog() {
       a.href = url;
       const typeSuffix = entryTypes.length ? `_${entryTypes.join("-")}` : "";
       const qSuffix = q ? `_q-${q.replace(/\s+/g, "_")}` : "";
-      a.download = `credits_ledger_${startDate}_${endDate}${typeSuffix}${qSuffix}.csv`;
+      const pmSuffix = purchasedMonth ? `_beli-${purchasedMonth}` : "";
+      const rangeSuffix = startDate && endDate ? `_${startDate}_${endDate}` : startDate ? `_${startDate}` : endDate ? `_${endDate}` : "_semua-tanggal";
+      a.download = `credits_ledger${rangeSuffix}${typeSuffix}${qSuffix}${pmSuffix}.csv`;
       a.click();
       window.URL.revokeObjectURL(url);
       toast.success("Ekspor dimulai", { description: "File CSV terunduh", position: "top-center" });
@@ -1031,7 +1173,24 @@ function CreditsLedgerLog() {
   const toggleEntryType = (v: string) => setEntryTypes((prev) => (prev.includes(v) ? prev.filter((x) => x !== v) : [...prev, v]));
   const toggleStatus = (v: string) => setStatuses((prev) => (prev.includes(v) ? prev.filter((x) => x !== v) : [...prev, v]));
 
-  // §4: 12 kolom bisnis — Tipe | Customer | Jumlah | Nilai IDR | Paket | Kedaluwarsa | Sesi | Kehadiran | Status Pendapatan | Catatan | Diakui pada | Dibuat pada
+  // reset semua filter — tanggal kembali ke default awal bulan s/d hari ini;
+  // effect persist URL ikut membersihkan/menulis start_date/end_date/dll ke URL + query API
+  const handleResetFilters = () => {
+    setQInput("");
+    setQ("");
+    setEntryTypes([]);
+    setStatuses([]);
+    setStartDate(monthStartStr);
+    setEndDate(todayStr);
+    setPmMonth("");
+    setPmYear("");
+    setUserId("");
+    setMemberSearch("");
+    setOrder("desc");
+    setPage(1);
+  };
+
+  // §4: 12 kolom bisnis + Tgl Beli (purchased_month filter) — Tipe | Customer | Jumlah | Nilai IDR | Paket | Tgl Beli | Kedaluwarsa | Sesi | Kehadiran | Status Pendapatan | Catatan | Diakui pada | Dibuat pada
   const headers = useMemo(
     () => [
       {
@@ -1076,6 +1235,12 @@ function CreditsLedgerLog() {
         id: "package_name",
         text: "Paket",
         value: (row: ICreditsLedgerItem) => row.package_name ?? "—",
+      },
+      {
+        id: "purchased_at",
+        text: "Tgl Beli",
+        value: (row: ICreditsLedgerItem) =>
+          row.purchased_at ? formatDateHelper(row.purchased_at, "dd MMMM yyyy") : row.purchased_at_wib || "—",
       },
       {
         id: "expiry_date",
@@ -1154,21 +1319,51 @@ function CreditsLedgerLog() {
                 <Input className="pl-8" placeholder="Cari customer, paket, catatan..." value={qInput} onChange={(e) => setQInput(e.target.value)} />
               </div>
             </div>
-            <div className="flex flex-col gap-1 md:col-span-6">
+            <div className="flex flex-col gap-1 md:col-span-3">
               <p className="text-sm font-medium">Rentang tanggal</p>
               <DateRangePicker
                 mode="range"
                 startDate={startDate}
                 endDate={endDate}
                 onDateRangeChange={(s, e) => {
-                  if (!s && !e) return;
-                  if (s) setStartDate(s);
-                  if (e) setEndDate(e);
+                  setStartDate(s ?? "");
+                  setEndDate(e ?? "");
                 }}
                 allowPastDates
                 allowFutureDates={false}
                 maxSelectionDays={31}
               />
+            </div>
+            <div className="flex flex-col gap-1 md:col-span-3">
+              <p className="text-sm font-medium">Bulan pembelian paket</p>
+              <div className="flex gap-2">
+                <Select value={pmMonth} onValueChange={(v) => setPmMonth(v === "__all__" ? "" : v)}>
+                  <SelectTrigger className="w-full h-10">
+                    <SelectValue placeholder="Bulan" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="__all__">Semua</SelectItem>
+                    {MONTH_LIST.map((m) => (
+                      <SelectItem key={m.value} value={m.value}>
+                        {m.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <Select value={pmYear} onValueChange={(v) => setPmYear(v === "__all__" ? "" : v)}>
+                  <SelectTrigger className="w-full h-10">
+                    <SelectValue placeholder="Tahun" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="__all__">Semua</SelectItem>
+                    {[...new Set([pmYear, ...YEAR_LIST].filter(Boolean))].map((y) => (
+                      <SelectItem key={y} value={y}>
+                        {y}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
             <div className="flex flex-col gap-1 md:col-span-2">
               <p className="text-sm font-medium">Urutan</p>
@@ -1269,6 +1464,9 @@ function CreditsLedgerLog() {
           {rangeError && <p className="text-sm text-red-600">{rangeError}</p>}
 
           <div className="flex flex-wrap justify-end gap-2 pt-2">
+            <Button onClick={handleResetFilters} variant="ghost" size="sm">
+              Reset filter
+            </Button>
             <Button onClick={handleRunRecognition} disabled={!!rangeError || running} variant="default" size="sm">
               {running ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
               Hitung Ulang ({endDate || "hari ini"})
@@ -1279,7 +1477,8 @@ function CreditsLedgerLog() {
             </Button>
           </div>
           <p className="text-[11px] text-muted-foreground">
-            Status dihitung per {endDate || "hari ini"} · perhitungan otomatis setiap hari jam 23:59 WIB; tombol ini hanya untuk mengisi ulang data yang tertinggal / koreksi.
+            Status dihitung per {endDate || "hari ini"} · perhitungan otomatis setiap hari jam 23:59 WIB; tombol ini hanya untuk mengisi ulang data
+            yang tertinggal / koreksi.
           </p>
         </CardContent>
       </Card>
@@ -1334,7 +1533,7 @@ function CreditsLedgerLog() {
         const filterEcho = summary.filters;
         const rawFilterEntry = Array.isArray(filterEcho?.entry_type)
           ? (filterEcho.entry_type as string[]).join(",")
-          : ((filterEcho?.entry_type as string | undefined) ?? "");
+          : (filterEcho?.entry_type as string | undefined) ?? "";
         const filterEntry = rawFilterEntry
           ? rawFilterEntry
               .split(",")
@@ -1350,8 +1549,8 @@ function CreditsLedgerLog() {
                 <div className="flex flex-col gap-1.5">
                   <h3 className="text-base font-semibold tracking-tight">Ringkasan Pergerakan Kredit</h3>
                   <p className="text-xs text-muted-foreground">
-                    {summary.period ?? summary.periode} · {summary.total_movements.toLocaleString("en-US")} pergerakan pada
-                    periode ini · sesuai dengan tabel di bawah
+                    {summary.period ?? summary.periode} · {summary.total_movements.toLocaleString("en-US")} pergerakan pada periode ini · sesuai
+                    dengan tabel di bawah
                   </p>
                   <div className="flex flex-wrap items-center gap-1.5">
                     {filterEntry ? (
@@ -1363,8 +1562,16 @@ function CreditsLedgerLog() {
                         1 periode penuh (tanpa filter tipe)
                       </Badge>
                     )}
-                    {summary.filters?.user_id ? <Badge variant="outline" className="text-[11px]">Member terfilter</Badge> : null}
-                    {summary.filters?.q ? <Badge variant="outline" className="text-[11px]">Cari: {summary.filters.q}</Badge> : null}
+                    {summary.filters?.user_id ? (
+                      <Badge variant="outline" className="text-[11px]">
+                        Member terfilter
+                      </Badge>
+                    ) : null}
+                    {summary.filters?.q ? (
+                      <Badge variant="outline" className="text-[11px]">
+                        Cari: {summary.filters.q}
+                      </Badge>
+                    ) : null}
                   </div>
                 </div>
                 <Badge variant="outline" className="text-xs font-medium">
@@ -1470,8 +1677,8 @@ function CreditsLedgerLog() {
                     out ? (
                       <span className="flex flex-col gap-1">
                         <span>
-                          {out.packages.toLocaleString("en-US")} paket masih menyimpan kredit · uang muka yang ditahan ·
-                          posisi saat ini, bukan akhir periode
+                          {out.packages.toLocaleString("en-US")} paket masih menyimpan kredit · uang muka yang ditahan · posisi saat ini, bukan akhir
+                          periode
                         </span>
                         {outstandingAnomaly && (
                           <span className="font-medium text-amber-700">
@@ -1502,18 +1709,19 @@ function CreditsLedgerLog() {
                 const total = db.recognized_total ?? db.diakui_total;
                 const cash = db.cash;
                 // Pemulihan = pengembalian kredit kedaluwarsa saja (bukan refund); bila kosong → nol
-                const reversal = (src.by_status?.[REVERSAL_STATUS] as unknown as typeof db.breakage | undefined) ?? db.reversal ?? {
-                  count: 0,
-                  credits: 0,
-                  value_idr: 0,
-                  journal: REVERSAL_JOURNAL,
-                };
+                const reversal = (src.by_status?.[REVERSAL_STATUS] as unknown as typeof db.breakage | undefined) ??
+                  db.reversal ?? {
+                    count: 0,
+                    credits: 0,
+                    value_idr: 0,
+                    journal: REVERSAL_JOURNAL,
+                  };
                 const hasReversal = (reversal.count ?? 0) !== 0 || (reversal.value_idr ?? 0) !== 0;
                 if (!sold && !attended && !noShow && !db.breakage && !ending && !cash && !hasReversal) return null;
                 const creditCards = [
                   {
                     title: "Kredit Terjual",
-                    hint: "Uang diterima, pendapatan ditunda",
+                    hint: "Uang diterima, pendapatan diterima dimuka",
                     amount: formatCurrency(sold?.value_idr ?? 0),
                     footer: `${(sold?.credits ?? 0).toLocaleString("en-US")} kredit · ${sold?.count ?? 0} pergerakan`,
                     icon: (
@@ -1567,10 +1775,12 @@ function CreditsLedgerLog() {
                     ),
                   },
                   {
-                    title: "Sisa Pendapatan Ditunda",
+                    title: "Sisa Pendapatan Diterima Dimuka",
                     hint: "Masih terutang sebagai sesi mendatang",
                     amount: formatCurrency((ending as unknown as { value_idr?: number })?.value_idr ?? 0),
-                    footer: `${((ending as unknown as { credits?: number })?.credits ?? 0).toLocaleString("en-US")} kredit · ${((ending as unknown as { packages?: number })?.packages ?? 0).toLocaleString("en-US")} paket`,
+                    footer: `${((ending as unknown as { credits?: number })?.credits ?? 0).toLocaleString("en-US")} kredit · ${(
+                      (ending as unknown as { packages?: number })?.packages ?? 0
+                    ).toLocaleString("en-US")} paket`,
                     icon: (
                       <span className="flex h-8 w-8 items-center justify-center rounded-full bg-violet-500/10 text-violet-600">
                         <Landmark size={16} />
@@ -1584,8 +1794,8 @@ function CreditsLedgerLog() {
                       <div className="flex flex-col gap-0.5">
                         <p className="text-sm font-semibold tracking-tight">Pengakuan Pendapatan · Akrual</p>
                         <p className="text-[11px] text-muted-foreground">
-                          Total 1 periode penuh (tanpa filter tipe) · khusus pendapatan kredit · cash dihitung terpisah —
-                          jangan jumlahkan angka cash dan kredit
+                          Total 1 periode penuh (tanpa filter tipe) · khusus pendapatan kredit · cash dihitung terpisah — jangan jumlahkan angka cash
+                          dan kredit
                         </p>
                         {isFiltered && (
                           <p className="text-[11px] text-amber-700">
@@ -1606,7 +1816,11 @@ function CreditsLedgerLog() {
                           title={c.title}
                           amount={c.amount}
                           subtitle={c.hint}
-                          footer={<span className="flex flex-col gap-0.5"><span>{c.footer}</span></span>}
+                          footer={
+                            <span className="flex flex-col gap-0.5">
+                              <span>{c.footer}</span>
+                            </span>
+                          }
                           icon={c.icon}
                         />
                       ))}
@@ -1615,7 +1829,9 @@ function CreditsLedgerLog() {
                       <div className="flex flex-col gap-2">
                         <div className="flex flex-wrap items-center justify-between gap-2">
                           <p className="text-xs font-semibold text-muted-foreground">Arus cash · tanggal yang sama, berbasis booking</p>
-                          <p className="text-[11px] text-muted-foreground">Selisih terjual dengan yang sudah diakui adalah sesi yang belum berakhir.</p>
+                          <p className="text-[11px] text-muted-foreground">
+                            Selisih terjual dengan yang sudah diakui adalah sesi yang belum berakhir.
+                          </p>
                         </div>
                         <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
                           <CardRevenueComponent
@@ -1738,16 +1954,69 @@ function ReconciliationTable({ summary }: { summary: import("@/types/report.inte
   };
   // ponytail: 11 baris REKONSILIASI — unit + value_idr dari server, jangan hitung ulang di FE
   const rows: { bucket: string; label: string; units: number; valueIdr: number; subtle?: string; icon?: React.ReactNode }[] = [
-    { bucket: "pembelian", label: "Pembelian", units: n("pembelian_units"), valueIdr: n("pembelian_value_idr"), subtle: "kredit terbit", icon: <ShoppingBag size={13} className="text-sky-600" /> },
-    { bucket: "pemakaian", label: "Pemakaian", units: n("pemakaian_units"), valueIdr: n("pemakaian_value_idr"), subtle: "yang sudah diakui", icon: <BadgeCheck size={13} className="text-emerald-600" /> },
-    { bucket: "expired", label: "Kedaluwarsa", units: n("expired_units"), valueIdr: n("expired_value_idr") ?? n("expired_value"), icon: <TimerOff size={13} className="text-orange-600" /> },
-    { bucket: "reversal", label: "Pemulihan Kedaluwarsa", units: n("reversal_units"), valueIdr: n("reversal_value_idr"), subtle: "pengembalian bulan ini", icon: <Undo2 size={13} className="text-purple-600" /> },
+    {
+      bucket: "pembelian",
+      label: "Pembelian",
+      units: n("pembelian_units"),
+      valueIdr: n("pembelian_value_idr"),
+      subtle: "kredit terbit",
+      icon: <ShoppingBag size={13} className="text-sky-600" />,
+    },
+    {
+      bucket: "pemakaian",
+      label: "Pemakaian",
+      units: n("pemakaian_units"),
+      valueIdr: n("pemakaian_value_idr"),
+      subtle: "yang sudah diakui",
+      icon: <BadgeCheck size={13} className="text-emerald-600" />,
+    },
+    {
+      bucket: "expired",
+      label: "Kedaluwarsa",
+      units: n("expired_units"),
+      valueIdr: n("expired_value_idr") ?? n("expired_value"),
+      icon: <TimerOff size={13} className="text-orange-600" />,
+    },
+    {
+      bucket: "reversal",
+      label: "Pemulihan Kedaluwarsa",
+      units: n("reversal_units"),
+      valueIdr: n("reversal_value_idr"),
+      subtle: "pengembalian bulan ini",
+      icon: <Undo2 size={13} className="text-purple-600" />,
+    },
     { bucket: "refund", label: "Refund", units: n("refund_units"), valueIdr: n("refund_value_idr"), icon: <RotateCcw size={13} /> },
     { bucket: "admin_adj", label: "Penyesuaian Admin", units: n("admin_adj_units"), valueIdr: n("admin_adj_value_idr"), subtle: "di luar pemulihan" },
-    { bucket: "system", label: "Penyesuaian Sistem", units: n("system_units") || n("system_adj_units"), valueIdr: n("system_value_idr") || n("system_adj_value_idr"), subtle: "otomatis oleh sistem", icon: <Activity size={13} className="text-sky-600" /> },
-    { bucket: "net_breakage", label: "Hangus Bersih", units: n("net_breakage_units"), valueIdr: n("net_breakage_value_idr"), subtle: "kedaluwarsa − pemulihan", icon: <Hourglass size={13} className="text-zinc-500" /> },
-    { bucket: "closing_snapshot", label: "Saldo Akhir", units: n("closing_snapshot_units") || n("total_outstanding_credits"), valueIdr: n("closing_snapshot_value_idr") || n("total_outstanding_value_idr"), subtle: "angka resmi" },
-    { bucket: "closing_formula", label: "Saldo Hitungan", units: n("closing_formula_units"), valueIdr: n("closing_formula_value_idr"), subtle: "hasil perhitungan" },
+    {
+      bucket: "system",
+      label: "Penyesuaian Sistem",
+      units: n("system_units") || n("system_adj_units"),
+      valueIdr: n("system_value_idr") || n("system_adj_value_idr"),
+      subtle: "otomatis oleh sistem",
+      icon: <Activity size={13} className="text-sky-600" />,
+    },
+    {
+      bucket: "net_breakage",
+      label: "Hangus Bersih",
+      units: n("net_breakage_units"),
+      valueIdr: n("net_breakage_value_idr"),
+      subtle: "kedaluwarsa − pemulihan",
+      icon: <Hourglass size={13} className="text-zinc-500" />,
+    },
+    {
+      bucket: "closing_snapshot",
+      label: "Saldo Akhir",
+      units: n("closing_snapshot_units") || n("total_outstanding_credits"),
+      valueIdr: n("closing_snapshot_value_idr") || n("total_outstanding_value_idr"),
+      subtle: "angka resmi",
+    },
+    {
+      bucket: "closing_formula",
+      label: "Saldo Hitungan",
+      units: n("closing_formula_units"),
+      valueIdr: n("closing_formula_value_idr"),
+      subtle: "hasil perhitungan",
+    },
     { bucket: "diff", label: "Selisih", units: n("diff_units"), valueIdr: n("diff_value_idr"), subtle: "harus 0" },
   ];
   const fmtU = (u: number) => u.toLocaleString("en-US");
@@ -1758,7 +2027,9 @@ function ReconciliationTable({ summary }: { summary: import("@/types/report.inte
           <CardTitle className="text-sm">Rekonsiliasi</CardTitle>
           <CardDescription className="text-xs">Cutoff 23:59:59 WIB · unit + IDR</CardDescription>
         </div>
-        <Badge variant="outline" className="hidden sm:inline-flex text-[11px]">11 pos</Badge>
+        <Badge variant="outline" className="hidden sm:inline-flex text-[11px]">
+          11 pos
+        </Badge>
       </CardHeader>
       <CardContent className="p-0">
         <Table>
@@ -1778,10 +2049,16 @@ function ReconciliationTable({ summary }: { summary: import("@/types/report.inte
                 <TooltipProvider key={r.bucket}>
                   <Tooltip>
                     <TooltipTrigger asChild>
-                      <TableRow className={`${isDiff ? "font-semibold bg-muted/30" : ""} ${diffBad ? "!bg-red-50 !text-red-700 hover:!bg-red-50" : ""} ${isSnapshot ? "bg-brand-50/40" : ""}`}>
+                      <TableRow
+                        className={`${isDiff ? "font-semibold bg-muted/30" : ""} ${diffBad ? "!bg-red-50 !text-red-700 hover:!bg-red-50" : ""} ${
+                          isSnapshot ? "bg-brand-50/40" : ""
+                        }`}
+                      >
                         <TableCell>
                           <span className="inline-flex items-center gap-2">
-                            {r.icon && <span className="hidden h-6 w-6 items-center justify-center rounded-md bg-muted sm:inline-flex">{r.icon}</span>}
+                            {r.icon && (
+                              <span className="hidden h-6 w-6 items-center justify-center rounded-md bg-muted sm:inline-flex">{r.icon}</span>
+                            )}
                             <span>{r.label}</span>
                             {r.subtle && <span className="hidden text-[11px] text-muted-foreground lg:inline">· {r.subtle}</span>}
                           </span>
@@ -1791,7 +2068,9 @@ function ReconciliationTable({ summary }: { summary: import("@/types/report.inte
                       </TableRow>
                     </TooltipTrigger>
                     <TooltipContent side="left" className="max-w-[260px] text-xs">
-                      {isDiff && diffBad ? "Ada selisih antara saldo akhir dan hasil hitungan — hubungi tim Finance/Tech; jangan koreksi manual" : (tooltips[r.bucket] ?? r.subtle ?? r.label)}
+                      {isDiff && diffBad
+                        ? "Ada selisih antara saldo akhir dan hasil hitungan — hubungi tim Finance/Tech; jangan koreksi manual"
+                        : tooltips[r.bucket] ?? r.subtle ?? r.label}
                     </TooltipContent>
                   </Tooltip>
                 </TooltipProvider>
@@ -1810,7 +2089,11 @@ function OutstandingReportsList({ year, visible }: { year?: number; visible: boo
   const { data, isLoading, refetch, isFetching } = useListOutstandingReports({ year, page, page_size: pageSize }, visible);
   const rawItems = (data as unknown as { data?: unknown })?.data;
   const list = (Array.isArray(rawItems) ? rawItems : []) as IOutstandingReportItem[];
-  const pagination = (data as unknown as { pagination?: { page: number; total_pages: number; total_items: number; page_size: number; has_next: boolean; has_prev: boolean } })?.pagination;
+  const pagination = (
+    data as unknown as {
+      pagination?: { page: number; total_pages: number; total_items: number; page_size: number; has_next: boolean; has_prev: boolean };
+    }
+  )?.pagination;
   const [downloadingId, setDownloadingId] = useState<string | null>(null);
 
   // Signed URL 1 jam — refresh list dulu agar link fresh, baru buka
@@ -1839,7 +2122,9 @@ function OutstandingReportsList({ year, visible }: { year?: number; visible: boo
         </Button>
       </CardHeader>
       <CardContent>
-        <p className="mb-3 text-[11px] text-muted-foreground">Tautan unduh berlaku 1 jam — daftar dimuat ulang otomatis saat klik unduh. Nilai utama dalam Rupiah.</p>
+        <p className="mb-3 text-[11px] text-muted-foreground">
+          Tautan unduh berlaku 1 jam — daftar dimuat ulang otomatis saat klik unduh. Nilai utama dalam Rupiah.
+        </p>
         {isLoading ? (
           <div className="flex justify-center py-4">
             <Loader2 className="h-4 w-4 animate-spin" />
@@ -1875,24 +2160,52 @@ function OutstandingReportsList({ year, visible }: { year?: number; visible: boo
                           <span className="block text-[11px] text-muted-foreground">
                             {r.generated_at ? formatDateHelper(r.generated_at) : ""} {r.is_incomplete ? "· DRAFT" : ""}
                           </span>
-                          {r.is_incomplete && <Badge variant="outline" className="mt-1 bg-amber-50 text-amber-700 border-amber-200 text-[10px]">incomplete</Badge>}
+                          {r.is_incomplete && (
+                            <Badge variant="outline" className="mt-1 bg-amber-50 text-amber-700 border-amber-200 text-[10px]">
+                              incomplete
+                            </Badge>
+                          )}
                         </TableCell>
                         <TableCell className="text-right tabular-nums">{idr(rr.opening_value_idr)}</TableCell>
-                        <TableCell className="text-right tabular-nums">{idr(rr.pembelian_value_idr ?? rr.issued_value_idr ?? rr.credits_issued)}</TableCell>
-                        <TableCell className="text-right tabular-nums">{idr(rr.pemakaian_value_idr ?? rr.used_value_idr ?? rr.credits_used)}</TableCell>
+                        <TableCell className="text-right tabular-nums">
+                          {idr(rr.pembelian_value_idr ?? rr.issued_value_idr ?? rr.credits_issued)}
+                        </TableCell>
+                        <TableCell className="text-right tabular-nums">
+                          {idr(rr.pemakaian_value_idr ?? rr.used_value_idr ?? rr.credits_used)}
+                        </TableCell>
                         <TableCell className="text-right tabular-nums">{idr(rr.net_breakage_value_idr)}</TableCell>
                         <TableCell className="text-right tabular-nums font-medium">{idr(closing)}</TableCell>
                         <TableCell className={`text-right tabular-nums ${diffBad ? "text-red-700 font-semibold" : ""}`}>{idr(diff)}</TableCell>
                         <TableCell className="text-right">
                           <span className="inline-flex gap-1.5">
                             {r.summary_file?.download_url && (
-                              <Button variant="outline" size="sm" disabled={downloadingId === `${r.report_id}-summary`} onClick={() => handleDownload(r.report_id, "summary")}>
-                                {downloadingId === `${r.report_id}-summary` ? <Loader2 className="h-3 w-3 animate-spin" /> : <Download className="h-3 w-3" />} CSV Ringkasan
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                disabled={downloadingId === `${r.report_id}-summary`}
+                                onClick={() => handleDownload(r.report_id, "summary")}
+                              >
+                                {downloadingId === `${r.report_id}-summary` ? (
+                                  <Loader2 className="h-3 w-3 animate-spin" />
+                                ) : (
+                                  <Download className="h-3 w-3" />
+                                )}{" "}
+                                CSV Ringkasan
                               </Button>
                             )}
                             {r.detail_file?.download_url && (
-                              <Button variant="outline" size="sm" disabled={downloadingId === `${r.report_id}-detail`} onClick={() => handleDownload(r.report_id, "detail")}>
-                                {downloadingId === `${r.report_id}-detail` ? <Loader2 className="h-3 w-3 animate-spin" /> : <Download className="h-3 w-3" />} CSV Rincian
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                disabled={downloadingId === `${r.report_id}-detail`}
+                                onClick={() => handleDownload(r.report_id, "detail")}
+                              >
+                                {downloadingId === `${r.report_id}-detail` ? (
+                                  <Loader2 className="h-3 w-3 animate-spin" />
+                                ) : (
+                                  <Download className="h-3 w-3" />
+                                )}{" "}
+                                CSV Rincian
                               </Button>
                             )}
                           </span>
@@ -1934,14 +2247,32 @@ interface ReportDownloadsProps {
   isIncomplete?: boolean;
 }
 
-export function ReportDownloads({ detailLink, summaryLink, isLoading = false, summaryFileName, detailFileName, month, year, isCached, isIncomplete }: ReportDownloadsProps) {
+export function ReportDownloads({
+  detailLink,
+  summaryLink,
+  isLoading = false,
+  summaryFileName,
+  detailFileName,
+  month,
+  year,
+  isCached,
+  isIncomplete,
+}: ReportDownloadsProps) {
   return (
     <div className="w-full space-y-4">
       <div className="mb-2">
         <h3 className="flex flex-wrap items-center gap-2 text-lg font-semibold text-foreground">
           Laporan {MONTH_LIST.find((p) => p.value === month)?.label} {year} Siap
-          {isCached && <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200 text-[11px]">Bulan sudah terkunci</Badge>}
-          {isIncomplete && <Badge variant="outline" className="bg-amber-50 text-amber-700 border-amber-200 text-[11px]">Draf</Badge>}
+          {isCached && (
+            <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200 text-[11px]">
+              Bulan sudah terkunci
+            </Badge>
+          )}
+          {isIncomplete && (
+            <Badge variant="outline" className="bg-amber-50 text-amber-700 border-amber-200 text-[11px]">
+              Draf
+            </Badge>
+          )}
         </h3>
         <p className="text-sm text-muted-foreground">Unduh laporan di bawah · tautan berlaku 1 jam</p>
       </div>

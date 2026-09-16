@@ -705,24 +705,11 @@ export const SessionDetailPage = () => {
             const provider = (selectedDataCancel?.paid_with?.provider || "").toLowerCase();
             const isThirdParty = provider === "third_party";
             const isCash = selectedDataCancel?.payment_method === "cash" || selectedDataCancel?.payment_method === "midtrans" || selectedDataCancel?.paid_with?.type === "cash";
-            const cashLabel = isThirdParty ? "3rd Party" : "Midtrans/cash";
-            const policyNote = isManager
-              ? isLateCancel
-                ? "Late cancellation (< 6 hours). Admin is limited to No refund / External refund — manager may override to any option below."
-                : isCredits
-                  ? "On-time (≥ 6 hours) credit-package booking — standard is Return package credits (manager may choose any option)."
-                  : `On-time (≥ 6 hours) ${cashLabel} booking — standard is Issue new credits (manager may choose any option).`
-              : isLateCancel
-                ? "Late cancellation (< 6 hours) — only No refund or External refund is allowed."
-                : isCredits
-                  ? "On-time (≥ 6 hours) credit-package booking — credit will be returned to the original package."
-                  : `On-time (≥ 6 hours) ${cashLabel} booking — a new credit will be issued.`;
             return (
               <div className={cn("flex gap-3 rounded-lg border p-3 text-sm", isLateCancel ? "border-amber-300 bg-amber-50 text-amber-900" : "border-brand-100 bg-brand-25 text-brand-900")}>
                 <AlertTriangle className={cn("h-5 w-5 shrink-0", isLateCancel ? "text-amber-600" : "text-brand-500")} />
                 <div>
                   <p className="font-semibold">{isLateCancel ? "Late cancellation — less than 6 hours" : "On-time cancellation"}</p>
-                  <p className="text-xs leading-relaxed">{policyNote}</p>
                   {selectedDataCancel && (
                     <p className="text-xs text-muted-foreground mt-1">
                       {selectedDataCancel.customer_name} · {isCredits ? `Package: ${selectedDataCancel.paid_with?.package_name ?? "-"} (${selectedDataCancel.paid_with?.credits_used ?? 1} cr)` : `Cash: ${formatCurrency(selectedDataCancel.paid_with?.revenue_idr ?? data?.data?.price_idr)} · ${isThirdParty ? "3rd Party" : isCash ? "Midtrans/cash" : selectedDataCancel.payment_method}`}
@@ -734,19 +721,9 @@ export const SessionDetailPage = () => {
             );
           })()}
 
-          {(() => {
-            const isCredits = selectedDataCancel?.paid_with?.type === "credits" || selectedDataCancel?.payment_method === "credits";
-            const visible = isManager
-              ? refundOptions
-              : isLateCancel
-                ? refundOptions.filter(o => o.value === "none" || o.value === "manual_external")
-                : isCredits
-                  ? refundOptions.filter(o => o.value === "credit_return")
-                  : refundOptions.filter(o => o.value === "credit_issue_new");
-            return (
-              <RadioGroup value={refundType} onValueChange={(v) => setRefundTYpe(v)}>
+          <RadioGroup value={refundType} onValueChange={(v) => setRefundTYpe(v)}>
                 <div className="grid grid-cols-2 gap-2">
-                  {visible?.map((option) => (
+                  {refundOptions.map((option) => (
                     <div key={option.value} className={cn("flex items-center space-x-2 border border-brand-400 rounded-xl p-4", {
                       "border-2 bg-brand-50": refundType === option.value
                     })}>
@@ -765,8 +742,6 @@ export const SessionDetailPage = () => {
                   ))}
                 </div>
               </RadioGroup>
-            );
-          })()}
 
           {refundType === "credit_issue_new" && (
             <div className="flex flex-col gap-2">
