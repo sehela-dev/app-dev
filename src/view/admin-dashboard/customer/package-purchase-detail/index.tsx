@@ -13,7 +13,14 @@ import { useAdjustPackagePurchaseCredits, useOverridePackagePurchaseExpiry } fro
 import { useGetPackagePurchaseDetail } from "@/hooks/api/queries/admin/package-purchase";
 import { useAdminPermission } from "@/hooks/use-role-access";
 import { formatCurrency } from "@/lib/helper";
-import { ClearExpiryFormValues, clearExpirySchema, CreditAdjustmentFormValues, creditAdjustmentSchema, ExpiryOverrideFormValues, expiryOverrideSchema } from "@/resolver";
+import {
+  ClearExpiryFormValues,
+  clearExpirySchema,
+  CreditAdjustmentFormValues,
+  creditAdjustmentSchema,
+  ExpiryOverrideFormValues,
+  expiryOverrideSchema,
+} from "@/resolver";
 import { IPackagePurchaseApiError, IPackagePurchaseErrorResponse } from "@/types/package-purchase.interface";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { AxiosError } from "axios";
@@ -49,16 +56,14 @@ const jakartaTodayForInput = () => {
     year: "numeric",
     month: "2-digit",
     day: "2-digit",
-  }).formatToParts(new Date()).reduce<Record<string, string>>((result, part) => ({ ...result, [part.type]: part.value }), {});
+  })
+    .formatToParts(new Date())
+    .reduce<Record<string, string>>((result, part) => ({ ...result, [part.type]: part.value }), {});
   return `${parts.year}-${parts.month}-${parts.day}`;
 };
 
 const actionTitle = (action: PendingAction) =>
-  action.kind === "credit-adjustment"
-    ? action.delta > 0
-      ? "Add credits"
-      : "Remove credits"
-    : "Set package expiry";
+  action.kind === "credit-adjustment" ? (action.delta > 0 ? "Add credits" : "Remove credits") : "Set package expiry";
 
 export const PackagePurchaseDetailPage = () => {
   const router = useRouter();
@@ -201,23 +206,29 @@ export const PackagePurchaseDetailPage = () => {
     if (!(await expiryForm.trigger())) return;
     const values = expiryForm.getValues();
     const isoDate = jakartaDateToExpiryIso(values.expires_at);
-    if (!isoDate || new Date(isoDate).getTime() <= Date.now()) {
-      expiryForm.setError("expires_at", { message: "Expiry must be today or a future Jakarta date" });
-      return;
-    }
+    // if (!isoDate || new Date(isoDate).getTime() <= Date.now()) {
+    //   expiryForm.setError("expires_at", { message: "Expiry must be today or a future Jakarta date" });
+    //   return;
+    // }
     setConfirmationError(null);
     setPendingAction({ kind: "expiry-override", expiresAt: isoDate, reason: values.reason.trim() });
   };
 
   if (isLoading) {
-    return <div className="flex items-center justify-center py-16"><Loader2 className="h-5 w-5 animate-spin" /> <span className="ml-2">Loading package purchase...</span></div>;
+    return (
+      <div className="flex items-center justify-center py-16">
+        <Loader2 className="h-5 w-5 animate-spin" /> <span className="ml-2">Loading package purchase...</span>
+      </div>
+    );
   }
   if (isError || !purchase) {
     return (
       <div className="flex flex-col items-center gap-3 py-16 text-center">
         <ShieldAlert className="h-8 w-8 text-destructive" />
         <p>{error instanceof Error ? error.message : "Unable to load this package purchase."}</p>
-        <Button variant="outline" onClick={() => refetch()}>Retry</Button>
+        <Button variant="outline" onClick={() => refetch()}>
+          Retry
+        </Button>
       </div>
     );
   }
@@ -230,11 +241,15 @@ export const PackagePurchaseDetailPage = () => {
     <div className="flex flex-col gap-4">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <Button variant="ghost" className="px-0" onClick={() => router.push(`/admin/member/${params.id}`)}><ArrowLeft /> Back to member</Button>
+          <Button variant="ghost" className="px-0" onClick={() => router.push(`/admin/member/${params.id}`)}>
+            <ArrowLeft /> Back to member
+          </Button>
           <h1 className="text-2xl font-semibold text-brand-999">Package purchase detail</h1>
           <p className="text-sm text-gray-500">Review credits, payment state, and manager action history.</p>
         </div>
-        <Badge variant={purchase.status === "paid" ? "default" : purchase.status === "expired" ? "destructive" : "secondary"} className="capitalize">{purchase.status.replace("_", " ")}</Badge>
+        <Badge variant={purchase.status === "paid" ? "default" : purchase.status === "expired" ? "destructive" : "secondary"} className="capitalize">
+          {purchase.status.replace("_", " ")}
+        </Badge>
       </div>
 
       <div className="grid gap-4 lg:grid-cols-2">
@@ -256,7 +271,10 @@ export const PackagePurchaseDetailPage = () => {
             <DetailItem label="Credits used" value={String(purchase.credits_used)} />
             <DetailItem label="Expiry (Jakarta)" value={formatJakarta(purchase.expires_at)} />
             <DetailItem label="First used" value={formatJakarta(purchase.first_used_at)} />
-            <DetailItem label="Paid amount" value={purchase.actual_amount_paid_idr === null ? "-" : formatCurrency(purchase.actual_amount_paid_idr)} />
+            <DetailItem
+              label="Paid amount"
+              value={purchase.actual_amount_paid_idr === null ? "-" : formatCurrency(purchase.actual_amount_paid_idr)}
+            />
             <DetailItem label="Package type" value={purchase.credit_package?.package_type ?? "-"} />
           </CardContent>
         </Card>
@@ -268,14 +286,22 @@ export const PackagePurchaseDetailPage = () => {
           <CardContent className="flex flex-wrap gap-2">
             {isExpired ? (
               <>
-                <Button variant="outline" onClick={() => setDialog("expiry")} disabled={!canOverrideExpiry}><CalendarClock /> Reactivate package</Button>
+                <Button variant="outline" onClick={() => setDialog("expiry")} disabled={!canOverrideExpiry}>
+                  <CalendarClock /> Reactivate package
+                </Button>
                 <p className="w-full text-sm text-gray-500">After reactivation, manage credits from the member Information tab.</p>
               </>
             ) : (
               <>
-                <Button onClick={() => setDialog("adjust")} disabled={!canAdjust}>Adjust credits</Button>
-                <Button variant="destructive" onClick={() => setDialog("remove-all")} disabled={!canAdjust || balance <= 0}>Remove all remaining credits</Button>
-                <Button variant="outline" onClick={() => setDialog("expiry")} disabled={!canOverrideExpiry}><CalendarClock /> Set or extend expiry</Button>
+                <Button onClick={() => setDialog("adjust")} disabled={!canAdjust}>
+                  Adjust credits
+                </Button>
+                <Button variant="destructive" onClick={() => setDialog("remove-all")} disabled={!canAdjust || balance <= 0}>
+                  Remove all remaining credits
+                </Button>
+                <Button variant="outline" onClick={() => setDialog("expiry")} disabled={!canOverrideExpiry}>
+                  <CalendarClock /> Set or extend expiry
+                </Button>
                 {!canAdjust && <p className="w-full text-sm text-gray-500">Credit adjustments are available only for active paid packages.</p>}
               </>
             )}
@@ -283,12 +309,18 @@ export const PackagePurchaseDetailPage = () => {
         </Card>
       )}
 
-      <HistoryTable title="Credit ledger history" emptyText="No ledger entries were recorded for this purchase." headers={["Date (WIB)", "Type", "Amount", "Session", "Spender", "Note"]}>
+      <HistoryTable
+        title="Credit ledger history"
+        emptyText="No ledger entries were recorded for this purchase."
+        headers={["Date (WIB)", "Type", "Amount", "Session", "Spender", "Note"]}
+      >
         {purchase.ledger_history.map((entry) => (
           <TableRow key={entry.id}>
             <TableCell>{formatJakarta(entry.created_at)}</TableCell>
             <TableCell className="capitalize">{entry.entry_type.replaceAll("_", " ")}</TableCell>
-            <TableCell className={entry.amount < 0 ? "text-destructive" : "text-green-700"}>{entry.amount > 0 ? `+${entry.amount}` : entry.amount}</TableCell>
+            <TableCell className={entry.amount < 0 ? "text-destructive" : "text-green-700"}>
+              {entry.amount > 0 ? `+${entry.amount}` : entry.amount}
+            </TableCell>
             <TableCell className="whitespace-normal">
               {entry.booking_session_id ? (
                 <a
@@ -310,7 +342,11 @@ export const PackagePurchaseDetailPage = () => {
               {entry.spender?.full_name ? (
                 <span className="inline-flex items-center gap-1">
                   {entry.spender.full_name}
-                  {entry.is_shared_credit ? <Badge variant="outline" className="text-[10px] leading-none px-1 py-0">shared</Badge> : null}
+                  {entry.is_shared_credit ? (
+                    <Badge variant="outline" className="text-[10px] leading-none px-1 py-0">
+                      shared
+                    </Badge>
+                  ) : null}
                 </span>
               ) : entry.user_id ? (
                 <span className="text-xs text-muted-foreground">{entry.user_id.slice(0, 8)}…</span>
@@ -323,33 +359,90 @@ export const PackagePurchaseDetailPage = () => {
         ))}
       </HistoryTable>
 
-      <HistoryTable title="Manager action history" emptyText="No manager actions have been recorded." headers={["Date (WIB)", "Type", "Actor", "Reason", "Balance"]}>
+      <HistoryTable
+        title="Manager action history"
+        emptyText="No manager actions have been recorded."
+        headers={["Date (WIB)", "Type", "Actor", "Reason", "Balance"]}
+      >
         {purchase.manual_action_history.map((action) => (
           <TableRow key={action.id}>
             <TableCell>{formatJakarta(action.created_at)}</TableCell>
             <TableCell className="capitalize">{action.action_type.replaceAll("_", " ")}</TableCell>
             <TableCell>{action.actor?.full_name ?? action.actor?.email ?? "Manager"}</TableCell>
             <TableCell className="whitespace-normal">{action.reason}</TableCell>
-            <TableCell>{action.before_state.ledger_balance ?? "-"} → {action.after_state.ledger_balance ?? "-"}</TableCell>
+            <TableCell>
+              {action.before_state.ledger_balance ?? "-"} → {action.after_state.ledger_balance ?? "-"}
+            </TableCell>
           </TableRow>
         ))}
       </HistoryTable>
 
       <Dialog open={dialog === "adjust"} onOpenChange={(open) => !open && closeActionDialog()}>
         <DialogContent>
-          <DialogHeader><DialogTitle>Adjust remaining credits</DialogTitle><DialogDescription>Choose whether to add or remove a whole number of credits. Current balance: {balance}.</DialogDescription></DialogHeader>
+          <DialogHeader>
+            <DialogTitle>Adjust remaining credits</DialogTitle>
+            <DialogDescription>Choose whether to add or remove a whole number of credits. Current balance: {balance}.</DialogDescription>
+          </DialogHeader>
           <FormProvider {...adjustmentForm}>
-            <form className="grid gap-4" onSubmit={(event) => { event.preventDefault(); void requestAdjustmentConfirmation(); }}>
-              <FormField control={adjustmentForm.control} name="direction" render={({ field }) => (
-                <FormItem><FormLabel>Adjustment</FormLabel><FormControl><RadioGroup value={field.value} onValueChange={field.onChange} className="grid grid-cols-2 gap-2">
-                  <label className="flex cursor-pointer items-center gap-2 rounded-md border p-3"><RadioGroupItem value="add" /> Add credits</label>
-                  <label className="flex cursor-pointer items-center gap-2 rounded-md border p-3"><RadioGroupItem value="remove" /> Remove credits</label>
-                </RadioGroup></FormControl><FormMessage /></FormItem>
-              )} />
-              <FormField control={adjustmentForm.control} name="amount" render={({ field }) => <FormItem><FormLabel required>Credits</FormLabel><FormControl><Input type="number" min="1" step="1" inputMode="numeric" value={field.value} onChange={(event) => field.onChange(event.target.value === "" ? Number.NaN : Number(event.target.value))} /></FormControl><FormMessage /></FormItem>} />
-              <p className="rounded-md bg-muted p-3 text-sm">Resulting remaining balance: <strong>{preview}</strong></p>
+            <form
+              className="grid gap-4"
+              onSubmit={(event) => {
+                event.preventDefault();
+                void requestAdjustmentConfirmation();
+              }}
+            >
+              <FormField
+                control={adjustmentForm.control}
+                name="direction"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Adjustment</FormLabel>
+                    <FormControl>
+                      <RadioGroup value={field.value} onValueChange={field.onChange} className="grid grid-cols-2 gap-2">
+                        <label className="flex cursor-pointer items-center gap-2 rounded-md border p-3">
+                          <RadioGroupItem value="add" /> Add credits
+                        </label>
+                        <label className="flex cursor-pointer items-center gap-2 rounded-md border p-3">
+                          <RadioGroupItem value="remove" /> Remove credits
+                        </label>
+                      </RadioGroup>
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={adjustmentForm.control}
+                name="amount"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel required>Credits</FormLabel>
+                    <FormControl>
+                      <Input
+                        type="number"
+                        min="1"
+                        step="1"
+                        inputMode="numeric"
+                        value={field.value}
+                        onChange={(event) => field.onChange(event.target.value === "" ? Number.NaN : Number(event.target.value))}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <p className="rounded-md bg-muted p-3 text-sm">
+                Resulting remaining balance: <strong>{preview}</strong>
+              </p>
               <ReasonField control={adjustmentForm.control} />
-              <DialogFooter><Button type="button" variant="outline" onClick={closeActionDialog}>Cancel</Button><Button type="submit" disabled={preview < 0}>Review adjustment</Button></DialogFooter>
+              <DialogFooter>
+                <Button type="button" variant="outline" onClick={closeActionDialog}>
+                  Cancel
+                </Button>
+                <Button type="submit" disabled={preview < 0}>
+                  Review adjustment
+                </Button>
+              </DialogFooter>
             </form>
           </FormProvider>
         </DialogContent>
@@ -357,40 +450,172 @@ export const PackagePurchaseDetailPage = () => {
 
       <Dialog open={dialog === "remove-all"} onOpenChange={(open) => !open && closeActionDialog()}>
         <DialogContent>
-          <DialogHeader><DialogTitle>Remove all remaining credits</DialogTitle><DialogDescription>This will remove all {balance} remaining credits. It does not expire or refund the package.</DialogDescription></DialogHeader>
-          <FormProvider {...removeAllForm}><form className="grid gap-4" onSubmit={(event) => { event.preventDefault(); void requestRemoveAllConfirmation(); }}><ReasonField control={removeAllForm.control} /><DialogFooter><Button type="button" variant="outline" onClick={closeActionDialog}>Cancel</Button><Button type="submit" variant="destructive">Review removal</Button></DialogFooter></form></FormProvider>
+          <DialogHeader>
+            <DialogTitle>Remove all remaining credits</DialogTitle>
+            <DialogDescription>This will remove all {balance} remaining credits. It does not expire or refund the package.</DialogDescription>
+          </DialogHeader>
+          <FormProvider {...removeAllForm}>
+            <form
+              className="grid gap-4"
+              onSubmit={(event) => {
+                event.preventDefault();
+                void requestRemoveAllConfirmation();
+              }}
+            >
+              <ReasonField control={removeAllForm.control} />
+              <DialogFooter>
+                <Button type="button" variant="outline" onClick={closeActionDialog}>
+                  Cancel
+                </Button>
+                <Button type="submit" variant="destructive">
+                  Review removal
+                </Button>
+              </DialogFooter>
+            </form>
+          </FormProvider>
         </DialogContent>
       </Dialog>
 
       <Dialog open={dialog === "expiry"} onOpenChange={(open) => !open && closeActionDialog()}>
         <DialogContent>
-          <DialogHeader><DialogTitle>{isExpired ? "Reactivate package" : "Set or extend expiry"}</DialogTitle><DialogDescription>{isExpired ? "This returns the package to paid status and may restore prior expiry deductions." : "The package expires at 23:59 WIB on the selected date."}</DialogDescription></DialogHeader>
-          <FormProvider {...expiryForm}><form className="grid gap-4" onSubmit={(event) => { event.preventDefault(); void requestExpiryConfirmation(); }}>
-            <FormField control={expiryForm.control} name="expires_at" render={({ field }) => <FormItem><FormLabel required>Expiry date (WIB)</FormLabel><FormControl><Input type="date" min={jakartaTodayForInput()} {...field} /></FormControl><FormMessage /></FormItem>} />
-            <ReasonField control={expiryForm.control} />
-            <DialogFooter><Button type="button" variant="outline" onClick={closeActionDialog}>Cancel</Button><Button type="submit">Review {isExpired ? "reactivation" : "expiry"}</Button></DialogFooter>
-          </form></FormProvider>
+          <DialogHeader>
+            <DialogTitle>{isExpired ? "Reactivate package" : "Set or extend expiry"}</DialogTitle>
+            <DialogDescription>
+              {isExpired
+                ? "This returns the package to paid status and may restore prior expiry deductions."
+                : "The package expires at 23:59 WIB on the selected date."}
+            </DialogDescription>
+          </DialogHeader>
+          <FormProvider {...expiryForm}>
+            <form
+              className="grid gap-4"
+              onSubmit={(event) => {
+                event.preventDefault();
+                void requestExpiryConfirmation();
+              }}
+            >
+              <FormField
+                control={expiryForm.control}
+                name="expires_at"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel required>Expiry date (WIB)</FormLabel>
+                    <FormControl>
+                      <Input
+                        type="date"
+                        // min={jakartaTodayForInput()}
+                        {...field}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <ReasonField control={expiryForm.control} />
+              <DialogFooter>
+                <Button type="button" variant="outline" onClick={closeActionDialog}>
+                  Cancel
+                </Button>
+                <Button type="submit">Review {isExpired ? "reactivation" : "expiry"}</Button>
+              </DialogFooter>
+            </form>
+          </FormProvider>
         </DialogContent>
       </Dialog>
 
       <Dialog open={Boolean(pendingAction)} onOpenChange={(open) => !open && !isSubmitting && setPendingAction(null)}>
         <DialogContent showCloseButton={!isSubmitting}>
-          <DialogHeader><DialogTitle>Confirm {pendingAction ? actionTitle(pendingAction).toLowerCase() : "action"}</DialogTitle><DialogDescription>{pendingAction?.kind === "credit-adjustment" ? `The remaining balance will change from ${balance} to ${balance + pendingAction.delta}.` : `The expiry will be ${formatJakarta(pendingAction?.expiresAt)}.`}</DialogDescription></DialogHeader>
-          {confirmationError && <p className="rounded-md border border-destructive/30 bg-destructive/10 p-3 text-sm text-destructive">{confirmationError}</p>}
-          <DialogFooter><Button variant="outline" disabled={isSubmitting} onClick={() => setPendingAction(null)}>Cancel</Button><Button variant={pendingAction?.kind === "credit-adjustment" && pendingAction.delta < 0 ? "destructive" : "default"} disabled={!pendingAction || isSubmitting} onClick={() => pendingAction && void executeAction(pendingAction)}>{isSubmitting && <Loader2 className="animate-spin" />}{confirmationError ? "Retry same request" : "Confirm action"}</Button></DialogFooter>
+          <DialogHeader>
+            <DialogTitle>Confirm {pendingAction ? actionTitle(pendingAction).toLowerCase() : "action"}</DialogTitle>
+            <DialogDescription>
+              {pendingAction?.kind === "credit-adjustment"
+                ? `The remaining balance will change from ${balance} to ${balance + pendingAction.delta}.`
+                : `The expiry will be ${formatJakarta(pendingAction?.expiresAt)}.`}
+            </DialogDescription>
+          </DialogHeader>
+          {confirmationError && (
+            <p className="rounded-md border border-destructive/30 bg-destructive/10 p-3 text-sm text-destructive">{confirmationError}</p>
+          )}
+          <DialogFooter>
+            <Button variant="outline" disabled={isSubmitting} onClick={() => setPendingAction(null)}>
+              Cancel
+            </Button>
+            <Button
+              variant={pendingAction?.kind === "credit-adjustment" && pendingAction.delta < 0 ? "destructive" : "default"}
+              disabled={!pendingAction || isSubmitting}
+              onClick={() => pendingAction && void executeAction(pendingAction)}
+            >
+              {isSubmitting && <Loader2 className="animate-spin" />}
+              {confirmationError ? "Retry same request" : "Confirm action"}
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
     </div>
   );
 };
 
-const DetailItem = ({ label, value }: { label: string; value: string }) => <div><p className="text-gray-500">{label}</p><p className="font-medium text-brand-999">{value}</p></div>;
-
-const ReasonField = <T extends FieldValues>({ control }: { control: Control<T> }) => (
-  <FormField control={control} name={"reason" as FieldPath<T>} render={({ field }) => <FormItem><FormLabel required>Reason</FormLabel><FormControl><Textarea maxLength={500} placeholder="Explain this manager action" {...field} /></FormControl><p className="text-right text-xs text-gray-500">{String(field.value ?? "").length} / 500</p><FormMessage /></FormItem>} />
+const DetailItem = ({ label, value }: { label: string; value: string }) => (
+  <div>
+    <p className="text-gray-500">{label}</p>
+    <p className="font-medium text-brand-999">{value}</p>
+  </div>
 );
 
-const HistoryTable = ({ title, emptyText, headers, children }: { title: string; emptyText: string; headers: string[]; children: React.ReactNode }) => {
+const ReasonField = <T extends FieldValues>({ control }: { control: Control<T> }) => (
+  <FormField
+    control={control}
+    name={"reason" as FieldPath<T>}
+    render={({ field }) => (
+      <FormItem>
+        <FormLabel required>Reason</FormLabel>
+        <FormControl>
+          <Textarea maxLength={500} placeholder="Explain this manager action" {...field} />
+        </FormControl>
+        <p className="text-right text-xs text-gray-500">{String(field.value ?? "").length} / 500</p>
+        <FormMessage />
+      </FormItem>
+    )}
+  />
+);
+
+const HistoryTable = ({
+  title,
+  emptyText,
+  headers,
+  children,
+}: {
+  title: string;
+  emptyText: string;
+  headers: string[];
+  children: React.ReactNode;
+}) => {
   const rows = Array.isArray(children) ? children : [];
-  return <Card><CardHeader className="font-semibold">{title}</CardHeader><CardContent><Table><TableHeader><TableRow>{headers.map((header) => <TableHead key={header}>{header}</TableHead>)}</TableRow></TableHeader><TableBody>{rows.length ? children : <TableRow><TableCell colSpan={headers.length} className="py-8 text-center text-gray-500">{emptyText}</TableCell></TableRow>}</TableBody></Table></CardContent></Card>;
+  return (
+    <Card>
+      <CardHeader className="font-semibold">{title}</CardHeader>
+      <CardContent>
+        <Table>
+          <TableHeader>
+            <TableRow>
+              {headers.map((header) => (
+                <TableHead key={header}>{header}</TableHead>
+              ))}
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {rows.length ? (
+              children
+            ) : (
+              <TableRow>
+                <TableCell colSpan={headers.length} className="py-8 text-center text-gray-500">
+                  {emptyText}
+                </TableCell>
+              </TableRow>
+            )}
+          </TableBody>
+        </Table>
+      </CardContent>
+    </Card>
+  );
 };
