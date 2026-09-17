@@ -58,6 +58,7 @@ export const PERMISSIONS_ROLE = {
     "audit-log:view",
     "outstanding:view",
     "cash-flow:view",
+    "reports",
     "settings:view",
   ],
   admin: [
@@ -94,6 +95,7 @@ export const PERMISSIONS_ROLE = {
     "member:detail",
     "refund:view",
     "cash-flow:view",
+    "reports",
     "settings:view",
   ],
 };

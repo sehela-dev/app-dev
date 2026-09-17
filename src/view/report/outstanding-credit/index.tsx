@@ -67,6 +67,7 @@ import { FormProvider, useForm } from "react-hook-form";
 import { useRouter, useSearchParams } from "next/navigation";
 import { toast } from "sonner";
 import { useGetCustomers } from "@/hooks/api/queries/admin/customers";
+import { useAdminPermission } from "@/hooks/use-role-access";
 import { useDebounce } from "@/hooks";
 import ReactSelect from "react-select";
 
@@ -107,6 +108,7 @@ export const OutstandingCreditView = () => {
   const methods = useForm({ defaultValues });
   const searchParams = useSearchParams();
   const router = useRouter();
+  const { isManager } = useAdminPermission();
   const legacyView = searchParams.get("view");
   const initialTab = legacyView === "log" ? "log" : "snapshot";
   const initialSubTab = searchParams.get("subview") === "export" || legacyView === "export" ? "export" : "preview";
@@ -646,6 +648,7 @@ export const OutstandingCreditView = () => {
                         </CardDescription>
                       </div>
                       <CardAction>
+                        {isManager && (
                         <Button
                           variant="outline"
                           size="sm"
@@ -677,6 +680,7 @@ export const OutstandingCreditView = () => {
                           {csvExporting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
                           CSV
                         </Button>
+                        )}
                       </CardAction>
                     </CardHeader>
                     <CardContent className="p-0 pt-2 min-w-0 max-w-full overflow-hidden">
@@ -964,6 +968,7 @@ const RECOGNITION_DISCLAIMER =
 function CreditsLedgerLog() {
   const searchParams = useSearchParams();
   const router = useRouter();
+  const { isManager } = useAdminPermission();
 
   // default rentang: awal bulan berjalan s/d hari ini (mis. tgl 16 → filter 01–16)
   const now = new Date();
@@ -1471,10 +1476,12 @@ function CreditsLedgerLog() {
               {running ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
               Hitung Ulang ({endDate || "hari ini"})
             </Button>
+            {isManager && (
             <Button onClick={handleExportCsv} disabled={!!rangeError || exporting} variant="outline" size="sm">
               {exporting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
               Unduh CSV
             </Button>
+            )}
           </div>
           <p className="text-[11px] text-muted-foreground">
             Status dihitung per {endDate || "hari ini"} · perhitungan otomatis setiap hari jam 23:59 WIB; tombol ini hanya untuk mengisi ulang data
@@ -2084,6 +2091,7 @@ function ReconciliationTable({ summary }: { summary: import("@/types/report.inte
 }
 
 function OutstandingReportsList({ year, visible }: { year?: number; visible: boolean }) {
+  const { isManager } = useAdminPermission();
   const [page, setPage] = useState(1);
   const pageSize = 10;
   const { data, isLoading, refetch, isFetching } = useListOutstandingReports({ year, page, page_size: pageSize }, visible);
@@ -2177,6 +2185,7 @@ function OutstandingReportsList({ year, visible }: { year?: number; visible: boo
                         <TableCell className="text-right tabular-nums font-medium">{idr(closing)}</TableCell>
                         <TableCell className={`text-right tabular-nums ${diffBad ? "text-red-700 font-semibold" : ""}`}>{idr(diff)}</TableCell>
                         <TableCell className="text-right">
+                          {isManager ? (
                           <span className="inline-flex gap-1.5">
                             {r.summary_file?.download_url && (
                               <Button
@@ -2209,6 +2218,9 @@ function OutstandingReportsList({ year, visible }: { year?: number; visible: boo
                               </Button>
                             )}
                           </span>
+                          ) : (
+                            <span className="text-xs text-muted-foreground">—</span>
+                          )}
                         </TableCell>
                       </TableRow>
                     );
@@ -2258,6 +2270,7 @@ export function ReportDownloads({
   isCached,
   isIncomplete,
 }: ReportDownloadsProps) {
+  const { isManager } = useAdminPermission();
   return (
     <div className="w-full space-y-4">
       <div className="mb-2">
@@ -2290,12 +2303,14 @@ export function ReportDownloads({
                 <p className="text-xs text-muted-foreground">{detailFileName}</p>
               </div>
             </div>
+            {isManager && (
             <Button asChild disabled={isLoading} className="w-full gap-2">
               <a href={detailLink} download>
                 <Download className="h-4 w-4" />
                 Unduh Rincian
               </a>
             </Button>
+            )}
           </Card>
         )}
 
@@ -2311,12 +2326,14 @@ export function ReportDownloads({
                 <p className="text-xs text-muted-foreground">{summaryFileName}</p>
               </div>
             </div>
+            {isManager && (
             <Button asChild disabled={isLoading} className="w-full gap-2" variant={"secondary"}>
               <a href={summaryLink} download>
                 <Download className="h-4 w-4" />
                 Unduh Ringkasan
               </a>
             </Button>
+            )}
           </Card>
         )}
       </div>

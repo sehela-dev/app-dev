@@ -11,6 +11,7 @@ import {
   DollarSign,
   ChartNoAxesCombined,
   MapPin,
+  LayoutGrid,
   UserCog,
   History,
   Settings,
@@ -54,9 +55,20 @@ export const dataNavMarketPlace = [
 ];
 
 export const dataNavReport = [
-  { title: "Refund Management", url: "/admin/refunds", icon: Undo2, permission: "refund:view" },
-  { title: "Outstanding Credit", url: "/admin/report/outstanding-credit", icon: DollarSign, permission: "outstanding:view" }, // 🛍️ icon visual → Store sudah mewakili group
-  { title: "Cash Flow", url: "/admin/report/cash-flow", icon: ChartNoAxesCombined, permission: "cash-flow:view" },
+  { title: "All Reports", url: "/admin/report", icon: LayoutGrid, permission: "reports" },
+  // Individual report links hidden for now — hub only (see reportHubCards below).
+  // { title: "Orders Report", url: "/admin/report/orders", icon: Receipt, permission: "reports" },
+  // { title: "Refund Management", url: "/admin/refunds", icon: Undo2, permission: "reports" },
+  // { title: "Outstanding Credit", url: "/admin/report/outstanding-credit", icon: DollarSign, permission: "reports" },
+  // { title: "Cash Flow", url: "/admin/report/cash-flow", icon: ChartNoAxesCombined, permission: "reports" },
+];
+
+// Cards for the /admin/report hub — same destinations as the hidden sidebar links above.
+export const reportHubCards = [
+  { title: "Orders Report", url: "/admin/report/orders", icon: Receipt, permission: "reports" },
+  { title: "Outstanding Credit", url: "/admin/report/outstanding-credit", icon: DollarSign, permission: "reports" },
+  { title: "Cash Flow", url: "/admin/report/cash-flow", icon: ChartNoAxesCombined, permission: "reports" },
+  { title: "Refund Management", url: "/admin/refunds", icon: Undo2, permission: "reports" },
 ];
 export const settingsNav = [
   { title: "Admin Management", url: "/admin/admins", icon: UserCog, permission: "admin:view" },
