@@ -2,12 +2,14 @@ import { axiosx } from "@/lib/axiosx";
 import { MAIN_API_URL } from "@/lib/config";
 import {
   ICreditsLedgerParams,
+  IOrdersReportParams,
   IOutstandingDetailParams,
   IRecognitionRunResult,
   TCashFlowReport,
   TCreditsLedger,
   TCreditsLedgerSummary,
   TGenerateReportOutstandingCredit,
+  TOrdersReportPreview,
   TOutstandingCreditTable,
   TOutstandingDetail,
   TOutstandingReports,
@@ -150,4 +152,35 @@ export const runRecognition = async (job_date?: string): Promise<IRecognitionRun
   const res = await axiosx(true).post(`${MAIN_API_URL}/admin/credits/ledger/recognition-run`, job_date ? { job_date } : {});
   const d = res.data as { success?: boolean; data?: IRecognitionRunResult };
   return (d.data ?? res.data) as IRecognitionRunResult;
+};
+
+// Orders monthly report — preview table (JSON) + full-month CSV export.
+// NOTE: GET /admin/orders without month/type/branch is the legacy list (different shape) — don't use it here.
+export const getOrdersReportPreview: TOrdersReportPreview = async (params) => {
+  const res = await axiosx(true).get(`${MAIN_API_URL}/admin/orders`, {
+    params: {
+      ...(params.month ? { month: params.month } : {}),
+      ...(params.type ? { type: params.type } : {}),
+      ...(params.branch && params.branch !== "all" ? { branch: params.branch } : {}),
+      ...(params.payment_type && params.payment_type !== "all" ? { payment_type: params.payment_type } : {}),
+      ...(params.transaction_type && params.transaction_type !== "all" ? { transaction_type: params.transaction_type } : {}),
+      ...(params.page ? { page: params.page } : {}),
+      ...(params.page_size ? { page_size: params.page_size } : {}),
+    },
+  });
+  return res.data;
+};
+
+export const exportOrdersReportCsv = async (params: Omit<IOrdersReportParams, "page" | "page_size">): Promise<Blob> => {
+  const res = await axiosx(true).get(`${MAIN_API_URL}/admin/orders/export`, {
+    params: {
+      ...(params.month ? { month: params.month } : {}),
+      ...(params.type ? { type: params.type } : {}),
+      ...(params.branch && params.branch !== "all" ? { branch: params.branch } : {}),
+      ...(params.payment_type && params.payment_type !== "all" ? { payment_type: params.payment_type } : {}),
+      ...(params.transaction_type && params.transaction_type !== "all" ? { transaction_type: params.transaction_type } : {}),
+    },
+    responseType: "blob",
+  });
+  return res.data as unknown as Blob;
 };
