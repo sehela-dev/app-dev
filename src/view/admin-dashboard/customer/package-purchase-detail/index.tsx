@@ -206,10 +206,10 @@ export const PackagePurchaseDetailPage = () => {
     if (!(await expiryForm.trigger())) return;
     const values = expiryForm.getValues();
     const isoDate = jakartaDateToExpiryIso(values.expires_at);
-    // if (!isoDate || new Date(isoDate).getTime() <= Date.now()) {
-    //   expiryForm.setError("expires_at", { message: "Expiry must be today or a future Jakarta date" });
-    //   return;
-    // }
+    if (!isoDate) {
+      expiryForm.setError("expires_at", { message: "Invalid expiry date" });
+      return;
+    }
     setConfirmationError(null);
     setPendingAction({ kind: "expiry-override", expiresAt: isoDate, reason: values.reason.trim() });
   };

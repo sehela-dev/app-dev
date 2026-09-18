@@ -127,7 +127,18 @@ export const OrdersReportView = () => {
       text: "Transaction ID",
       value: (row: IOrdersReportRow) =>
         row.transactionId ? (
-          <span className="font-mono whitespace-nowrap">{row.transactionId}</span>
+          row.paymentId ? (
+            <a
+              href={`/admin/orders/${row.paymentId}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="font-mono font-semibold whitespace-nowrap text-brand-500 underline-offset-2 hover:underline"
+            >
+              {row.transactionId}
+            </a>
+          ) : (
+            <span className="font-mono whitespace-nowrap">{row.transactionId}</span>
+          )
         ) : (
           <span className="text-muted-foreground italic">tanpa ID</span>
         ),

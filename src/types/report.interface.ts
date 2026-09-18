@@ -469,6 +469,7 @@ export interface IOrdersReportParams {
 export interface IOrdersReportRow {
   branch: string;
   transactionId: string;
+  paymentId: string | null;
   transactionDate: string;
   customerName: string;
   totalPaid: number;
