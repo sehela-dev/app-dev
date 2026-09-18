@@ -50,18 +50,6 @@ const jakartaDateToExpiryIso = (value: string) => {
   return new Date(Date.UTC(Number(year), Number(month) - 1, Number(day), 16, 59, 59, 999)).toISOString();
 };
 
-const jakartaTodayForInput = () => {
-  const parts = new Intl.DateTimeFormat("en-GB", {
-    timeZone: "Asia/Jakarta",
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-  })
-    .formatToParts(new Date())
-    .reduce<Record<string, string>>((result, part) => ({ ...result, [part.type]: part.value }), {});
-  return `${parts.year}-${parts.month}-${parts.day}`;
-};
-
 const actionTitle = (action: PendingAction) =>
   action.kind === "credit-adjustment" ? (action.delta > 0 ? "Add credits" : "Remove credits") : "Set package expiry";
 
@@ -137,7 +125,7 @@ export const PackagePurchaseDetailPage = () => {
       }
       setPendingAction(null);
       closeActionDialog();
-      const wasReactivated = purchase?.status === "expired" && actionWithKey.kind === "expiry-override" && actionWithKey.expiresAt !== null;
+      const wasReactivated = purchase?.status === "expired" && actionWithKey.kind === "expiry-override";
       toast.success(wasReactivated ? "Package reactivated" : "Package updated", {
         description: wasReactivated ? "Manage its credits from the member Information tab." : "The package detail has been refreshed.",
         position: "top-center",

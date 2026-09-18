@@ -1,6 +1,5 @@
 "use client";
 
-import { DialogSessionFilter } from "@/components/general/filter-dialog";
 import { CustomPagination } from "@/components/general/pagination-component";
 import { GeneralTabComponent } from "@/components/general/tabs-component";
 import { MySessionCardComponent } from "@/components/general/my-session-card";
