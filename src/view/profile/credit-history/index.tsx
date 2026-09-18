@@ -6,7 +6,6 @@ import { Badge } from "@/components/ui/badge";
 import { useAuthMember } from "@/context/member.ctx";
 import { useGetCreditLedgerInfinite } from "@/hooks/api/queries/customer/profile";
 import { formatDateHelper } from "@/lib/helper";
-import { LedgerEntryType } from "@/types/customer-app/credit-ledger.interface";
 import { ArrowUpRight, Clock3, Cog, History, Loader2, RefreshCw, Sparkles, Trash2, Users, Wrench } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 
