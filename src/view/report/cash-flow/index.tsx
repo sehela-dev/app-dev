@@ -52,11 +52,18 @@ export const CashFlowView = () => {
     {
       id: "order_id",
       text: "Order ID",
-      value: (row: ICashFlowTransaction) => (
-        <a href={`/admin/orders/${row.id}`} target="_blank" className="text-brand-500 font-semibold underline">
-          <p className="capitalize max-w-[70%] flex-wrap text-wrap">{row?.order_id}</p>
-        </a>
-      ),
+      // Credit rows have no order page — show customer + package instead of the link
+      value: (row: ICashFlowTransaction) =>
+        row.payment_method === "credits" ? (
+          <div className="flex flex-col">
+            <span className="font-medium">{row.customer_name || "-"}</span>
+            <span className="text-muted-foreground text-xs">{row.package_name || "-"}</span>
+          </div>
+        ) : (
+          <a href={`/admin/orders/${row.id}`} target="_blank" className="text-brand-500 font-semibold underline">
+            <p className="capitalize max-w-[70%] flex-wrap text-wrap">{row?.order_id}</p>
+          </a>
+        ),
     },
     {
       id: "amount",

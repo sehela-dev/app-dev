@@ -9,8 +9,11 @@ import { ChevronRight } from "lucide-react";
 const DESCRIPTIONS: Record<string, string> = {
   "/admin/report/orders": "Monthly orders preview and CSV export.",
   "/admin/report/refund-report": "Refund & void preview and CSV export.",
+  "/admin/report/sales-summary": "Daily collected sales by payment method.",
+  "/admin/report/customer-loyalty": "Per-customer attendance and purchase summary.",
   "/admin/report/outstanding-credit": "Monthly outstanding credit closings and ledger.",
   "/admin/report/cash-flow": "Daily cash movement by date and branch.",
+  "/admin/report/teacher": "Teacher payroll preview and CSV export.",
 };
 
 export const ReportHubView = () => {
