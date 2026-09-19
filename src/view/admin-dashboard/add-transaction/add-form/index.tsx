@@ -180,6 +180,7 @@ export const AddTransactionFOrm = () => {
             price: row.price_idr,
             quantity: 1,
             type: tableTab,
+            ...(row.branch ? { branch: row.branch } : null),
           });
         }
       };

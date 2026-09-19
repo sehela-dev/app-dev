@@ -6,6 +6,7 @@ export interface IRoomItem {
   name: string;
   address: string;
   maps_url?: string;
+  branch: string | null;
   is_active: boolean;
   created_at: string;
   updated_at: string;
@@ -15,6 +16,7 @@ export interface IRoomPayload {
   address: string;
   maps_url: string;
   is_active: boolean;
+  branch?: string | null;
 }
 
 export type TRoomResponseData = (params: ICommonParams) => Promise<IResponseData<IRoomItem[]>>;

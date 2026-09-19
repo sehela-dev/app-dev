@@ -247,6 +247,7 @@ export interface IBookingPayload {
 
   payment_method?: string;
   package_purchase_id?: string;
+  branch?: string | null;
 }
 
 export interface IBookingResponseData {
@@ -272,6 +273,7 @@ export interface Booking {
   platform_fee_idr: number;
   third_party_id: string;
   channel: string;
+  branch: string | null;
   created_at: string;
   class_session: ClassSession;
   third_party: ThirdParty;

@@ -55,6 +55,7 @@ export const DetailFormAddTransaction = () => {
   const [selectedBank, setSelectedBank] = useState<{ label: string; value: string } | null>(null);
   const [selectedBankTo, setSelectedBankTo] = useState<{ label: string; value: string } | null>(null);
   const [selectedBranch, setSelectedBranch] = useState<{ label: string; value: string } | null>(null);
+  const [branchError, setBranchError] = useState<string | null>(null);
 
   useEffect(() => {
     if (customerData?.branch && !selectedBranch) {
@@ -62,6 +63,20 @@ export const DetailFormAddTransaction = () => {
       if (found) setSelectedBranch(found as { label: string; value: string });
     }
   }, [customerData?.branch, selectedBranch]);
+
+  // Autofill from drop-in sessions in the cart (BE resolves nothing here —
+  // manual trx branch is payment-level, so we surface the session branch).
+  const classBranches = useMemo(
+    () => [...new Set((cartItems ?? []).filter((i) => i.type === "class" && i.branch).map((i) => i.branch as string))],
+    [cartItems],
+  );
+
+  useEffect(() => {
+    if (!selectedBranch && classBranches.length === 1) {
+      const found = SEHELA_BRANCH.find((b) => b.value === classBranches[0]);
+      if (found) setSelectedBranch(found as { label: string; value: string });
+    }
+  }, [selectedBranch, classBranches]);
 
   const [nameFrom, setNameFrom] = useState(customerData?.name ?? "");
 
@@ -123,6 +138,12 @@ export const DetailFormAddTransaction = () => {
     router.push("/admin/orders");
   };
   const onConfirm = async () => {
+    const branchValue = selectedBranch?.value ?? customerData?.branch;
+    if (!branchValue) {
+      setBranchError("Branch is required");
+      return;
+    }
+
     const sessions: ISession[] = [];
     const products: IProduct[] = [];
     const packages: IPackages[] = [];
@@ -637,6 +658,12 @@ export const DetailFormAddTransaction = () => {
                     )}
                     <div className="flex flex-col gap-1 mt-2">
                       <Label className="text-gray-500">Branch</Label>
+                      {classBranches.length === 1 && (
+                        <p className="text-xs text-gray-500">Auto-filled from session — change only to override.</p>
+                      )}
+                      {classBranches.length > 1 && (
+                        <p className="text-xs text-gray-500">Sessions span multiple branches — choose the reporting branch.</p>
+                      )}
                       <Select
                         options={SEHELA_BRANCH as never}
                         value={selectedBranch as never}
@@ -652,8 +679,10 @@ export const DetailFormAddTransaction = () => {
                         onChange={(e) => {
                           // eslint-disable-next-line @typescript-eslint/no-explicit-any
                           setSelectedBranch(e as any);
+                          if (e) setBranchError(null);
                         }}
                       />
+                      {branchError && <p className="text-sm text-red-500">{branchError}</p>}
                     </div>
 
                     {/* {selectedPaymentMethod === "bank_transfer" &&} */}

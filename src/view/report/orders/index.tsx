@@ -2,6 +2,7 @@
 
 import { exportOrdersReportCsv } from "@/api-req/report";
 import { buildNumber, CustomTable } from "@/components/general/custom-table";
+import { BackButtonComponent } from "@/components/general/back-button";
 import { CustomPagination } from "@/components/general/pagination-component";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -253,6 +254,9 @@ export const OrdersReportView = () => {
 
   return (
     <div className="flex h-full w-full flex-col gap-2">
+      <BackButtonComponent page="/admin/report">
+        <span className="text-sm font-medium text-gray-500">Back to Reports</span>
+      </BackButtonComponent>
       <Card className="rounded-lg border-brand-100">
         <CardHeader className="flex w-full flex-row items-center justify-between gap-2">
           <div className="flex flex-col">

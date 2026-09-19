@@ -2,12 +2,13 @@ import { axiosx } from "@/lib/axiosx";
 import { MAIN_API_URL } from "@/lib/config";
 import { TClasseRoomData } from "@/types/class-room.interface";
 
-export const getClassRoom: TClasseRoomData = async ({ page, limit, search }) => {
+export const getClassRoom: TClasseRoomData = async ({ page, limit, search, branch }) => {
   const res = await axiosx(true).get(`${MAIN_API_URL}/admin/rooms`, {
     params: {
       page,
       page_size: limit,
       q: search,
+      ...(branch && branch !== "all" ? { branch } : null),
     },
   });
   return res.data;

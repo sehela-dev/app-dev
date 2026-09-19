@@ -5,6 +5,7 @@ import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Divider } from "@/components/ui/divider";
 import { useGetLocationDetail } from "@/hooks/api/queries/admin/locations";
 import { formatDateHelper } from "@/lib/helper";
+import { branchLabel } from "@/constants/sample-data";
 import { ExternalLink, Loader2, PenIcon } from "lucide-react";
 import { useParams, useRouter } from "next/navigation";
 
@@ -47,6 +48,8 @@ export const LocationDetailPage = () => {
               <div className="grid col-span-9">{data?.data?.name}</div>
               <div className="grid col-span-3 text-gray-500">Address</div>
               <div className="grid col-span-9">{data?.data?.address ?? "-"}</div>
+              <div className="grid col-span-3 text-gray-500">Branch</div>
+              <div className="grid col-span-9">{branchLabel(data?.data?.branch ?? null)}</div>
               <div className="grid col-span-3 text-gray-500">Maps URL</div>
               <div className="grid col-span-9">
                 {data?.data?.maps_url ? (

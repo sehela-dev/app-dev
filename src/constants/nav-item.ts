@@ -58,7 +58,7 @@ export const dataNavReport = [
   { title: "All Reports", url: "/admin/report", icon: LayoutGrid, permission: "reports" },
   // Individual report links hidden for now — hub only (see reportHubCards below).
   // { title: "Orders Report", url: "/admin/report/orders", icon: Receipt, permission: "reports" },
-  // { title: "Refund Management", url: "/admin/refunds", icon: Undo2, permission: "reports" },
+  // { title: "Refund Report", url: "/admin/report/refund-report", icon: Undo2, permission: "reports" },
   // { title: "Outstanding Credit", url: "/admin/report/outstanding-credit", icon: DollarSign, permission: "reports" },
   // { title: "Cash Flow", url: "/admin/report/cash-flow", icon: ChartNoAxesCombined, permission: "reports" },
 ];
@@ -68,10 +68,11 @@ export const reportHubCards = [
   { title: "Orders Report", url: "/admin/report/orders", icon: Receipt, permission: "reports" },
   { title: "Outstanding Credit", url: "/admin/report/outstanding-credit", icon: DollarSign, permission: "reports" },
   { title: "Cash Flow", url: "/admin/report/cash-flow", icon: ChartNoAxesCombined, permission: "reports" },
-  { title: "Refund Management", url: "/admin/refunds", icon: Undo2, permission: "reports" },
+  { title: "Refund Report", url: "/admin/report/refund-report", icon: Undo2, permission: "reports" },
 ];
 export const settingsNav = [
   { title: "Admin Management", url: "/admin/admins", icon: UserCog, permission: "admin:view" },
+  { title: "Refund Management", url: "/admin/refunds", icon: Undo2, permission: "refund:view" },
   { title: "Audit Logs", url: "/admin/audit-logs", icon: History, permission: "audit-log:view" },
   { title: "Settings", url: "/admin/settings", icon: Settings, permission: "settings:view" },
 ];

@@ -26,6 +26,7 @@ import { Label } from "@/components/ui/label";
 import { BaseDialogConfirmation } from "@/components/general/dialog-confirnation";
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
+import { branchLabel } from "@/constants/sample-data";
 import { BackButtonComponent } from "@/components/general/back-button";
 
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
@@ -511,6 +512,8 @@ export const SessionDetailPage = () => {
               </div>
               <div className="grid col-span-3 text-gray-500">Location Type</div>
               <div className="grid col-span-9 capitalize">{data?.data?.place}</div>
+              <div className="grid col-span-3 text-gray-500">Branch</div>
+              <div className="grid col-span-9">{branchLabel(data?.data?.branch ?? null)}</div>
               <div className="grid col-span-3 text-gray-500">Location Details</div>
               <div className="grid col-span-9">{data?.data?.location}</div>
               <div className="grid col-span-3 text-gray-500">Location Maps Url</div>
