@@ -7,6 +7,7 @@ export interface IClassRoom {
   address: string;
   maps_url: string;
   photos: string;
+  branch: string | null;
   is_active: boolean;
   created_at: string;
   updated_at: string;

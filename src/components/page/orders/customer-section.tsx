@@ -15,7 +15,7 @@ import { IThirdPartyApp } from "@/types/orders.interface";
 import { SEHELA_BRANCH } from "@/constants/sample-data";
 
 // import { useCreateNewGuest } from "@/hooks/api/mutations/admin";
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { FormProvider, useForm } from "react-hook-form";
 import Select from "react-select";
 const customerSectionTab = [
@@ -40,7 +40,7 @@ const defaultValues = {
 };
 
 export const OrderCustomerSectionComponent = ({ enroll = false }: { enroll?: boolean }) => {
-  const { addCustomer } = useAdminManualTransaction();
+  const { addCustomer, sessionData } = useAdminManualTransaction();
   // const { mutateAsync } = useCreateNewGuest();
   const methods = useForm({ defaultValues });
   const [search, setSearch] = useState("");
@@ -48,6 +48,25 @@ export const OrderCustomerSectionComponent = ({ enroll = false }: { enroll?: boo
   const [selectedUser, setSelectedUser] = useState<ICustomerData | null>();
   const { data: thirdPartyApp } = useGetThirdPartyApp(enroll);
   const [thirdParty, setThirdParty] = useState<IThirdPartyApp | null>(null);
+  const [errors, setErrors] = useState<{ thirdParty?: string; bookingId?: string; member?: string }>({});
+
+  const validateEnroll = () => {
+    const next: typeof errors = {};
+    if (!thirdParty?.id) next.thirdParty = "Please select a third party app";
+    if (!methods.getValues("booking_id")?.trim()) next.bookingId = "Booking ID is required";
+    if (!selectedUser?.id) next.member = "Please select a member";
+    setErrors(next);
+    return Object.keys(next).length === 0;
+  };
+
+  // Autofill branch from the selected session (BE resolves branch from the
+  // session room anyway — this just surfaces it; admin can still override).
+  const sessionId = sessionData?.id;
+  const sessionBranch = sessionData?.branch ?? "";
+  useEffect(() => {
+    if (!enroll || !sessionId) return;
+    methods.setValue("branch", sessionBranch);
+  }, [enroll, sessionId, sessionBranch, methods]);
 
   const onSearch = (e: string) => {
     setSearch(e);
@@ -139,7 +158,14 @@ export const OrderCustomerSectionComponent = ({ enroll = false }: { enroll?: boo
                             >
                               {thirdPartyApp?.data?.map((item) => (
                                 <div className="flex items-center gap-3" key={item.id}>
-                                  <RadioGroupItem value={item.id} id="third_party_id" onClick={() => setThirdParty(item)} />
+                                  <RadioGroupItem
+                                    value={item.id}
+                                    id="third_party_id"
+                                    onClick={() => {
+                                      setThirdParty(item);
+                                      setErrors((p) => ({ ...p, thirdParty: undefined }));
+                                    }}
+                                  />
                                   <Label htmlFor="r1" className="text-brand-999">
                                     {item.name}
                                   </Label>
@@ -147,7 +173,7 @@ export const OrderCustomerSectionComponent = ({ enroll = false }: { enroll?: boo
                               ))}
                             </RadioGroup>
                           </FormControl>
-                          <FormMessage />
+                          {errors.thirdParty ? <p className="text-sm text-red-500">{errors.thirdParty}</p> : <FormMessage />}
                         </FormItem>
                       )}
                     />
@@ -214,13 +240,17 @@ export const OrderCustomerSectionComponent = ({ enroll = false }: { enroll?: boo
                               </FormLabel>
                               <FormControl>
                                 <Input
-                                  className="w-full px-4 py-4 border-2 border-gray-200 rounded-lg text-brand-999 placeholder-gray-400 focus:outline-none focus:border-brand-500 transition-colors h-[42px]"
+                                  className="w-full px-4 py-4 border-2 border-gray-200 rounded-lg text-gray-999  placeholder-gray-400 focus:outline-none focus:border-brand-500 transition-colors h-[42px]"
                                   placeholder="Type here.."
                                   {...field}
+                                  onChange={(e) => {
+                                    field.onChange(e);
+                                    if (e.target.value.trim()) setErrors((p) => ({ ...p, bookingId: undefined }));
+                                  }}
                                 // className="w-auto min-w-[388px]"
                                 />
                               </FormControl>
-                              <FormMessage />
+                              {errors.bookingId ? <p className="text-sm text-red-500">{errors.bookingId}</p> : <FormMessage />}
                             </FormItem>
                           )}
                         />
@@ -262,6 +292,7 @@ export const OrderCustomerSectionComponent = ({ enroll = false }: { enroll?: boo
                   <div className="flex flex-col gap-3">
                     <div className="flex flex-col gap-2">
                       <Label className=" text-brand-999 font-medium text-sm">Select Member</Label>
+                      {errors.member && <p className="text-sm text-red-500">{errors.member}</p>}
                       <Select
                         options={optionData()}
                         value={selectedUser}
@@ -278,6 +309,7 @@ export const OrderCustomerSectionComponent = ({ enroll = false }: { enroll?: boo
                         inputValue={search}
                         onChange={(e) => {
                           setSelectedUser(e);
+                          if (e?.id) setErrors((p) => ({ ...p, member: undefined }));
 
                           if (enroll) {
                           } else {
@@ -298,6 +330,11 @@ export const OrderCustomerSectionComponent = ({ enroll = false }: { enroll?: boo
                     </div>
                     <div className="flex flex-col gap-2">
                       <Label className=" text-brand-999 font-medium text-sm">Branch</Label>
+                      {enroll && sessionId && (
+                        <p className="text-xs text-gray-500">
+                          {sessionBranch ? "Auto-filled from session — change only to override." : "Session has no branch (online/legacy room)."}
+                        </p>
+                      )}
                       <Select
                         options={SEHELA_BRANCH as unknown as { value: string; label: string }[]}
                         value={SEHELA_BRANCH.find((b) => b.value === methods.watch("branch")) ?? null}
@@ -333,6 +370,7 @@ export const OrderCustomerSectionComponent = ({ enroll = false }: { enroll?: boo
                         <Button
                           type="button"
                           onClick={() => {
+                            if (!validateEnroll()) return;
                             addCustomer({
                               name: selectedUser?.full_name as string,
                               email: selectedUser?.email as string,

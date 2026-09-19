@@ -15,13 +15,23 @@ import { Loader2 } from "lucide-react";
 import { useParams, useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
 import { FormProvider, useForm } from "react-hook-form";
-import { ILocationFormValues, locationFormSchema } from "../create";
+import { locationFormSchema } from "../create";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { SEHELA_BRANCH } from "@/constants/sample-data";
+import { z } from "zod";
 
-const defaultValues: ILocationFormValues = {
+export const editLocationFormSchema = locationFormSchema.extend({
+  branch: z.string().nullable().optional(),
+});
+
+export type IEditLocationFormValues = z.infer<typeof editLocationFormSchema>;
+
+const defaultValues: IEditLocationFormValues = {
   name: "",
   address: "",
   maps_url: "",
   is_active: true,
+  branch: null,
 };
 
 export const transformApiToFormValues = (apiData: IRoomItem) => ({
@@ -29,6 +39,7 @@ export const transformApiToFormValues = (apiData: IRoomItem) => ({
   address: apiData.address,
   maps_url: apiData.maps_url ?? "",
   is_active: apiData.is_active,
+  branch: apiData.branch ?? null,
 });
 
 export const EditLocationPage = () => {
@@ -48,7 +59,7 @@ export const EditLocationPage = () => {
     return transformApiToFormValues(data?.data);
   }, [data?.data]);
 
-  const methods = useForm<ILocationFormValues>({ defaultValues, values, resolver: zodResolver(locationFormSchema) });
+  const methods = useForm<IEditLocationFormValues>({ defaultValues, values, resolver: zodResolver(editLocationFormSchema) });
   const { control, handleSubmit } = methods;
 
   const handleOpenModal = (type: "SUCCESS" | "CANCEL") => {
@@ -137,6 +148,31 @@ export const EditLocationPage = () => {
                           {...field}
                         />
                       </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={control}
+                  name="branch"
+                  render={({ field }) => (
+                    <FormItem className="flex flex-col">
+                      <FormLabel className=" text-brand-999 font-medium text-sm">Branch</FormLabel>
+                      <Select onValueChange={(v) => field.onChange(v === "__none__" ? null : v)} value={field.value ?? "__none__"}>
+                        <FormControl>
+                          <SelectTrigger className="w-full px-4 py-4 border-2 border-gray-200 rounded-lg h-[42px]">
+                            <SelectValue placeholder="Select branch..." />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          <SelectItem value="__none__">— (no branch / legacy)</SelectItem>
+                          {SEHELA_BRANCH.map((b) => (
+                            <SelectItem key={b.value} value={b.value}>
+                              {b.label}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
                       <FormMessage />
                     </FormItem>
                   )}

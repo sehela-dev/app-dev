@@ -18,7 +18,8 @@ export interface ISessionItem {
   type: string;
   level: string;
   place: string;
-  room_id: string;
+  room_id: string | null;
+  branch: string | null;
   location: string;
   location_address: string;
   location_maps_url: string;

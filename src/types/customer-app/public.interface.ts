@@ -67,6 +67,7 @@ export interface IPublicLocationsParams {
   q?: string;
   page?: number;
   page_size?: number;
+  branch?: string;
 }
 
 export interface IPublicLocation {
@@ -74,6 +75,7 @@ export interface IPublicLocation {
   name: string;
   address: string | null;
   maps_url: string | null;
+  branch: string | null;
 }
 
 export interface IPublicLocationsResponse {
