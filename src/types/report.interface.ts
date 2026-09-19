@@ -296,6 +296,9 @@ export interface ICashFlowTransaction {
   raw_status: string;
   status: string;
   created_at: string;
+  customer_name?: string;
+  package_name?: string;
+  package_purchase_id?: string;
 }
 
 // GET /admin/credits/ledger — handoff 2026-09-10 (admin v239) + reversal update.

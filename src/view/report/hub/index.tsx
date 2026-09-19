@@ -11,6 +11,7 @@ const DESCRIPTIONS: Record<string, string> = {
   "/admin/report/refund-report": "Refund & void preview and CSV export.",
   "/admin/report/outstanding-credit": "Monthly outstanding credit closings and ledger.",
   "/admin/report/cash-flow": "Daily cash movement by date and branch.",
+  "/admin/report/teacher": "Teacher payroll preview and CSV export.",
 };
 
 export const ReportHubView = () => {
