@@ -6,6 +6,8 @@ import {
   IOutstandingDetailParams,
   IRecognitionRunResult,
   IRefundReportParams,
+  ISalesSummaryParams,
+  ISalesSummaryResponse,
   TCashFlowReport,
   TCreditsLedger,
   TCreditsLedgerSummary,
@@ -212,6 +214,30 @@ export const exportRefundReportCsv = async (params: Omit<IRefundReportParams, "p
       ...(params.type && params.type !== "all" ? { type: params.type } : {}),
       ...(params.payment_method ? { payment_method: params.payment_method } : {}),
       ...(params.search ? { search: params.search } : {}),
+      format: "csv",
+    },
+    responseType: "blob",
+  });
+  return res.data as unknown as Blob;
+};
+
+// Sales summary — daily collected-sales for one WIB month (JSON preview + CSV download).
+// NOTE: GET /admin/sales-summary?format=csv returns a blob, not ISalesSummaryResponse.
+export const getSalesSummary = async (params: ISalesSummaryParams): Promise<ISalesSummaryResponse> => {
+  const res = await axiosx(true).get(`${MAIN_API_URL}/admin/sales-summary`, {
+    params: {
+      ...(params.month ? { month: params.month } : {}),
+      ...(params.branch && params.branch !== "all" ? { branch: params.branch } : {}),
+    },
+  });
+  return res.data;
+};
+
+export const exportSalesSummaryCsv = async (params: ISalesSummaryParams): Promise<Blob> => {
+  const res = await axiosx(true).get(`${MAIN_API_URL}/admin/sales-summary`, {
+    params: {
+      ...(params.month ? { month: params.month } : {}),
+      ...(params.branch && params.branch !== "all" ? { branch: params.branch } : {}),
       format: "csv",
     },
     responseType: "blob",

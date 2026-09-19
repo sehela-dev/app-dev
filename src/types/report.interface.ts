@@ -545,3 +545,36 @@ export interface IRefundReportPreview {
 }
 
 export type TRefundReportPreview = (params: IRefundReportParams) => Promise<IRefundReportPreview>;
+
+// GET /admin/sales-summary — daily collected-sales summary for one WIB month.
+// One zero-filled row per calendar day (oldest-first) + month `totals` footer.
+export interface ISalesSummaryParams {
+  month?: string; // YYYY-MM, defaults to current WIB month server-side
+  branch?: string; // exact match; absent/blank = all
+}
+
+export interface ISalesSummaryDay {
+  date: string; // YYYY-MM-DD
+  online_payment: number;
+  cash: number;
+  edc: number;
+  midtrans: number;
+  strongbee: number;
+  classpass: number;
+  other: number;
+  total: number;
+}
+
+export interface ISalesSummaryTotals extends Omit<ISalesSummaryDay, "date"> {
+  month: string; // YYYY-MM
+  date?: string; // BE may or may not echo a date on the footer — don't rely on it
+}
+
+export interface ISalesSummaryResponse {
+  success: boolean;
+  data: ISalesSummaryDay[];
+  totals: ISalesSummaryTotals;
+  filters: { month: string; branch: string | null };
+}
+
+export type TSalesSummary = (params: ISalesSummaryParams) => Promise<ISalesSummaryResponse>;
