@@ -5,6 +5,7 @@ import {
   IOrdersReportParams,
   IOutstandingDetailParams,
   IRecognitionRunResult,
+  IRefundReportParams,
   TCashFlowReport,
   TCreditsLedger,
   TCreditsLedgerSummary,
@@ -14,6 +15,7 @@ import {
   TOutstandingDetail,
   TOutstandingReports,
   TOutstandingSummary,
+  TRefundReportPreview,
 } from "@/types/report.interface";
 
 export const generateTableOutstandingCredit: TOutstandingCreditTable = async (params) => {
@@ -179,6 +181,38 @@ export const exportOrdersReportCsv = async (params: Omit<IOrdersReportParams, "p
       ...(params.branch && params.branch !== "all" ? { branch: params.branch } : {}),
       ...(params.payment_type && params.payment_type !== "all" ? { payment_type: params.payment_type } : {}),
       ...(params.transaction_type && params.transaction_type !== "all" ? { transaction_type: params.transaction_type } : {}),
+    },
+    responseType: "blob",
+  });
+  return res.data as unknown as Blob;
+};
+
+// Refund/void report — preview table (JSON) + full-window CSV export.
+// NOTE: GET /admin/refunds is the frozen ops list (different shape, no transactionBy/CSV) — don't use it here.
+export const getRefundReportPreview: TRefundReportPreview = async (params) => {
+  const res = await axiosx(true).get(`${MAIN_API_URL}/admin/refund-report`, {
+    params: {
+      month: params.month,
+      ...(params.status && params.status !== "all" ? { status: params.status } : {}),
+      ...(params.type && params.type !== "all" ? { type: params.type } : {}),
+      ...(params.payment_method ? { payment_method: params.payment_method } : {}),
+      ...(params.search ? { search: params.search } : {}),
+      ...(params.page ? { page: params.page } : {}),
+      ...(params.page_size ? { page_size: params.page_size } : {}),
+    },
+  });
+  return res.data;
+};
+
+export const exportRefundReportCsv = async (params: Omit<IRefundReportParams, "page" | "page_size">): Promise<Blob> => {
+  const res = await axiosx(true).get(`${MAIN_API_URL}/admin/refund-report`, {
+    params: {
+      month: params.month,
+      ...(params.status && params.status !== "all" ? { status: params.status } : {}),
+      ...(params.type && params.type !== "all" ? { type: params.type } : {}),
+      ...(params.payment_method ? { payment_method: params.payment_method } : {}),
+      ...(params.search ? { search: params.search } : {}),
+      format: "csv",
     },
     responseType: "blob",
   });

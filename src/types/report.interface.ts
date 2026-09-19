@@ -490,3 +490,55 @@ export interface IOrdersReportPreview {
 }
 
 export type TOrdersReportPreview = (params: IOrdersReportParams) => Promise<IOrdersReportPreview>;
+
+// GET /admin/refund-report — refund/void report preview (JSON) + CSV export.
+// Rows = refunds rows only (cancel-none never appears). Oldest-first, `no` is global.
+export type RefundReportStatus = "requested" | "processing" | "succeeded" | "failed";
+export type RefundReportType = "refund" | "void";
+
+export interface IRefundReportParams {
+  month: string; // YYYY-MM, required
+  status?: RefundReportStatus | "all";
+  type?: RefundReportType | "all";
+  payment_method?: string;
+  search?: string;
+  page?: number;
+  page_size?: number;
+}
+
+export interface IRefundReportRow {
+  no: number;
+  customerName: string;
+  session: string;
+  paymentMethod: string;
+  verdict: "Refund" | "Void";
+  amountIdr: number;
+  requestedAt: string;
+  confirmedAt: string;
+  reviewer: string;
+  movement: "refund" | "voided";
+  statusDisplay: string;
+  transactionBy: string;
+  refundId: string;
+  bookingId: string | null;
+  paymentId: string | null;
+  refundType: string;
+  rawStatus: string;
+  reviewerNote: string;
+}
+
+export interface IRefundReportPreview {
+  success: boolean;
+  data: IRefundReportRow[];
+  pagination: IPagiantion;
+  totals: { row_count: number; total_amount_idr: number };
+  filters: {
+    month: string;
+    status: string;
+    type: string;
+    payment_method: string | null;
+    search: string | null;
+  };
+}
+
+export type TRefundReportPreview = (params: IRefundReportParams) => Promise<IRefundReportPreview>;

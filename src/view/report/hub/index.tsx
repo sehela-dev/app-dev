@@ -8,7 +8,7 @@ import { ChevronRight } from "lucide-react";
 
 const DESCRIPTIONS: Record<string, string> = {
   "/admin/report/orders": "Monthly orders preview and CSV export.",
-  "/admin/refunds": "Review, approve, or reject refund requests.",
+  "/admin/report/refund-report": "Refund & void preview and CSV export.",
   "/admin/report/outstanding-credit": "Monthly outstanding credit closings and ledger.",
   "/admin/report/cash-flow": "Daily cash movement by date and branch.",
 };
