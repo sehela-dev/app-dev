@@ -16,6 +16,7 @@ import {
   History,
   Settings,
   Undo2,
+  Award,
 } from "lucide-react";
 
 export const dataNavMain = [
@@ -70,6 +71,7 @@ export const reportHubCards = [
   { title: "Cash Flow", url: "/admin/report/cash-flow", icon: ChartNoAxesCombined, permission: "reports" },
   { title: "Refund Report", url: "/admin/report/refund-report", icon: Undo2, permission: "reports" },
   { title: "Sales Summary", url: "/admin/report/sales-summary", icon: ChartNoAxesCombined, permission: "reports" },
+  { title: "Customer Loyalty", url: "/admin/report/customer-loyalty", icon: Award, permission: "reports" },
   { title: "Teacher Report", url: "/admin/report/teacher", icon: Users, permission: "reports" },
 ];
 export const settingsNav = [

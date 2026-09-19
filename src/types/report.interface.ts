@@ -578,3 +578,35 @@ export interface ISalesSummaryResponse {
 }
 
 export type TSalesSummary = (params: ISalesSummaryParams) => Promise<ISalesSummaryResponse>;
+
+// GET /admin/customer-loyalty — per-customer loyalty summary (proposed endpoint, not built yet).
+// One row per student (dormant included). Default sort: total_penjualan DESC, nama_customer ASC.
+// WIB datetime strings render as-is — no TZ conversion.
+export interface ICustomerLoyaltyRow {
+  nama_customer: string;
+  kontak: string | null;
+  sesi_terakhir: string | null; // YYYY-MM-DD HH24:MI WIB
+  jumlah_kehadiran: number;
+  penjualan_terakhir_tgl: string | null; // YYYY-MM-DD HH24:MI WIB
+  penjualan_terakhir_idr: number;
+  total_penjualan: number;
+}
+
+export interface ICustomerLoyaltyParams {
+  search?: string;
+  page?: number;
+  page_size?: number;
+  sort_by?: CustomerLoyaltySortBy; // BE aliases: sort, sortBy
+  order?: "asc" | "desc"; // BE alias: sort_order
+}
+
+export type CustomerLoyaltySortBy = "total_penjualan" | "nama_customer" | "jumlah_kehadiran" | "sesi_terakhir";
+
+export interface ICustomerLoyaltyResponse {
+  success: boolean;
+  data: ICustomerLoyaltyRow[];
+  pagination?: IPagiantion;
+  filters?: { search?: string | null };
+}
+
+export type TCustomerLoyalty = (params: ICustomerLoyaltyParams) => Promise<ICustomerLoyaltyResponse>;
