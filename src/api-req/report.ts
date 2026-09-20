@@ -166,6 +166,8 @@ export const runRecognition = async (job_date?: string): Promise<IRecognitionRun
 export const getOrdersReportPreview: TOrdersReportPreview = async (params) => {
   const res = await axiosx(true).get(`${MAIN_API_URL}/admin/orders`, {
     params: {
+      ...(params.start_date ? { start_date: params.start_date } : {}),
+      ...(params.end_date ? { end_date: params.end_date } : {}),
       ...(params.month ? { month: params.month } : {}),
       ...(params.type ? { type: params.type } : {}),
       ...(params.branch && params.branch !== "all" ? { branch: params.branch } : {}),
@@ -181,6 +183,8 @@ export const getOrdersReportPreview: TOrdersReportPreview = async (params) => {
 export const exportOrdersReportCsv = async (params: Omit<IOrdersReportParams, "page" | "page_size">): Promise<Blob> => {
   const res = await axiosx(true).get(`${MAIN_API_URL}/admin/orders/export`, {
     params: {
+      ...(params.start_date ? { start_date: params.start_date } : {}),
+      ...(params.end_date ? { end_date: params.end_date } : {}),
       ...(params.month ? { month: params.month } : {}),
       ...(params.type ? { type: params.type } : {}),
       ...(params.branch && params.branch !== "all" ? { branch: params.branch } : {}),

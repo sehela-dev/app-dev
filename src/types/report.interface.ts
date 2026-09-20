@@ -462,10 +462,13 @@ export interface IRecognitionRunResult {
 export type TCashFlowReport = (data: IParamsCashFlowReport) => Promise<IResponseData<ICashFlowResponse>>;
 
 // GET /admin/orders?month&type&branch — monthly orders report preview (handoff: orders-monthly-csv-export).
+// Now daterange-based (start_date/end_date, 90d max). `month` kept as fallback for old BE.
 export type OrdersReportType = "money" | "credits" | "all";
 
 export interface IOrdersReportParams {
   month?: string;
+  start_date?: string; // YYYY-MM-DD
+  end_date?: string; // YYYY-MM-DD
   type?: OrdersReportType;
   branch?: string;
   payment_type?: string;
@@ -494,7 +497,7 @@ export interface IOrdersReportPreview {
   data: IOrdersReportRow[];
   pagination: IPagiantion;
   totals: { row_count: number; total_paid_idr: number };
-  filters: { month: string; type: string; branch: string | null; payment_type?: string | null; transaction_type?: string | null };
+  filters: { month: string; type: string; branch: string | null; payment_type?: string | null; transaction_type?: string | null; start_date?: string | null; end_date?: string | null };
 }
 
 export type TOrdersReportPreview = (params: IOrdersReportParams) => Promise<IOrdersReportPreview>;
