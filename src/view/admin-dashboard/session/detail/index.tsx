@@ -10,13 +10,33 @@ import { Divider } from "@/components/ui/divider";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { SearchInput } from "@/components/ui/search-input";
 import { useDebounce } from "@/hooks";
-import { useCancelBooking, useChangeAttendanceStatus, useRescheduleSession, useSendReminderSession } from "@/hooks/api/mutations/admin";
+import {
+  useCancelBooking,
+  useChangeAttendanceStatus,
+  useEditCustomer,
+  useRescheduleSession,
+  useSendReminderSession,
+} from "@/hooks/api/mutations/admin";
 import { useGetSessionBookings, useGetSessionDetail, useGetSessions } from "@/hooks/api/queries/admin/class-session";
 import { defaultDate, formatCurrency, formatDateHelper, reminderMessage, sendReminder } from "@/lib/helper";
 import { cn } from "@/lib/utils";
 import { IParticipantsSession, ISessionItem } from "@/types/class-sessions.interface";
 import { IAttendanceStatus } from "@/types/orders.interface";
-import { AlertTriangle, ArrowLeftRight, Ban, Banknote, BellRing, Copy, Ellipsis, Loader2, LucideIcon, PenIcon, RotateCcw, WalletCards, X } from "lucide-react";
+import {
+  AlertTriangle,
+  ArrowLeftRight,
+  Ban,
+  Banknote,
+  BellRing,
+  Copy,
+  Ellipsis,
+  Loader2,
+  LucideIcon,
+  PenIcon,
+  RotateCcw,
+  WalletCards,
+  X,
+} from "lucide-react";
 import { differenceInCalendarDays } from "date-fns";
 import { useParams, useRouter } from "next/navigation";
 import React, { useState } from "react";
@@ -26,56 +46,57 @@ import { Label } from "@/components/ui/label";
 import { BaseDialogConfirmation } from "@/components/general/dialog-confirnation";
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
+import { branchLabel } from "@/constants/sample-data";
 import { BackButtonComponent } from "@/components/general/back-button";
 
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Input } from "@/components/ui/input";
 import { useAdminPermission } from "@/hooks/use-role-access";
-type RefundType = "none" | "credit_return" | "credit_issue_new" | "manual_external"
+import { Separator } from "@radix-ui/react-separator";
+type RefundType = "none" | "credit_return" | "credit_issue_new" | "manual_external";
 
 const refundOptions: {
-  value: RefundType
-  title: string
-  description: string
-  icon: React.ReactElement
+  value: RefundType;
+  title: string;
+  description: string;
+  icon: React.ReactElement;
 }[] = [
-    {
-      value: "none",
-      title: "No refund",
-      description: "For no-shows or policy violations",
-      icon: <Ban />,
-    },
-    {
-      value: "credit_return",
-      title: "Return package credits",
-      description: "Restore the credit to the original package",
-      icon: <ArrowLeftRight />,
-    },
-    {
-      value: "credit_issue_new",
-      title: "Issue new credits",
-      description: "Create fresh credits with an expiry date",
-      icon: <WalletCards />,
-    },
-    {
-      value: "manual_external",
-      title: "External cash refund",
-      description: "Record a refund handled outside the platform",
-      icon: <Banknote />,
-    },
-  ]
-
+  {
+    value: "none",
+    title: "No refund",
+    description: "For no-shows or policy violations",
+    icon: <Ban />,
+  },
+  {
+    value: "credit_return",
+    title: "Return package credits",
+    description: "Restore the credit to the original package",
+    icon: <ArrowLeftRight />,
+  },
+  {
+    value: "credit_issue_new",
+    title: "Issue new credits",
+    description: "Create fresh credits with an expiry date",
+    icon: <WalletCards />,
+  },
+  {
+    value: "manual_external",
+    title: "External cash refund",
+    description: "Record a refund handled outside the platform",
+    icon: <Banknote />,
+  },
+];
 
 export const SessionDetailPage = () => {
   const router = useRouter();
-  const { isManager } = useAdminPermission()
+  const { isManager } = useAdminPermission();
   const params = useParams();
   const { id } = params;
   const { data, isLoading } = useGetSessionDetail(id as string);
   const [page, setPage] = useState(1);
   const [openDialog, setOpenDialog] = useState(false);
-  const [validityDays, setValidityDays] = useState(15)
-  const [refundAmount, setRefundAmount] = useState(0)
+  const [validityDays, setValidityDays] = useState(15);
+  const [refundAmount, setRefundAmount] = useState(0);
   // resechedule
   const [limit] = useState(6);
   const [pageSession, setPageSession] = useState(1);
@@ -91,7 +112,7 @@ export const SessionDetailPage = () => {
   const [rescheduleNotes, setRescheduleNotes] = useState("");
   const [selectedRow, setSelectedRow] = useState<string | null>(null);
   const [openCancel, setOpenCancel] = useState(false);
-  const [refundType, setRefundTYpe] = useState("none")
+  const [refundType, setRefundTYpe] = useState("none");
   const [selectedDataCancel, setSelectedDataCancel] = useState<IParticipantsSession | null>(null);
   const [pendingAttendance, setPendingAttendance] = useState<{ id: string; status: IAttendanceStatus } | null>(null);
   const [isLateCancel, setIsLateCancel] = useState(false);
@@ -112,6 +133,11 @@ export const SessionDetailPage = () => {
   const { mutateAsync: cancelBooking } = useCancelBooking();
   const [openReminder, setOpenReminder] = useState(false);
   const { mutateAsync: remindAll } = useSendReminderSession();
+  const [openRemark, setOpenRemark] = useState(false);
+  const [selectedRemarkRow, setSelectedRemarkRow] = useState<IParticipantsSession | null>(null);
+  const [remarkValue, setRemarkValue] = useState("");
+  const [remarkError, setRemarkError] = useState<string | null>(null);
+  const { mutateAsync: updateCustomerRemark, isPending: isUpdatingRemark } = useEditCustomer();
 
   const onConfirmAttendance = async (id: string, status: IAttendanceStatus) => {
     try {
@@ -158,7 +184,7 @@ export const SessionDetailPage = () => {
     }
     // cash/midtrans amount prefill for external refund; credits use package expiry
     const isCash = row?.payment_method === "cash" || row?.payment_method === "midtrans" || row?.paid_with?.type === "cash";
-    setRefundAmount(isCash ? (row?.paid_with?.revenue_idr ?? 0) : 0);
+    setRefundAmount(isCash ? row?.paid_with?.revenue_idr ?? 0 : 0);
     const packageExpiry = row?.paid_with?.package_expires_at;
     setValidityDays(packageExpiry ? Math.max(differenceInCalendarDays(new Date(packageExpiry), new Date()), 0) : 15);
     setOpenCancel(true);
@@ -181,16 +207,46 @@ export const SessionDetailPage = () => {
         refetch();
         setOpenCancel(false);
         setSelectedDataCancel(null);
-        setRescheduleNotes("")
-        setRefundTYpe("none")
-        setValidityDays(15)
-        setRefundAmount(0)
+        setRescheduleNotes("");
+        setRefundTYpe("none");
+        setValidityDays(15);
+        setRefundAmount(0);
       }
     } catch (error) {
       console.log(error);
     } finally {
       setOpenCancel(false);
       setSelectedDataCancel(null);
+    }
+  };
+
+  const onOpenRemark = (row: IParticipantsSession) => {
+    setSelectedRemarkRow(row);
+    setRemarkValue(row.remark ?? "");
+    setRemarkError(null);
+    setOpenRemark(true);
+  };
+  const onCloseRemark = () => {
+    setOpenRemark(false);
+    setSelectedRemarkRow(null);
+    setRemarkValue("");
+    setRemarkError(null);
+  };
+  const onSaveRemark = async () => {
+    if (remarkValue.length > 2000) {
+      setRemarkError("Remark must be ≤2000 characters");
+      return;
+    }
+    if (!selectedRemarkRow) return;
+    try {
+      setRemarkError(null);
+      await updateCustomerRemark({ id: selectedRemarkRow.user_id, data: { remark: remarkValue } });
+      refetch();
+      onCloseRemark();
+    } catch (e: unknown) {
+      const err = e as { response?: { data?: { error?: { details?: { remark?: string[] }; message?: string } } } };
+      const msg = err?.response?.data?.error?.details?.remark?.[0] || err?.response?.data?.error?.message;
+      if (msg) setRemarkError(msg);
     }
   };
 
@@ -217,16 +273,7 @@ export const SessionDetailPage = () => {
         </div>
       ),
     },
-    {
-      id: "customer_phone",
-      text: "WhatsApp",
-      value: "customer_phone",
-    },
-    {
-      id: "customer_email",
-      text: "Email",
-      value: "customer_email",
-    },
+
     {
       id: "payment_method",
       text: "Payment",
@@ -242,7 +289,17 @@ export const SessionDetailPage = () => {
         else if (method === "cash" || type === "cash") label = "Cash";
         else label = row.payment_method || "-";
         return (
-          <Badge variant="outline" className={cn("capitalize whitespace-nowrap", isCredits ? "border-brand-200 bg-brand-25 text-brand-700" : provider === "third_party" ? "border-amber-200 bg-amber-50 text-amber-700" : "border-emerald-200 bg-emerald-50 text-emerald-700")}>
+          <Badge
+            variant="outline"
+            className={cn(
+              "capitalize whitespace-nowrap",
+              isCredits
+                ? "border-brand-200 bg-brand-25 text-brand-700"
+                : provider === "third_party"
+                ? "border-amber-200 bg-amber-50 text-amber-700"
+                : "border-emerald-200 bg-emerald-50 text-emerald-700",
+            )}
+          >
             {label}
           </Badge>
         );
@@ -288,29 +345,27 @@ export const SessionDetailPage = () => {
       value: (row: IParticipantsSession) => <p>{row?.medical_notes ?? "-"}</p>,
     },
     {
-      id: "reminder",
-      text: "Send Reminder",
+      id: "remark",
+      text: "Admin Remarks",
+      value: (row: IParticipantsSession) =>
+        row?.remark ? (
+          <span className="block max-w-[200px] truncate" title={row.remark}>
+            {row.remark}
+          </span>
+        ) : (
+          <span className="text-muted-foreground">-</span>
+        ),
+    },
+    {
+      id: "edit_remark",
+      text: "Edit Remark",
       value: (row: IParticipantsSession) => (
-        <div className="flex w-full items-center">
-          <Button
-            className="w-8 h-8"
-            onClick={() => {
-              const msg = reminderMessage(
-                row.customer_name,
-                data?.data?.session_name as string,
-                `${data?.data?.time_start} - ${data?.data?.time_end}`,
-                `${data?.data?.location}`,
-              );
-              sendReminder(row?.customer_phone.trim(), msg);
-            }}
-            disabled={data?.data?.status === "ended" || data?.data?.status === "cancelled"}
-          >
-            <BellRing />
-          </Button>
-        </div>
+        <Button variant="outline" size="sm" className="h-7 whitespace-nowrap" onClick={() => onOpenRemark(row)}>
+          <PenIcon className="h-3.5 w-3.5" />
+          Edit
+        </Button>
       ),
     },
-
     {
       id: "attendance_status",
       text: "Attendance",
@@ -328,6 +383,29 @@ export const SessionDetailPage = () => {
               {row.attendance_status === "attended" ? "Checked In" : "No Show"}
             </p>
           )}
+        </div>
+      ),
+    },
+    {
+      id: "reminder",
+      text: "Send Reminder",
+      value: (row: IParticipantsSession) => (
+        <div className="flex w-full items-center justify-center">
+          <Button
+            className="w-8 h-8"
+            onClick={() => {
+              const msg = reminderMessage(
+                row.customer_name,
+                data?.data?.session_name as string,
+                `${data?.data?.time_start} - ${data?.data?.time_end}`,
+                `${data?.data?.location}`,
+              );
+              sendReminder(row?.customer_phone.trim(), msg);
+            }}
+            disabled={data?.data?.status === "ended" || data?.data?.status === "cancelled"}
+          >
+            <BellRing />
+          </Button>
         </div>
       ),
     },
@@ -398,16 +476,24 @@ export const SessionDetailPage = () => {
           >
             Reschedule
           </DropdownMenuItem>
-          {(row.booking_status !== "cancelled" && row.booking_status !== "canceled" && row.payment_status !== "voided") &&
-          ((row.attendance_status === 'attended' && isManager) || !row.attendance_status) ?
+          {row.booking_status !== "cancelled" &&
+          row.booking_status !== "canceled" &&
+          row.payment_status !== "voided" &&
+          ((row.attendance_status === "attended" && isManager) || !row.attendance_status) ? (
             <DropdownMenuItem onClick={() => onTriggerCancel(row)} className="text-red-500" disabled={isPending}>
               Cancel Booking
-            </DropdownMenuItem> : ""
-          }
-          {isManager ? <DropdownMenuItem onClick={() => onRequestAttendanceChange(row.id, null)} className="bg-secondary" disabled={isPending}>
-            <RotateCcw /> Reset
-          </DropdownMenuItem> : ""}
-
+            </DropdownMenuItem>
+          ) : (
+            ""
+          )}
+          <Divider className="my-1" />
+          {isManager ? (
+            <DropdownMenuItem onClick={() => onRequestAttendanceChange(row.id, null)} className="bg-brand-50" disabled={isPending}>
+              <RotateCcw /> Reset
+            </DropdownMenuItem>
+          ) : (
+            ""
+          )}
         </DropdownMenuContent>
       </DropdownMenu>
     ),
@@ -511,6 +597,8 @@ export const SessionDetailPage = () => {
               </div>
               <div className="grid col-span-3 text-gray-500">Location Type</div>
               <div className="grid col-span-9 capitalize">{data?.data?.place}</div>
+              <div className="grid col-span-3 text-gray-500">Branch</div>
+              <div className="grid col-span-9">{branchLabel(data?.data?.branch ?? null)}</div>
               <div className="grid col-span-3 text-gray-500">Location Details</div>
               <div className="grid col-span-9">{data?.data?.location}</div>
               <div className="grid col-span-3 text-gray-500">Location Maps Url</div>
@@ -589,7 +677,7 @@ export const SessionDetailPage = () => {
           </div>
         </div>
       </CardContent>
-      {openDialog &&
+      {openDialog && (
         <BaseDialogComponent
           title="Reschedule"
           isOpen={openDialog}
@@ -640,7 +728,6 @@ export const SessionDetailPage = () => {
                         slot={item.slots_display}
                         title={`[${item?.class?.class_name}] - ${item.session_name}`}
                         onSelect={() => setSelectedSession(item)}
-
                         status={item.location}
                         isSelected={item.id === selectedSession?.id}
                       />
@@ -654,7 +741,6 @@ export const SessionDetailPage = () => {
             <CustomPagination
               onPageChange={(e) => {
                 setPageSession(e);
-
               }}
               currentPage={pageSession}
               showTotal
@@ -676,9 +762,8 @@ export const SessionDetailPage = () => {
             )}
           </div>
         </BaseDialogComponent>
-      }
-      {openCancel &&
-
+      )}
+      {openCancel && (
         <BaseDialogComponent
           isOpen={openCancel}
           title="Cancel Booking"
@@ -687,11 +772,11 @@ export const SessionDetailPage = () => {
           btnConfirm="Cancel Booking"
           onClose={() => {
             setOpenCancel(false);
-            setRefundTYpe("none")
-            setValidityDays(15)
-            setRefundAmount(0)
-            setRescheduleNotes("")
-            setIsLateCancel(false)
+            setRefundTYpe("none");
+            setValidityDays(15);
+            setRefundAmount(0);
+            setRescheduleNotes("");
+            setIsLateCancel(false);
           }}
         >
           {(() => {
@@ -704,15 +789,28 @@ export const SessionDetailPage = () => {
             const isCredits = selectedDataCancel?.paid_with?.type === "credits" || selectedDataCancel?.payment_method === "credits";
             const provider = (selectedDataCancel?.paid_with?.provider || "").toLowerCase();
             const isThirdParty = provider === "third_party";
-            const isCash = selectedDataCancel?.payment_method === "cash" || selectedDataCancel?.payment_method === "midtrans" || selectedDataCancel?.paid_with?.type === "cash";
+            const isCash =
+              selectedDataCancel?.payment_method === "cash" ||
+              selectedDataCancel?.payment_method === "midtrans" ||
+              selectedDataCancel?.paid_with?.type === "cash";
             return (
-              <div className={cn("flex gap-3 rounded-lg border p-3 text-sm", isLateCancel ? "border-amber-300 bg-amber-50 text-amber-900" : "border-brand-100 bg-brand-25 text-brand-900")}>
+              <div
+                className={cn(
+                  "flex gap-3 rounded-lg border p-3 text-sm",
+                  isLateCancel ? "border-amber-300 bg-amber-50 text-amber-900" : "border-brand-100 bg-brand-25 text-brand-900",
+                )}
+              >
                 <AlertTriangle className={cn("h-5 w-5 shrink-0", isLateCancel ? "text-amber-600" : "text-brand-500")} />
                 <div>
                   <p className="font-semibold">{isLateCancel ? "Late cancellation — less than 6 hours" : "On-time cancellation"}</p>
                   {selectedDataCancel && (
                     <p className="text-xs text-muted-foreground mt-1">
-                      {selectedDataCancel.customer_name} · {isCredits ? `Package: ${selectedDataCancel.paid_with?.package_name ?? "-"} (${selectedDataCancel.paid_with?.credits_used ?? 1} cr)` : `Cash: ${formatCurrency(selectedDataCancel.paid_with?.revenue_idr ?? data?.data?.price_idr)} · ${isThirdParty ? "3rd Party" : isCash ? "Midtrans/cash" : selectedDataCancel.payment_method}`}
+                      {selectedDataCancel.customer_name} ·{" "}
+                      {isCredits
+                        ? `Package: ${selectedDataCancel.paid_with?.package_name ?? "-"} (${selectedDataCancel.paid_with?.credits_used ?? 1} cr)`
+                        : `Cash: ${formatCurrency(selectedDataCancel.paid_with?.revenue_idr ?? data?.data?.price_idr)} · ${
+                            isThirdParty ? "3rd Party" : isCash ? "Midtrans/cash" : selectedDataCancel.payment_method
+                          }`}
                       {hoursUntil !== null && ` · starts in ${hoursUntil.toFixed(1)}h`}
                     </p>
                   )}
@@ -722,26 +820,28 @@ export const SessionDetailPage = () => {
           })()}
 
           <RadioGroup value={refundType} onValueChange={(v) => setRefundTYpe(v)}>
-                <div className="grid grid-cols-2 gap-2">
-                  {refundOptions.map((option) => (
-                    <div key={option.value} className={cn("flex items-center space-x-2 border border-brand-400 rounded-xl p-4", {
-                      "border-2 bg-brand-50": refundType === option.value
-                    })}>
-                      <RadioGroupItem value={option.value} id={option.value} />
-                      <Label htmlFor={option.value} className="text-sm font-medium text-brand-999 cursor-pointer">
-                        <div className="flex flex-row items-center gap-4">
-                          {option.icon}
-                          <div className="flex flex-col gap-2">
-                            <p className="font-bold text-xl">{option.title}</p>
-                            <p className="font-normal">{option.description}</p>
-                          </div>
-                        </div>
-
-                      </Label>
+            <div className="grid grid-cols-2 gap-2">
+              {refundOptions.map((option) => (
+                <div
+                  key={option.value}
+                  className={cn("flex items-center space-x-2 border border-brand-400 rounded-xl p-4", {
+                    "border-2 bg-brand-50": refundType === option.value,
+                  })}
+                >
+                  <RadioGroupItem value={option.value} id={option.value} />
+                  <Label htmlFor={option.value} className="text-sm font-medium text-brand-999 cursor-pointer">
+                    <div className="flex flex-row items-center gap-4">
+                      {option.icon}
+                      <div className="flex flex-col gap-2">
+                        <p className="font-bold text-xl">{option.title}</p>
+                        <p className="font-normal">{option.description}</p>
+                      </div>
                     </div>
-                  ))}
+                  </Label>
                 </div>
-              </RadioGroup>
+              ))}
+            </div>
+          </RadioGroup>
 
           {refundType === "credit_issue_new" && (
             <div className="flex flex-col gap-2">
@@ -787,9 +887,6 @@ export const SessionDetailPage = () => {
             </div>
           )}
 
-
-
-
           <div className="flex flex-col gap-2">
             <Label>Notes</Label>
             <Textarea
@@ -799,20 +896,18 @@ export const SessionDetailPage = () => {
             />
           </div>
         </BaseDialogComponent>
-      }
-      {
-        openReminder && (
-          <BaseDialogConfirmation
-            open={openReminder}
-            title="Send Reminder to all participants?"
-            subtitle="Participants will be receive email according this session"
-            onConfirm={onRemindAll}
-            confirmText="Remind All"
-            onCancel={() => setOpenReminder(false)}
-            image="warning-1"
-          />
-        )
-      }
+      )}
+      {openReminder && (
+        <BaseDialogConfirmation
+          open={openReminder}
+          title="Send Reminder to all participants?"
+          subtitle="Participants will be receive email according this session"
+          onConfirm={onRemindAll}
+          confirmText="Remind All"
+          onCancel={() => setOpenReminder(false)}
+          image="warning-1"
+        />
+      )}
       {pendingAttendance && (
         <BaseDialogConfirmation
           open={!!pendingAttendance}
@@ -820,15 +915,15 @@ export const SessionDetailPage = () => {
             pendingAttendance.status === "attended"
               ? "Confirm Check In"
               : pendingAttendance.status === "no_show"
-                ? "Confirm No Show"
-                : "Confirm Reset Attendance"
+              ? "Confirm No Show"
+              : "Confirm Reset Attendance"
           }
           subtitle={
             pendingAttendance.status === "attended"
               ? "Mark this participant as attended?"
               : pendingAttendance.status === "no_show"
-                ? "Mark this participant as no show?"
-                : "Reset this participant's attendance status? This action cannot be undone."
+              ? "Mark this participant as no show?"
+              : "Reset this participant's attendance status? This action cannot be undone."
           }
           onConfirm={onConfirmAttendanceChange}
           confirmText={pendingAttendance.status ? "Confirm" : "Reset"}
@@ -836,6 +931,33 @@ export const SessionDetailPage = () => {
           image="warning-1"
         />
       )}
-    </Card >
+      {openRemark && (
+        <BaseDialogComponent
+          isOpen={openRemark}
+          title={selectedRemarkRow ? `Remark — ${selectedRemarkRow.customer_name}` : "Remark"}
+          btnConfirm="Save"
+          isDisabled={isUpdatingRemark}
+          onClose={onCloseRemark}
+          onConfirm={onSaveRemark}
+        >
+          <div className="flex flex-col gap-2">
+            <Label htmlFor="remark-input">Internal notes (only admin can see)</Label>
+            <Textarea
+              id="remark-input"
+              value={remarkValue}
+              onChange={(e) => setRemarkValue(e.target.value)}
+              maxLength={2000}
+              rows={4}
+              placeholder="Internal notes (only admin can see)"
+              className="min-h-[96px]"
+            />
+            <div className="flex justify-between">
+              {remarkError ? <p className="text-sm text-destructive">{remarkError}</p> : <span />}
+              <p className="text-xs text-muted-foreground ml-auto">{remarkValue.length}/2000</p>
+            </div>
+          </div>
+        </BaseDialogComponent>
+      )}
+    </Card>
   );
 };

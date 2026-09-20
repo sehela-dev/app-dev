@@ -51,11 +51,36 @@ export const CashFlowView = () => {
     {
       id: "order_id",
       text: "Order ID",
-      value: (row: ICashFlowTransaction) => (
-        <a href={`/admin/orders/${row.id}`} target="_blank" className="text-brand-500 font-semibold underline">
-          <p className="capitalize max-w-[70%] flex-wrap text-wrap">{row?.order_id}</p>
-        </a>
-      ),
+      // Credit rows have no order page — show customer + package instead of the link
+      value: (row: ICashFlowTransaction) =>
+        row.payment_method === "credits" ? (
+          <div className="flex flex-col">
+            <span className="font-medium">{row.customer_name || "-"}</span>
+            <span className="text-muted-foreground text-xs">{row.package_name || "-"}</span>
+          </div>
+        ) : (
+          <a href={`/admin/orders/${row.id}`} target="_blank" rel="noopener noreferrer" className="text-brand-500 font-semibold underline">
+            <p className="capitalize max-w-[70%] flex-wrap text-wrap">{row?.order_id}</p>
+          </a>
+        ),
+    },
+    {
+      id: "session",
+      text: "Session",
+      value: (row: ICashFlowTransaction) =>
+        row.session?.id ? (
+          <a
+            href={`/admin/session/${row.session.id}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-brand-500 font-semibold underline flex flex-col"
+          >
+            <span className="max-w-[200px] truncate">{row.session.name}</span>
+            <span className="text-muted-foreground text-xs font-normal">{formatDateHelper(row.session.start_datetime, "dd MMM yyyy HH:mm")}</span>
+          </a>
+        ) : (
+          <span className="text-muted-foreground">-</span>
+        ),
     },
     {
       id: "amount",

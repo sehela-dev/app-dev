@@ -1,6 +1,7 @@
 "use client";
 
 import { DateRangePicker } from "@/components/base/date-range-picker";
+import { BackButtonComponent } from "@/components/general/back-button";
 import { CustomTable } from "@/components/general/custom-table";
 import { CustomPagination } from "@/components/general/pagination-component";
 import { GeneralTabComponent } from "@/components/general/tabs-component";
@@ -293,6 +294,9 @@ export const OutstandingCreditView = () => {
   ];
   return (
     <div className="flex flex-col gap-4 min-w-0 w-full max-w-full overflow-hidden">
+      <BackButtonComponent page="/admin/report">
+        <span className="text-sm font-medium text-gray-500">Back to Reports</span>
+      </BackButtonComponent>
       <GeneralTabComponent tabs={tabOption} selecetedTab={tabs} setTab={setTabs} />
       {tabs === "snapshot" && (
         <div className="flex flex-col gap-4 min-w-0 max-w-full overflow-hidden">

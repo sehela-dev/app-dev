@@ -18,7 +18,8 @@ export interface ISessionItem {
   type: string;
   level: string;
   place: string;
-  room_id: string;
+  room_id: string | null;
+  branch: string | null;
   location: string;
   location_address: string;
   location_maps_url: string;
@@ -116,6 +117,7 @@ export interface IParticipantsSession {
   payment_status?: string;
   paid_with: IBookingPaidWith | null;
   medical_notes: string | null;
+  remark: string | null;
   photo_consent: boolean;
   instagram_username: string | null;
   rescheduled_to_booking_id: string | null;

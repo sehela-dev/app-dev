@@ -20,6 +20,7 @@ export const getSessions: TSessionListData = async ({
   is_credit_only,
   has_photo,
   date,
+  branch,
 }) => {
   const res = await axiosx(true).get(`${MAIN_API_URL}/classes/sessions`, {
     params: {
@@ -33,6 +34,7 @@ export const getSessions: TSessionListData = async ({
       ...(status ? { status } : null),
       ...(typeof is_credit_only === "boolean" ? { is_credit_only } : null),
       ...(typeof has_photo === "boolean" ? { has_photo } : null),
+      ...(branch && branch !== "all" ? { branch } : null),
     },
   });
   return res.data;

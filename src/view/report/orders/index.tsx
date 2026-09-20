@@ -1,17 +1,18 @@
 "use client";
 
 import { exportOrdersReportCsv } from "@/api-req/report";
+import { DateRangePicker } from "@/components/base/date-range-picker";
 import { buildNumber, CustomTable } from "@/components/general/custom-table";
+import { BackButtonComponent } from "@/components/general/back-button";
 import { CustomPagination } from "@/components/general/pagination-component";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { SEHELA_BRANCH } from "@/constants/sample-data";
 import { useGetOrdersReport } from "@/hooks/api/queries/admin/report/outstanding-credit";
 import { useAdminPermission } from "@/hooks/use-role-access";
-import { formatCurrency } from "@/lib/helper";
+import { defaultDate, formatCurrency } from "@/lib/helper";
 import { cn } from "@/lib/utils";
 import { IOrdersReportRow } from "@/types/report.interface";
 import { format } from "date-fns";
@@ -19,10 +20,6 @@ import { id as localeId } from "date-fns/locale";
 import { Banknote, CreditCard, Download, Landmark, Loader2, Package, Zap, type LucideIcon } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
-
-// ponytail: WIB month via Intl, BE also defaults server-side when month omitted
-const currentWibMonth = () =>
-  new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Jakarta", year: "numeric", month: "2-digit" }).format(new Date()).slice(0, 7);
 
 const PAYMENT_TYPES = [
   { value: "cash", label: "Cash" },
@@ -104,7 +101,9 @@ const errorMessage = async (e: unknown, fallback: string) => {
 
 export const OrdersReportView = () => {
   const { isManager } = useAdminPermission();
-  const [month, setMonth] = useState(currentWibMonth());
+  const _d = defaultDate();
+  const [startDate, setStartDate] = useState(_d.formattedOneMonthAgo);
+  const [endDate, setEndDate] = useState(_d.formattedToday);
   const [branch, setBranch] = useState("all");
   const [paymentType, setPaymentType] = useState("all");
   const [transactionType, setTransactionType] = useState("all");
@@ -113,8 +112,30 @@ export const OrdersReportView = () => {
   const limit = 20;
 
   const resetPage = () => setPage(1);
-  // BE money-only: credits excluded, always send type=money
-  const { data, isLoading, isError, error } = useGetOrdersReport({ month, type: "money", branch, payment_type: paymentType, transaction_type: transactionType, page, page_size: limit });
+  const handleRangeChange = (s: string, e?: string) => {
+    if (!s && !e) {
+      const d = defaultDate();
+      setStartDate(d.formattedOneMonthAgo);
+      setEndDate(d.formattedToday);
+    } else {
+      if (s) setStartDate(s);
+      if (e) setEndDate(e);
+      // single-day selection (e undefined) -> sync end to start so preview stays consistent
+      if (s && !e) setEndDate(s);
+    }
+    resetPage();
+  };
+  // BE money-only: credits excluded, always send type=money; 90-day max enforced by picker
+  const { data, isLoading, isError, error } = useGetOrdersReport({
+    start_date: startDate,
+    end_date: endDate,
+    type: "money",
+    branch,
+    payment_type: paymentType,
+    transaction_type: transactionType,
+    page,
+    page_size: limit,
+  });
 
   // Old BE ignores month/type/branch and returns the legacy bare-array list.
   // Never map it into report rows — totals/credits would be silently wrong.
@@ -223,11 +244,20 @@ export const OrdersReportView = () => {
   const handleExport = async () => {
     try {
       setExporting(true);
-      const blob = await exportOrdersReportCsv({ month, type: "money", branch, payment_type: paymentType, transaction_type: transactionType });
+      const blob = await exportOrdersReportCsv({
+        start_date: startDate,
+        end_date: endDate,
+        type: "money",
+        branch,
+        payment_type: paymentType,
+        transaction_type: transactionType,
+      });
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
-      a.download = `orders_${month}_money${branch !== "all" ? `_${branch}` : ""}${paymentType !== "all" ? `_${paymentType}` : ""}${transactionType !== "all" ? `_${transactionType}` : ""}.csv`;
+      a.download = `orders_${startDate}_${endDate}_money${branch !== "all" ? `_${branch}` : ""}${paymentType !== "all" ? `_${paymentType}` : ""}${
+        transactionType !== "all" ? `_${transactionType}` : ""
+      }.csv`;
       a.click();
       window.URL.revokeObjectURL(url);
       toast.success("CSV downloaded");
@@ -253,24 +283,25 @@ export const OrdersReportView = () => {
 
   return (
     <div className="flex h-full w-full flex-col gap-2">
+      <div className="flex w-full items-center justify-between gap-2">
+        <BackButtonComponent page="/admin/report">
+          <span className="text-sm font-medium text-gray-500">Back to Reports</span>
+        </BackButtonComponent>
+        {isManager && (
+          <Button variant="outline" className="text-sm font-medium shrink-0" disabled={exporting} onClick={handleExport}>
+            {exporting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
+            Export
+          </Button>
+        )}
+      </div>
       <Card className="rounded-lg border-brand-100">
         <CardHeader className="flex w-full flex-row items-center justify-between gap-2">
           <div className="flex flex-col">
-            <h3 className="text-brand-999 text-2xl font-semibold">Orders Monthly Report</h3>
-            <p className="text-sm font-normal text-gray-500">Money payments only — preview matches the exported CSV.</p>
+            <h3 className="text-brand-999 text-2xl font-semibold">Orders Report</h3>
+            <p className="text-sm font-normal text-gray-500">Money payments only — preview matches the exported CSV (max 90 days).</p>
           </div>
           <div className="flex flex-row flex-wrap justify-end gap-2">
-            <Input
-              type="month"
-              value={month}
-              onChange={(e) => {
-                if (e.target.value) {
-                  setMonth(e.target.value);
-                  resetPage();
-                }
-              }}
-              className="w-44"
-            />
+            <DateRangePicker startDate={startDate} endDate={endDate} onDateRangeChange={handleRangeChange} maxSelectionDays={90} />
             <Select
               value={branch}
               onValueChange={(value) => {
@@ -328,12 +359,6 @@ export const OrdersReportView = () => {
                 ))}
               </SelectContent>
             </Select>
-            {isManager && (
-              <Button variant="outline" className="text-sm font-medium" disabled={exporting} onClick={handleExport}>
-                {exporting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
-                Export
-              </Button>
-            )}
           </div>
         </CardHeader>
         <CardContent>

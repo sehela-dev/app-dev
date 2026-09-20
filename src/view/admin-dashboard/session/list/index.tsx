@@ -18,6 +18,8 @@ import { ISessionItem } from "@/types/class-sessions.interface";
 import { ICommonParams } from "@/types/general.interface";
 
 import { Badge } from "@/components/ui/badge";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { branchLabel, SEHELA_BRANCH } from "@/constants/sample-data";
 import { CirclePlus, Ellipsis } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
@@ -63,6 +65,7 @@ export const SessionListPage = () => {
   });
   const [creditOnly, setCreditOnly] = useState(false);
   const [hasPhoto, setHasPhoto] = useState<boolean | null>(null);
+  const [branch, setBranch] = useState("all");
   const { data, isLoading, refetch } = useGetSessions({
     page,
     limit,
@@ -70,6 +73,7 @@ export const SessionListPage = () => {
     status: tabs !== "all" ? tabs : "",
     startDate: selectedRange.from as string,
     endDate: selectedRange.to as string,
+    ...(branch !== "all" ? { branch } : null),
   } as ICommonParams & Record<string, unknown>);
 
   const { mutateAsync } = useDeleteSession();
@@ -121,6 +125,11 @@ export const SessionListPage = () => {
       id: "location",
       text: "Location",
       value: (row: ISessionItem) => <p className="capitalize">{row.place === "offline" ? row.location : row.place}</p>,
+    },
+    {
+      id: "branch",
+      text: "Branch",
+      value: (row: ISessionItem) => branchLabel(row.branch),
     },
     {
       id: "status",
@@ -233,6 +242,27 @@ export const SessionListPage = () => {
             <p className="text-sm text-gray-500">Manage class schedules and sessions</p>
           </div>
           <div className="flex items-center flex-row gap-2">
+            <div>
+              <Select
+                value={branch}
+                onValueChange={(v) => {
+                  setBranch(v);
+                  setPage(1);
+                }}
+              >
+                <SelectTrigger className="w-44 min-h-[42px]">
+                  <SelectValue placeholder="Branch" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Branches</SelectItem>
+                  {SEHELA_BRANCH.map((b) => (
+                    <SelectItem key={b.value} value={b.value}>
+                      {b.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
             <div>
               <DateRangePicker
                 mode="range"

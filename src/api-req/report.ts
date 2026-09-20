@@ -2,9 +2,15 @@ import { axiosx } from "@/lib/axiosx";
 import { MAIN_API_URL } from "@/lib/config";
 import {
   ICreditsLedgerParams,
+  ICustomerLoyaltyParams,
+  ICustomerLoyaltyResponse,
+  ICustomerLoyaltyRow,
   IOrdersReportParams,
   IOutstandingDetailParams,
   IRecognitionRunResult,
+  IRefundReportParams,
+  ISalesSummaryParams,
+  ISalesSummaryResponse,
   TCashFlowReport,
   TCreditsLedger,
   TCreditsLedgerSummary,
@@ -14,6 +20,7 @@ import {
   TOutstandingDetail,
   TOutstandingReports,
   TOutstandingSummary,
+  TRefundReportPreview,
 } from "@/types/report.interface";
 
 export const generateTableOutstandingCredit: TOutstandingCreditTable = async (params) => {
@@ -159,6 +166,8 @@ export const runRecognition = async (job_date?: string): Promise<IRecognitionRun
 export const getOrdersReportPreview: TOrdersReportPreview = async (params) => {
   const res = await axiosx(true).get(`${MAIN_API_URL}/admin/orders`, {
     params: {
+      ...(params.start_date ? { start_date: params.start_date } : {}),
+      ...(params.end_date ? { end_date: params.end_date } : {}),
       ...(params.month ? { month: params.month } : {}),
       ...(params.type ? { type: params.type } : {}),
       ...(params.branch && params.branch !== "all" ? { branch: params.branch } : {}),
@@ -174,6 +183,8 @@ export const getOrdersReportPreview: TOrdersReportPreview = async (params) => {
 export const exportOrdersReportCsv = async (params: Omit<IOrdersReportParams, "page" | "page_size">): Promise<Blob> => {
   const res = await axiosx(true).get(`${MAIN_API_URL}/admin/orders/export`, {
     params: {
+      ...(params.start_date ? { start_date: params.start_date } : {}),
+      ...(params.end_date ? { end_date: params.end_date } : {}),
       ...(params.month ? { month: params.month } : {}),
       ...(params.type ? { type: params.type } : {}),
       ...(params.branch && params.branch !== "all" ? { branch: params.branch } : {}),
@@ -184,3 +195,109 @@ export const exportOrdersReportCsv = async (params: Omit<IOrdersReportParams, "p
   });
   return res.data as unknown as Blob;
 };
+
+// Refund/void report — preview table (JSON) + full-window CSV export.
+// NOTE: GET /admin/refunds is the frozen ops list (different shape, no transactionBy/CSV) — don't use it here.
+export const getRefundReportPreview: TRefundReportPreview = async (params) => {
+  const res = await axiosx(true).get(`${MAIN_API_URL}/admin/refund-report`, {
+    params: {
+      month: params.month,
+      ...(params.status && params.status !== "all" ? { status: params.status } : {}),
+      ...(params.type && params.type !== "all" ? { type: params.type } : {}),
+      ...(params.payment_method ? { payment_method: params.payment_method } : {}),
+      ...(params.search ? { search: params.search } : {}),
+      ...(params.page ? { page: params.page } : {}),
+      ...(params.page_size ? { page_size: params.page_size } : {}),
+    },
+  });
+  return res.data;
+};
+
+export const exportRefundReportCsv = async (params: Omit<IRefundReportParams, "page" | "page_size">): Promise<Blob> => {
+  const res = await axiosx(true).get(`${MAIN_API_URL}/admin/refund-report`, {
+    params: {
+      month: params.month,
+      ...(params.status && params.status !== "all" ? { status: params.status } : {}),
+      ...(params.type && params.type !== "all" ? { type: params.type } : {}),
+      ...(params.payment_method ? { payment_method: params.payment_method } : {}),
+      ...(params.search ? { search: params.search } : {}),
+      format: "csv",
+    },
+    responseType: "blob",
+  });
+  return res.data as unknown as Blob;
+};
+
+// Sales summary — daily collected-sales for one WIB month (JSON preview + CSV download).
+// NOTE: GET /admin/sales-summary?format=csv returns a blob, not ISalesSummaryResponse.
+export const getSalesSummary = async (params: ISalesSummaryParams): Promise<ISalesSummaryResponse> => {
+  const res = await axiosx(true).get(`${MAIN_API_URL}/admin/sales-summary`, {
+    params: {
+      ...(params.month ? { month: params.month } : {}),
+      ...(params.branch && params.branch !== "all" ? { branch: params.branch } : {}),
+    },
+  });
+  return res.data;
+};
+
+export const exportSalesSummaryCsv = async (params: ISalesSummaryParams): Promise<Blob> => {
+  const res = await axiosx(true).get(`${MAIN_API_URL}/admin/sales-summary`, {
+    params: {
+      ...(params.month ? { month: params.month } : {}),
+      ...(params.branch && params.branch !== "all" ? { branch: params.branch } : {}),
+      format: "csv",
+    },
+    responseType: "blob",
+  });
+  return res.data as unknown as Blob;
+};
+
+// Customer loyalty — per-student summary (proposed GET /admin/customer-loyalty, not built yet).
+// View + CSV builder below already speak the contract, so wiring the endpoint later needs no UI change.
+export const getCustomerLoyalty = async (params: ICustomerLoyaltyParams): Promise<ICustomerLoyaltyResponse> => {
+  const res = await axiosx(true).get(`${MAIN_API_URL}/admin/customer-loyalty`, {
+    params: {
+      ...(params.search ? { search: params.search } : {}),
+      ...(params.page ? { page: params.page } : {}),
+      ...(params.page_size ? { page_size: params.page_size } : {}),
+      ...(params.sort_by ? { sort_by: params.sort_by } : {}),
+      ...(params.order ? { order: params.order } : {}),
+    },
+  });
+  return res.data;
+};
+
+export const exportCustomerLoyaltyCsv = async (params: Omit<ICustomerLoyaltyParams, "page" | "page_size">): Promise<Blob> => {
+  const res = await axiosx(true).get(`${MAIN_API_URL}/admin/customer-loyalty`, {
+    params: {
+      ...(params.search ? { search: params.search } : {}),
+      ...(params.sort_by ? { sort_by: params.sort_by } : {}),
+      ...(params.order ? { order: params.order } : {}),
+      format: "csv",
+    },
+    responseType: "blob",
+  });
+  return res.data as unknown as Blob;
+};
+
+// Client-side CSV fallback until the endpoint ships format=csv.
+// Same columns/order as .scratch/customer_loyalty_2026-09-19.csv: raw values, every field double-quoted, UTF-8.
+const CUSTOMER_LOYALTY_CSV_HEADER = "nama_customer,kontak,sesi_terakhir,jumlah_kehadiran,penjualan_terakhir_tgl,penjualan_terakhir_idr,total_penjualan";
+
+const csvCell = (v: string | number | null | undefined) => `"${String(v ?? "").replace(/"/g, '""')}"`;
+
+export const buildCustomerLoyaltyCsv = (rows: ICustomerLoyaltyRow[]): string =>
+  [
+    CUSTOMER_LOYALTY_CSV_HEADER,
+    ...rows.map((r) =>
+      [
+        csvCell(r.nama_customer),
+        csvCell(r.kontak),
+        csvCell(r.sesi_terakhir),
+        csvCell(r.jumlah_kehadiran ?? 0),
+        csvCell(r.penjualan_terakhir_tgl),
+        csvCell(r.penjualan_terakhir_idr ?? 0),
+        csvCell(r.total_penjualan ?? 0),
+      ].join(","),
+    ),
+  ].join("\r\n");

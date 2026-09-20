@@ -130,6 +130,12 @@ export const EnrollStudentView = () => {
     addCustomer();
   };
 
+  const canProceed =
+    !!sessionData &&
+    (tabs === "credit"
+      ? !!customerData?.id && !!customerData?.package?.package_purchase_id
+      : !!customerData?.third_party?.id && !!customerData?.booking_id);
+
   return (
     <div className="flex flex-col gap-4">
       <div className="flex max-w-fit">
@@ -306,7 +312,12 @@ export const EnrollStudentView = () => {
                       </Button>
                     </div>
                     <div className="flex w-full">
-                      <Button className="w-full" disabled={isPending} onClick={handleBookingSession}>
+                      <Button
+                        className="w-full"
+                        disabled={isPending || !canProceed}
+                        title={!canProceed ? "Select a session and complete customer information first" : undefined}
+                        onClick={handleBookingSession}
+                      >
                         Proceed
                       </Button>
                     </div>

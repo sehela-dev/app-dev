@@ -16,6 +16,7 @@ import {
   History,
   Settings,
   Undo2,
+  Award,
 } from "lucide-react";
 
 export const dataNavMain = [
@@ -56,22 +57,21 @@ export const dataNavMarketPlace = [
 
 export const dataNavReport = [
   { title: "All Reports", url: "/admin/report", icon: LayoutGrid, permission: "reports" },
-  // Individual report links hidden for now — hub only (see reportHubCards below).
-  // { title: "Orders Report", url: "/admin/report/orders", icon: Receipt, permission: "reports" },
-  // { title: "Refund Management", url: "/admin/refunds", icon: Undo2, permission: "reports" },
-  // { title: "Outstanding Credit", url: "/admin/report/outstanding-credit", icon: DollarSign, permission: "reports" },
-  // { title: "Cash Flow", url: "/admin/report/cash-flow", icon: ChartNoAxesCombined, permission: "reports" },
+  { title: "Cash Flow", url: "/admin/report/cash-flow", icon: ChartNoAxesCombined, permission: "cash-flow:view" },
 ];
 
-// Cards for the /admin/report hub — same destinations as the hidden sidebar links above.
+// Cards for the /admin/report hub — All Reports (cash-flow is independent menu, visible via sidebar for both roles).
 export const reportHubCards = [
   { title: "Orders Report", url: "/admin/report/orders", icon: Receipt, permission: "reports" },
   { title: "Outstanding Credit", url: "/admin/report/outstanding-credit", icon: DollarSign, permission: "reports" },
-  { title: "Cash Flow", url: "/admin/report/cash-flow", icon: ChartNoAxesCombined, permission: "reports" },
-  { title: "Refund Management", url: "/admin/refunds", icon: Undo2, permission: "reports" },
+  { title: "Refund Report", url: "/admin/report/refund-report", icon: Undo2, permission: "reports" },
+  { title: "Sales Summary", url: "/admin/report/sales-summary", icon: ChartNoAxesCombined, permission: "reports" },
+  { title: "Customer Loyalty", url: "/admin/report/customer-loyalty", icon: Award, permission: "reports" },
+  { title: "Teacher Report", url: "/admin/report/teacher", icon: Users, permission: "reports" },
 ];
 export const settingsNav = [
   { title: "Admin Management", url: "/admin/admins", icon: UserCog, permission: "admin:view" },
+  { title: "Refund Management", url: "/admin/refunds", icon: Undo2, permission: "refund:view" },
   { title: "Audit Logs", url: "/admin/audit-logs", icon: History, permission: "audit-log:view" },
   { title: "Settings", url: "/admin/settings", icon: Settings, permission: "settings:view" },
 ];

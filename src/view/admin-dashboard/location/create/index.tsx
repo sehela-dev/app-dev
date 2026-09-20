@@ -13,12 +13,15 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { FormProvider, useForm } from "react-hook-form";
 import { z } from "zod";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { SEHELA_BRANCH } from "@/constants/sample-data";
 
 export const locationFormSchema = z.object({
   name: z.string().min(1, "Location name is required"),
   address: z.string().min(1, "Address is required"),
   maps_url: z.union([z.url(), z.literal("")]),
   is_active: z.boolean(),
+  branch: z.string().min(1, "Branch is required"),
 });
 
 export type ILocationFormValues = z.infer<typeof locationFormSchema>;
@@ -28,6 +31,7 @@ const defaultValues: ILocationFormValues = {
   address: "",
   maps_url: "",
   is_active: true,
+  branch: "",
 };
 
 export const CreateLocationPage = () => {
@@ -120,6 +124,32 @@ export const CreateLocationPage = () => {
                           {...field}
                         />
                       </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={control}
+                  name="branch"
+                  render={({ field }) => (
+                    <FormItem className="flex flex-col">
+                      <FormLabel className=" text-brand-999 font-medium text-sm" required>
+                        Branch
+                      </FormLabel>
+                      <Select onValueChange={field.onChange} value={field.value}>
+                        <FormControl>
+                          <SelectTrigger className="w-full px-4 py-4 border-2 border-gray-200 rounded-lg h-[42px]">
+                            <SelectValue placeholder="Select branch..." />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          {SEHELA_BRANCH.map((b) => (
+                            <SelectItem key={b.value} value={b.value}>
+                              {b.label}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
                       <FormMessage />
                     </FormItem>
                   )}

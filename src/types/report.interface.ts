@@ -296,6 +296,14 @@ export interface ICashFlowTransaction {
   raw_status: string;
   status: string;
   created_at: string;
+  customer_name?: string;
+  package_name?: string;
+  package_purchase_id?: string;
+  session?: {
+    id: string;
+    name: string;
+    start_datetime: string;
+  } | null;
 }
 
 // GET /admin/credits/ledger — handoff 2026-09-10 (admin v239) + reversal update.
@@ -454,10 +462,13 @@ export interface IRecognitionRunResult {
 export type TCashFlowReport = (data: IParamsCashFlowReport) => Promise<IResponseData<ICashFlowResponse>>;
 
 // GET /admin/orders?month&type&branch — monthly orders report preview (handoff: orders-monthly-csv-export).
+// Now daterange-based (start_date/end_date, 90d max). `month` kept as fallback for old BE.
 export type OrdersReportType = "money" | "credits" | "all";
 
 export interface IOrdersReportParams {
   month?: string;
+  start_date?: string; // YYYY-MM-DD
+  end_date?: string; // YYYY-MM-DD
   type?: OrdersReportType;
   branch?: string;
   payment_type?: string;
@@ -486,7 +497,124 @@ export interface IOrdersReportPreview {
   data: IOrdersReportRow[];
   pagination: IPagiantion;
   totals: { row_count: number; total_paid_idr: number };
-  filters: { month: string; type: string; branch: string | null; payment_type?: string | null; transaction_type?: string | null };
+  filters: { month: string; type: string; branch: string | null; payment_type?: string | null; transaction_type?: string | null; start_date?: string | null; end_date?: string | null };
 }
 
 export type TOrdersReportPreview = (params: IOrdersReportParams) => Promise<IOrdersReportPreview>;
+
+// GET /admin/refund-report — refund/void report preview (JSON) + CSV export.
+// Rows = refunds rows only (cancel-none never appears). Oldest-first, `no` is global.
+export type RefundReportStatus = "requested" | "processing" | "succeeded" | "failed";
+export type RefundReportType = "refund" | "void";
+
+export interface IRefundReportParams {
+  month: string; // YYYY-MM, required
+  status?: RefundReportStatus | "all";
+  type?: RefundReportType | "all";
+  payment_method?: string;
+  search?: string;
+  page?: number;
+  page_size?: number;
+}
+
+export interface IRefundReportRow {
+  no: number;
+  customerName: string;
+  session: string;
+  paymentMethod: string;
+  verdict: "Refund" | "Void";
+  amountIdr: number;
+  requestedAt: string;
+  confirmedAt: string;
+  reviewer: string;
+  movement: "refund" | "voided";
+  statusDisplay: string;
+  transactionBy: string;
+  refundId: string;
+  bookingId: string | null;
+  paymentId: string | null;
+  refundType: string;
+  rawStatus: string;
+  reviewerNote: string;
+}
+
+export interface IRefundReportPreview {
+  success: boolean;
+  data: IRefundReportRow[];
+  pagination: IPagiantion;
+  totals: { row_count: number; total_amount_idr: number };
+  filters: {
+    month: string;
+    status: string;
+    type: string;
+    payment_method: string | null;
+    search: string | null;
+  };
+}
+
+export type TRefundReportPreview = (params: IRefundReportParams) => Promise<IRefundReportPreview>;
+
+// GET /admin/sales-summary — daily collected-sales summary for one WIB month.
+// One zero-filled row per calendar day (oldest-first) + month `totals` footer.
+export interface ISalesSummaryParams {
+  month?: string; // YYYY-MM, defaults to current WIB month server-side
+  branch?: string; // exact match; absent/blank = all
+}
+
+export interface ISalesSummaryDay {
+  date: string; // YYYY-MM-DD
+  online_payment: number;
+  cash: number;
+  edc: number;
+  midtrans: number;
+  strongbee: number;
+  classpass: number;
+  other: number;
+  total: number;
+}
+
+export interface ISalesSummaryTotals extends Omit<ISalesSummaryDay, "date"> {
+  month: string; // YYYY-MM
+  date?: string; // BE may or may not echo a date on the footer — don't rely on it
+}
+
+export interface ISalesSummaryResponse {
+  success: boolean;
+  data: ISalesSummaryDay[];
+  totals: ISalesSummaryTotals;
+  filters: { month: string; branch: string | null };
+}
+
+export type TSalesSummary = (params: ISalesSummaryParams) => Promise<ISalesSummaryResponse>;
+
+// GET /admin/customer-loyalty — per-customer loyalty summary (proposed endpoint, not built yet).
+// One row per student (dormant included). Default sort: total_penjualan DESC, nama_customer ASC.
+// WIB datetime strings render as-is — no TZ conversion.
+export interface ICustomerLoyaltyRow {
+  nama_customer: string;
+  kontak: string | null;
+  sesi_terakhir: string | null; // YYYY-MM-DD HH24:MI WIB
+  jumlah_kehadiran: number;
+  penjualan_terakhir_tgl: string | null; // YYYY-MM-DD HH24:MI WIB
+  penjualan_terakhir_idr: number;
+  total_penjualan: number;
+}
+
+export interface ICustomerLoyaltyParams {
+  search?: string;
+  page?: number;
+  page_size?: number;
+  sort_by?: CustomerLoyaltySortBy; // BE aliases: sort, sortBy
+  order?: "asc" | "desc"; // BE alias: sort_order
+}
+
+export type CustomerLoyaltySortBy = "total_penjualan" | "nama_customer" | "jumlah_kehadiran" | "sesi_terakhir";
+
+export interface ICustomerLoyaltyResponse {
+  success: boolean;
+  data: ICustomerLoyaltyRow[];
+  pagination?: IPagiantion;
+  filters?: { search?: string | null };
+}
+
+export type TCustomerLoyalty = (params: ICustomerLoyaltyParams) => Promise<ICustomerLoyaltyResponse>;

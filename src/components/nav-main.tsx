@@ -34,10 +34,11 @@ export type NavItem = {
 export function NavMain({ items, groupLabel = "Navigation" }: { items: NavItem[]; groupLabel?: string }) {
   const pathname = usePathname();
 
-  // Helper: cocokkan path termasuk child (prefix-based)
+  // Helper: cocokkan path termasuk child (prefix-based), but /admin/report must be exact (cash-flow is independent menu)
   const matchesPath = (current: string, target: string | undefined) => {
     if (!target || target === "#") return false;
     if (current === target) return true;
+    if (target === "/admin/report") return false;
     // /admin/orders/123 tetap match /admin/orders
     return current.startsWith(`${target}/`);
   };

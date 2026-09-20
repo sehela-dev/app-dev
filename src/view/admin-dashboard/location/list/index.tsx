@@ -7,13 +7,15 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { SearchInput } from "@/components/ui/search-input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useDeleteLocation } from "@/hooks/api/mutations/admin";
 import { useGetLocations } from "@/hooks/api/queries/admin/locations";
 import { useAdminPermission } from "@/hooks/use-role-access";
 import { formatDateHelper } from "@/lib/helper";
 import { IRoomItem } from "@/types/room-location.interface";
+import { branchLabel, SEHELA_BRANCH } from "@/constants/sample-data";
 
-import { CirclePlus, Ellipsis, ListFilter } from "lucide-react";
+import { CirclePlus, Ellipsis } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 
@@ -42,12 +44,14 @@ export const LocationListView = () => {
   const [openDialogConfirm, setOpenDialogConfirm] = useState(false);
   const [openNotif, setOpenNotif] = useState(false);
   const [tabs, setTabs] = useState("all");
+  const [branch, setBranch] = useState("all");
 
   const { data, isLoading, refetch } = useGetLocations({
     page,
     limit,
     search,
     ...(tabs !== "all" ? { is_active: tabs === "active" } : null),
+    ...(branch !== "all" ? { branch } : null),
   });
 
   const { mutateAsync } = useDeleteLocation();
@@ -62,6 +66,11 @@ export const LocationListView = () => {
       id: "address",
       text: "Address",
       value: "address",
+    },
+    {
+      id: "branch",
+      text: "Branch",
+      value: (row: IRoomItem) => branchLabel(row.branch),
     },
     {
       id: "status",
@@ -132,9 +141,25 @@ export const LocationListView = () => {
       <div className="flex flex-row items-center w-full justify-end gap-2">
         <div className="flex flex-row items-center w-full gap-2 justify-end">
           <div>
-            <Button variant={"outline"} className="text-brand-999 text-sm font-medium">
-              <ListFilter /> Filter
-            </Button>
+            <Select
+              value={branch}
+              onValueChange={(v) => {
+                setBranch(v);
+                setPage(1);
+              }}
+            >
+              <SelectTrigger className="w-48">
+                <SelectValue placeholder="Branch" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Branches</SelectItem>
+                {SEHELA_BRANCH.map((b) => (
+                  <SelectItem key={b.value} value={b.value}>
+                    {b.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
           {can("locations:create") && (
             <div>

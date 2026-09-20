@@ -173,6 +173,10 @@ export const SEHELA_BRANCH = [
   },
 ];
 
+export type SehelaBranch = "studio_kemang" | "studio_pd_labu";
+
+export const branchLabel = (b: string | null | undefined): string => SEHELA_BRANCH.find((x) => x.value === b)?.label ?? "—";
+
 export const MONTH_LIST = [
   { value: "1", label: "Januari" },
   { value: "2", label: "Februari" },
