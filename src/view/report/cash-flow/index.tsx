@@ -1,6 +1,5 @@
 "use client";
 import { CustomTable } from "@/components/general/custom-table";
-import { BackButtonComponent } from "@/components/general/back-button";
 import { CustomPagination } from "@/components/general/pagination-component";
 import { CardRevenueComponent } from "@/components/page/dashboard/card-revenue";
 import { Badge } from "@/components/ui/badge";
@@ -145,9 +144,6 @@ export const CashFlowView = () => {
 
   return (
     <div className="flex flex-col gap-4 pt-4">
-      <BackButtonComponent page="/admin/report">
-        <span className="text-sm font-medium text-gray-500">Back to Reports</span>
-      </BackButtonComponent>
       <div className="flex flex-row gap-4 w-full items-center">
         <div className="flex w-full items-center gap-4">
           <h3 className="text-3xl font-semibold w-full">Cash Flow {selectedBranch ? `| ${branchLabel}` : ""} </h3>
