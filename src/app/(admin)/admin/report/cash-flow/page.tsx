@@ -11,7 +11,7 @@ export const metadata: Metadata = {
 
 export default function Page() {
   return (
-    <AdminPermissionGuard permission="reports">
+    <AdminPermissionGuard permission="cash-flow:view">
       <CashFlowView />
     </AdminPermissionGuard>
   );

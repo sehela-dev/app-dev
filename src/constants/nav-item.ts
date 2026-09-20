@@ -57,18 +57,13 @@ export const dataNavMarketPlace = [
 
 export const dataNavReport = [
   { title: "All Reports", url: "/admin/report", icon: LayoutGrid, permission: "reports" },
-  // Individual report links hidden for now — hub only (see reportHubCards below).
-  // { title: "Orders Report", url: "/admin/report/orders", icon: Receipt, permission: "reports" },
-  // { title: "Refund Report", url: "/admin/report/refund-report", icon: Undo2, permission: "reports" },
-  // { title: "Outstanding Credit", url: "/admin/report/outstanding-credit", icon: DollarSign, permission: "reports" },
-  // { title: "Cash Flow", url: "/admin/report/cash-flow", icon: ChartNoAxesCombined, permission: "reports" },
+  { title: "Cash Flow", url: "/admin/report/cash-flow", icon: ChartNoAxesCombined, permission: "cash-flow:view" },
 ];
 
-// Cards for the /admin/report hub — same destinations as the hidden sidebar links above.
+// Cards for the /admin/report hub — All Reports (cash-flow is independent menu, visible via sidebar for both roles).
 export const reportHubCards = [
   { title: "Orders Report", url: "/admin/report/orders", icon: Receipt, permission: "reports" },
   { title: "Outstanding Credit", url: "/admin/report/outstanding-credit", icon: DollarSign, permission: "reports" },
-  { title: "Cash Flow", url: "/admin/report/cash-flow", icon: ChartNoAxesCombined, permission: "reports" },
   { title: "Refund Report", url: "/admin/report/refund-report", icon: Undo2, permission: "reports" },
   { title: "Sales Summary", url: "/admin/report/sales-summary", icon: ChartNoAxesCombined, permission: "reports" },
   { title: "Customer Loyalty", url: "/admin/report/customer-loyalty", icon: Award, permission: "reports" },
