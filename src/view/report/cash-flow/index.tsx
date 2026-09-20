@@ -59,9 +59,27 @@ export const CashFlowView = () => {
             <span className="text-muted-foreground text-xs">{row.package_name || "-"}</span>
           </div>
         ) : (
-          <a href={`/admin/orders/${row.id}`} target="_blank" className="text-brand-500 font-semibold underline">
+          <a href={`/admin/orders/${row.id}`} target="_blank" rel="noopener noreferrer" className="text-brand-500 font-semibold underline">
             <p className="capitalize max-w-[70%] flex-wrap text-wrap">{row?.order_id}</p>
           </a>
+        ),
+    },
+    {
+      id: "session",
+      text: "Session",
+      value: (row: ICashFlowTransaction) =>
+        row.session?.id ? (
+          <a
+            href={`/admin/session/${row.session.id}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-brand-500 font-semibold underline flex flex-col"
+          >
+            <span className="max-w-[200px] truncate">{row.session.name}</span>
+            <span className="text-muted-foreground text-xs font-normal">{formatDateHelper(row.session.start_datetime, "dd MMM yyyy HH:mm")}</span>
+          </a>
+        ) : (
+          <span className="text-muted-foreground">-</span>
         ),
     },
     {
