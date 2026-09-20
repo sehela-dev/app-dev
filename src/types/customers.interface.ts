@@ -27,6 +27,7 @@ export interface ICreateNewCustomerAdminPaylod {
   tnc_agreed?: boolean;
   photo_consent?: boolean;
   is_active?: boolean;
+  remark?: string | null;
 }
 
 export interface ICustomerUserData {
@@ -59,6 +60,7 @@ export interface ICustomerDetailProfile {
   tnc_agreed_at: boolean;
   photo_consent: boolean;
   medical_notes: string;
+  remark: string | null;
   is_active: boolean;
   created_at: string;
   updated_at: string;

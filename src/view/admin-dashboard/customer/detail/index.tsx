@@ -348,6 +348,10 @@ export const CustomerDetailPage = () => {
                   <div className={`grid col-span-9 capitalize ${data?.data?.profile?.is_active ? `text-green-500` : `text-red-500`}`}>
                     {data?.data?.profile.is_active ? "Active" : "Inactive"}
                   </div>
+                  <div className="grid col-span-3 text-gray-500">Remark</div>
+                  <div className="grid col-span-9 whitespace-pre-wrap break-words">
+                    {data?.data?.profile?.remark ? data.data.profile.remark : <span className="text-muted-foreground">-</span>}
+                  </div>
                 </div>
               </div>
 
