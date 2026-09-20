@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { useCreateCustomer } from "@/hooks/api/mutations/admin";
 
 import { FormProvider, useForm } from "react-hook-form";
@@ -13,6 +14,7 @@ const defaultValues = {
   full_name: "",
   email: "",
   phone: "",
+  remark: "",
   // password: DEFAULT_PASSWORD,
 };
 
@@ -114,6 +116,30 @@ export const CreateMemberPage = () => {
                             // className="w-auto min-w-[388px]"
                           />
                         </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
+                <div className="col-span-12">
+                  <FormField
+                    control={control}
+                    name="remark"
+                    render={({ field }) => (
+                      <FormItem className="flex flex-col">
+                        <FormLabel className=" text-brand-999 font-medium text-sm">Remark</FormLabel>
+                        <FormControl>
+                          <Textarea
+                            placeholder="Internal notes (only admin can see)"
+                            maxLength={2000}
+                            rows={4}
+                            className="min-h-[96px] border-2 border-gray-200 rounded-lg placeholder-gray-400 focus:outline-none focus:border-brand-500"
+                            {...field}
+                          />
+                        </FormControl>
+                        <div className="flex justify-end">
+                          <span className="text-xs text-muted-foreground">{(field.value ?? "").length}/2000</span>
+                        </div>
                         <FormMessage />
                       </FormItem>
                     )}

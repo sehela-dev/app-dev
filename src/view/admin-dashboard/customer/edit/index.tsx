@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { useEditCustomer } from "@/hooks/api/mutations/admin";
 import { useGetCustomerDetail } from "@/hooks/api/queries/admin/customers";
 import { Loader2 } from "lucide-react";
@@ -17,6 +18,7 @@ const defaultValues = {
   // password: "",
   full_name: "",
   phone: "",
+  remark: "",
   // instagram_username: "",
   // photo_url: "",
   // tnc_agreed: false,
@@ -40,6 +42,7 @@ export const EditMemberPage = () => {
       email: data?.data?.profile?.email,
       full_name: data?.data?.profile?.full_name,
       phone: data?.data?.profile?.phone,
+      remark: data?.data?.profile?.remark ?? "",
     };
   }, [data?.data]);
 
@@ -57,6 +60,7 @@ export const EditMemberPage = () => {
         email: data?.email,
         full_name: data?.full_name,
         phone: data?.phone,
+        remark: data?.remark ?? "",
       };
       const res = await mutateAsync({ data: payload, id: id as string });
       if (res) {
@@ -143,6 +147,31 @@ export const EditMemberPage = () => {
                   </FormItem>
                 )}
               />
+
+              <div className="col-span-2">
+                <FormField
+                  control={control}
+                  name="remark"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel className=" text-brand-999 font-medium text-sm">Remark</FormLabel>
+                      <FormControl>
+                        <Textarea
+                          placeholder="Internal notes (only admin can see)"
+                          maxLength={2000}
+                          rows={4}
+                          className="min-h-[96px] border-2 border-gray-200 rounded-lg placeholder-gray-400 focus:outline-none focus:border-brand-500"
+                          {...field}
+                        />
+                      </FormControl>
+                      <div className="flex justify-end">
+                        <span className="text-xs text-muted-foreground">{(field.value ?? "").length}/2000</span>
+                      </div>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
 
               {/* <FormField
                     control={control}

@@ -117,6 +117,7 @@ export interface IParticipantsSession {
   payment_status?: string;
   paid_with: IBookingPaidWith | null;
   medical_notes: string | null;
+  remark: string | null;
   photo_consent: boolean;
   instagram_username: string | null;
   rescheduled_to_booking_id: string | null;
