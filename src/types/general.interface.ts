@@ -26,6 +26,10 @@ export interface ICommonParams {
   sort_by?: string;
   order?: "asc" | "desc";
   is_active?: string | boolean;
+  is_visible?: string | boolean;
+  session_type?: string;
+  place?: string;
+  class_id?: string;
   is_credit_only?: boolean;
   has_photo?: boolean;
 }

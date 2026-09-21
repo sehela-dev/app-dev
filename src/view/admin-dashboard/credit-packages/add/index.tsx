@@ -48,6 +48,7 @@ const defaultValues: IPackageFormValues = {
   class_ids_restriction: [], //specific class UUID or null
   package_type: "purchase",
   is_active: true,
+  is_visible: true,
   is_shareable: false,
 };
 export const AddCreditPacakgesPage = () => {
@@ -76,6 +77,7 @@ export const AddCreditPacakgesPage = () => {
         package_type: data?.package_type,
         description: data?.description,
         is_active: true,
+        is_visible: data?.is_visible ?? true,
         name: data?.name,
         price_idr: parseInt(data?.price_idr),
         validity_days: parseInt(data?.validity_days),
@@ -240,6 +242,21 @@ export const AddCreditPacakgesPage = () => {
                         />
                       </FormControl>
                       <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={control}
+                  name="is_visible"
+                  render={({ field }) => (
+                    <FormItem className="flex flex-row w-full justify-between items-center pt-4">
+                      <div className="flex flex-col gap-2">
+                        <FormLabel className=" text-brand-999 font-medium text-sm">Visible in catalog</FormLabel>
+                        <FormDescription>Off = hidden from public catalog, still buyable via direct link</FormDescription>
+                      </div>
+                      <FormControl>
+                        <Switch checked={field.value} onCheckedChange={field.onChange} />
+                      </FormControl>
                     </FormItem>
                   )}
                 />

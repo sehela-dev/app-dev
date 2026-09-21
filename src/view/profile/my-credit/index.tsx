@@ -9,7 +9,7 @@ import { formatDateHelper } from "@/lib/helper";
 import { CalendarClock, Clock3, GemIcon, Loader2, MapPin, Plus, Ticket, Users } from "lucide-react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 const tabs = [
   {
@@ -32,7 +32,13 @@ export const MyCreditsView = () => {
     10
   );
 
-  const items = data?.pages.flatMap((p) => p.data) ?? [];
+  // ponytail: client-side rank sort; push to API ordering if list grows
+  const items = useMemo(() => {
+    const flat = data?.pages.flatMap((p) => p.data) ?? [];
+    const rank = (i: import("@/types/customer-app/my-credit.interface").IMyCreditItem) =>
+      i.is_expired ? 3 : i.credits_remaining <= 0 ? 2 : i.validity_status === "not_started" ? 1 : 0;
+    return [...flat].sort((a, b) => rank(a) - rank(b));
+  }, [data]);
   const sentinelRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -137,17 +143,19 @@ function formatRestriction(v: string | string[] | null | undefined) {
 
 export const MyCreditsCardsItem = ({ item, variant = "active" }: IProps) => {
   const isExpired = variant === "expired" || item.is_expired;
+  const isDepleted = !isExpired && item.credits_remaining <= 0;
+  const isMuted = isExpired || isDepleted;
   const pct = item.total_credits ? Math.min(100, Math.round((item.credits_used / item.total_credits) * 100)) : 0;
   const expiry = formatExpiry(item.expires_at, item.validity_status, item.validity_days);
   const isRefund = item.package_type === "refund";
-  const showNotStarted = !isExpired && item.validity_status === "not_started";
+  const showNotStarted = !isExpired && !isDepleted && item.validity_status === "not_started";
   const place = formatRestriction(item.place_restriction);
   const sessionType = formatRestriction(item.session_type_restriction);
 
   return (
     <div
       className={
-        isExpired
+        isMuted
           ? "flex flex-col gap-3 rounded-2xl border border-gray-200 bg-gray-50 px-4 py-3 opacity-80"
           : "flex flex-col gap-3 rounded-2xl border border-brand-100 bg-white px-4 py-3 shadow-sm hover:shadow-md transition-shadow"
       }
@@ -156,45 +164,45 @@ export const MyCreditsCardsItem = ({ item, variant = "active" }: IProps) => {
         <div className="flex items-center gap-3 min-w-0">
           <div
             className={
-              isExpired
+              isMuted
                 ? "flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-gray-200"
                 : isRefund
                   ? "flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-amber-500"
                   : "flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-brand-500"
             }
           >
-            <GemIcon size={16} className={isExpired ? "text-gray-500" : "text-white"} />
+            <GemIcon size={16} className={isMuted ? "text-gray-500" : "text-white"} />
           </div>
           <div className="min-w-0">
             <p className="flex items-baseline gap-1.5 leading-none">
-              <span className={isExpired ? "text-[18px] font-bold tracking-tight text-gray-600" : "text-[18px] font-bold tracking-tight text-brand-900"}>
+              <span className={isMuted ? "text-[18px] font-bold tracking-tight text-gray-600" : "text-[18px] font-bold tracking-tight text-brand-900"}>
                 {item.credits_remaining}
               </span>
-              <span className={isExpired ? "text-[11px] font-medium text-gray-500" : "text-[11px] font-medium text-brand-500"}>
+              <span className={isMuted ? "text-[11px] font-medium text-gray-500" : "text-[11px] font-medium text-brand-500"}>
                 / {item.total_credits} Credits
               </span>
-              {item.credits_remaining !== item.total_credits && !isExpired && (
+              {item.credits_remaining !== item.total_credits && !isMuted && (
                 <span className="ml-1 hidden text-[10px] text-gray-400 sm:inline">· {item.credits_used} used</span>
               )}
             </p>
-            <p className={isExpired ? "mt-1 truncate text-xs font-medium text-gray-600" : "mt-1 truncate text-xs font-medium text-brand-900"}>{item.package_name}</p>
+            <p className={isMuted ? "mt-1 truncate text-xs font-medium text-gray-600" : "mt-1 truncate text-xs font-medium text-brand-900"}>{item.package_name}</p>
             {item.package_description && (
-              <p className={isExpired ? "truncate text-[11px] text-gray-500" : "truncate text-[11px] text-gray-600"}>{item.package_description}</p>
+              <p className={isMuted ? "truncate text-[11px] text-gray-500" : "truncate text-[11px] text-gray-600"}>{item.package_description}</p>
             )}
           </div>
         </div>
         <div className="flex shrink-0 flex-col items-end gap-1">
           <span
             className={
-              isExpired
+              isMuted
                 ? "inline-flex items-center gap-1 rounded-full border border-gray-200 bg-white px-2.5 py-1 text-[10px] font-semibold tracking-wide text-gray-600"
                 : showNotStarted
                   ? "inline-flex items-center gap-1 rounded-full border border-amber-200 bg-amber-50 px-2.5 py-1 text-[10px] font-semibold tracking-wide text-amber-700"
                   : "inline-flex items-center gap-1 rounded-full border border-brand-100 bg-brand-50 px-2.5 py-1 text-[10px] font-semibold tracking-wide text-brand-700"
             }
           >
-            {isExpired ? <Clock3 size={11} /> : showNotStarted ? <Clock3 size={11} /> : <span className="h-1.5 w-1.5 rounded-full bg-green-500" />}
-            {isExpired ? "Expired" : showNotStarted ? "Not started" : "Active"}
+            {isMuted ? <Clock3 size={11} /> : showNotStarted ? <Clock3 size={11} /> : <span className="h-1.5 w-1.5 rounded-full bg-green-500" />}
+            {isExpired ? "Expired" : isDepleted ? "Fully Used" : showNotStarted ? "Not started" : "Active"}
           </span>
           {isRefund && <span className="rounded-full bg-amber-100 px-2 py-0.5 text-[9px] font-semibold tracking-wide text-amber-700">Refund</span>}
         </div>
@@ -202,41 +210,41 @@ export const MyCreditsCardsItem = ({ item, variant = "active" }: IProps) => {
 
       <div className="flex flex-col gap-1.5">
         <div className="flex items-center justify-between text-[11px]">
-          <span className={isExpired ? "text-gray-500" : "text-gray-600"}>
+          <span className={isMuted ? "text-gray-500" : "text-gray-600"}>
             {showNotStarted ? "Validity" : "Usage"}
           </span>
-          <span className={isExpired ? "font-medium text-gray-600" : "font-medium text-brand-900"}>
+          <span className={isMuted ? "font-medium text-gray-600" : "font-medium text-brand-900"}>
             {showNotStarted ? `${item.validity_days} days` : `${item.credits_used}/${item.total_credits}`}
           </span>
         </div>
-        <div className={isExpired ? "h-1.5 w-full overflow-hidden rounded-full bg-gray-200" : "h-1.5 w-full overflow-hidden rounded-full bg-brand-50"}>
+        <div className={isMuted ? "h-1.5 w-full overflow-hidden rounded-full bg-gray-200" : "h-1.5 w-full overflow-hidden rounded-full bg-brand-50"}>
           <div
-            className={isExpired ? "h-full rounded-full bg-gray-400" : showNotStarted ? "h-full rounded-full bg-amber-400" : "h-full rounded-full bg-brand-500"}
-            style={{ width: `${isExpired ? 100 : showNotStarted ? 0 : pct}%` }}
+            className={isMuted ? "h-full rounded-full bg-gray-400" : showNotStarted ? "h-full rounded-full bg-amber-400" : "h-full rounded-full bg-brand-500"}
+            style={{ width: `${isMuted ? 100 : showNotStarted ? 0 : pct}%` }}
           />
         </div>
       </div>
 
       <div
         className={
-          isExpired
+          isMuted
             ? "flex flex-wrap items-center gap-2 border-t border-gray-200 pt-2.5 text-[11px] text-gray-500"
             : "flex flex-wrap items-center gap-2 border-t border-brand-50 pt-2.5 text-[11px] text-gray-500"
         }
       >
         <span className="inline-flex items-center gap-1.5">
-          <Ticket size={12} className={isExpired ? "text-gray-400" : "text-brand-400"} /> {item.credits_remaining} left
+          <Ticket size={12} className={isMuted ? "text-gray-400" : "text-brand-400"} /> {item.credits_remaining} left
         </span>
         <span className="h-3 w-px bg-gray-200" />
         <span className="inline-flex items-center gap-1.5">
-          <CalendarClock size={12} className={isExpired ? "text-gray-400" : "text-brand-400"} />
+          <CalendarClock size={12} className={isMuted ? "text-gray-400" : "text-brand-400"} />
           {expiry.label} <span className="text-gray-400">{expiry.sub}</span>
         </span>
         {(place || sessionType) && (
           <>
             <span className="h-3 w-px bg-gray-200" />
             <span className="inline-flex items-center gap-1.5 capitalize">
-              <MapPin size={12} className={isExpired ? "text-gray-400" : "text-brand-400"} />
+              <MapPin size={12} className={isMuted ? "text-gray-400" : "text-brand-400"} />
               {[place, sessionType].filter(Boolean).join(" · ") || "—"}
             </span>
           </>
