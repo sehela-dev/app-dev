@@ -5,9 +5,11 @@ import { Button } from "../ui/button";
 import { Fragment, useState } from "react";
 import { Divider } from "../ui/divider";
 import { useAuthMember } from "@/context/member.ctx";
+import { useRouter } from "next/navigation";
 
 export const MainHeaderComponent = () => {
   const { user, isAuthenticated } = useAuthMember();
+  const router = useRouter()
 
   return (
     <div className="bg-gray-50 min-h-[58px] sticky top-0 z-50 w-full shadow-subtle shrink-0 ">
@@ -18,7 +20,7 @@ export const MainHeaderComponent = () => {
         <div className="flex flex-row items-center gap-2">
           {isAuthenticated && !user?.isAdmin && (
             <div className="flex">
-              <Button className="border-brand-50 text-brand-500 text-sm font-serif leading-[130%] font-extrabold rounded-lg" variant={"outline"}>
+              <Button className="border-brand-50 text-brand-500 text-sm font-serif leading-[130%] font-extrabold rounded-lg" variant={"outline"} onClick={() => router.push('/profile/my-credits')}>
                 <Gem color="var(--color-brand-500)" />
                 {user?.profile?.overview?.credits_balance ?? 0} Credits
               </Button>

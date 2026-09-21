@@ -16,6 +16,7 @@ export interface ICreditPackageItem {
   package_type: string;
   parent_package_id: string;
   is_active: boolean;
+  is_visible: boolean;
   created_at: string;
   updated_at: string;
   price_per_credit_idr: number;
@@ -33,6 +34,7 @@ export interface ICreatePackagePayload {
   session_type_restriction?: string;
   package_type: string;
   is_active: boolean;
+  is_visible?: boolean;
   is_shareable: boolean;
 }
 
@@ -48,6 +50,7 @@ export interface ICreditPackageDetail {
   package_type: string;
   parent_package_id: string | null;
   is_active: boolean;
+  is_visible: boolean;
   created_at: string;
   updated_at: string;
   price_per_credit_idr: number;
@@ -71,6 +74,7 @@ export interface IPackageFormValues {
   class_ids_restriction: string[];
   package_type: string;
   is_active: boolean;
+  is_visible: boolean;
   is_shareable: boolean;
 }
 export type TCreatePackage = (data: ICreatePackagePayload) => Promise<IResponseData<ICreditPackageItem>>;

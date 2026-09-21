@@ -48,6 +48,7 @@ const defaultValues: IPackageFormValues = {
   class_ids_restriction: [], //specific class UUID or null
   package_type: "purchase",
   is_active: true,
+  is_visible: true,
   is_shareable: false,
 };
 export const EditCreditPacakgesPage = () => {
@@ -80,7 +81,8 @@ export const EditCreditPacakgesPage = () => {
       place_restriction: !data?.data?.place_restriction ? "all" : data?.data?.place_restriction,
       class_ids_restriction: data?.data?.class_ids_restriction?.map((item) => item.id) || [], // Make sure to provide fallback
       package_type: "purchase",
-      is_active: true,
+      is_active: data?.data?.is_active ?? true,
+      is_visible: data?.data?.is_visible ?? true,
       is_shareable: data?.data?.is_shareable,
     };
   }, [data?.data]);
@@ -94,7 +96,8 @@ export const EditCreditPacakgesPage = () => {
         credits: parseInt(data?.credits as string),
         package_type: data?.package_type,
         description: data?.description ?? "",
-        is_active: true,
+        is_active: (data?.is_active as boolean) ?? true,
+        is_visible: (data?.is_visible as boolean) ?? true,
         name: data?.name,
         price_idr: parseInt(data?.price_idr as string),
         validity_days: parseInt(data?.validity_days as string),
@@ -257,6 +260,21 @@ export const EditCreditPacakgesPage = () => {
                         />
                       </FormControl>
                       <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={control}
+                  name="is_visible"
+                  render={({ field }) => (
+                    <FormItem className="flex flex-row w-full justify-between items-center pt-4">
+                      <div className="flex flex-col gap-2">
+                        <FormLabel className=" text-brand-999 font-medium text-sm">Visible in catalog</FormLabel>
+                        <FormDescription>Off = hidden from public catalog, still buyable via direct link</FormDescription>
+                      </div>
+                      <FormControl>
+                        <Switch checked={field.value} onCheckedChange={field.onChange} />
+                      </FormControl>
                     </FormItem>
                   )}
                 />

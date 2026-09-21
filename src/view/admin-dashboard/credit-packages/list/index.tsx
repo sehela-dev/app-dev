@@ -17,7 +17,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { CirclePlus, Ellipsis } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
-import { useDeleteCreditPackage } from "@/hooks/api/mutations/admin";
+import { useDeleteCreditPackage, useEditCreditPackage } from "@/hooks/api/mutations/admin";
 import { BaseDialogConfirmation } from "@/components/general/dialog-confirnation";
 import { DropdownFilter } from "@/components/general/table-filter";
 import { useGetClassSessionsCategory } from "@/hooks/api/queries/admin/class-session";
@@ -33,8 +33,11 @@ export const CreditPackagePageView = () => {
   const [selectedData, setSelectedData] = useState("");
   const [openNotif, setOpenNotif] = useState(false);
   const { mutateAsync } = useDeleteCreditPackage();
+  const { mutateAsync: mutateVisibility, isPending: isTogglingVisibility } = useEditCreditPackage();
   const [selectedValues, setSelectedValues] = useState({
     Class: "all",
+    Visibility: "all",
+    Status: "all",
   });
   const { data: dataClass, isLoading: isLoadingClass } = useGetClassSessionsCategory({ page: 1, limit: 999, status: "true" });
 
@@ -48,6 +51,22 @@ export const CreditPackagePageView = () => {
       {
         title: "Class",
         options: [{ id: "all", label: "All" }],
+      },
+      {
+        title: "Visibility",
+        options: [
+          { id: "all", label: "All" },
+          { id: "true", label: "Visible" },
+          { id: "false", label: "Hidden" },
+        ],
+      },
+      {
+        title: "Status",
+        options: [
+          { id: "all", label: "All" },
+          { id: "true", label: "Active" },
+          { id: "false", label: "Inactive" },
+        ],
       },
     ];
 
@@ -68,15 +87,25 @@ export const CreditPackagePageView = () => {
       ...prev,
       [section]: optionId,
     }));
+    setPage(1);
   };
 
   const handleReset = () => {
     setSelectedValues({
       Class: "all",
+      Visibility: "all",
+      Status: "all",
     });
   };
 
-  const { data, isLoading, refetch } = useGetCreditPackage({ page, limit, search: debounceSearch });
+  const { data, isLoading, refetch } = useGetCreditPackage({
+    page,
+    limit,
+    search: debounceSearch,
+    ...(selectedValues.Class !== "all" ? { class_id: selectedValues.Class } : {}),
+    ...(selectedValues.Visibility !== "all" ? { is_visible: selectedValues.Visibility } : {}),
+    ...(selectedValues.Status !== "all" ? { is_active: selectedValues.Status } : {}),
+  });
 
   const numberOptions = {
     text: "No",
@@ -136,7 +165,24 @@ export const CreditPackagePageView = () => {
         <p className={row?.is_active ? "text-green-400 uppercase" : "text-red-500 uppercasex"}>{row?.is_active ? "Active" : "Inactive"}</p>
       ),
     },
+    {
+      id: "is_visible",
+      text: "Visibility",
+      value: (row: ICreditPackageItem) => (
+        <p className={row?.is_visible !== false ? "text-green-400 uppercase" : "text-gray-500 uppercase"}>
+          {row?.is_visible !== false ? "Visible" : "Hidden"}
+        </p>
+      ),
+    },
   ];
+  const onToggleVisibility = async (row: ICreditPackageItem) => {
+    try {
+      await mutateVisibility({ id: row.id, data: { is_visible: !(row.is_visible !== false) } as never });
+      refetch();
+    } catch (error) {
+      console.log(error);
+    }
+  };
   const actionOptions = {
     text: "Action",
     show: true,
@@ -147,10 +193,16 @@ export const CreditPackagePageView = () => {
             <Ellipsis />
           </Button>
         </DropdownMenuTrigger>
-        <DropdownMenuContent align="end" className="w-32">
+        <DropdownMenuContent align="end" className="w-40">
           <DropdownMenuItem onClick={() => router.push(`credit-packages/${row.id}/edit`)}>Edit</DropdownMenuItem>
+          <DropdownMenuItem
+            onClick={() => onToggleVisibility(row as unknown as ICreditPackageItem)}
+            disabled={isTogglingVisibility}
+          >
+            {(row as unknown as ICreditPackageItem)?.is_visible !== false ? "Hide from catalog" : "Show in catalog"}
+          </DropdownMenuItem>
           <DropdownMenuItem variant="destructive" className="" onClick={() => onDelete(row.id)}>
-            Delete
+            Retire
           </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
@@ -231,11 +283,11 @@ export const CreditPackagePageView = () => {
           image="trash-1"
           onCancel={() => onDelete("")}
           open={openDialogConfirm}
-          title="Delete Credit Package?"
-          subtitle="This credit package will be permanently deleted from the system and cannot be restored."
+          title="Retire Credit Package?"
+          subtitle="This package will be unlisted and can no longer be purchased (is_active=false). Existing purchases and balances are unaffected."
           onConfirm={onConfirmDelete}
           cancelText="Cancel"
-          confirmText="Delete"
+          confirmText="Retire"
         />
       )}
       {openNotif && (
@@ -244,8 +296,8 @@ export const CreditPackagePageView = () => {
           onCancel={() => onDelete("")}
           hideCancel
           open={openNotif}
-          title="Credit Package Deleted Successfully"
-          subtitle="Your credit package has been successfully removed from the system."
+          title="Credit Package Retired"
+          subtitle="The package is unlisted and no longer purchasable. Use the Status filter to review retired items."
           onConfirm={() => {
             setOpenNotif(false);
             refetch();
