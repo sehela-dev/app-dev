@@ -490,13 +490,21 @@ export interface IOrdersReportRow {
   salesStatus: string;
   notes: string;
   transactionType: string;
+  originalPrice: number;
+  discount: number;
+  voucherCode: string;
+  commissionFee: number;
+  sourcePlatform: string;
+  commisionPct?: number | null; // BE spelling (single-s); percent, 15 = 15%
+  commissionPct?: number | null;
+  commissionPercentage?: number | null;
 }
 
 export interface IOrdersReportPreview {
   success: boolean;
   data: IOrdersReportRow[];
   pagination: IPagiantion;
-  totals: { row_count: number; total_paid_idr: number };
+  totals: { row_count: number; total_paid_idr: number; total_original_idr: number; total_discount_idr: number; total_commission_idr: number };
   filters: { month: string; type: string; branch: string | null; payment_type?: string | null; transaction_type?: string | null; start_date?: string | null; end_date?: string | null };
 }
 

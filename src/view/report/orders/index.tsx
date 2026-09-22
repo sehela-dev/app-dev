@@ -182,11 +182,21 @@ export const OrdersReportView = () => {
         const key = (row.paymentType ?? "").toLowerCase();
         const style = paymentTypeStyle[key];
         const Icon = style?.icon;
+        const isThirdParty = key === "third_party";
+        const pct = row.commisionPct ?? row.commissionPct ?? row.commissionPercentage;
         return (
-          <Badge variant="outline" className={cn("capitalize", style?.className)}>
-            {Icon && <Icon />}
-            {row.paymentType?.replace(/_/g, " ") || "-"}
-          </Badge>
+          <div className="flex flex-col gap-1">
+            <Badge variant="outline" className={cn("capitalize", style?.className)}>
+              {Icon && <Icon />}
+              {row.paymentType?.replace(/_/g, " ") || "-"}
+            </Badge>
+            {isThirdParty && (row.sourcePlatform || typeof pct === "number") ? (
+              <span className="text-muted-foreground text-xs whitespace-nowrap">
+                {row.sourcePlatform || "Third party"}
+                {typeof pct === "number" ? ` • ${pct}%` : ""}
+              </span>
+            ) : null}
+          </div>
         );
       },
     },
@@ -233,6 +243,46 @@ export const OrdersReportView = () => {
         </Badge>
       ),
     },
+    {
+      id: "originalPrice",
+      text: "Original Price",
+      value: (row: IOrdersReportRow) =>
+        typeof row.originalPrice === "number" ? (
+          <span className="whitespace-nowrap">{formatCurrency(row.originalPrice)}</span>
+        ) : (
+          <span className="text-muted-foreground">-</span>
+        ),
+    },
+    {
+      id: "discount",
+      text: "Discount",
+      value: (row: IOrdersReportRow) =>
+        (row.discount ?? 0) > 0 ? (
+          <span className="font-medium whitespace-nowrap text-amber-700">{formatCurrency(row.discount)}</span>
+        ) : (
+          <span className="text-muted-foreground">–</span>
+        ),
+    },
+    {
+      id: "voucherCode",
+      text: "Voucher Code",
+      value: (row: IOrdersReportRow) =>
+        (row.discount ?? 0) > 0 && row.voucherCode ? (
+          <span className="font-mono whitespace-nowrap">{row.voucherCode}</span>
+        ) : (
+          <span className="text-muted-foreground">–</span>
+        ),
+    },
+    {
+      id: "commissionFee",
+      text: "Commission Fee",
+      value: (row: IOrdersReportRow) =>
+        (row.paymentType ?? "").toLowerCase() === "third_party" ? (
+          <span className="whitespace-nowrap">{formatCurrency(row.commissionFee ?? 0)}</span>
+        ) : (
+          <span className="text-muted-foreground">–</span>
+        ),
+    },
   ];
 
   const numberOptions = {
@@ -255,9 +305,8 @@ export const OrdersReportView = () => {
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
-      a.download = `orders_${startDate}_${endDate}_money${branch !== "all" ? `_${branch}` : ""}${paymentType !== "all" ? `_${paymentType}` : ""}${
-        transactionType !== "all" ? `_${transactionType}` : ""
-      }.csv`;
+      a.download = `orders_${startDate}_${endDate}_money${branch !== "all" ? `_${branch}` : ""}${paymentType !== "all" ? `_${paymentType}` : ""}${transactionType !== "all" ? `_${transactionType}` : ""
+        }.csv`;
       a.click();
       window.URL.revokeObjectURL(url);
       toast.success("CSV downloaded");
@@ -301,7 +350,10 @@ export const OrdersReportView = () => {
             <p className="text-sm font-normal text-gray-500">Money payments only — preview matches the exported CSV (max 90 days).</p>
           </div>
           <div className="flex flex-row flex-wrap justify-end gap-2">
-            <DateRangePicker startDate={startDate} endDate={endDate} onDateRangeChange={handleRangeChange} maxSelectionDays={90} />
+            <div>
+
+              <DateRangePicker startDate={startDate} endDate={endDate} onDateRangeChange={handleRangeChange} maxSelectionDays={90} />
+            </div>
             <Select
               value={branch}
               onValueChange={(value) => {
@@ -379,7 +431,10 @@ export const OrdersReportView = () => {
         <CardFooter className="flex w-full flex-col gap-2">
           {!isLegacyShape && data?.totals ? (
             <p className="text-sm font-medium">
-              {data.totals.row_count} transaksi • {formatCurrency(data.totals.total_paid_idr)}
+              {data.totals.row_count} transaksi • bayar {formatCurrency(data.totals.total_paid_idr)}
+              {typeof data.totals.total_original_idr === "number" ? ` (sblm. diskon ${formatCurrency(data.totals.total_original_idr)})` : ""}
+              {typeof data.totals.total_discount_idr === "number" ? ` • diskon ${formatCurrency(data.totals.total_discount_idr)}` : ""}
+              {typeof data.totals.total_commission_idr === "number" ? ` • komisi ${formatCurrency(data.totals.total_commission_idr)}` : ""}
             </p>
           ) : null}
           {!isLegacyShape && (
