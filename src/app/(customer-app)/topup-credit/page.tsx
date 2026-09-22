@@ -1,4 +1,3 @@
-import AuthMemberGuard from "@/layout/authguard-member-layout";
 import { TopUpCreditPageView } from "@/view/top-up";
 
 import type { Metadata } from "next";
@@ -10,9 +9,6 @@ export const metadata: Metadata = {
 
 
 export default function Home() {
-  return (
-    <AuthMemberGuard>
-      <TopUpCreditPageView />
-    </AuthMemberGuard>
-  );
+  // Public catalog (A1): visible without login; Buy prompts login.
+  return <TopUpCreditPageView />;
 }

@@ -27,6 +27,8 @@ export const PaymentCallbackView = () => {
   const isSuccess = SUCCESS_STATUSES.includes(effectiveStatus);
   const isFailed = FAILURE_STATUSES.includes(effectiveStatus);
   const isPending = !isSuccess && !isFailed;
+  // Package purchases (order_id = PKG-…) resolve to credits, bookings to profile
+  const isPackagePurchase = (orderId ?? "").toUpperCase().startsWith("PKG");
 
   return (
     <div className="relative flex flex-col w-full gap-8 font-serif mx-auto pt-8 min-h-dvh text-brand-500">
@@ -75,9 +77,9 @@ export const PaymentCallbackView = () => {
             ) : (
               <Button
                 className="min-h-12 text-sm font-extrabold"
-                onClick={() => router.push("/profile/my-sessions")}
+                onClick={() => router.push(isPackagePurchase ? "/profile/my-credits" : "/profile")}
               >
-                View My Class
+                {isPackagePurchase ? "View My Credits" : "Back to Profile"}
               </Button>
             )}
             {(isFailed || isPending) && (

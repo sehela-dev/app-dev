@@ -1,70 +1,110 @@
 "use client";
 import { CustomPagination } from "@/components/general/pagination-component";
 import { NavHeaderComponent } from "@/components/layout/header-checkout";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Divider } from "@/components/ui/divider";
 import { formatCurrency } from "@/lib/helper";
-import { cn } from "@/lib/utils";
-import { CircleChevronRight, GemIcon } from "lucide-react";
+import { useGetPublicCreditPackagesInfinite } from "@/hooks/api/queries/customer/public";
+import { ArrowRight, GemIcon, Info, Loader2 } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { useEffect, useRef, useState } from "react";
+
+const PAGE_SIZE = 10;
 
 export const TopUpCreditPageView = () => {
+  const router = useRouter();
+  const [page, setPage] = useState(1);
+  const { data, isLoading, fetchNextPage, hasNextPage, isFetchingNextPage } = useGetPublicCreditPackagesInfinite(
+    {},
+    PAGE_SIZE,
+  );
+
+  const pages = data?.pages ?? [];
+  const items = pages.flatMap((p) => p.data) ?? [];
+  const pagination = pages[pages.length - 1]?.pagination;
+  const totalPages = pagination?.total_pages ?? 1;
+  const totalItems = pagination?.total_items ?? items.length;
+
+  // Keep requested page in sync with loaded infinite pages
+  useEffect(() => {
+    const loaded = pages.length;
+    if (page > loaded && loaded > 0) fetchNextPage();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [page]);
+
+  const visibleItems = items.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
+  const sentinelRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const el = sentinelRef.current;
+    if (!el || page !== pages.length) return;
+    const io = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting && hasNextPage && !isFetchingNextPage) fetchNextPage();
+      },
+      { rootMargin: "200px" },
+    );
+    io.observe(el);
+    return () => io.disconnect();
+  }, [fetchNextPage, hasNextPage, isFetchingNextPage, page, pages.length]);
+
   return (
     <div className="flex flex-col w-full font-serif h-full text-brand-500">
       <NavHeaderComponent title="Top Up Credit" />
 
       <div className="flex flex-col gap-4 px-4 mt-4">
-        <div className="grid grid-cols-2 gap-4">
-          <TopUpCreditItem
-            action={() => {}}
-            amount="10"
-            classType={"Yoga"}
-            expiratonDays="30"
-            price="200000"
-            title="5 Session Package"
-            type="offline"
-          />
-          <TopUpCreditItem
-            action={() => {}}
-            amount="10"
-            classType={"Yoga"}
-            expiratonDays="30"
-            price="500000"
-            title="5 Session Package"
-            type="online"
-          />
-          <TopUpCreditItem
-            action={() => {}}
-            amount="10"
-            classType={"Yoga"}
-            expiratonDays="30"
-            price="500000"
-            title="5 Session Package"
-            type="Offline & Online"
-          />
-          <TopUpCreditItem
-            action={() => {}}
-            amount="10"
-            classType={"Yoga"}
-            expiratonDays="30"
-            price="500000"
-            title="5 Session Package"
-            type="Offline & Online"
-          />
+        <div className="flex gap-2.5 rounded-2xl border border-brand-100 bg-brand-25 px-3.5 py-3">
+          <Info size={15} className="mt-0.5 shrink-0 text-brand-500" />
+          <p className="text-[11px] leading-relaxed text-brand-900">
+            Validity starts on <span className="font-semibold">first use</span> — a package&apos;s day count begins
+            when you attend your first class with it, not when you buy.
+          </p>
         </div>
+        {isLoading ? (
+          <div className="flex items-center justify-center py-12">
+            <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+          </div>
+        ) : visibleItems.length > 0 ? (
+          <div className="grid grid-cols-2 gap-4">
+            {visibleItems.map((item) => (
+              <TopUpCreditItem
+                key={item.id}
+                action={() => router.push(`/topup-credit/${item.id}`)}
+                amount={String(item.credits)}
+                classType={item.class_ids_restriction?.length > 0 ? item.class_ids_restriction.map((c) => c.name).join(", ") : "All Classes"}
+                expiratonDays={String(item.validity_days)}
+                price={String(item.price_idr)}
+                title={item.name}
+                type={item.place_restriction ?? "Offline & Online"}
+              />
+            ))}
+          </div>
+        ) : (
+          <div className="flex flex-col items-center gap-2 py-12 text-center">
+            <p className="font-semibold">No credit packages available</p>
+            <p className="text-sm text-gray-500">Please check back later.</p>
+          </div>
+        )}
+        <div ref={sentinelRef} className="min-h-[1px]" />
+        {isFetchingNextPage && (
+          <div className="flex justify-center">
+            <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+          </div>
+        )}
         <div className="text-center">
           <CustomPagination
-            onPageChange={(e) => console.log(e)}
-            currentPage={1}
-            // nextPage={data?.pagination?.}
-            hasNextPage={true}
-            hasPrevPage={false}
-            // previousPage={data?.pagination?.previousPage}
-            totalItems={8}
-            totalPages={3}
-            limit={10}
+            onPageChange={(e) => setPage(e)}
+            currentPage={page}
+            hasNextPage={page < totalPages}
+            hasPrevPage={page > 1}
+            totalItems={totalItems}
+            totalPages={totalPages}
+            limit={PAGE_SIZE}
             position="center"
           />
+        </div>
+        <div className="pb-4 text-center">
+          <Button variant="link" className="text-xs" onClick={() => router.push("/profile/purchase-history")}>
+            View purchase history
+          </Button>
         </div>
       </div>
     </div>
@@ -83,37 +123,35 @@ interface IProps {
 
 export const TopUpCreditItem = ({ action, amount, classType, expiratonDays, price, title, type }: IProps) => {
   return (
-    <div className="bg-brand-500 border border-b-brand-500 rounded-[12px] p-4 h-[236px]">
-      <div className="flex flex-col gap-4 ">
-        <p className="font-semibold text-xs leading-5 text-gray-200 ">{title}</p>
-        <div className="flex flex-col gap-2">
-          <div className="flex flex-row items-center gap-2 text-gray-50 font-semibold">
-            <GemIcon />
-            <p className="leading-4">{amount} Credit</p>
-          </div>
-          <p className="text-brand-200 text-xs font-semibold">{expiratonDays} Day</p>
-        </div>
-        <div className="flex flex-col  gap-2 text-gray-50 font-semibold">
-          <p className="text-brand-200 text-sm font-medium">{classType}</p>
-          <Badge
-            variant={"secondary"}
-            className={cn("font-medium  text-xs leading-5 rounded-[12px] capitalize bg-[#FDE6FF] border-[#D498D4] text-[#9616A2]", {
-              "bg-[#CCE5EA] border-[#98BED4] text-[#165EA2]": type === "online",
-              "bg-[#CCEAD7] border-[#98D4AD] text-[#16A249]": type === "offline",
-            })}
-          >
-            {type}
-          </Badge>
-        </div>
-        <Divider color="var(--color-gray-200)" />
-        <div className="flex flex-row items-center justify-between">
-          <Button variant={"default"} size="icon" onClick={action} className="flex w-full justify-between bg-none">
-            <p className="text-brand-50 font-semibold">{formatCurrency(price)}</p>
-
-            <CircleChevronRight color="var(--color-brand-50)" />
-          </Button>
-        </div>
+    <button
+      type="button"
+      onClick={action}
+      className="flex min-h-[188px] flex-col rounded-2xl border border-brand-100 bg-white p-4 text-left shadow-sm transition-shadow hover:shadow-md"
+    >
+      <div className="flex items-center gap-2">
+        <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-brand-500">
+          <GemIcon size={14} className="text-white" />
+        </span>
+        <p className="truncate text-xs font-medium text-gray-500">{title}</p>
       </div>
-    </div>
+
+      <p className="mt-2.5 text-[22px] font-bold leading-none tracking-tight text-brand-900">
+        {amount} <span className="text-xs font-semibold text-brand-500">Credits</span>
+      </p>
+      <p className="mt-1 text-[11px] text-gray-500">
+        {expiratonDays} days <span className="text-gray-400">· from first use</span>
+      </p>
+
+      <p className="mt-1 truncate text-[11px] capitalize text-gray-500">
+        {[classType, type].filter(Boolean).join(" · ")}
+      </p>
+
+      <span className="mt-auto flex items-center justify-between border-t border-brand-50 pt-2.5">
+        <span className="text-sm font-bold text-brand-900">{formatCurrency(price)}</span>
+        <span className="flex h-7 w-7 items-center justify-center rounded-full bg-brand-500">
+          <ArrowRight size={14} className="text-white" />
+        </span>
+      </span>
+    </button>
   );
 };
