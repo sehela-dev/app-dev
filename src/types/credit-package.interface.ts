@@ -21,6 +21,7 @@ export interface ICreditPackageItem {
   updated_at: string;
   price_per_credit_idr: number;
   is_shareable?: boolean;
+  max_purchases_per_user?: number | null;
 }
 
 export interface ICreatePackagePayload {
