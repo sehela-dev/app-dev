@@ -55,6 +55,7 @@ export interface ICreditPackageDetail {
   updated_at: string;
   price_per_credit_idr: number;
   session_type_restriction: string | null;
+  max_purchases_per_user?: number | null;
   class_id_restriction: string | null;
   class_ids_restriction: {
     name: string;

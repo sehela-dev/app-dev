@@ -26,6 +26,7 @@ export interface IEligibleCreditPackage {
   class_ids_restriction?: string[] | null;
   is_owner: boolean;
   is_shared: boolean;
+  is_shareable?: boolean | null;
 }
 
 export type TEligibleCreditsResponse = (params: IEligibleCreditsParams) => Promise<IResponseData<IEligibleCreditPackage[]>>;

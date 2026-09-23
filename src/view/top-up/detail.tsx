@@ -2,6 +2,7 @@
 import { NavHeaderComponent } from "@/components/layout/header-checkout";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import { useAuthMember } from "@/context/member.ctx";
 import { useInitiatePackagePurchase } from "@/hooks/api/mutations/customers";
 import { useGetPublicCreditPackageDetail } from "@/hooks/api/queries/customer/public";
@@ -18,15 +19,20 @@ import {
   openSnapInNewTab,
   setPendingPackagePayment,
 } from "@/lib/pending-package-payment";
-import { CalendarClock, GemIcon, Info, Loader2, MapPin, RefreshCw, Ticket } from "lucide-react";
+import { CalendarClock, GemIcon, Info, Loader2, RefreshCw, Ticket, Users } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
+import { Input } from "@/components/ui/input";
+import { getShareErrorMessage } from "@/api-req/customer-app/payments";
 
 export const TopUpCreditDetailView = ({ id }: { id: string }) => {
   const router = useRouter();
   const { isAuthenticated } = useAuthMember();
   const { data, isLoading, isError } = useGetPublicCreditPackageDetail(id);
   const { mutateAsync, isPending } = useInitiatePackagePurchase();
+  const [agreed, setAgreed] = useState(false);
+  const [shareEmail, setShareEmail] = useState("");
+  const [shareError, setShareError] = useState<string | null>(null);
   // Restore an in-progress payment (e.g. user returns from the Snap tab or refreshes)
   const [pending, setPending] = useState<{ orderId: string; snapUrl: string; initiatedAt: number } | null>(() => {
     const stored = getPendingPackagePayment();
@@ -58,6 +64,13 @@ export const TopUpCreditDetailView = ({ id }: { id: string }) => {
   }, [isTerminal]);
 
   const item = data?.data;
+  const credits = Number(item?.credits) || 0;
+  const price = Number(item?.price_idr) || 0;
+  const perClass = credits > 0 ? formatCurrency(String(Math.round(price / credits))) : null;
+  const place = (item?.place_restriction ?? "").toLowerCase();
+  const placeLabel = place === "offline" ? "in studio" : place === "online" ? "online" : "in studio & online";
+  const classNames = item?.class_ids_restriction?.map((c) => c.name).join(", ");
+  const classLabel = classNames ? classNames : "All Classes";
 
   const handleBuy = async () => {
     if (!isAuthenticated) {
@@ -71,8 +84,16 @@ export const TopUpCreditDetailView = ({ id }: { id: string }) => {
       return;
     }
     if (isPending) return;
+    const trimmedEmail = shareEmail.trim();
+    if (trimmedEmail) {
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmedEmail)) {
+        setShareError("Enter a valid email address.");
+        return;
+      }
+    }
+    setShareError(null);
     try {
-      const res = await mutateAsync({ package_id: id });
+      const res = await mutateAsync({ package_id: id, ...(trimmedEmail ? { share_with_email: trimmedEmail } : {}) });
       const url = res.data?.snap_redirect_url;
       const orderId = res.data?.order_id;
       if (!url || !orderId) return;
@@ -84,8 +105,15 @@ export const TopUpCreditDetailView = ({ id }: { id: string }) => {
       // openSnapInNewTab(url);
       const qs = new URLSearchParams({ order_id: orderId, snap_redirect_url: url });
       router.push(`/topup-credit/${id}/payment?${qs.toString()}`);
-    } catch {
-      // toast handled in mutation; user can retry with the same button
+    } catch (err) {
+      const code = (err as { response?: { data?: { error?: { code?: string; message?: string } } } })?.response?.data
+        ?.error?.code;
+      const serverMessage = (err as { response?: { data?: { error?: { message?: string } } } })?.response?.data?.error
+        ?.message;
+      if (code === "SHARED_USER_NOT_FOUND" || code === "VALIDATION_ERROR" || code?.startsWith("SHARE")) {
+        setShareError(getShareErrorMessage(code, serverMessage));
+      }
+      // other errors toast via the mutation; user can retry with the same button
     }
   };
 
@@ -145,51 +173,46 @@ export const TopUpCreditDetailView = ({ id }: { id: string }) => {
 
       <div className="flex flex-col gap-4 px-4 mt-4 pb-6">
         <div className="flex flex-col gap-3 rounded-2xl border border-brand-100 bg-white p-5 shadow-sm">
-          <div className="flex items-center gap-3">
-            <div className="flex h-11 w-11 items-center justify-center rounded-full bg-brand-500">
-              <GemIcon size={20} className="text-white" />
-            </div>
-            <div>
-              <p className="text-2xl font-bold tracking-tight text-brand-900">{item.credits} Credits</p>
-              <p className="text-xs text-gray-500">{item.name}</p>
-            </div>
+          <div className="flex items-center gap-2">
+            <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-brand-25">
+              <GemIcon size={14} className="text-brand-500" />
+            </span>
+            <p className="truncate text-sm font-semibold text-brand-900">{item.name}</p>
           </div>
+          <p className="block text-4xl font-bold leading-none tracking-tight text-brand-900">
+            {item.credits} <span className="text-[11px] font-medium tracking-widest text-brand-500">CREDITS</span>
+          </p>
           {item.description && <p className="text-sm text-gray-600">{item.description}</p>}
-          <div className="flex flex-wrap items-center gap-2 text-[11px] text-gray-500">
+          <div className="flex flex-col gap-1 text-[11px] leading-relaxed text-gray-500">
             <span className="inline-flex items-center gap-1.5">
-              <Ticket size={12} className="text-brand-400" /> {item.validity_days} days validity
+              <Ticket size={12} className="shrink-0 text-brand-400" />
+              <span>
+                Use within <span className="font-bold text-brand-900">{item.validity_days} days</span> of your first
+                class
+              </span>
             </span>
-            <span className="h-3 w-px bg-gray-200" />
-            <span className="inline-flex items-center gap-1.5 capitalize">
-              <MapPin size={12} className="text-brand-400" />
-              {item.place_restriction ?? "Offline & Online"}
+            <span className="capitalize">
+              {classLabel} · {placeLabel}
+              {item.session_type_restriction ? ` · ${item.session_type_restriction}` : ""}
             </span>
-            {item.session_type_restriction && (
-              <>
-                <span className="h-3 w-px bg-gray-200" />
-                <Badge variant="outline" className="rounded-full text-[10px] capitalize">
-                  {item.session_type_restriction}
-                </Badge>
-              </>
-            )}
           </div>
-          {item.class_ids_restriction?.length > 0 && (
-            <p className="text-xs text-gray-600">
-              Valid for: {item.class_ids_restriction.map((c) => c.name).join(", ")}
-            </p>
-          )}
           <div className="flex gap-2.5 rounded-xl border border-brand-100 bg-brand-25 px-3.5 py-3">
             <Info size={15} className="mt-0.5 shrink-0 text-brand-500" />
             <p className="text-[11px] leading-relaxed text-brand-900">
-              The {item.validity_days}-day validity starts on <span className="font-semibold">first use</span> —
+              The {item.validity_days}-day validity starts on <span className="font-semibold">first use</span>,
               counted from your first class with this package, not from purchase.
             </p>
           </div>
           <p className="inline-flex items-center gap-1.5 text-[11px] text-gray-400">
             <CalendarClock size={11} /> Updated {formatDateHelper(item.updated_at, "dd MMM yyyy")}
           </p>
-          <div className="flex items-center justify-between border-t border-brand-50 pt-3">
-            <p className="text-xl font-bold text-brand-900">{formatCurrency(String(item.price_idr))}</p>
+          <div className="flex items-end justify-between gap-3 border-t border-brand-50 pt-3">
+            <div className="flex min-w-0 flex-col gap-0.5">
+              <p className="text-xl font-bold tracking-tight text-brand-900">
+                {formatCurrency(String(item.price_idr))}
+              </p>
+              {perClass && <p className="text-[11px] text-gray-500">{perClass} per class</p>}
+            </div>
             {item.is_shareable && (
               <Badge variant="outline" className="rounded-full text-[10px]">
                 Shareable
@@ -198,10 +221,100 @@ export const TopUpCreditDetailView = ({ id }: { id: string }) => {
           </div>
         </div>
 
+        {item.is_shareable && (
+          <div className="flex flex-col gap-2 rounded-2xl border border-brand-100 bg-white px-4 py-3.5">
+            <p className="inline-flex items-center gap-1.5 text-xs font-semibold text-brand-900">
+              <Users size={13} className="text-brand-500" /> Share with a friend (optional)
+            </p>
+            <p className="text-[11px] leading-relaxed text-gray-500">
+              Add their registered email now. You can also share later from My Credits, before the first class is used.
+            </p>
+            <Input
+              type="email"
+              inputMode="email"
+              autoComplete="email"
+              placeholder="friend@mail.com"
+              value={shareEmail}
+              onChange={(e) => {
+                setShareEmail(e.target.value);
+                if (shareError) setShareError(null);
+              }}
+              aria-label="Friend email to share this package with"
+              aria-invalid={!!shareError}
+              className="min-h-11 rounded-xl border-brand-100"
+            />
+            {shareError ? (
+              <p role="alert" className="text-[11px] font-medium text-red-600">{shareError}</p>
+            ) : (
+              <p className="text-[11px] text-gray-400">They must already have a Sehela account. Sharing lasts until the package expires and cannot be revoked.</p>
+            )}
+          </div>
+        )}
+
+        <div className="flex flex-col gap-1.5 rounded-2xl border border-brand-100 bg-white px-4 py-3.5">
+          <p className="text-xs font-semibold text-brand-900">This package</p>
+          <ul className="flex list-disc flex-col gap-1 pl-4 text-[11px] leading-relaxed text-gray-500">
+            <li>
+              Activate within {item.validity_days} {item.validity_days === 1 ? "day" : "days"} of purchase by joining
+              your first class. You then have {item.validity_days} {item.validity_days === 1 ? "day" : "days"} to use
+              all {credits} {credits === 1 ? "credit" : "credits"}.
+            </li>
+            <li>
+              Your expiry date appears in My Credits the day after your first class. Please check it there and keep an
+              eye on it.
+            </li>
+            <li>
+              {item.is_shareable ? "Can be shared with 1 friend before first use." : "For 1 person only."}
+              {item.max_purchases_per_user === 1 ? " First-timers only, one purchase per person." : null}
+            </li>
+          </ul>
+        </div>
+
+        <div className="flex flex-col gap-1.5 rounded-2xl border border-brand-100 bg-white px-4 py-3.5">
+          <p className="text-xs font-semibold text-brand-900">Purchase terms</p>
+          <ul className="flex list-disc flex-col gap-1 pl-4 text-[11px] leading-relaxed text-gray-500">
+            <li>All bookings and purchases must be paid in full at the time of booking or purchase and are non-refundable.</li>
+            <li>
+              If you cancel your class booking more than 6 hours before the scheduled class, the amount paid may be
+              converted into Sehela Space credit for future bookings.
+            </li>
+            <li>Cancellations within 6 hours before the scheduled class and no-shows receive no refund or credit.</li>
+            <li>
+              Sehela Space credit is not redeemable for cash and may only be used for eligible future bookings at Sehela
+              Space.
+            </li>
+          </ul>
+          <button
+            type="button"
+            className="mt-1 self-start text-[11px] font-semibold text-brand-700 underline underline-offset-2"
+            onClick={() => router.push("/terms-and-conditions")}
+          >
+            Read full terms and conditions
+          </button>
+        </div>
+
+        <label
+          htmlFor="agree-tnc"
+          className="flex min-h-11 cursor-pointer items-start gap-3 rounded-xl border border-brand-100 bg-brand-25 px-3.5 py-3"
+        >
+          <Checkbox
+            id="agree-tnc"
+            checked={agreed}
+            onCheckedChange={(v) => setAgreed(v === true)}
+            aria-required="true"
+            className="mt-0.5 size-5"
+          />
+          <span className="text-xs leading-relaxed text-brand-900">
+            I have read and agree to the purchase terms above, including full payment at purchase and the
+            non-refundable policy.
+          </span>
+        </label>
+
         <Button
           className="min-h-12 w-full text-sm font-extrabold"
           onClick={isFailed || isExpired ? handleRetry : pending && !isTerminal ? handleContinue : handleBuy}
-          disabled={isPending}
+          disabled={isPending || !agreed}
+          aria-describedby={!agreed ? "tnc-hint" : undefined}
         >
           {isPending ? (
             <span className="inline-flex items-center gap-2">
@@ -217,6 +330,12 @@ export const TopUpCreditDetailView = ({ id }: { id: string }) => {
             "Login to buy"
           )}
         </Button>
+        {!agreed && !(pending && isSettled) && (
+          <p id="tnc-hint" className="text-center text-[11px] text-gray-500">
+            Please read and agree to the purchase terms above to continue
+            {!isAuthenticated ? " to login and buy" : ""}.
+          </p>
+        )}
         {/* Pending-payment state, like the booking class detail page */}
         {pending && !isTerminal && (
           <div className="flex items-start gap-3 rounded-xl border border-yellow-300 bg-yellow-50 p-4">

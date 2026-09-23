@@ -88,6 +88,8 @@ export const DetailFormAddTransaction = () => {
   const [search, setSearch] = useState("");
   const debounceSearch = useDebounce(search, 300);
   const [selectedUser, setSelectedUser] = useState<ICustomerData | null>(null);
+  const [shareEmail, setShareEmail] = useState("");
+  const [shareEmailError, setShareEmailError] = useState<string | null>(null);
   const [selectedUsers, setSelectedUsers] = useState<ICustomerData[]>([]);
   const [openSessionSharing, setOpenSessionSharing] = useState(false);
 
@@ -164,9 +166,11 @@ export const DetailFormAddTransaction = () => {
         packages.push({
           package_id: item.id as string,
           ...(item.badge === "Sharing"
-            ? {
-                share_with_user_id: item.share_with_user_id,
-              }
+            ? item.share_with_email
+              ? { share_with_email: item.share_with_email }
+              : item.share_with_user_id
+                ? { share_with_user_id: item.share_with_user_id }
+                : null
             : null),
         });
       }
@@ -268,23 +272,43 @@ export const DetailFormAddTransaction = () => {
   };
 
   const onSaveShareWithUser = () => {
-    if (!selectedUser || !selectedItem) return;
+    if (!selectedItem) return;
+    const trimmedEmail = shareEmail.trim();
+    if (trimmedEmail) {
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmedEmail)) {
+        setShareEmailError("Enter a valid email address.");
+        return;
+      }
+      if (selectedUser) {
+        setShareEmailError("Fill either a member or an email, not both.");
+        return;
+      }
+    } else if (!selectedUser) {
+      return;
+    }
 
     // Find the item to update
 
     updateItem(selectedItem?.id, {
-      share_with_user_id: selectedUser.id,
-      shared_with_user: {
-        id: selectedUser.id,
-        name: selectedUser.full_name,
-        phone: selectedUser.phone,
-        email: selectedUser.email,
-      },
+      share_with_user_id: trimmedEmail ? undefined : selectedUser?.id,
+      share_with_email: trimmedEmail || undefined,
+      shared_with_user: trimmedEmail
+        ? { id: "", name: trimmedEmail, phone: "", email: trimmedEmail }
+        : selectedUser
+          ? {
+              id: selectedUser.id,
+              name: selectedUser.full_name,
+              phone: selectedUser.phone,
+              email: selectedUser.email,
+            }
+          : null,
     });
     setOpenModalSharing(false);
     setSelectedUser(null);
     setSelectedItem(null);
     setSearch("");
+    setShareEmail("");
+    setShareEmailError(null);
   };
 
   const onsSaveShareSession = () => {
@@ -389,11 +413,11 @@ export const DetailFormAddTransaction = () => {
                               <div className="text-brand-999 font-medium text-sm col-span-2 flex flex-col">
                                 {item?.type === "packages" && item.badge === "Sharing" ? (
                                   <>
-                                    {item?.share_with_user_id ? (
+                                    {item?.share_with_user_id || item?.share_with_email ? (
                                       <div className="flex flex-row items-center gap-4">
                                         <div className="flex flex-col">
                                           <p>{item?.shared_with_user?.name}</p>
-                                          <p>{item?.shared_with_user?.phone}</p>
+                                          <p>{item?.share_with_email ?? item?.shared_with_user?.phone}</p>
                                         </div>
                                         <Button
                                           size={"icon"}
@@ -401,6 +425,7 @@ export const DetailFormAddTransaction = () => {
                                           onClick={() => {
                                             updateItem(item.id, {
                                               share_with_user_id: undefined,
+                                              share_with_email: undefined,
                                               shared_with_user: null,
                                             });
                                           }}
@@ -711,13 +736,15 @@ export const DetailFormAddTransaction = () => {
         <BaseDialogComponent
           onConfirm={onSaveShareWithUser}
           isOpen={openModalSharing}
-          title="Select User to share package"
+          title="Select user to share package"
           btnConfirm="Save"
           onClose={() => {
             setOpenModalSharing(false);
             setSelectedUser(null);
             setSelectedItem(null);
             setSearch("");
+            setShareEmail("");
+            setShareEmailError(null);
           }}
         >
           <Select
@@ -744,6 +771,10 @@ export const DetailFormAddTransaction = () => {
             inputValue={search}
             onChange={(e) => {
               setSelectedUser(e);
+              if (e) {
+                setShareEmail("");
+                setShareEmailError(null);
+              }
             }}
           />
           {selectedUser && (
@@ -756,6 +787,19 @@ export const DetailFormAddTransaction = () => {
               </div>
             </div>
           )}
+          <p className="text-sm text-gray-500">Or share by email (member must already be registered). Fill one, not both.</p>
+          <Input
+            type="email"
+            placeholder="friend@mail.com"
+            value={shareEmail}
+            onChange={(e) => {
+              setShareEmail(e.target.value);
+              if (shareEmailError) setShareEmailError(null);
+              if (e.target.value.trim()) setSelectedUser(null);
+            }}
+            aria-label="Share with email"
+          />
+          {shareEmailError && <p className="text-sm text-red-500">{shareEmailError}</p>}
         </BaseDialogComponent>
       )}
       {openSessionSharing && (

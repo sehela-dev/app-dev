@@ -80,6 +80,7 @@ export interface IAdminCartItemData {
   subtotal: number;
   type?: string;
   share_with_user_id?: string;
+  share_with_email?: string;
   location_id?: string;
   location_name?: string;
   share_with_user_ids?: string[];
@@ -185,6 +186,7 @@ export interface ISession {
 export interface IPackages {
   package_id: string;
   share_with_user_id?: string;
+  share_with_email?: string;
 }
 
 export interface IProduct {
