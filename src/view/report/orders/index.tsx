@@ -171,11 +171,6 @@ export const OrdersReportView = () => {
     },
     { id: "customerName", text: "Customer Name", value: "customerName" },
     {
-      id: "totalPaid",
-      text: "Total Paid",
-      value: (row: IOrdersReportRow) => <span className="font-medium whitespace-nowrap">{formatCurrency(row.totalPaid)}</span>,
-    },
-    {
       id: "paymentType",
       text: "Payment Type",
       value: (row: IOrdersReportRow) => {
@@ -282,6 +277,11 @@ export const OrdersReportView = () => {
         ) : (
           <span className="text-muted-foreground">–</span>
         ),
+    },
+    {
+      id: "totalPaid",
+      text: "Total Paid",
+      value: (row: IOrdersReportRow) => <span className="font-medium whitespace-nowrap">{formatCurrency(row.totalPaid)}</span>,
     },
   ];
 

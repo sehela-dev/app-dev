@@ -23,6 +23,7 @@ export interface IMyCreditItem {
   class_type_restriction?: string | string[] | null;
   is_owner: boolean;
   is_shared: boolean;
+  is_shareable?: boolean | null;
   shared_with_user_id?: string | null;
   shared_with_user_name?: string | null;
   shared_by_user_id?: string | null;

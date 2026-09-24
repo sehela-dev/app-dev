@@ -12,3 +12,4 @@ export * from "./use-create-public-booking";
 export * from "./use-repay-booking";
 export * from "./use-validate-voucher";
 export * from "./use-initiate-package-purchase";
+export * from "./use-share-package-purchase";

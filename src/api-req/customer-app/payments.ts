@@ -31,6 +31,7 @@ export const getPaymentStatus: TGetPaymentStatus = async (orderId) => {
 export interface IInitiatePackagePurchaseRequest {
   package_id: string;
   share_with_user_id?: string | null;
+  share_with_email?: string | null;
 }
 
 export interface IInitiatePackagePurchaseResponse {
@@ -50,6 +51,37 @@ export const initiatePackagePurchase: TInitiatePackagePurchase = async (body) =>
   const res = await axiosx(true).post(`${MAIN_API_URL}/payments/initiate`, body);
   return res.data;
 };
+
+// ----------------------------------------------------------------------
+// POST /profile/packages/:id/share — member post-purchase share by email.
+// Unused-only, no revoke. 201 → { share_id, package_purchase_id, shared_with }.
+// ----------------------------------------------------------------------
+
+export interface ISharePackagePurchaseResponse {
+  share_id: string;
+  package_purchase_id: string;
+  shared_with: { id: string; name: string | null; email: string | null };
+}
+
+export const sharePackagePurchase = async (
+  purchaseId: string,
+  body: { email: string },
+): Promise<IResponseData<ISharePackagePurchaseResponse>> => {
+  const res = await axiosx(true).post(`${MAIN_API_URL}/profile/packages/${encodeURIComponent(purchaseId)}/share`, body);
+  return res.data;
+};
+
+const SHARE_ERROR_COPY: Record<string, string> = {
+  SHARED_USER_NOT_FOUND: "This email is not registered. Please sign up first at book.sehelaspace.com",
+  SHARE_USED: "This package has already been used, so it can no longer be shared.",
+  SHARE_ALREADY: "This package has already been shared. Shared packages cannot be revoked.",
+  SHARE_NOT_PAID: "This package is not paid yet. You can share it once payment settles.",
+  SHARE_NOT_SHAREABLE: "This package type cannot be shared.",
+  SHARE_FORBIDDEN: "You can only share your own package.",
+};
+
+export const getShareErrorMessage = (code?: string, fallback?: string) =>
+  (code && SHARE_ERROR_COPY[code]) || fallback || "Unable to share this package. Please try again.";
 
 // ----------------------------------------------------------------------
 // GET /payments/history (A4) — member transaction history list

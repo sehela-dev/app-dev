@@ -19,7 +19,7 @@ import { useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
 import { useDeleteCreditPackage, useEditCreditPackage } from "@/hooks/api/mutations/admin";
 import { BaseDialogConfirmation } from "@/components/general/dialog-confirnation";
-import { DropdownFilter } from "@/components/general/table-filter";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useGetClassSessionsCategory } from "@/hooks/api/queries/admin/class-session";
 
 export const CreditPackagePageView = () => {
@@ -34,10 +34,12 @@ export const CreditPackagePageView = () => {
   const [openNotif, setOpenNotif] = useState(false);
   const { mutateAsync } = useDeleteCreditPackage();
   const { mutateAsync: mutateVisibility, isPending: isTogglingVisibility } = useEditCreditPackage();
-  const [selectedValues, setSelectedValues] = useState({
+  const [selectedValues, setSelectedValues] = useState<Record<string, string>>({
     Class: "all",
     Visibility: "all",
     Status: "all",
+    SessionType: "all",
+    Place: "all",
   });
   const { data: dataClass, isLoading: isLoadingClass } = useGetClassSessionsCategory({ page: 1, limit: 999, status: "true" });
 
@@ -50,10 +52,12 @@ export const CreditPackagePageView = () => {
     const filter = [
       {
         title: "Class",
-        options: [{ id: "all", label: "All" }],
+        label: "Class",
+        options: [{ id: "all", label: "All classes" }],
       },
       {
         title: "Visibility",
+        label: "Visibility",
         options: [
           { id: "all", label: "All" },
           { id: "true", label: "Visible" },
@@ -62,10 +66,30 @@ export const CreditPackagePageView = () => {
       },
       {
         title: "Status",
+        label: "Status",
         options: [
           { id: "all", label: "All" },
           { id: "true", label: "Active" },
           { id: "false", label: "Inactive" },
+        ],
+      },
+      {
+        title: "SessionType",
+        label: "Session type",
+        options: [
+          { id: "all", label: "All" },
+          { id: "regular", label: "Regular" },
+          { id: "private", label: "Private" },
+          { id: "special", label: "Special" },
+        ],
+      },
+      {
+        title: "Place",
+        label: "Place",
+        options: [
+          { id: "all", label: "All" },
+          { id: "offline", label: "Offline" },
+          { id: "online", label: "Online" },
         ],
       },
     ];
@@ -95,8 +119,12 @@ export const CreditPackagePageView = () => {
       Class: "all",
       Visibility: "all",
       Status: "all",
+      SessionType: "all",
+      Place: "all",
     });
   };
+
+  const hasActiveFilters = useMemo(() => Object.values(selectedValues).some((v) => v !== "all"), [selectedValues]);
 
   const { data, isLoading, refetch } = useGetCreditPackage({
     page,
@@ -105,6 +133,8 @@ export const CreditPackagePageView = () => {
     ...(selectedValues.Class !== "all" ? { class_id: selectedValues.Class } : {}),
     ...(selectedValues.Visibility !== "all" ? { is_visible: selectedValues.Visibility } : {}),
     ...(selectedValues.Status !== "all" ? { is_active: selectedValues.Status } : {}),
+    ...(selectedValues.SessionType !== "all" ? { session_type: selectedValues.SessionType } : {}),
+    ...(selectedValues.Place !== "all" ? { place: selectedValues.Place } : {}),
   });
 
   const numberOptions = {
@@ -222,24 +252,10 @@ export const CreditPackagePageView = () => {
   };
   return (
     <div className="flex flex-col w-full h-full gap-2">
-      <div className="flex  w-full flex-row justify-between items-center">
-        <div>{/* <GeneralTabComponent tabs={tabOptions} selecetedTab={selecetedTab} setTab={setSelectedTab} /> */}</div>
-        <div className="flex flex-row items-center gap-2">
-          <div className="flex w-full">
-            <DropdownFilter
-              sections={filterSections}
-              selectedValues={selectedValues}
-              onSelectionChange={handleSelectionChange}
-              onReset={handleReset}
-            />
-          </div>
-
-          <div className="flex w-full">
-            <Button className=" text-sm font-medium" onClick={() => router.push("credit-packages/create")}>
-              <CirclePlus /> Add Credit Package
-            </Button>
-          </div>
-        </div>
+      <div className="flex w-full flex-row justify-end items-center">
+        <Button className=" text-sm font-medium" onClick={() => router.push("credit-packages/create")}>
+          <CirclePlus /> Add Credit Package
+        </Button>
       </div>
       <Card className="rounded-lg border-brand-100">
         <CardHeader className="flex flex-row w-full justify-between items-center">
@@ -251,6 +267,30 @@ export const CreditPackagePageView = () => {
             <SearchInput className="border-brand-100" search={search} onSearch={handleSearch} />
           </div>
         </CardHeader>
+        <div className="flex flex-wrap items-end gap-2 px-6">
+          {filterSections.map((section) => (
+            <div key={section.title} className="flex flex-col gap-1">
+              <span className="text-xs font-medium text-gray-500">{section.label}</span>
+              <Select value={selectedValues[section.title]} onValueChange={(v) => handleSelectionChange(section.title, v)}>
+                <SelectTrigger className="w-[150px]">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {section.options.map((opt) => (
+                    <SelectItem key={opt.id} value={opt.id}>
+                      {opt.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          ))}
+          {hasActiveFilters && (
+            <Button variant="ghost" size="sm" onClick={handleReset} className="text-destructive hover:bg-destructive/10">
+              Reset
+            </Button>
+          )}
+        </div>
         <CardContent>
           <CustomTable
             data={data?.data ?? []}

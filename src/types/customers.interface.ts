@@ -57,9 +57,11 @@ export interface ICustomerDetailProfile {
   role: string;
   instagram_username: string;
   photo_url: string;
-  tnc_agreed_at: boolean;
+  tnc_agreed_at: string | null;
   photo_consent: boolean;
-  medical_notes: string;
+  medical_notes: string | null;
+  gender?: string | null;
+  date_of_birth?: string | null;
   remark: string | null;
   is_active: boolean;
   created_at: string;
@@ -86,13 +88,21 @@ export interface IActivePackageCredit {
   package_purchase_id: string;
   package_id: string;
   package_name: string;
-  package_description: string;
+  package_description: string | null;
+  package_type?: string | null;
   total_credits: number;
   credits_remaining: number;
   credits_used: number;
-  expires_at: string;
-  class_ids_restriction: string;
-  place_restriction: unknown;
+  expires_at: string | null;
+  class_ids_restriction: string[] | null;
+  place_restriction: string | string[] | null;
+  session_type_restriction?: string | string[] | null;
+  is_owner: boolean;
+  is_shared: boolean;
+  shared_with_user_id?: string | null;
+  shared_with_user_name?: string | null;
+  shared_by_user_id?: string | null;
+  shared_by_user_name?: string | null;
 }
 
 export interface ICustomerWalletAdmin {
