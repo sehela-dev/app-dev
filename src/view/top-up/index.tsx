@@ -2,36 +2,17 @@
 import { InfiniteScroll } from "@/components/base/infinite-scroll";
 import { NavHeaderComponent } from "@/components/layout/header-checkout";
 import { Button } from "@/components/ui/button";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useAuthMember } from "@/context/member.ctx";
-import { useGetPublicCreditPackagesInfinite } from "@/hooks/api/queries/customer/public";
+import { useGetPublicCreditPackagesInfinite, useGetPublicClasses } from "@/hooks/api/queries/customer/public";
 import { useGetMyCredits } from "@/hooks/api/queries/customer/profile";
 import { formatCurrency, formatDateHelper } from "@/lib/helper";
 import type { ICreditPackageItem } from "@/types/credit-package.interface";
-import type { IMyCreditItem } from "@/types/customer-app/my-credit.interface";
-import { ArrowRight, Loader2 } from "lucide-react";
+import { ChevronDown, Loader2, SlidersHorizontal, Users } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
 
 const PAGE_SIZE = 20;
-
-type GroupKey = "regular" | "private" | "special";
-type FilterKey = "all" | GroupKey;
-
-const GROUP_ORDER: GroupKey[] = ["regular", "private", "special"];
-const GROUP_META: Record<GroupKey, { title: string; label: string }> = {
-  regular: { title: "Regular class", label: "Yoga and Meditation" },
-  private: { title: "Private class", label: "One on one" },
-  special: { title: "Special program", label: "Curated series" },
-};
-const FILTERS: { value: FilterKey; label: string }[] = [
-  { value: "all", label: "All" },
-  { value: "regular", label: "Regular" },
-  { value: "private", label: "Private" },
-  { value: "special", label: "Special" },
-];
-
-const sessionOf = (it: ICreditPackageItem): string =>
-  ((it as unknown as { session_type_restriction?: string | null }).session_type_restriction ?? "all").toLowerCase();
 
 const placeLabel = (place?: string | null) => {
   const p = (place ?? "").toLowerCase();
@@ -42,62 +23,70 @@ const placeLabel = (place?: string | null) => {
 
 export const TopUpCreditPageView = () => {
   const router = useRouter();
-  const [activeFilter, setActiveFilter] = useState<FilterKey>("all");
+  const [activeFilter, setActiveFilter] = useState<string>("all");
+  const { data: classesData } = useGetPublicClasses({ page_size: 100 });
+  const classes = useMemo(() => classesData?.data ?? [], [classesData]);
   const { data, isLoading, isError, fetchNextPage, hasNextPage, isFetchingNextPage } =
-    useGetPublicCreditPackagesInfinite({}, PAGE_SIZE);
+    useGetPublicCreditPackagesInfinite(
+      activeFilter === "all" ? {} : { class_id: activeFilter },
+      PAGE_SIZE,
+    );
 
   const pages = useMemo(() => data?.pages ?? [], [data]);
   const items = useMemo(() => pages.flatMap((p) => p.data) ?? [], [pages]);
   const pagination = pages[pages.length - 1]?.pagination;
   const totalItems = pagination?.total_items ?? items.length;
 
-  const groups = useMemo(() => {
-    const built = GROUP_ORDER.map((key) => ({
-      groupKey: key,
-      ...GROUP_META[key],
-      items: items.filter((it) => {
-        const s = sessionOf(it);
-        if (key === "regular") return s === "all" || s === "regular";
-        return s === key;
-      }),
-    })).filter((g) => g.items.length > 0);
-    if (built.length === 0 && items.length > 0) {
-      return [{ groupKey: "regular" as GroupKey, ...GROUP_META.regular, items }];
+  // ponytail: client-side best-value rank + first-timer pin; push to API ordering if catalog grows
+  const ordered = useMemo(
+    () => [...items].sort((a, b) => Number(b.max_purchases_per_user === 1) - Number(a.max_purchases_per_user === 1)),
+    [items],
+  );
+  const bestId = useMemo(() => {
+    let bestRate = Infinity;
+    let best: ICreditPackageItem | null = null;
+    for (const it of items) {
+      const credits = Number(it.credits) || 0;
+      const price = Number(it.price_idr) || 0;
+      if (credits <= 0) continue;
+      const rate = price / credits;
+      if (rate < bestRate) {
+        bestRate = rate;
+        best = it;
+      }
     }
-    return built;
+    return items.length > 1 && best ? String(best.id) : null;
   }, [items]);
 
-  const visibleGroups = activeFilter === "all" ? groups : groups.filter((g) => g.groupKey === activeFilter);
   const open = (id: string) => router.push(`/topup-credit/${id}`);
 
   return (
-    <div className="flex h-full w-full flex-col font-serif text-brand-900">
-      <NavHeaderComponent title="Top Up Credit" />
+    <div className="flex h-full w-full flex-col font-serif">
+      <div className=" text-brand-500">
+        <NavHeaderComponent title="Top Up Credit" />
+      </div>
 
-      <div className="flex flex-col gap-4 px-4 pb-10 pt-4">
+      <div className="flex flex-col gap-4 px-4 pb-10 pt-4 text-brand-900">
         <BalancePanel />
 
         <div className="sticky top-0 z-10 -mx-4 bg-brand-50/95 px-4 py-2 backdrop-blur">
-          <div className="flex gap-2 overflow-x-auto" role="tablist" aria-label="Filter packages">
-            {FILTERS.map((f) => {
-              const active = activeFilter === f.value;
-              return (
-                <button
-                  key={f.value}
-                  role="tab"
-                  aria-selected={active}
-                  onClick={() => setActiveFilter(f.value)}
-                  className={
-                    active
-                      ? "min-h-11 flex-none rounded-full bg-brand-900 px-4 text-xs font-bold text-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-500"
-                      : "min-h-11 flex-none rounded-full border border-brand-200 bg-white px-4 text-xs font-bold text-brand-700 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-500"
-                  }
-                >
-                  {f.label}
-                </button>
-              );
-            })}
-          </div>
+          <Select value={activeFilter} onValueChange={setActiveFilter}>
+            <SelectTrigger
+              aria-label="Filter packages by class"
+              className="w-full rounded-full border-brand-300 bg-white font-bold text-brand-700 shadow-sm focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-500 [&_svg]:opacity-100"
+            >
+              <SlidersHorizontal size={14} aria-hidden="true" className="shrink-0" />
+              <SelectValue placeholder="All classes" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All classes</SelectItem>
+              {classes.map((c) => (
+                <SelectItem key={c.id} value={c.id}>
+                  {c.class_name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </div>
 
         <div className="flex items-baseline justify-between">
@@ -116,17 +105,25 @@ export const TopUpCreditPageView = () => {
           </div>
         ) : items.length > 0 ? (
           <InfiniteScroll hasMore={!!hasNextPage} isLoading={isFetchingNextPage} onLoadMore={() => fetchNextPage()}>
-            <div className="flex flex-col gap-8">
-              {visibleGroups.length > 0 ? (
-                visibleGroups.map((g) => <PackageSection key={g.groupKey} {...g} onOpen={open} />)
-              ) : (
-                <div className="flex flex-col items-center gap-2 py-12 text-center">
-                  <p className="font-semibold">No packages in this filter</p>
-                  <p className="text-sm text-gray-500">Try another category.</p>
-                </div>
-              )}
+            <div className="flex flex-col gap-2">
+              {ordered.map((item) => (
+                <PackageRow
+                  key={item.id}
+                  item={item}
+                  isBest={bestId != null && String(item.id) === bestId}
+                  onOpen={open}
+                />
+              ))}
             </div>
+            <p className="mt-4 max-w-[60ch] text-[11px] leading-relaxed text-gray-500">
+              Activate within 30 days of purchase. Once activated, the day count above starts on your first class.
+            </p>
           </InfiniteScroll>
+        ) : activeFilter !== "all" ? (
+          <div className="flex flex-col items-center gap-2 py-12 text-center">
+            <p className="font-semibold">No packages in this filter</p>
+            <p className="text-sm text-gray-500">Try another class.</p>
+          </div>
         ) : (
           <div className="flex flex-col items-center gap-2 py-12 text-center">
             <p className="font-semibold">No credit packages available</p>
@@ -161,8 +158,10 @@ const BalancePanel = () => {
 };
 
 const BalancePanelInner = () => {
+  const router = useRouter();
   const { profile } = useAuthMember();
   const { data, isLoading } = useGetMyCredits({ is_expired: false });
+  const [expanded, setExpanded] = useState(true);
 
   const credits = useMemo(() => data?.data ?? [], [data]);
   // ponytail: client-side expiry sort; push to API ordering if collection grows
@@ -177,10 +176,23 @@ const BalancePanelInner = () => {
   }, [credits]);
 
   const balance = profile?.overview?.credits_balance ?? credits.reduce((s, c) => s + (c.credits_remaining || 0), 0);
+  const soonest = slides.find((s) => s.expires_at) ?? null;
+  const soonestDays =
+    soonest?.expires_at != null
+      ? Math.max(0, Math.ceil((new Date(soonest.expires_at).getTime() - Date.now()) / 86400000))
+      : null;
+  const soonestLabel =
+    soonestDays == null
+      ? null
+      : soonestDays <= 0
+        ? "today"
+        : soonestDays === 1
+          ? "tomorrow"
+          : `in ${soonestDays} days`;
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center rounded-3xl bg-brand-900 py-8" role="status">
+      <div className="flex items-center justify-center rounded-3xl bg-brand-500 py-8" role="status">
         <Loader2 className="h-5 w-5 animate-spin text-white" />
       </div>
     );
@@ -188,157 +200,84 @@ const BalancePanelInner = () => {
   if (slides.length === 0) return null;
 
   return (
-    <div className="rounded-3xl bg-brand-900 p-4 text-white shadow-sm">
-      <div className="mb-3 flex items-start justify-between gap-3">
-        <div>
-          <p className="text-[11px] font-bold uppercase tracking-widest text-brand-100">Credits left</p>
-          <p className="mt-1 flex items-baseline gap-2">
-            <span className="font-serif text-5xl font-semibold leading-none">{balance}</span>
-          </p>
-        </div>
-        <p className="pt-1 text-[11px] text-brand-100">
-          {slides.length} {slides.length === 1 ? "package" : "packages"} · swipe
-        </p>
+    <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-brand-500 to-brand-600 p-5 text-white shadow-sm">
+      <div aria-hidden="true" className="pointer-events-none absolute -right-12 -top-12 size-44 rounded-full bg-white/10" />
+      <div aria-hidden="true" className="pointer-events-none absolute -bottom-16 -left-10 size-40 rounded-full border-[12px] border-white/10" />
+      <div className="relative">
+      <div className="flex items-start justify-between gap-3">
+        <p className="pt-2 text-[11px] font-bold uppercase tracking-[0.18em]">You already have</p>
+        <button
+          type="button"
+          onClick={() => router.push("/profile/my-credits")}
+          className="inline-flex min-h-11 items-center text-sm font-semibold underline underline-offset-4"
+        >
+          My Credits
+        </button>
       </div>
-      <div
-        className="-mx-1 flex snap-x snap-mandatory gap-2 overflow-x-auto px-1 pb-1"
-        role="region"
-        aria-roledescription="carousel"
-        aria-label="My packages"
-      >
-        {slides.map((c) => (
-          <PackageSlide key={c.package_purchase_id} item={c} />
-        ))}
-      </div>
-    </div>
-  );
-};
-
-const PackageSlide = ({ item }: { item: IMyCreditItem }) => {
-  const total = item.total_credits || 0;
-  const used = item.credits_used || 0;
-  const remaining = item.credits_remaining || 0;
-  const pct = total > 0 ? Math.min(100, Math.round((used / total) * 100)) : 0;
-  const daysLeft = item.expires_at
-    ? Math.max(0, Math.ceil((new Date(item.expires_at).getTime() - Date.now()) / 86400000))
-    : null;
-
-  return (
-    <div
-      className="min-w-[200px] flex-1 snap-start rounded-2xl bg-white/10 p-3"
-      aria-roledescription="slide"
-      aria-label={`${item.package_name}, ${remaining} of ${total} credits left`}
-    >
-      <p className="truncate text-xs font-bold text-white">{item.package_name}</p>
-      {!item.is_owner && item.is_shared && (
-        <p className="mt-0.5 truncate text-[10px] text-brand-100">
-          Shared{item.shared_by_user_name ? ` by ${item.shared_by_user_name}` : ""}
-        </p>
-      )}
-      <p className="mt-1 flex items-baseline gap-1">
-        <span className="text-2xl font-semibold leading-none">{remaining}</span>
-        <span className="text-[11px] text-brand-100">/ {total} left</span>
+      <p className="mt-1 flex flex-wrap items-baseline gap-x-2">
+        <span className="font-serif text-5xl font-semibold leading-none">{balance}</span>
+        <span className="text-lg">credits</span>
       </p>
-      <div
-        className="mb-1.5 mt-2 h-1.5 overflow-hidden rounded-full bg-white/20"
-        role="progressbar"
-        aria-valuenow={pct}
-        aria-valuemin={0}
-        aria-valuemax={100}
-      >
-        <div className="h-full rounded-full bg-white" style={{ width: `${pct}%` }} />
-      </div>
-      <p className="text-[11px] leading-relaxed text-brand-100">
-        {item.expires_at ? (
+      <p className="mt-2 text-sm">
+        Across {slides.length} {slides.length === 1 ? "package" : "packages"}
+        {soonest && soonestLabel && (
           <>
-            Expires <span className="font-bold text-white">{formatDateHelper(item.expires_at, "dd MMM yyyy")}</span>
-            {daysLeft !== null && `, ${daysLeft} days left`}
+            {" · "}soonest expires{" "}
+            <span className="font-bold">
+              {formatDateHelper(soonest.expires_at as string, "d MMM")}, {soonestLabel}
+            </span>
           </>
-        ) : (
-          <>Starts on first use, {item.validity_days} days</>
         )}
       </p>
+
+      <button
+        type="button"
+        onClick={() => setExpanded((v) => !v)}
+        aria-expanded={expanded}
+        aria-controls="my-packages-list"
+        className="mt-1 inline-flex min-h-11 items-center gap-1.5 text-sm font-bold"
+      >
+        {expanded ? "Hide my packages" : "Show my packages"}
+        <ChevronDown size={16} aria-hidden="true" className={expanded ? "rotate-180 transition-transform" : "transition-transform"} />
+      </button>
+
+      {expanded && (
+        <ul id="my-packages-list" className="mt-1 flex flex-col gap-2">
+          {slides.map((c) => {
+            const isSoonest = soonest != null && c.package_purchase_id === soonest.package_purchase_id;
+            return (
+              <li key={c.package_purchase_id} className="flex items-baseline justify-between gap-3">
+                <p className="min-w-0 truncate text-sm">
+                  <span className="font-bold">{c.package_name}</span> {c.credits_remaining} left
+                  {!c.is_owner && c.is_shared && <span> · shared{c.shared_by_user_name ? ` by ${c.shared_by_user_name}` : ""}</span>}
+                </p>
+                <p className={`shrink-0 text-sm ${isSoonest ? "font-bold" : ""}`}>
+                  {c.expires_at ? `Expires ${formatDateHelper(c.expires_at, "d MMM")}` : "Not started yet"}
+                </p>
+              </li>
+            );
+          })}
+        </ul>
+      )}
+      </div>
     </div>
-  );
-};
-
-const PackageSection = ({
-  label,
-  title,
-  items,
-  onOpen,
-}: {
-  groupKey: string;
-  label: string;
-  title: string;
-  items: ICreditPackageItem[];
-  onOpen: (id: string) => void;
-}) => {
-  // ponytail: client-side best-value rank + first-timer pin; push to API ordering if catalog grows
-  const ordered = useMemo(
-    () => [...items].sort((a, b) => Number(b.max_purchases_per_user === 1) - Number(a.max_purchases_per_user === 1)),
-    [items],
-  );
-  const { bestId, baseRate } = useMemo(() => {
-    let bestRate = Infinity;
-    let base = 0;
-    let best: ICreditPackageItem | null = null;
-    for (const it of items) {
-      const credits = Number(it.credits) || 0;
-      const price = Number(it.price_idr) || 0;
-      if (credits <= 0) continue;
-      const rate = price / credits;
-      if (rate > base) base = rate;
-      if (rate < bestRate) {
-        bestRate = rate;
-        best = it;
-      }
-    }
-    return { bestId: items.length > 1 && best ? String(best.id) : null, baseRate: base };
-  }, [items]);
-
-  return (
-    <section aria-label={title} className="flex flex-col">
-      <div className="my-3 flex items-center gap-2">
-        <span className="h-2 w-2 shrink-0 rounded-full bg-brand-500" aria-hidden="true" />
-        <span className="text-[11px] font-bold uppercase tracking-widest text-brand-600">{label}</span>
-        <span className="h-px flex-1 bg-brand-200" aria-hidden="true" />
-      </div>
-      <h2 className="mb-2 font-serif text-xl font-semibold">
-        {title} <span className="ml-1 align-middle font-sans text-[11px] font-normal text-gray-500">{items.length} options</span>
-      </h2>
-      <div className="flex flex-col gap-2">
-        {ordered.map((item) => (
-          <PackageRow key={item.id} item={item} isBest={bestId != null && String(item.id) === bestId} baseRate={baseRate} onOpen={onOpen} />
-        ))}
-      </div>
-      <p className="mt-2 max-w-[60ch] text-[11px] leading-relaxed text-gray-500">
-        Activate within 30 days of purchase. Once activated, the day count above starts on your first class.
-      </p>
-    </section>
   );
 };
 
 const PackageRow = ({
   item,
   isBest,
-  baseRate,
   onOpen,
 }: {
   item: ICreditPackageItem;
   isBest: boolean;
-  baseRate: number;
   onOpen: (id: string) => void;
 }) => {
   const credits = Number(item.credits) || 0;
   const price = Number(item.price_idr) || 0;
-  const per = credits > 0 ? Math.round(price / credits) : 0;
-  const savePct = credits > 0 && baseRate > 0 ? Math.floor((1 - price / credits / baseRate) * 100) : 0;
   const isFirstTimer = item.max_purchases_per_user === 1;
   const classNames = item.class_ids_restriction?.map((c) => c.name).join(", ");
   const facts: string[] = [];
-  if (item.is_shareable) facts.push("Shareable");
-  else facts.push("1 person");
   facts.push(`${item.validity_days} days from your first class`);
   facts.push(`${classNames || "All classes"} · ${placeLabel(item.place_restriction)}`);
 
@@ -346,7 +285,7 @@ const PackageRow = ({
     <button
       type="button"
       onClick={() => onOpen(String(item.id))}
-      aria-label={`${item.name}, ${item.credits} credits, ${formatCurrency(String(item.price_idr))}${isBest ? ", best value" : ""}${isFirstTimer ? ", first-timers only, one purchase per person" : ""}`}
+      aria-label={`${item.name}, ${item.credits} credits, ${formatCurrency(String(item.price_idr))}${isBest ? ", best value" : ""}${isFirstTimer ? ", first-timers only, one purchase per person" : ""}${item.is_shareable ? ", shareable" : ""}`}
       className={
         isBest
           ? "w-full rounded-2xl border-2 border-brand-500 bg-brand-25 p-4 text-left transition-shadow hover:shadow-md focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-500"
@@ -368,6 +307,16 @@ const PackageRow = ({
               </span>
             )}
           </span>
+          <span className="mt-1.5 flex flex-wrap items-center gap-1.5">
+            <span className="inline-flex rounded-full bg-brand-500 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-white">
+              {credits} {credits === 1 ? "credit" : "credits"}
+            </span>
+            {item.is_shareable && (
+              <span className="inline-flex items-center gap-1 rounded-full border border-brand-300 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-brand-700">
+                <Users size={10} aria-hidden="true" /> Shareable
+              </span>
+            )}
+          </span>
           <span className="mt-1 block text-[11px] leading-relaxed text-gray-500">
             {facts.map((fact, i) => (
               <span key={i}>
@@ -385,16 +334,7 @@ const PackageRow = ({
         </span>
         <span className="shrink-0 whitespace-nowrap text-right">
           <span className="block text-base font-bold tabular-nums">{formatCurrency(String(item.price_idr))}</span>
-          {credits > 1 && <span className="mt-0.5 block text-[11px] tabular-nums text-gray-500">{formatCurrency(String(per))} per class</span>}
-          {savePct > 0 && (
-            <span className="mt-1 inline-block rounded bg-brand-100 px-1.5 py-0.5 text-[11px] font-bold text-brand-900">
-              Save {savePct}%
-            </span>
-          )}
         </span>
-      </span>
-      <span className="mt-3 flex items-center justify-end gap-1 text-[11px] font-bold text-brand-700">
-        View details <ArrowRight size={14} aria-hidden="true" />
       </span>
     </button>
   );

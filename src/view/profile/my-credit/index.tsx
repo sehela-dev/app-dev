@@ -3,7 +3,6 @@
 import { GeneralTabComponent } from "@/components/general/tabs-component";
 import { NavHeaderComponent } from "@/components/layout/header-checkout";
 import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { getShareErrorMessage } from "@/api-req/customer-app/payments";
 import { useAuthMember } from "@/context/member.ctx";
@@ -284,21 +283,12 @@ export const MyCreditsCardsItem = ({ item, variant = "active" }: IProps) => {
         </div>
       )}
       {canShare && (
-        <>
-          <Button
-            variant="outline"
-            className="min-h-11 w-full gap-1.5 rounded-xl border-brand-200 text-xs font-semibold text-brand-700"
-            onClick={() => setShareOpen(true)}
-          >
-            <Users size={14} /> Share this package
-          </Button>
-          <SharePackageDialog
-            open={shareOpen}
-            onOpenChange={setShareOpen}
-            purchaseId={item.package_purchase_id}
-            packageName={item.package_name}
-          />
-        </>
+        <SharePackagePanel
+          open={shareOpen}
+          onOpenChange={setShareOpen}
+          purchaseId={item.package_purchase_id}
+          packageName={item.package_name}
+        />
       )}
     </div>
   );
@@ -321,7 +311,7 @@ export const EmptyStateCredit = ({ variant = "active" }: { variant?: "active" | 
   );
 };
 
-function SharePackageDialog({
+function SharePackagePanel({
   open,
   onOpenChange,
   purchaseId,
@@ -336,13 +326,6 @@ function SharePackageDialog({
   const [error, setError] = useState<string | null>(null);
   const { mutateAsync, isPending } = useSharePackagePurchase();
 
-  const close = () => {
-    if (isPending) return;
-    onOpenChange(false);
-    setEmail("");
-    setError(null);
-  };
-
   const handleShare = async () => {
     const trimmed = email.trim();
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmed)) {
@@ -356,7 +339,9 @@ function SharePackageDialog({
         description: `Shared with ${res.data?.shared_with?.name || res.data?.shared_with?.email || trimmed}.`,
         position: "top-center",
       });
-      close();
+      onOpenChange(false);
+      setEmail("");
+      setError(null);
     } catch (err) {
       const apiError = (err as { response?: { data?: { error?: { code?: string; message?: string } } } })?.response
         ?.data?.error;
@@ -365,57 +350,67 @@ function SharePackageDialog({
   };
 
   return (
-    <Dialog open={open} onOpenChange={(v) => !v && close()}>
-      <DialogContent className="font-serif">
-        <DialogHeader>
-          <DialogTitle>Share {packageName}</DialogTitle>
-          <DialogDescription>
-            Enter your friend&apos;s registered email. Sharing works only before the first class is used, lasts until
-            expiry, and cannot be revoked.
-          </DialogDescription>
-        </DialogHeader>
-        <div className="flex flex-col gap-2">
-          <Input
-            type="email"
-            inputMode="email"
-            autoComplete="email"
-            placeholder="friend@mail.com"
-            value={email}
-            onChange={(e) => {
-              setEmail(e.target.value);
-              if (error) setError(null);
-            }}
-            aria-label="Friend email to share with"
-            aria-invalid={!!error}
-            className="min-h-11 rounded-xl"
-            onKeyDown={(e) => {
-              if (e.key === "Enter") {
-                e.preventDefault();
-                void handleShare();
-              }
-            }}
-          />
+    <div className="rounded-2xl border border-amber-200 bg-amber-50 p-3.5">
+      <p className="text-sm font-bold text-brand-900">Share with 1 other person</p>
+      <p className="mt-1 text-[11px] leading-relaxed text-gray-600">
+        Add them before your first class, it can&apos;t be changed after that.
+      </p>
+      {!open ? (
+        <Button
+          variant="outline"
+          className="mt-3 min-h-11 w-full gap-1.5 rounded-xl border-brand-300 bg-white text-xs font-bold text-brand-700"
+          onClick={() => onOpenChange(true)}
+        >
+          <Plus size={14} /> Add person
+        </Button>
+      ) : (
+        <div className="mt-3 flex flex-col gap-2">
+          <label htmlFor={`share-email-${purchaseId}`} className="text-xs font-bold text-brand-900">
+            Their email
+          </label>
+          <div className="flex gap-2">
+            <Input
+              id={`share-email-${purchaseId}`}
+              type="email"
+              inputMode="email"
+              autoComplete="email"
+              placeholder="name@email.com"
+              value={email}
+              disabled={isPending}
+              onChange={(e) => {
+                setEmail(e.target.value);
+                if (error) setError(null);
+              }}
+              aria-label={`Email of the person to share ${packageName} with`}
+              aria-invalid={!!error}
+              className="min-h-11 rounded-xl bg-white"
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  e.preventDefault();
+                  void handleShare();
+                }
+              }}
+            />
+            <Button className="min-h-11 shrink-0" onClick={() => void handleShare()} disabled={isPending || !email.trim()}>
+              {isPending ? (
+                <span className="inline-flex items-center gap-2">
+                  <Loader2 className="h-4 w-4 animate-spin" /> Saving…
+                </span>
+              ) : (
+                "Save"
+              )}
+            </Button>
+          </div>
           {error && (
-            <p role="alert" className="text-xs font-medium text-red-600">
+            <p role="alert" className="text-[11px] font-medium text-red-600">
               {error}
             </p>
           )}
+          <p className="text-[11px] leading-relaxed text-gray-500">
+            They must already have a Sehela account. Sharing lasts until the package expires and cannot be revoked.
+          </p>
         </div>
-        <DialogFooter>
-          <Button variant="outline" className="min-h-11" onClick={close} disabled={isPending}>
-            Cancel
-          </Button>
-          <Button className="min-h-11" onClick={() => void handleShare()} disabled={isPending || !email.trim()}>
-            {isPending ? (
-              <span className="inline-flex items-center gap-2">
-                <Loader2 className="h-4 w-4 animate-spin" /> Sharing…
-              </span>
-            ) : (
-              "Share package"
-            )}
-          </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+      )}
+    </div>
   );
 }
