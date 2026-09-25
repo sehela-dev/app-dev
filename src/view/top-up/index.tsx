@@ -165,7 +165,7 @@ const BalancePanelInner = () => {
   const router = useRouter();
   const { profile } = useAuthMember();
   const { data, isLoading } = useGetMyCredits({ is_expired: false });
-  const [expanded, setExpanded] = useState(true);
+  const [expanded, setExpanded] = useState(false);
 
   const credits = useMemo(() => data?.data ?? [], [data]);
   // ponytail: client-side expiry sort; push to API ordering if collection grows
