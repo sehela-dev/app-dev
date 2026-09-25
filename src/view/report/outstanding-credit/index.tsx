@@ -19,7 +19,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 import { FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectGroup, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { MONTH_LIST, YEAR_LIST } from "@/constants/sample-data";
+import { MONTH_LIST, SEHELA_BRANCH, YEAR_LIST, branchLabel } from "@/constants/sample-data";
 import { exportCreditsLedger, exportOutstandingDetailCsv, runRecognition } from "@/api-req/report";
 import { useGenerateOutstandingReport } from "@/hooks/api/mutations/admin";
 import { useGetCreditsLedger } from "@/hooks/api/queries/admin/report/outstanding-credit/use-get-credits-ledger";
@@ -1005,6 +1005,10 @@ function CreditsLedgerLog() {
   const [pageSize] = useState(Number(searchParams.get("page_size") ?? "20"));
   const [order, setOrder] = useState<"asc" | "desc">((searchParams.get("order") as "asc" | "desc") ?? "desc");
   const [userId, setUserId] = useState(searchParams.get("user_id") ?? "");
+  // filter branch (BE v295/v38+): "all" = tanpa filter, selain itu exact-match single value
+  const _branchInit = searchParams.get("branch") ?? "all";
+  const [branch, setBranch] = useState(SEHELA_BRANCH.some((b) => b.value === _branchInit) ? _branchInit : "all");
+  const branchParam = branch !== "all" ? branch : undefined;
 
   // member select — reuse member selects via useGetCustomers, q now only for package name
   const [memberSearch, setMemberSearch] = useState("");
@@ -1028,7 +1032,7 @@ function CreditsLedgerLog() {
   // reset page on filter change
   useEffect(() => {
     setPage(1);
-  }, [q, entryTypes, statuses, startDate, endDate, order, userId, purchasedMonth]);
+  }, [q, entryTypes, statuses, startDate, endDate, order, userId, purchasedMonth, branch]);
 
   // persist to URL
   useEffect(() => {
@@ -1051,9 +1055,11 @@ function CreditsLedgerLog() {
     p.set("order", order);
     if (userId) p.set("user_id", userId);
     else p.delete("user_id");
+    if (branch !== "all") p.set("branch", branch);
+    else p.delete("branch");
     router.replace(`?${p.toString()}`, { scroll: false } as never);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [q, entryTypes, statuses, startDate, endDate, purchasedMonth, page, pageSize, order, userId]);
+  }, [q, entryTypes, statuses, startDate, endDate, purchasedMonth, page, pageSize, order, userId, branch]);
 
   const rangeError = useMemo(() => {
     if (!startDate || !endDate) return null;
@@ -1073,6 +1079,7 @@ function CreditsLedgerLog() {
       q: q || undefined,
       entry_type: entryTypes.length ? entryTypes.join(",") : undefined,
       status: statuses.length ? statuses.join(",") : undefined,
+      branch: branchParam,
       start_date: !rangeError && startDate ? startDate : undefined,
       end_date: !rangeError && endDate ? endDate : undefined,
       purchased_month: purchasedMonthParam,
@@ -1081,22 +1088,23 @@ function CreditsLedgerLog() {
       order,
       user_id: userId || undefined,
     }),
-    [q, entryTypes, statuses, startDate, endDate, purchasedMonthParam, page, pageSize, order, userId, rangeError],
+    [q, entryTypes, statuses, branchParam, startDate, endDate, purchasedMonthParam, page, pageSize, order, userId, rangeError],
   );
 
   const { data, isLoading, isFetching, isError, error, refetch } = useGetCreditsLedger(params);
 
-  // Filtered summary reconciles with the table (passes entry_type + purchased_month).
+  // Filtered summary reconciles with the table (passes entry_type + purchased_month + branch).
   const summaryParams = useMemo(
     () => ({
       q: q || undefined,
       entry_type: entryTypes.length ? entryTypes.join(",") : undefined,
+      branch: branchParam,
       start_date: !rangeError && startDate ? startDate : undefined,
       end_date: !rangeError && endDate ? endDate : undefined,
       purchased_month: purchasedMonthParam,
       user_id: userId || undefined,
     }),
-    [q, entryTypes, startDate, endDate, purchasedMonthParam, userId, rangeError],
+    [q, entryTypes, branchParam, startDate, endDate, purchasedMonthParam, userId, rangeError],
   );
   const { data: summaryRes, isLoading: summaryLoading, refetch: refetchSummary } = useGetCreditsLedgerSummary(summaryParams, !rangeError);
 
@@ -1107,12 +1115,13 @@ function CreditsLedgerLog() {
   const periodParams = useMemo(
     () => ({
       q: q || undefined,
+      branch: branchParam,
       start_date: !rangeError && startDate ? startDate : undefined,
       end_date: !rangeError && endDate ? endDate : undefined,
       purchased_month: purchasedMonthParam,
       user_id: userId || undefined,
     }),
-    [q, startDate, endDate, purchasedMonthParam, userId, rangeError],
+    [q, branchParam, startDate, endDate, purchasedMonthParam, userId, rangeError],
   );
   const { data: periodRes, isLoading: periodLoading, refetch: refetchPeriodSummary } = useGetCreditsLedgerSummary(periodParams, !rangeError);
 
@@ -1153,6 +1162,7 @@ function CreditsLedgerLog() {
         q: q || undefined,
         entry_type: entryTypes.length ? entryTypes.join(",") : undefined,
         status: statuses.length ? statuses.join(",") : undefined,
+        branch: branchParam,
         start_date: startDate || undefined,
         end_date: endDate || undefined,
         purchased_month: purchasedMonthParam,
@@ -1166,8 +1176,9 @@ function CreditsLedgerLog() {
       const typeSuffix = entryTypes.length ? `_${entryTypes.join("-")}` : "";
       const qSuffix = q ? `_q-${q.replace(/\s+/g, "_")}` : "";
       const pmSuffix = purchasedMonth ? `_beli-${purchasedMonth}` : "";
+      const branchSuffix = branchParam ? `_${branchParam}` : "";
       const rangeSuffix = startDate && endDate ? `_${startDate}_${endDate}` : startDate ? `_${startDate}` : endDate ? `_${endDate}` : "_semua-tanggal";
-      a.download = `credits_ledger${rangeSuffix}${typeSuffix}${qSuffix}${pmSuffix}.csv`;
+      a.download = `credits_ledger${rangeSuffix}${typeSuffix}${branchSuffix}${qSuffix}${pmSuffix}.csv`;
       a.click();
       window.URL.revokeObjectURL(url);
       toast.success("Ekspor dimulai", { description: "File CSV terunduh", position: "top-center" });
@@ -1195,6 +1206,7 @@ function CreditsLedgerLog() {
     setPmYear("");
     setUserId("");
     setMemberSearch("");
+    setBranch("all");
     setOrder("desc");
     setPage(1);
   };
@@ -1215,6 +1227,11 @@ function CreditsLedgerLog() {
         id: "customer_name",
         text: "Customer",
         value: (row: ICreditsLedgerItem) => row.customer_name ?? "—",
+      },
+      {
+        id: "branch",
+        text: "Branch",
+        value: (row: ICreditsLedgerItem) => branchLabel(row.branch),
       },
       {
         id: "amount",
@@ -1321,7 +1338,7 @@ function CreditsLedgerLog() {
           <p className="rounded-lg border bg-muted/30 px-3 py-2 text-xs leading-relaxed text-muted-foreground">{RECOGNITION_DISCLAIMER}</p>
           {/* filter — cari customer / paket / catatan; pilihan member mempersempit hasil */}
           <div className="grid grid-cols-1 gap-4 md:grid-cols-12">
-            <div className="flex flex-col gap-1 md:col-span-4">
+            <div className="flex flex-col gap-1 md:col-span-3">
               <p className="text-sm font-medium">Cari customer / paket / catatan</p>
               <div className="relative">
                 <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
@@ -1343,7 +1360,23 @@ function CreditsLedgerLog() {
                 maxSelectionDays={31}
               />
             </div>
-            <div className="flex flex-col gap-1 md:col-span-3">
+            <div className="flex flex-col gap-1 md:col-span-2">
+              <p className="text-sm font-medium">Branch</p>
+              <Select value={branch} onValueChange={setBranch}>
+                <SelectTrigger className="h-10">
+                  <SelectValue placeholder="Semua" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Semua</SelectItem>
+                  {SEHELA_BRANCH.map((b) => (
+                    <SelectItem key={b.value} value={b.value}>
+                      {b.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="flex flex-col gap-1 md:col-span-2">
               <p className="text-sm font-medium">Bulan pembelian paket</p>
               <div className="flex gap-2">
                 <Select value={pmMonth} onValueChange={(v) => setPmMonth(v === "__all__" ? "" : v)}>
@@ -1387,6 +1420,9 @@ function CreditsLedgerLog() {
               </Select>
             </div>
           </div>
+          {branch !== "all" && (
+            <p className="text-[11px] text-muted-foreground">Filter branch aktif: baris tanpa branch tidak ikut hitungan.</p>
+          )}
           <div className="flex flex-col gap-1">
             <p className="text-sm font-medium">Member (customer)</p>
             <ReactSelect
@@ -1551,7 +1587,8 @@ function CreditsLedgerLog() {
               .map((v) => ENTRY_TYPE_LABEL[v.trim()] ?? v.trim())
               .join(", ")
           : "";
-        const isFiltered = !!filterEntry;
+        const isFiltered =
+          !!filterEntry || (Array.isArray(filterEcho?.branch) && filterEcho.branch.length > 0);
         const fmtSigned = (n: number) => (n > 0 ? `+${n.toLocaleString("en-US")}` : n.toLocaleString("en-US"));
         return (
           <Card className="w-full max-w-vw overflow-hidden border-muted-foreground/10">
@@ -1581,6 +1618,11 @@ function CreditsLedgerLog() {
                     {summary.filters?.q ? (
                       <Badge variant="outline" className="text-[11px]">
                         Cari: {summary.filters.q}
+                      </Badge>
+                    ) : null}
+                    {Array.isArray(summary.filters?.branch) && summary.filters.branch.length ? (
+                      <Badge variant="outline" className="bg-sky-50 text-sky-700 border-sky-200 text-[11px]">
+                        Branch: {summary.filters.branch.map((b) => branchLabel(b)).join(", ")}
                       </Badge>
                     ) : null}
                   </div>

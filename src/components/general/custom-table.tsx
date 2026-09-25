@@ -87,11 +87,11 @@ export const CustomTable = (props: TableContentProps) => {
             {numberOptions?.show && <TableHead className="w-2">{numberOptions?.text}</TableHead>}
 
             {/* Table headers */}
-            {headers?.map((head) => {
+            {headers?.map((head, headIdx) => {
               const sortKey = head.sortKey ?? head.id;
               return (
                 <TableHead
-                  key={head.id}
+                  key={`${head.id}-${headIdx}`}
                   style={{
                     width: head.width || "fit-content",
 
@@ -165,9 +165,9 @@ export const CustomTable = (props: TableContentProps) => {
                     )}
 
                     {/* Table cells with custom rendering */}
-                    {headers?.map((head) => (
+                    {headers?.map((head, headIdx) => (
                       <TableCell
-                        key={head.id}
+                        key={`${head.id}-${headIdx}`}
                         style={{
                           width: head.width || "auto",
                           whiteSpace: head.whiteSpace as "normal" | "nowrap" | "pre" | "pre-wrap" | "pre-line" | "break-spaces" | undefined,
