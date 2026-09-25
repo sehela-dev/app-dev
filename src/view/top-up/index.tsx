@@ -22,6 +22,8 @@ const placeLabel = (place?: string | null) => {
 };
 
 export const TopUpCreditPageView = () => {
+  const { isAuthenticated } = useAuthMember();
+
   const router = useRouter();
   const [activeFilter, setActiveFilter] = useState<string>("all");
   const { data: classesData } = useGetPublicClasses({ page_size: 100 });
@@ -141,11 +143,13 @@ export const TopUpCreditPageView = () => {
             Full credit terms
           </button>
         </footer>
-        <div className="pb-2 text-center">
-          <Button variant="link" className="text-xs" onClick={() => router.push("/profile/purchase-history")}>
-            View purchase history
-          </Button>
-        </div>
+        {isAuthenticated &&
+          <div className="pb-2 text-center">
+            <Button variant="link" className="text-xs" onClick={() => router.push("/profile/purchase-history")}>
+              View purchase history
+            </Button>
+          </div>
+        }
       </div>
     </div>
   );
@@ -161,7 +165,7 @@ const BalancePanelInner = () => {
   const router = useRouter();
   const { profile } = useAuthMember();
   const { data, isLoading } = useGetMyCredits({ is_expired: false });
-  const [expanded, setExpanded] = useState(true);
+  const [expanded, setExpanded] = useState(false);
 
   const credits = useMemo(() => data?.data ?? [], [data]);
   // ponytail: client-side expiry sort; push to API ordering if collection grows
@@ -201,64 +205,64 @@ const BalancePanelInner = () => {
 
   return (
     <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-brand-500 to-brand-600 p-5 text-white shadow-sm">
-      <div aria-hidden="true" className="pointer-events-none absolute -right-12 -top-12 size-44 rounded-full bg-white/10" />
-      <div aria-hidden="true" className="pointer-events-none absolute -bottom-16 -left-10 size-40 rounded-full border-[12px] border-white/10" />
+      {/* <div aria-hidden="true" className="pointer-events-none absolute -right-12 -top-12 size-44 rounded-full bg-white/10" />
+      <div aria-hidden="true" className="pointer-events-none absolute -bottom-16 -left-10 size-40 rounded-full border-[12px] border-white/10" /> */}
       <div className="relative">
-      <div className="flex items-start justify-between gap-3">
-        <p className="pt-2 text-[11px] font-bold uppercase tracking-[0.18em]">You already have</p>
+        <div className="flex items-start justify-between gap-3">
+          <p className="pt-2 text-[11px] font-bold uppercase tracking-[0.18em]">You already have</p>
+          <button
+            type="button"
+            onClick={() => router.push("/profile/my-credits")}
+            className="inline-flex min-h-11 items-center text-sm font-semibold underline underline-offset-4"
+          >
+            My Credits
+          </button>
+        </div>
+        <p className="mt-1 flex flex-wrap items-baseline gap-x-2">
+          <span className="font-serif text-5xl font-semibold leading-none">{balance}</span>
+          <span className="text-lg">credits</span>
+        </p>
+        <p className="mt-2 text-sm">
+          Across {slides.length} {slides.length === 1 ? "package" : "packages"}
+          {soonest && soonestLabel && (
+            <>
+              {" · "}soonest expires{" "}
+              <span className="font-bold">
+                {formatDateHelper(soonest.expires_at as string, "d MMM")}, {soonestLabel}
+              </span>
+            </>
+          )}
+        </p>
+
         <button
           type="button"
-          onClick={() => router.push("/profile/my-credits")}
-          className="inline-flex min-h-11 items-center text-sm font-semibold underline underline-offset-4"
+          onClick={() => setExpanded((v) => !v)}
+          aria-expanded={expanded}
+          aria-controls="my-packages-list"
+          className="mt-1 inline-flex min-h-11 items-center gap-1.5 text-sm font-bold"
         >
-          My Credits
+          {expanded ? "Hide my packages" : "Show my packages"}
+          <ChevronDown size={16} aria-hidden="true" className={expanded ? "rotate-180 transition-transform" : "transition-transform"} />
         </button>
-      </div>
-      <p className="mt-1 flex flex-wrap items-baseline gap-x-2">
-        <span className="font-serif text-5xl font-semibold leading-none">{balance}</span>
-        <span className="text-lg">credits</span>
-      </p>
-      <p className="mt-2 text-sm">
-        Across {slides.length} {slides.length === 1 ? "package" : "packages"}
-        {soonest && soonestLabel && (
-          <>
-            {" · "}soonest expires{" "}
-            <span className="font-bold">
-              {formatDateHelper(soonest.expires_at as string, "d MMM")}, {soonestLabel}
-            </span>
-          </>
+
+        {expanded && (
+          <ul id="my-packages-list" className="mt-1 flex flex-col gap-2">
+            {slides.map((c) => {
+              const isSoonest = soonest != null && c.package_purchase_id === soonest.package_purchase_id;
+              return (
+                <li key={c.package_purchase_id} className="flex items-baseline justify-between gap-3">
+                  <p className="min-w-0 truncate text-sm">
+                    <span className="font-bold">{c.package_name}</span> {c.credits_remaining} left
+                    {!c.is_owner && c.is_shared && <span> · shared{c.shared_by_user_name ? ` by ${c.shared_by_user_name}` : ""}</span>}
+                  </p>
+                  <p className={`shrink-0 text-sm ${isSoonest ? "font-bold" : ""}`}>
+                    {c.expires_at ? `Expires ${formatDateHelper(c.expires_at, "d MMM")}` : "Not started yet"}
+                  </p>
+                </li>
+              );
+            })}
+          </ul>
         )}
-      </p>
-
-      <button
-        type="button"
-        onClick={() => setExpanded((v) => !v)}
-        aria-expanded={expanded}
-        aria-controls="my-packages-list"
-        className="mt-1 inline-flex min-h-11 items-center gap-1.5 text-sm font-bold"
-      >
-        {expanded ? "Hide my packages" : "Show my packages"}
-        <ChevronDown size={16} aria-hidden="true" className={expanded ? "rotate-180 transition-transform" : "transition-transform"} />
-      </button>
-
-      {expanded && (
-        <ul id="my-packages-list" className="mt-1 flex flex-col gap-2">
-          {slides.map((c) => {
-            const isSoonest = soonest != null && c.package_purchase_id === soonest.package_purchase_id;
-            return (
-              <li key={c.package_purchase_id} className="flex items-baseline justify-between gap-3">
-                <p className="min-w-0 truncate text-sm">
-                  <span className="font-bold">{c.package_name}</span> {c.credits_remaining} left
-                  {!c.is_owner && c.is_shared && <span> · shared{c.shared_by_user_name ? ` by ${c.shared_by_user_name}` : ""}</span>}
-                </p>
-                <p className={`shrink-0 text-sm ${isSoonest ? "font-bold" : ""}`}>
-                  {c.expires_at ? `Expires ${formatDateHelper(c.expires_at, "d MMM")}` : "Not started yet"}
-                </p>
-              </li>
-            );
-          })}
-        </ul>
-      )}
       </div>
     </div>
   );

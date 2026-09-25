@@ -66,7 +66,7 @@ export const MySessionsPage = () => {
   };
 
   const onExpoloreClass = () => {
-    router.push("/book/class");
+    router.push("/book")
   };
 
   const onClickMySessionDetail = (id: string) => {
