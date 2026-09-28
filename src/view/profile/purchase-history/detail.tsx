@@ -8,7 +8,7 @@ import {
   getPendingPackagePayment,
   humanizePaymentStatus,
 } from "@/lib/pending-package-payment";
-import { AlertCircle, Gem as GemIcon, Loader2, Ticket as TicketIcon } from "lucide-react";
+import { AlertCircle, Gem as GemIcon, Loader2, Ticket as TicketIcon, TriangleAlert } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 
@@ -25,6 +25,7 @@ export const PurchaseHistoryDetailView = ({ refId }: { refId: string }) => {
   const kind = item?.payable_type ? String(item.payable_type) : "";
   const isPackage = kind === "package_purchase";
   const isBooking = kind === "booking";
+  const isPenalty = kind === "cancellation_penalty";
   const status = item?.status ? String(item.status) : "";
   const serverPending = status === "pending";
 
@@ -63,7 +64,7 @@ export const PurchaseHistoryDetailView = ({ refId }: { refId: string }) => {
         ...(item.created_at ? { created_at: String(item.created_at) } : {}),
       });
       router.push(packageId ? `/topup-credit/${packageId}/payment?${qs.toString()}` : "/profile/purchase-history");
-    } else if (isBooking && item.payable_id) {
+    } else if ((isBooking || isPenalty) && item.payable_id) {
       router.push(`/profile/my-sessions/${String(item.payable_id)}`);
     }
   };
@@ -100,7 +101,9 @@ export const PurchaseHistoryDetailView = ({ refId }: { refId: string }) => {
     ? String(item.package_name ?? "Credit package")
     : isBooking
       ? String(item.session_name ?? "Class booking")
-      : "Payment";
+      : isPenalty
+        ? String(item.session_name ? `Cancellation fee · ${item.session_name}` : "Cancellation fee")
+        : "Payment";
   const lifecycle = item.purchase_status ?? item.booking_status;
   const discount = item.discount_idr != null ? Number(item.discount_idr) : 0;
 
@@ -114,10 +117,18 @@ export const PurchaseHistoryDetailView = ({ refId }: { refId: string }) => {
               className={
                 isPackage
                   ? "flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-brand-500"
-                  : "flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-sky-600"
+                  : isPenalty
+                    ? "flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-amber-500"
+                    : "flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-sky-600"
               }
             >
-              {isPackage ? <GemIcon size={16} className="text-white" /> : <TicketIcon size={16} className="text-white" />}
+              {isPackage ? (
+                <GemIcon size={16} className="text-white" />
+              ) : isPenalty ? (
+                <TriangleAlert size={16} className="text-white" />
+              ) : (
+                <TicketIcon size={16} className="text-white" />
+              )}
             </span>
             <div className="min-w-0 flex-1">
               <p className="truncate text-sm font-semibold text-brand-900">{title}</p>
@@ -136,7 +147,8 @@ export const PurchaseHistoryDetailView = ({ refId }: { refId: string }) => {
             {isPackage && item.package_credits != null && (
               <Row label="Credits" value={`${String(item.package_credits)} credits`} />
             )}
-            {isBooking && item.class_name && <Row label="Class" value={String(item.class_name)} />}
+            {(isBooking || isPenalty) && item.session_name && <Row label="Session" value={String(item.session_name)} />}
+            {(isBooking || isPenalty) && item.class_name && <Row label="Class" value={String(item.class_name)} />}
             {item.purchased_at && (
               <Row label="Purchased" value={formatDateHelper(String(item.purchased_at), "dd MMM yyyy · HH:mm")} />
             )}
@@ -161,9 +173,9 @@ export const PurchaseHistoryDetailView = ({ refId }: { refId: string }) => {
         {!isPending && (SUCCESS.includes(status)) && (
           <Button
             className="min-h-12 w-full text-sm font-extrabold"
-            onClick={() => router.push(isBooking ? "/profile/my-sessions" : "/profile/my-credits")}
+            onClick={() => router.push(isBooking || isPenalty ? "/profile/my-sessions" : "/profile/my-credits")}
           >
-            {isBooking ? "View My Class" : "View My Credits"}
+            {isBooking || isPenalty ? "View My Class" : "View My Credits"}
           </Button>
         )}
         <div className="text-center">

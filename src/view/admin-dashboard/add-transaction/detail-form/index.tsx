@@ -184,20 +184,20 @@ export const DetailFormAddTransaction = () => {
       products: products ?? [],
       ...((products?.length as number) > 0 ? { location_id: products?.[0].location_id } : null),
       packages: packages ?? [],
-      notes: "Combined purchase",
+      notes: "",
       status: "paid",
       payment_method: selectedPaymentMethod,
 
       ...(selectedPaymentMethod === "transfer"
         ? {
-            transfer_details: {
-              account_name_from: nameFrom as string,
-              account_bank_to: selectedBankTo?.label as string,
-            },
-          }
+          transfer_details: {
+            account_name_from: nameFrom as string,
+            account_bank_to: selectedBankTo?.label as string,
+          },
+        }
         : {
-            branch: (selectedBranch?.value ?? customerData?.branch) as string,
-          }),
+          branch: (selectedBranch?.value ?? customerData?.branch) as string,
+        }),
       user_id: customerData?.id as string,
       branch: (selectedBranch?.value ?? customerData?.branch) as string,
       ...(discountData ? { voucher_code: selectedVoucher?.code } : null),
@@ -296,11 +296,11 @@ export const DetailFormAddTransaction = () => {
         ? { id: "", name: trimmedEmail, phone: "", email: trimmedEmail }
         : selectedUser
           ? {
-              id: selectedUser.id,
-              name: selectedUser.full_name,
-              phone: selectedUser.phone,
-              email: selectedUser.email,
-            }
+            id: selectedUser.id,
+            name: selectedUser.full_name,
+            phone: selectedUser.phone,
+            email: selectedUser.email,
+          }
           : null,
     });
     setOpenModalSharing(false);
@@ -589,8 +589,8 @@ export const DetailFormAddTransaction = () => {
                           {!discountData
                             ? formatCurrency(0)
                             : discountData?.discount_type === "percentage"
-                            ? `${formatCurrency(discountData?.calculated_discount)} (${discountData?.discount_value}%)`
-                            : formatCurrency(discountData?.discount_value)}
+                              ? `${formatCurrency(discountData?.calculated_discount)} (${discountData?.discount_value}%)`
+                              : formatCurrency(discountData?.discount_value)}
                         </p>
                       </div>
                     </div>

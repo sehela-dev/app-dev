@@ -116,6 +116,46 @@ export type TValidateVoucher = (
 ) => Promise<{ success: boolean; data: IValidateVoucherResponse }>;
 
 // ----------------------------------------------------------------------
+// POST /profile/bookings/:booking_id/cancel (member self-cancel)
+// Probe with {} first: free → done, penalty → requires_choice.
+// Then re-call with choice: "burn" | "refund_with_penalty".
+// ----------------------------------------------------------------------
+
+export type TCancelBookingChoice = "burn" | "refund_with_penalty";
+
+export interface ICancelBookingRequest {
+  cancel_reason?: string;
+  choice?: TCancelBookingChoice;
+}
+
+export interface ICancelBookingResponse {
+  window: "free" | "penalty";
+  booking_id: string;
+  booking_status?: string;
+  requires_choice?: boolean;
+  result?: "burned" | "penalty_pending";
+  choices?: TCancelBookingChoice[];
+  message?: string;
+  hours_until_start?: number;
+  penalty_amount_idr?: number;
+  refund?: string;
+  refund_type?: string;
+  refund_id?: string | null;
+  credits_refunded?: number;
+  refund_package_purchase_id?: string | null;
+  payment_status?: string;
+  penalty_payment_id?: string;
+  order_id?: string;
+  snap_token?: string;
+  snap_redirect_url?: string;
+}
+
+export type TCancelMemberBooking = (
+  bookingId: string,
+  body?: ICancelBookingRequest,
+) => Promise<IResponseData<ICancelBookingResponse>>;
+
+// ----------------------------------------------------------------------
 // POST /profile/bookings/:booking_id/repay (retry payment) - migrated from /public
 // ----------------------------------------------------------------------
 

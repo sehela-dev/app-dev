@@ -4,6 +4,7 @@ import {
   ICreateBookingRequest,
   ICreatePublicBookingRequest,
   IEligibleCreditsParams,
+  TCancelMemberBooking,
   TCreateBooking,
   TCreatePublicBooking,
   TEligibleCreditsResponse,
@@ -30,6 +31,11 @@ export const createPublicBooking: TCreatePublicBooking = async (body: ICreatePub
 
 export const repayBooking: TRepayBooking = async (bookingId: string) => {
   const res = await axiosx(true).post(`${MAIN_API_URL}/profile/bookings/${bookingId}/repay`);
+  return res.data;
+};
+
+export const cancelMemberBooking: TCancelMemberBooking = async (bookingId, body) => {
+  const res = await axiosx(true).post(`${MAIN_API_URL}/profile/bookings/${bookingId}/cancel`, body ?? {});
   return res.data;
 };
 

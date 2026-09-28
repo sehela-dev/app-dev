@@ -34,6 +34,7 @@ const TRANSACTION_TYPES = [
   { value: "class", label: "Class" },
   { value: "product", label: "Product" },
   { value: "mixed", label: "Mixed" },
+  { value: "cancellation-fee", label: "Cancellation Fee" },
 ];
 
 const transactionTypeClass: Record<string, string> = {
@@ -41,6 +42,7 @@ const transactionTypeClass: Record<string, string> = {
   class: "border-blue-200 bg-blue-50 text-blue-700",
   product: "border-green-200 bg-green-50 text-green-700",
   mixed: "border-amber-200 bg-amber-50 text-amber-700",
+  "cancellation-fee": "border-orange-200 bg-orange-50 text-orange-700",
 };
 
 // "2026-09-15 15:20" (WIB wall time) -> "15 September 2026, 15:20"; raw fallback when unparseable
@@ -234,7 +236,7 @@ export const OrdersReportView = () => {
       text: "Transaction Type",
       value: (row: IOrdersReportRow) => (
         <Badge variant="outline" className={cn("capitalize", transactionTypeClass[(row.transactionType ?? "").toLowerCase()])}>
-          {row.transactionType?.replace(/_/g, " ") || "-"}
+          {row.transactionType?.replace(/[_-]/g, " ") || "-"}
         </Badge>
       ),
     },
