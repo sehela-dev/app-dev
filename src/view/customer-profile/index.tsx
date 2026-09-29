@@ -92,7 +92,7 @@ export const ProfilePageView = () => {
               <div className="flex flex-row  w-full justify-between mb-2 items-center">
                 <div className="flex flex-col">
                   <p className="font-extrabold text-xl">Cancelled Class</p>
-                  <p className="font-normal text-xs text-brand-400">All canceled classes will receive 1 credit for the same class.</p>
+                  <p className="font-normal text-xs text-brand-400">Free cancellation returns credit. Late cancellation forfeits credit unless the penalty is paid.</p>
                 </div>
               </div>
               <ScrollArea className="w-full whitespace-nowrap">
