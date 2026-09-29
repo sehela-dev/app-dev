@@ -172,6 +172,7 @@ export interface IAddTransactionPayload {
   products?: IProduct[] | [];
   notes: string;
   status: string;
+  transaction_date?: string;
   transfer_details?: {
     account_name_from?: string;
     account_bank_from?: string;
@@ -250,6 +251,7 @@ export interface IBookingPayload {
   payment_method?: string;
   package_purchase_id?: string;
   branch?: string | null;
+  transaction_date?: string;
 }
 
 export interface IBookingResponseData {
