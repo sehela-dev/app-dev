@@ -7,8 +7,9 @@ import { toast } from "sonner";
 import { useCallback } from "react";
 import { useMutation } from "@tanstack/react-query";
 
-import { deleteSession } from "@/api-req/class-session";
+import { deleteSession, previewSessionCancel } from "@/api-req/class-session";
 import { validationStatus } from "@/lib/config";
+import { ISessionCancelParams } from "@/types/class-sessions.interface";
 
 export const useDeleteSession = () => {
   const config = useConfig();
@@ -19,6 +20,14 @@ export const useDeleteSession = () => {
   });
 };
 
+export const usePreviewSessionCancel = () => {
+  const { onError } = useConfig();
+
+  return useMutation({
+    mutationFn: (params: Omit<ISessionCancelParams, "confirm">) => previewSessionCancel(params),
+    onError,
+  });
+};
 const useConfig = () => {
   const onError = useCallback((error: AxiosError<any>) => {
     console.log(error);

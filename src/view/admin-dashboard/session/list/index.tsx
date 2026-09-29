@@ -1,14 +1,13 @@
 "use client";
 import { DateRangePicker } from "@/components/base/date-range-picker";
 import { buildNumber, CustomTable } from "@/components/general/custom-table";
-import { BaseDialogConfirmation } from "@/components/general/dialog-confirnation";
+import { CancelSessionDialog } from "@/components/general/cancel-session-dialog";
 import { CustomPagination } from "@/components/general/pagination-component";
 import { GeneralTabComponent } from "@/components/general/tabs-component";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { SearchInput } from "@/components/ui/search-input";
-import { useDeleteSession } from "@/hooks/api/mutations/admin";
 import { useGetSessions } from "@/hooks/api/queries/admin/class-session";
 import { useAdminPermission } from "@/hooks/use-role-access";
 import { defaultDate, formatDateHelper } from "@/lib/helper";
@@ -56,8 +55,7 @@ export const SessionListPage = () => {
   const [search, setSearch] = useState("");
   const [tabs, setTabs] = useState("all");
   const [openDialogConfirm, setOpenDialogConfirm] = useState(false);
-  const [selectedId, setSelectedId] = useState("");
-  const [openNotif, setOpenNotif] = useState(false);
+  const [selectedSession, setSelectedSession] = useState<ISessionItem | null>(null);
 
   const [selectedRange, setSelectedRange] = useState<{ from?: string | null; to?: string | null }>({
     from: null,
@@ -75,8 +73,6 @@ export const SessionListPage = () => {
     endDate: selectedRange.to as string,
     ...(branch !== "all" ? { branch } : null),
   } as ICommonParams & Record<string, unknown>);
-
-  const { mutateAsync } = useDeleteSession();
 
   const headers = [
     {
@@ -173,11 +169,12 @@ export const SessionListPage = () => {
             <></>
           ) : (
             can("session:delete") && (
-              <DropdownMenuItem variant="destructive" className="" onClick={() => onDelete(row.id)}>
+              <DropdownMenuItem variant="destructive" className="" onClick={() => onDelete(row)}>
                 Cancel Session
               </DropdownMenuItem>
             )
           )}
+
         </DropdownMenuContent>
       </DropdownMenu>
     ),
@@ -192,22 +189,9 @@ export const SessionListPage = () => {
     setSelectedRange((prev) => ({ ...prev, from: startDate, to: endDate ?? "" }));
   };
 
-  const onDelete = (id: string) => {
-    setOpenDialogConfirm(!openDialogConfirm);
-    setSelectedId(id);
-  };
-
-  const onConfirmDelete = async () => {
-    try {
-      const res = await mutateAsync(selectedId);
-      if (res) {
-        setOpenNotif(true);
-        onDelete("");
-        refetch();
-      }
-    } catch (error) {
-      console.log(error);
-    }
+  const onDelete = (row?: ISessionItem) => {
+    setSelectedSession(row ?? null);
+    setOpenDialogConfirm(!!row);
   };
 
   return (
@@ -306,32 +290,13 @@ export const SessionListPage = () => {
         </CardFooter>
       </Card>
 
-      {openDialogConfirm && (
-        <BaseDialogConfirmation
-          image="trash-1"
-          onCancel={() => onDelete("")}
+      {openDialogConfirm && selectedSession && (
+        <CancelSessionDialog
+          sessionId={selectedSession.id}
+          sessionName={selectedSession.session_name}
           open={openDialogConfirm}
-          title="Cancel Session?"
-          subtitle="Some participants have paid for this session. Cancelling it will affect their bookings. Continue?"
-          onConfirm={onConfirmDelete}
-          cancelText="Cancel"
-          confirmText="Proceed & Refund"
-        />
-      )}
-      {openNotif && (
-        <BaseDialogConfirmation
-          image="trash-success"
-          onCancel={() => onDelete("")}
-          hideCancel
-          open={openNotif}
-          title="Session Deleted Successfully"
-          subtitle="Your session has been successfully removed from the system"
-          onConfirm={() => {
-            setOpenNotif(false);
-            refetch();
-          }}
-          cancelText="Cancel"
-          confirmText="Ok"
+          onClose={() => onDelete()}
+          onCommitted={() => refetch()}
         />
       )}
     </div>

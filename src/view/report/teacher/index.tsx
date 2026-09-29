@@ -59,7 +59,7 @@ export const TeacherReportView = () => {
   const [exportYear, setExportYear] = useState<string>("");
   const [exportMonth, setExportMonth] = useState<string>("");
 
-  const { data: instructorData, isLoading: instructorLoading } = useGetInstructor({ page: 1, limit: 50, search: instructorSearch || undefined });
+  const { data: instructorData, isLoading: instructorLoading } = useGetInstructor({ page: 1, limit: 50, search: instructorSearch || undefined, status: 'active' });
   const instructorOptions: InstructorOption[] =
     instructorData?.data?.map((i) => ({ value: i.id, label: `${i.full_name}${i.email ? ` - ${i.email}` : ""}` })) ?? [];
 

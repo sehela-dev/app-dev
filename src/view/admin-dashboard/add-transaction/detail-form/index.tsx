@@ -26,9 +26,11 @@ import { BANK_LIST, SEHELA_BANKS, SEHELA_BRANCH } from "@/constants/sample-data"
 import Select from "react-select";
 import { BaseDialogComponent } from "@/components/general/base-dialog-component";
 import { useDebounce } from "@/hooks";
+import { useAdminPermission } from "@/hooks/use-role-access";
 import { useGetCustomers } from "@/hooks/api/queries/admin/customers";
 import { ICustomerData } from "@/types/customers.interface";
 import { parseProductCartItemId } from "@/components/page/orders/product-section";
+import { format } from "date-fns";
 
 export const PAYMENT_METHODS = [
   {
@@ -46,6 +48,7 @@ export const PAYMENT_METHODS = [
 ];
 export const DetailFormAddTransaction = () => {
   const router = useRouter();
+  const { isManager } = useAdminPermission();
 
   const { cartItems, updateItem, updateStepper, customerData, removeItem, updateQuantity, clearCart, addCustomer } = useAdminManualTransaction();
   const [selectedVoucher, setSelectedVoucher] = useState<IVouchersListItem | null>(null);
@@ -56,6 +59,8 @@ export const DetailFormAddTransaction = () => {
   const [selectedBankTo, setSelectedBankTo] = useState<{ label: string; value: string } | null>(null);
   const [selectedBranch, setSelectedBranch] = useState<{ label: string; value: string } | null>(null);
   const [branchError, setBranchError] = useState<string | null>(null);
+  const [transactionDate, setTransactionDate] = useState("");
+  const [transactionDateError, setTransactionDateError] = useState<string | null>(null);
 
   useEffect(() => {
     if (customerData?.branch && !selectedBranch) {
@@ -146,6 +151,14 @@ export const DetailFormAddTransaction = () => {
       return;
     }
 
+    const today = format(new Date(), "yyyy-MM-dd");
+    const backdate = isManager && transactionDate && transactionDate !== today ? transactionDate : "";
+    if (backdate && backdate > today) {
+      setTransactionDateError("Backdate cannot be in the future");
+      return;
+    }
+    setTransactionDateError(null);
+
     const sessions: ISession[] = [];
     const products: IProduct[] = [];
     const packages: IPackages[] = [];
@@ -201,6 +214,7 @@ export const DetailFormAddTransaction = () => {
       user_id: customerData?.id as string,
       branch: (selectedBranch?.value ?? customerData?.branch) as string,
       ...(discountData ? { voucher_code: selectedVoucher?.code } : null),
+      ...(backdate ? { transaction_date: backdate } : null),
     };
     // console.log(payload)
     // return
@@ -211,6 +225,7 @@ export const DetailFormAddTransaction = () => {
         setOpen(true);
         clearCart();
         addCustomer(undefined);
+        setTransactionDate("");
       }
     } catch (error) {
       console.log(error);
@@ -226,6 +241,7 @@ export const DetailFormAddTransaction = () => {
     setOpen(false);
     clearCart();
     addCustomer(undefined);
+    setTransactionDate("");
     updateStepper();
   };
 
@@ -709,6 +725,23 @@ export const DetailFormAddTransaction = () => {
                       />
                       {branchError && <p className="text-sm text-red-500">{branchError}</p>}
                     </div>
+                    {isManager && (
+                      <div className="flex flex-col gap-1 mt-2">
+                        <Label className="text-gray-500">Transaction date (backdate)</Label>
+                        <p className="text-xs text-gray-500">Leave empty to use today. Managers only.</p>
+                        <Input
+                          type="date"
+                          className="w-full px-4 border-2 border-gray-200 rounded-lg text-gray-999 focus:outline-none focus:border-brand-500 transition-colors h-[42px]"
+                          value={transactionDate}
+                          max={format(new Date(), "yyyy-MM-dd")}
+                          onChange={(e) => {
+                            setTransactionDate(e.target.value);
+                            if (transactionDateError) setTransactionDateError(null);
+                          }}
+                        />
+                        {transactionDateError && <p className="text-sm text-red-500">{transactionDateError}</p>}
+                      </div>
+                    )}
 
                     {/* {selectedPaymentMethod === "bank_transfer" &&} */}
                   </div>
