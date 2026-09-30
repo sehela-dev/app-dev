@@ -321,6 +321,11 @@ export interface ICancelBooking {
   cancel_reason: string;
   refund_validity_days?: string | number;
   refund_amount_idr?: number;
+  charge_fee?: boolean;
+  fee_amount_idr?: number;
+  fee_payment_method?: "cash" | "edc" | "transfer" | "midtrans";
+  transfer_details?: { account_bank_to?: string };
+  fee_branch?: string;
 }
 
 export type IAttendanceStatus = "attended" | "no_show" | null;

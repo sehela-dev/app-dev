@@ -27,6 +27,7 @@ export interface ISessionItem {
   price_idr: number;
   price_credit_amount: number;
   status: string;
+  cancellation_fee_idr?: number;
   created_at: string;
   updated_at: string;
   class: IClassSession;
@@ -46,6 +47,7 @@ export interface IClassSession {
   id: string;
   class_name: string;
   allow_credit: boolean;
+  cancellation_fee_idr?: number;
 }
 
 export interface ICreateSessionPaylaod {
