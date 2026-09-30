@@ -2,6 +2,9 @@
 
 import type React from "react";
 
+import { useState } from "react";
+import { Loader2 } from "lucide-react";
+
 import { LogoComponent } from "@/components/asset/logo";
 import { Input } from "@/components/ui/input";
 import { PasswordInput } from "@/components/general/password-input";
@@ -28,7 +31,8 @@ export default function LoginPageView() {
   const methods = useForm<AuthLoginFormValues>({ defaultValues, resolver, mode: "all" });
   const { control, handleSubmit } = methods;
 
-  const { mutateAsync } = useCustomerAuthLogin();
+  const { mutateAsync, isPending } = useCustomerAuthLogin();
+  const [googleLoading, setGoogleLoading] = useState(false);
 
   const getSafeRedirect = () => {
     if (typeof window === "undefined") return "/";
@@ -165,8 +169,9 @@ export default function LoginPageView() {
 
               {/* Login Button */}
               <div className="flex w-full flex-col gap-2">
-                <Button type="submit" className="w-full max-h-[42px] min-h-[42px] text-sm">
-                  Login
+                <Button type="submit" disabled={isPending} className="w-full max-h-[42px] min-h-[42px] text-sm">
+                  {isPending && <Loader2 className="animate-spin" />}
+                  {isPending ? "Logging in..." : "Login"}
                 </Button>
                 <div className="flex items-center gap-4 w-full justify-center">
                   <span className="text-brand-500 font-medium text-center text-sm">Or login with</span>
@@ -174,8 +179,10 @@ export default function LoginPageView() {
                 <Button
                   type="button"
                   variant={"outline"}
+                  disabled={googleLoading}
                   className="text-sm w-full py-4 border-2 border-gray-200 rounded-lg flex items-center justify-center gap-3 hover:border-teal-300 hover:bg-teal-50 transition-colors"
                   onClick={() => {
+                    setGoogleLoading(true);
                     const params = new URLSearchParams(window.location.search);
                     const redirect = params.get("next") ?? params.get("redirect");
                     if (redirect && redirect.startsWith("/") && !redirect.startsWith("//")) {
@@ -205,6 +212,7 @@ export default function LoginPageView() {
                     />
                   </svg>
                   <span className="text-sm font-medium text-teal-700">Login with Google</span>
+                  {googleLoading && <Loader2 className="animate-spin text-teal-700" />}
                 </Button>
               </div>
             </form>
