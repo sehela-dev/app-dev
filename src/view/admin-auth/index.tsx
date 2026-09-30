@@ -9,6 +9,7 @@ import { PasswordInput } from "@/components/general/password-input";
 import { FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { FormProvider, useForm } from "react-hook-form";
 import { Button } from "@/components/ui/button";
+import { Loader2 } from "lucide-react";
 import { useLoginAdmin } from "@/hooks/api/mutations";
 import { useAuthAdmin } from "@/context/admin/admin-context";
 import { IUser } from "@/types/auth/user.interface";
@@ -20,7 +21,7 @@ const defaultValues = {
 };
 
 export default function AdminLoginPage() {
-  const { mutateAsync } = useCustomerAuthLogin();
+  const { mutateAsync, isPending } = useCustomerAuthLogin();
 
   const { login, user } = useAuthAdmin();
 
@@ -126,8 +127,9 @@ export default function AdminLoginPage() {
 
               {/* Login Button */}
               <div className="flex w-full flex-col gap-2">
-                <Button type="submit" className="w-full max-h-[42px] min-h-[42px] text-sm">
-                  Login
+                <Button type="submit" disabled={isPending} className="w-full max-h-[42px] min-h-[42px] text-sm">
+                  {isPending && <Loader2 className="animate-spin" />}
+                  {isPending ? "Logging in..." : "Login"}
                 </Button>
               </div>
             </form>
