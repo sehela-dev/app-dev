@@ -995,9 +995,12 @@ export const SessionDetailPage = () => {
                               min="1"
                               placeholder={`${policyFeeIdr} (policy default)`}
                               value={feeAmount}
+                              readOnly={!isManager}
                               onChange={(e) => setFeeAmount(e.target.value === "" ? "" : Number(e.target.value))}
                             />
-                            <p className="text-xs text-muted-foreground">Empty = policy default (class fee).</p>
+                            <p className="text-xs text-muted-foreground">
+                              {isManager ? "Empty = policy default (class fee)." : "Nominal dikunci policy, hanya manager yang bisa ubah."}
+                            </p>
                           </div>
                           <div className="flex flex-col gap-1">
                             <Label>Payment method</Label>
