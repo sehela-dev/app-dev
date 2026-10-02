@@ -9,7 +9,7 @@ import { useSendReceiptEmail } from "@/hooks/api/mutations/admin/use-send-receip
 import { useGetOrderDetail } from "@/hooks/api/queries/admin/orders";
 import { useAdminPermission } from "@/hooks/use-role-access";
 import { formatCurrency, formatDateHelper, isTransactionVoidable } from "@/lib/helper";
-import { Ban, Loader2, Mail } from "lucide-react";
+import { Ban, ExternalLink, Loader2, Mail } from "lucide-react";
 import { useParams } from "next/navigation";
 
 import { Fragment, useState } from "react";
@@ -67,6 +67,18 @@ export const OrderReceiptPage = () => {
               <p className="text-gray-500  text-sm">Payment Method</p>
               <p className="text-brand-999 text-right text-sm capitalize">{data?.data.payment_method}</p>
             </div>
+            {data?.data?.type && (
+              <div className="grid grid-cols-2">
+                <p className="text-gray-500  text-sm">Type</p>
+                <p className="text-brand-999 text-right text-sm capitalize">{data.data.type}</p>
+              </div>
+            )}
+            {data?.data?.branch && (
+              <div className="grid grid-cols-2">
+                <p className="text-gray-500  text-sm">Branch</p>
+                <p className="text-brand-999 text-right text-sm capitalize">{String(data.data.branch).replace(/_/g, " ")}</p>
+              </div>
+            )}
             {data?.data?.transfer_details?.account_name_from && (
               <div className="grid grid-cols-2">
                 <p className="text-gray-500  text-sm">Account Name</p>
@@ -154,10 +166,84 @@ export const OrderReceiptPage = () => {
               <hr style={{ color: "var(--color-brand-100" }} />
               {data?.data?.items?.map((item, id) => (
                 <Fragment key={id}>
-                  <div className="grid grid-cols-2 items-center">
+                  <div className="grid grid-cols-2 items-start">
                     <div>
                       <p className="text-brand-999 font-medium text-sm">{item.name}</p>
-                      <p className="text-gray-500 font-medium text-sm">{item.variant}</p>
+                      {item.variant && <p className="text-gray-500 font-medium text-sm">{item.variant}</p>}
+                      {(item.type || item.session?.place || item.session?.type || item.session?.level) && (
+                        <div className="mt-1.5 flex flex-wrap items-center gap-1">
+                          {item.type && (
+                            <Badge className="rounded-full border-transparent bg-brand-500 px-2 py-px text-[10px] font-semibold capitalize text-white">
+                              {item.type}
+                            </Badge>
+                          )}
+                          {item.session?.place && (
+                            <Badge variant="outline" className="rounded-full border-brand-200 bg-brand-50 px-2 py-px text-[10px] font-semibold capitalize text-brand-700">
+                              {String(item.session.place).replace(/_/g, " ")}
+                            </Badge>
+                          )}
+                          {item.session?.type && (
+                            <Badge variant="outline" className="rounded-full px-2 py-px text-[10px] font-semibold capitalize text-gray-600">
+                              {String(item.session.type).replace(/_/g, " ")}
+                            </Badge>
+                          )}
+                          {item.session?.level && (
+                            <Badge variant="outline" className="rounded-full px-2 py-px text-[10px] font-semibold capitalize text-gray-600">
+                              {String(item.session.level).replace(/_/g, " ")}
+                            </Badge>
+                          )}
+                        </div>
+                      )}
+                      {item.session && (
+                        <div className="mt-1 flex flex-col gap-0.5">
+                          {item.session.id ? (
+                            <a
+                              href={`/admin/session/${item.session.id}`}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="inline-flex w-fit items-center gap-1 text-xs font-medium text-brand-600 underline underline-offset-2 hover:text-brand-700"
+                            >
+                              <span>
+                                {item.session.class?.class_name ? `[${item.session.class.class_name}] ` : ""}
+                                {item.session.session_name}
+                              </span>
+                              <ExternalLink className="h-3 w-3 shrink-0" />
+                            </a>
+                          ) : (
+                            <span className="text-xs font-medium text-brand-999">
+                              {item.session.class?.class_name ? `[${item.session.class.class_name}] ` : ""}
+                              {item.session.session_name}
+                            </span>
+                          )}
+                          <span className="text-xs text-gray-500">
+                            {formatDateHelper(item.session.start_datetime, "EEEE, dd MMM yyyy")} ·{" "}
+                            {formatDateHelper(item.session.start_datetime, "HH:mm")} -{" "}
+                            {formatDateHelper(item.session.end_datetime, "HH:mm")}
+                          </span>
+                          <span className="text-xs text-gray-500 capitalize">
+                            {item.session.instructor_name}
+                            {item.session.place ? ` · ${item.session.place}` : ""}
+                          </span>
+                        </div>
+                      )}
+                      {item.booked_for && item.booked_for.length > 0 && (
+                        <div className="mt-1 flex flex-col gap-0.5">
+                          {item.booked_for.map((b) => (
+                            <span key={b.user_id} className="text-xs text-gray-500">
+                              Booked for:{" "}
+                              <a
+                                href={`/admin/member/${b.user_id}`}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="inline-flex items-center gap-0.5 font-medium text-brand-600 underline underline-offset-2 hover:text-brand-700"
+                              >
+                                {b.name}
+                                <ExternalLink className="h-3 w-3 shrink-0" />
+                              </a>
+                            </span>
+                          ))}
+                        </div>
+                      )}
                       {item.shared_with && (
                         <div className="flex flex-col gap-1">
                           <span className="text-[10px] font-normal text-gray-500">Shared with: </span>

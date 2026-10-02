@@ -8,7 +8,7 @@ import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { SearchInput } from "@/components/ui/search-input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { useDeleteLocation } from "@/hooks/api/mutations/admin";
+import { useDeleteLocation, useEditLocation } from "@/hooks/api/mutations/admin";
 import { useGetLocations } from "@/hooks/api/queries/admin/locations";
 import { useAdminPermission } from "@/hooks/use-role-access";
 import { formatDateHelper } from "@/lib/helper";
@@ -41,7 +41,9 @@ export const LocationListView = () => {
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState("");
   const [selectedData, setSelectedData] = useState("");
+  const [selectedStatusData, setSelectedStatusData] = useState<IRoomItem | null>(null);
   const [openDialogConfirm, setOpenDialogConfirm] = useState(false);
+  const [openDialogStatus, setOpenDialogStatus] = useState(false);
   const [openNotif, setOpenNotif] = useState(false);
   const [tabs, setTabs] = useState("all");
   const [branch, setBranch] = useState("all");
@@ -55,6 +57,7 @@ export const LocationListView = () => {
   });
 
   const { mutateAsync } = useDeleteLocation();
+  const { mutateAsync: editLocation } = useEditLocation();
 
   const headers = [
     {
@@ -103,6 +106,7 @@ export const LocationListView = () => {
         <DropdownMenuContent align="end" className="w-32">
           {can("locations:update") && <DropdownMenuItem onClick={() => router.push(`locations/${row.id}/edit`)}>Edit</DropdownMenuItem>}
           {can("locations:detail") && <DropdownMenuItem onClick={() => router.push(`locations/${row.id}`)}>View Details</DropdownMenuItem>}
+          {can("locations:update") && <DropdownMenuItem onClick={() => onToggleStatus(row)}>{row?.is_active ? "Set as Inactive" : "Set as Active"}</DropdownMenuItem>}
           {can("locations:delete") && (
             <DropdownMenuItem variant="destructive" onClick={() => onDelete(row.id)}>
               Delete
@@ -129,6 +133,28 @@ export const LocationListView = () => {
       if (res) {
         setOpenNotif(true);
         onDelete("");
+        refetch();
+      }
+    } catch (error) {
+      console.log(error);
+    }
+  };
+
+  const onToggleStatus = (data: IRoomItem) => {
+    setSelectedStatusData(data);
+    setOpenDialogStatus(true);
+  };
+
+  const onConfirmToggleStatus = async () => {
+    if (!selectedStatusData) return;
+    try {
+      const res = await editLocation({
+        id: selectedStatusData.id,
+        data: { is_active: !selectedStatusData.is_active },
+      });
+      if (res) {
+        setOpenDialogStatus(false);
+        setSelectedStatusData(null);
         refetch();
       }
     } catch (error) {
@@ -207,6 +233,21 @@ export const LocationListView = () => {
           onConfirm={onConfirmDelete}
           cancelText="Cancel"
           confirmText="Delete"
+        />
+      )}
+      {openDialogStatus && (
+        <BaseDialogConfirmation
+          image="warning-1"
+          onCancel={() => {
+            setOpenDialogStatus(false);
+            setSelectedStatusData(null);
+          }}
+          open={openDialogStatus}
+          title={`Set ${selectedStatusData?.is_active ? "Inactive" : "Active"} Location?`}
+          subtitle="The location status will be updated accordingly."
+          onConfirm={onConfirmToggleStatus}
+          cancelText="Cancel"
+          confirmText="Proceed"
         />
       )}
       {openNotif && (

@@ -117,12 +117,15 @@ export interface IClassData {
 }
 
 export interface IDetailOrder {
+  id?: string;
   order_id: string;
   payment_method: string;
+  type?: string;
+  branch?: string | null;
   status: string;
   date: string;
   discount?: number;
-  discount_formatted?: string;
+  discount_formatted?: string | null;
   subtotal: number;
   subtotal_formatted: string;
   time: string;
@@ -134,29 +137,47 @@ export interface IDetailOrder {
     account_bank_from?: string | null;
     account_bank_to?: string | null;
   } | null;
-  items: IOrderedItem[];
-  total_price: number;
-  total_price_formatted: string;
   voucher?: {
     code: string;
     name: string;
     discount_applied: number;
-  };
+  } | null;
+  void?: unknown;
+  items: IOrderedItem[];
+  total_price: number;
+  total_price_formatted: string;
 
   created_by?: { id: string; name: string | null } | null;
   payment_status?: string;
   order_code?: string;
 }
 
+export interface IOrderedItemSession {
+  id: string;
+  session_name: string;
+  start_datetime: string;
+  end_datetime: string;
+  place: string;
+  type: string;
+  level: string;
+  instructor_name: string;
+  class: {
+    id: string;
+    class_name: string;
+  };
+}
+
 export interface IOrderedItem {
+  type?: string;
   name: string;
-  variant?: string;
+  variant?: string | null;
   qty: number;
   total_price: number;
   booked_for?: {
     user_id: string;
     name: string;
   }[];
+  session?: IOrderedItemSession | null;
   shared_with?: {
     name: string;
     user_id: string;
