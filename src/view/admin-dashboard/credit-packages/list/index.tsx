@@ -184,6 +184,20 @@ export const CreditPackagePageView = () => {
       value: (row: ICreditPackageItem) => (row?.is_shareable ? "Yes" : "No"),
     },
     {
+      id: "limits",
+      text: "Limits",
+      value: (row: ICreditPackageItem) => (
+        <p>
+          {[
+            row?.max_purchases_per_user != null ? `${row.max_purchases_per_user}x max` : null,
+            row?.only_for_new_users ? "New only" : null,
+          ]
+            .filter(Boolean)
+            .join(" · ") || "—"}
+        </p>
+      ),
+    },
+    {
       id: "validity_days",
       text: "Valid for",
       value: (row: ICreditPackageItem) => <p>{row.validity_days} Days</p>,

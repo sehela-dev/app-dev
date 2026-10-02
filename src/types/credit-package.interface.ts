@@ -22,6 +22,7 @@ export interface ICreditPackageItem {
   price_per_credit_idr: number;
   is_shareable?: boolean;
   max_purchases_per_user?: number | null;
+  only_for_new_users?: boolean;
 }
 
 export interface ICreatePackagePayload {
@@ -37,6 +38,8 @@ export interface ICreatePackagePayload {
   is_active: boolean;
   is_visible?: boolean;
   is_shareable: boolean;
+  max_purchases_per_user?: number | null;
+  only_for_new_users?: boolean;
 }
 
 export interface ICreditPackageDetail {
@@ -57,6 +60,7 @@ export interface ICreditPackageDetail {
   price_per_credit_idr: number;
   session_type_restriction: string | null;
   max_purchases_per_user?: number | null;
+  only_for_new_users?: boolean;
   class_id_restriction: string | null;
   class_ids_restriction: {
     name: string;
@@ -78,6 +82,8 @@ export interface IPackageFormValues {
   is_active: boolean;
   is_visible: boolean;
   is_shareable: boolean;
+  max_purchases_per_user: string;
+  only_for_new_users: boolean;
 }
 export type TCreatePackage = (data: ICreatePackagePayload) => Promise<IResponseData<ICreditPackageItem>>;
 export type TEditPackage = ({ id, data }: { id: string; data: ICreatePackagePayload }) => Promise<IResponseData<ICreditPackageItem>>;
