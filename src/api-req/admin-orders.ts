@@ -9,6 +9,7 @@ import {
   TCreateManualOrder,
   TOrderDetail,
   TOrderList,
+  TProductOrderDetail,
   TRescheduleSessionCust,
   TSendEmailReceipt,
   TThirdPartyApp,
@@ -49,6 +50,11 @@ export const getOrders: TOrderList = async ({
 
 export const getDetailOrder: TOrderDetail = async (id) => {
   const res = await axiosx(true).get(`${MAIN_API_URL}/admin/transactions/${id}`);
+  return res.data;
+};
+
+export const getProductOrderDetail: TProductOrderDetail = async (id) => {
+  const res = await axiosx(true).get(`${MAIN_API_URL}/admin/orders/${id}`);
   return res.data;
 };
 

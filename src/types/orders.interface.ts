@@ -44,8 +44,12 @@ export interface IOrderDetailBooking {
     id?: string;
     session_name?: string;
     start_datetime?: string;
+    end_datetime?: string;
     place?: string;
     type?: string;
+    level?: string;
+    instructor_name?: string;
+    class?: { id?: string; class_name?: string } | null;
   } | null;
 }
 
@@ -150,6 +154,15 @@ export interface IDetailOrder {
   created_by?: { id: string; name: string | null } | null;
   payment_status?: string;
   order_code?: string;
+  bookings?: IOrderDetailBooking[];
+}
+
+export interface IProductOrderDetail {
+  id?: string;
+  items?: { product_name?: string; variant_name?: string | null; quantity?: number }[];
+  payment_status?: string;
+  order_code?: string;
+  bookings?: IOrderDetailBooking[];
 }
 
 export interface IOrderedItemSession {
@@ -164,7 +177,7 @@ export interface IOrderedItemSession {
   class: {
     id: string;
     class_name: string;
-  };
+  } | null;
 }
 
 export interface IOrderedItem {
@@ -406,6 +419,7 @@ export interface IResponseSendReceipt {
 }
 export type TOrderList = (param: ICommonParams) => Promise<IResponseData<IOrderItem[]>>;
 export type TOrderDetail = (id: string) => Promise<IResponseData<IDetailOrder>>;
+export type TProductOrderDetail = (id: string) => Promise<IResponseData<IProductOrderDetail>>;
 export type TCreateManualOrder = (payload: IAddTransactionPayload) => Promise<IResponseData<ICreatManualTrxResponse>>;
 
 export type TBookingsSession = (data: IBookingPayload) => Promise<IResponseData<IBookingResponseData>>;
