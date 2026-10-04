@@ -1,7 +1,7 @@
 "use client";
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { Loader2, MapPin, Minus, Plus, TicketPercent, Users, Video, X } from "lucide-react";
+import { Loader2, MapPin, TicketPercent, Users, Video, X } from "lucide-react";
 
 import { CircleCheckSvg } from "@/components/asset/svg/CircleCheckSvg";
 import { CircleInfoSvg } from "@/components/asset/svg/CircleInfoSvg";
@@ -42,13 +42,12 @@ export const CheckoutSessionView = () => {
   const { id } = useParams();
   const { paymentType, onChangePaymentMethod } = usePaymentMethodCtx();
   const [selectedCredit, setSelectedCredit] = useState<string | null>(null);
-  const [creditsToUse, setCreditsToUse] = useState(1);
   const [couponInput, setCouponInput] = useState("");
   const [appliedCoupon, setAppliedCoupon] = useState<string | null>(null);
   const [validatedVoucher, setValidatedVoucher] = useState<IValidateVoucherResponse | null>(null);
   const [voucherError, setVoucherError] = useState<string | null>(null);
 
-  const { data: session, isLoading, isError } = useGetPublicSession(typeof id === "string" ? id : undefined);
+  const { data: session, isLoading, isError, refetch: refetchSession } = useGetPublicSession(typeof id === "string" ? id : undefined);
   const { data: creditsData, isLoading: creditsLoading } = useGetMyCredits();
   const eligibleParams = session?.class_id ? { class_id: session.class_id, session_type: session.type, place: session.place } : undefined;
 
@@ -89,20 +88,12 @@ export const CheckoutSessionView = () => {
   const availableCredits = eligibleParams ? eligibleCreditsData?.data ?? [] : creditsData?.data?.filter((item) => !item.is_expired) ?? [];
   const creditsListLoading = eligibleParams ? eligibleLoading : creditsLoading;
   const selectedPackage = availableCredits.find((item) => item.package_purchase_id === selectedCredit);
-  const maxCredits = selectedPackage
-    ? Math.max(1, Math.min(sessionCreditPrice, selectedPackage.credits_remaining ?? sessionCreditPrice))
-    : sessionCreditPrice;
   const isOnline = session.place === "online";
   const levelBadge = getSessionLevelBadge(session.level);
   const typeBadge = getSessionTypeBadge(session.type);
 
   const onSelectWalletCredit = (id: string) => {
-    const next = selectedCredit === id ? null : id;
-    setSelectedCredit(next);
-    if (next) {
-      const pkg = availableCredits.find((item) => item.package_purchase_id === next);
-      setCreditsToUse(Math.min(sessionCreditPrice, pkg?.credits_remaining ?? sessionCreditPrice));
-    }
+    setSelectedCredit((prev) => (prev === id ? null : id));
   };
 
   const handleApplyVoucher = async () => {
@@ -151,12 +142,18 @@ export const CheckoutSessionView = () => {
   const total = Math.max(0, subtotal - discount);
 
   const handleProcessPayment = async () => {
-    const handleBookingError = (err: unknown) => {
-      const code = (err as { response?: { data?: { error?: { code?: string } } } })?.response?.data?.error?.code;
+    const handleBookingError = async (err: unknown) => {
+      const data = (err as { response?: { data?: { error?: { code?: string; message?: string }; success?: boolean } } })?.response?.data;
+      const code = data?.error?.code;
       if (code === "PROFILE_INCOMPLETE") {
         const fullPath = typeof window !== "undefined" ? `${window.location.pathname}${window.location.search}` : `/checkout/${id as string}`;
         router.replace(`/complete-profile?next=${encodeURIComponent(fullPath)}`);
         return true;
+      }
+      if (code === "CREDIT_AMOUNT_MISMATCH") {
+        // Price changed since page load — refresh session so UI shows the new price.
+        await refetchSession();
+        return false; // let the mutation toast show data.error.message ("This session costs N credits")
       }
       return false;
     };
@@ -166,11 +163,11 @@ export const CheckoutSessionView = () => {
           class_session_id: session.id,
           payment_method: "credits",
           package_purchase_id: selectedCredit,
-          credits_to_use: creditsToUse,
+          credits_to_use: sessionCreditPrice,
         });
         router.push(`/checkout/${id}/success`);
       } catch (err) {
-        if (handleBookingError(err)) return;
+        if (await handleBookingError(err)) return;
         // error toast handled by the mutation config; user can retry with another package
       }
     } else if (paymentType === "cash") {
@@ -197,7 +194,7 @@ export const CheckoutSessionView = () => {
           router.push(`/checkout/${id}/success`);
         }
       } catch (err) {
-        if (handleBookingError(err)) return;
+        if (await handleBookingError(err)) return;
         // error toast handled by the mutation config
       }
     }
@@ -346,29 +343,9 @@ export const CheckoutSessionView = () => {
                     <div className="flex flex-col gap-3 rounded-xl border border-brand-100 bg-brand-25 p-4">
                       <div className="flex items-center justify-between gap-3 text-sm">
                         <span className="text-brand-500/60">Credits to use</span>
-                        <div className="flex items-center gap-2">
-                          <Button
-                            type="button"
-                            variant="outline"
-                            size="icon"
-                            className="size-8"
-                            disabled={creditsToUse <= 1}
-                            onClick={() => setCreditsToUse((c) => Math.max(1, c - 1))}
-                          >
-                            <Minus size={14} />
-                          </Button>
-                          <span className="min-w-[44px] text-center text-base font-bold">{creditsToUse}</span>
-                          <Button
-                            type="button"
-                            variant="outline"
-                            size="icon"
-                            className="size-8"
-                            disabled={creditsToUse >= maxCredits}
-                            onClick={() => setCreditsToUse((c) => Math.min(maxCredits, c + 1))}
-                          >
-                            <Plus size={14} />
-                          </Button>
-                        </div>
+                        <span className="text-base font-bold">
+                          {sessionCreditPrice} Credit{sessionCreditPrice > 1 ? "s" : ""}
+                        </span>
                       </div>
                       <p className="text-xs text-brand-500/70">
                         Using credits from {selectedPackage.package_name} ({selectedPackage.credits_remaining} remaining).
@@ -381,7 +358,7 @@ export const CheckoutSessionView = () => {
                     <div className="flex flex-row items-center justify-between w-full text-sm">
                       <p>Total Price</p>
                       <p className="text-right font-semibold">
-                        {selectedPackage ? `${creditsToUse} Credit${creditsToUse > 1 ? "s" : ""}` : `${sessionCreditPrice} Credit`}
+                        {sessionCreditPrice} Credit{sessionCreditPrice > 1 ? "s" : ""}
                       </p>
                     </div>
                   </div>

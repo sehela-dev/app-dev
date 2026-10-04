@@ -284,6 +284,7 @@ export interface IBookingPayload {
 
   payment_method?: string;
   package_purchase_id?: string;
+  credits_to_use?: number;
   branch?: string | null;
   transaction_date?: string;
 }
