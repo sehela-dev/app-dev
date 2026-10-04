@@ -4,6 +4,9 @@ import { buildNumber, CustomTable } from "@/components/general/custom-table";
 import { BaseDialogConfirmation } from "@/components/general/dialog-confirnation";
 import { CustomPagination } from "@/components/general/pagination-component";
 import { GeneralTabComponent } from "@/components/general/tabs-component";
+import { SessionsCalendarView } from "@/components/page/session/sessions-calendar-view";
+import { SessionDetailSheet } from "@/components/page/session/session-detail-sheet";
+import { QuickCreateSlot, SessionQuickCreateSheet } from "@/components/page/session/session-quick-create-sheet";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
@@ -16,13 +19,15 @@ import { cn } from "@/lib/utils";
 // import { IClassSessionCategory } from "@/types/class-category.interface";
 import { ISessionItem } from "@/types/class-sessions.interface";
 import { ICommonParams } from "@/types/general.interface";
+import type { EventCalendarRangeInfo, EventCalendarSlotInfo } from "@/components/reui/event-calendar/event-calendar-types";
 
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { branchLabel, SEHELA_BRANCH } from "@/constants/sample-data";
-import { CirclePlus, Ellipsis } from "lucide-react";
+import { CirclePlus, CalendarDays, CalendarPlus, Ellipsis, LayoutList } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { format } from "date-fns";
 
 const tabFilter = [
   {
@@ -52,11 +57,13 @@ export const SessionListPage = () => {
   const { can } = useAdminPermission();
   const router = useRouter();
   const [limit, setLimit] = useState(10);
+  const [view, setView] = useState<"list" | "calendar">("list");
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState("");
   const [tabs, setTabs] = useState("all");
   const [openDialogConfirm, setOpenDialogConfirm] = useState(false);
   const [selectedId, setSelectedId] = useState("");
+  const [selectedSession, setSelectedSession] = useState<ISessionItem | null>(null);
   const [openNotif, setOpenNotif] = useState(false);
 
   const [selectedRange, setSelectedRange] = useState<{ from?: string | null; to?: string | null }>({
@@ -67,14 +74,40 @@ export const SessionListPage = () => {
   const [hasPhoto, setHasPhoto] = useState<boolean | null>(null);
   const [branch, setBranch] = useState("all");
   const { data, isLoading, refetch } = useGetSessions({
-    page,
-    limit,
+    page: view === "calendar" ? 1 : page,
+    // ponytail: single unpaginated fetch capped at 200, add server range paging if a month exceeds it
+    limit: view === "calendar" ? 200 : limit,
     search,
     status: tabs !== "all" ? tabs : "",
     startDate: selectedRange.from as string,
     endDate: selectedRange.to as string,
     ...(branch !== "all" ? { branch } : null),
   } as ICommonParams & Record<string, unknown>);
+
+  const [quickSlot, setQuickSlot] = useState<QuickCreateSlot | null>(null);
+  const [slotPopup, setSlotPopup] = useState<(QuickCreateSlot & { x: number; y: number }) | null>(null);
+
+  useEffect(() => {
+    if (!slotPopup) return;
+    const close = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setSlotPopup(null);
+    };
+    window.addEventListener("keydown", close);
+    return () => window.removeEventListener("keydown", close);
+  }, [slotPopup]);
+
+  const handleSlotClick = (slot: EventCalendarSlotInfo, e: React.MouseEvent) => {
+    if (!can("session:create")) return;
+    setSlotPopup({ date: slot.date, end: slot.end, allDay: slot.allDay, x: e.clientX, y: e.clientY });
+  };
+
+  const handleCalendarRangeChange = (info: EventCalendarRangeInfo) => {
+    // Active range = the selected month itself; the visible range also covers
+    // the grayed-out outside days, which carry no data.
+    const from = format(info.activeRange.start, "yyyy-MM-dd");
+    const to = format(info.activeRange.end, "yyyy-MM-dd");
+    setSelectedRange((prev) => (prev.from === from && prev.to === to ? prev : { from, to }));
+  };
 
   const { mutateAsync } = useDeleteSession();
 
@@ -214,17 +247,34 @@ export const SessionListPage = () => {
     <div className="flex w-full  flex-col gap-2">
       <div className="flex flex-row justify-between w-full items-center">
         <div className="max-w-auto">
-          <GeneralTabComponent
-            selecetedTab={tabs}
-            setTab={(e) => {
-              setTabs(e);
-              setSearch("");
-              setPage(1);
-            }}
-            tabs={tabFilter}
-          />
+          {view === "list" && (
+            <GeneralTabComponent
+              selecetedTab={tabs}
+              setTab={(e) => {
+                setTabs(e);
+                setSearch("");
+                setPage(1);
+              }}
+              tabs={tabFilter}
+            />
+          )}
         </div>
         <div className="flex flex-row items-center w-full justify-end gap-2 flex-wrap">
+          <div className="flex gap-1 rounded-md border border-brand-100 p-1">
+            <Button variant={view === "list" ? "default" : "ghost"} size="sm" onClick={() => setView("list")}>
+              <LayoutList /> List
+            </Button>
+            <Button
+              variant={view === "calendar" ? "default" : "ghost"}
+              size="sm"
+              onClick={() => {
+                setTabs("all");
+                setView("calendar");
+              }}
+            >
+              <CalendarDays /> Calendar
+            </Button>
+          </div>
           <div>
             {can("session:create") && (
               <Button className=" text-sm font-medium" onClick={() => router.push("session/create")}>
@@ -263,49 +313,115 @@ export const SessionListPage = () => {
                 </SelectContent>
               </Select>
             </div>
-            <div>
-              <DateRangePicker
-                mode="range"
-                onDateRangeChange={handleDateRangeChangeDual}
-                startDate={selectedRange.from as string}
-                endDate={selectedRange.to as string}
-                allowFutureDates
-                allowPastDates
-              />
-            </div>
-            <div>
-              <SearchInput className="border-brand-100 min-h-[42px]" onSearch={handleSearch} search={search} />
-            </div>
+            {view === "list" && (
+              <>
+                <div>
+                  <DateRangePicker
+                    mode="range"
+                    onDateRangeChange={handleDateRangeChangeDual}
+                    startDate={selectedRange.from as string}
+                    endDate={selectedRange.to as string}
+                    allowFutureDates
+                    allowPastDates
+                  />
+                </div>
+                <div>
+                  <SearchInput className="border-brand-100 min-h-[42px]" onSearch={handleSearch} search={search} />
+                </div>
+              </>
+            )}
           </div>
         </CardHeader>
         <CardContent>
-          <CustomTable
-            data={data?.data ?? []}
-            headers={headers}
-            numberOptions={numberOptions}
-            isLoading={isLoading}
-            // setSelectedData={setSelectedData}
-            // selectedData={selectedData}
+          {view === "list" ? (
+            <CustomTable
+              data={data?.data ?? []}
+              headers={headers}
+              numberOptions={numberOptions}
+              isLoading={isLoading}
+              // setSelectedData={setSelectedData}
+              // selectedData={selectedData}
 
-            actionOptions={actionOptions}
-          />
+              actionOptions={actionOptions}
+            />
+          ) : (
+            <SessionsCalendarView
+              sessions={data?.data ?? []}
+              onRangeChange={handleCalendarRangeChange}
+              onSelectSession={(s) => {
+                setSlotPopup(null);
+                setQuickSlot(null);
+                setSelectedSession(s);
+              }}
+              onSlotClick={handleSlotClick}
+            />
+          )}
         </CardContent>
-        <CardFooter className="flex w-full">
-          <CustomPagination
-            onPageChange={(e) => setPage(e)}
-            currentPage={page}
-            showTotal
-            // nextPage={data?.pagination?.}
-            hasNextPage={data?.pagination?.has_next}
-            hasPrevPage={data?.pagination?.has_prev}
-            // previousPage={data?.pagination?.previousPage}
-            totalItems={data?.pagination?.total_items as number}
-            totalPages={data?.pagination?.total_pages as number}
-            limit={10}
-          />
-        </CardFooter>
+        {view === "list" && (
+          <CardFooter className="flex w-full">
+            <CustomPagination
+              onPageChange={(e) => setPage(e)}
+              currentPage={page}
+              showTotal
+              // nextPage={data?.pagination?.}
+              hasNextPage={data?.pagination?.has_next}
+              hasPrevPage={data?.pagination?.has_prev}
+              // previousPage={data?.pagination?.previousPage}
+              totalItems={data?.pagination?.total_items as number}
+              totalPages={data?.pagination?.total_pages as number}
+              limit={10}
+            />
+          </CardFooter>
+        )}
       </Card>
 
+      <SessionDetailSheet session={selectedSession} open={!!selectedSession} onOpenChange={(o) => !o && setSelectedSession(null)} />
+      {slotPopup && view === "calendar" && (
+        <>
+          <div className="fixed inset-0 z-40" onClick={() => setSlotPopup(null)} />
+          <div
+            className="fixed z-50 w-64 rounded-xl border border-brand-100 bg-white p-1.5 shadow-lg"
+            style={{
+              left: Math.max(8, Math.min(slotPopup.x, window.innerWidth - 272)),
+              top: Math.max(8, Math.min(slotPopup.y, window.innerHeight - 210)),
+            }}
+          >
+            <p className="px-2 pt-1 pb-1.5 font-serif text-[13px] text-gray-500">
+              {format(slotPopup.date, "EEEE, d MMM yyyy")}
+              {!slotPopup.allDay && slotPopup.end
+                ? ` · ${format(slotPopup.date, "h:mm a")} – ${format(slotPopup.end, "h:mm a")}`
+                : ""}
+            </p>
+            <button
+              className="flex w-full items-center gap-2.5 rounded-lg px-2 py-2 text-left hover:bg-brand-25"
+              onClick={() => {
+                setQuickSlot({ date: slotPopup.date, end: slotPopup.end, allDay: slotPopup.allDay });
+                setSlotPopup(null);
+              }}
+            >
+              <span
+                className="flex size-8 shrink-0 items-center justify-center rounded-full"
+                style={{ backgroundColor: "#EBF2FE", color: "#3B82F6" }}
+              >
+                <CalendarPlus className="size-4" />
+              </span>
+              <span>
+                <strong className="block text-sm">New session</strong>
+                <small className="text-xs text-gray-500">Bookable, with capacity</small>
+              </span>
+            </button>
+          </div>
+        </>
+      )}
+      <SessionQuickCreateSheet
+        slot={quickSlot}
+        open={!!quickSlot}
+        onOpenChange={(o) => !o && setQuickSlot(null)}
+        onCreated={() => {
+          setQuickSlot(null);
+          refetch();
+        }}
+      />
       {openDialogConfirm && (
         <BaseDialogConfirmation
           image="trash-1"
