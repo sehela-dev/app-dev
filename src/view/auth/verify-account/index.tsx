@@ -8,6 +8,7 @@ import { useCountdown } from "@/hooks";
 import { useCustomerAuthVerifyAccount, useCustomerAuthResendVerifyAccount } from "@/hooks/api/mutations/customers";
 import { ArrowLeft } from "lucide-react";
 import { useRouter, useSearchParams } from "next/navigation";
+import { useState } from "react";
 import { FormProvider, useForm } from "react-hook-form";
 
 export const VerifyAccountPageView = () => {
@@ -18,9 +19,10 @@ export const VerifyAccountPageView = () => {
 
   const email = (searchParams.get("email") as string) ?? "";
   const { mutateAsync } = useCustomerAuthVerifyAccount();
-  const { mutateAsync: resend } = useCustomerAuthResendVerifyAccount();
+  const { mutateAsync: resend, isPending: resendPending } = useCustomerAuthResendVerifyAccount();
+  const [resentAt, setResentAt] = useState<number | undefined>(undefined);
 
-  const timer = useCountdown({ startTime: parseInt(currDate), duration: 90 });
+  const timer = useCountdown({ startTime: resentAt ?? parseInt(currDate), duration: 90 });
 
   const methods = useForm();
   const { control, handleSubmit } = methods;
@@ -40,13 +42,14 @@ export const VerifyAccountPageView = () => {
   });
 
   const onResend = async () => {
+    if (resendPending) return;
     try {
       const payload = {
         email: email,
       };
       const res = await resend(payload);
       if (res) {
-        console.log(res);
+        setResentAt(Date.now());
       }
     } catch (error) {
       console.log(error);
