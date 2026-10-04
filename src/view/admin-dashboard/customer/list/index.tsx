@@ -99,6 +99,13 @@ export const CustomersPage = () => {
       text: "Status",
       value: (row: ICustomerData) => <p className={row?.is_active ? "text-green-400" : "text-red-500"}>{row.is_active ? "Active" : "Inactive"}</p>,
     },
+    {
+      id: "profile",
+      text: "Profile",
+      value: (row: ICustomerData & { tnc_agreed_at?: string | null }) => (
+        <p className={row?.tnc_agreed_at ? "text-green-400" : "text-amber-500"}>{row?.tnc_agreed_at ? "Complete" : "Incomplete"}</p>
+      ),
+    },
     // {
     //   id: "resend-regristration",
     //   text: "Resend Email",

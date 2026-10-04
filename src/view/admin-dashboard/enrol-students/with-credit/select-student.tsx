@@ -92,36 +92,48 @@ export const SelectStudentWithCreditComponent = ({ selectedSession }: IProps) =>
                               <div className="flex flex-col gap-1">
                                 <p className="text-sm text-gray-500">Select Credit</p>
                                 <div className="grid grid-cols-3 gap-2">
-                                  {walletCust?.data.eligible_packages?.map((wallet) => (
-                                    <div
-                                      className={cn(
-                                        "border border-brand-100 max-w-auto min-w-[250px]  max-h-[100px] rounded-lg px-4 py-2 hover:bg-brand-50  hover:border-brand-500 cursor-pointer",
-                                        {
-                                          "border-brand-500 bg-brand-50": wallet.package_purchase_id === customerData?.package?.package_purchase_id,
-                                        },
-                                      )}
-                                      key={wallet.package_purchase_id}
-                                      onClick={() =>
-                                        addCustomer({
-                                          email: item.email,
-                                          name: item.full_name,
-                                          id: item.id,
-                                          phone: item.phone,
-                                          package: wallet,
-                                        })
-                                      }
-                                    >
-                                      <div className="flex flex-col justify-center">
-                                        <p className="text-md font-semibold text-gray-600">{wallet.package_name}</p>
-                                        <p className="text-xs text-green-500 font-semibold">{wallet.credits_remaining} Credit</p>
-                                        {wallet.expires_at ? (
-                                          <p className="text-xs text-red-800 font-semibold mt-2">
-                                            Expiry date: {wallet.expires_at ? formatDateHelper(wallet.expires_at, "dd MMM yyyy, HH:mm") : "-"}
-                                          </p>
-                                        ) : null}
+                                  {walletCust?.data.eligible_packages?.map((wallet) => {
+                                    const insufficient =
+                                      (wallet.credits_remaining ?? 0) < (selectedSession?.price_credit_amount ?? 1);
+                                    const isSelected = wallet.package_purchase_id === customerData?.package?.package_purchase_id;
+                                    return (
+                                      <div
+                                        className={cn(
+                                          "border border-brand-100 max-w-auto min-w-[250px]  max-h-[100px] rounded-lg px-4 py-2 hover:bg-brand-50  hover:border-brand-500 cursor-pointer",
+                                          {
+                                            "border-brand-500 bg-brand-50": isSelected,
+                                            "opacity-45 pointer-events-none": insufficient,
+                                          },
+                                        )}
+                                        key={wallet.package_purchase_id}
+                                        onClick={() =>
+                                          !insufficient &&
+                                          addCustomer({
+                                            email: item.email,
+                                            name: item.full_name,
+                                            id: item.id,
+                                            phone: item.phone,
+                                            package: wallet,
+                                          })
+                                        }
+                                      >
+                                        <div className="flex flex-col justify-center">
+                                          <p className="text-md font-semibold text-gray-600">{wallet.package_name}</p>
+                                          <p className="text-xs text-green-500 font-semibold">{wallet.credits_remaining} Credit</p>
+                                          {insufficient && (
+                                            <p className="text-xs text-red-500 font-semibold">
+                                              Needs {selectedSession?.price_credit_amount} Credits
+                                            </p>
+                                          )}
+                                          {wallet.expires_at ? (
+                                            <p className="text-xs text-red-800 font-semibold mt-2">
+                                              Expiry date: {wallet.expires_at ? formatDateHelper(wallet.expires_at, "dd MMM yyyy, HH:mm") : "-"}
+                                            </p>
+                                          ) : null}
+                                        </div>
                                       </div>
-                                    </div>
-                                  ))}
+                                    );
+                                  })}
                                 </div>
                               </div>
                             ) : (
