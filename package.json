@@ -11,6 +11,7 @@
     "pull-main": "git pull origin main && git pull prod main"
   },
   "dependencies": {
+    "@date-fns/tz": "^1.5.0",
     "@fontsource-variable/inter": "^5.2.6",
     "@fontsource-variable/lora": "^5.2.6",
     "@hookform/resolvers": "^5.2.2",
