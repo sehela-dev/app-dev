@@ -14,11 +14,14 @@ import {
   useCancelBooking,
   useChangeAttendanceStatus,
   useEditCustomer,
+  usePublishSession,
   useRescheduleSession,
   useSendReminderSession,
+  useUnpublishSession,
 } from "@/hooks/api/mutations/admin";
 import { useGetSessionBookings, useGetSessionDetail, useGetSessions } from "@/hooks/api/queries/admin/class-session";
 import { defaultDate, formatCurrency, formatDateHelper, reminderMessage, sendReminder } from "@/lib/helper";
+import { formatPublishCountdown, isScheduled } from "@/utils/session-badge";
 import { cn } from "@/lib/utils";
 import { IParticipantsSession, ISessionItem } from "@/types/class-sessions.interface";
 import { IAttendanceStatus } from "@/types/orders.interface";
@@ -29,13 +32,13 @@ import {
   Banknote,
   BellRing,
   Copy,
+  CopyPlus,
   Ellipsis,
   Loader2,
   LucideIcon,
   PenIcon,
   RotateCcw,
   WalletCards,
-  X,
 } from "lucide-react";
 import { differenceInCalendarDays } from "date-fns";
 import { useParams, useRouter } from "next/navigation";
@@ -48,6 +51,7 @@ import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
 import { branchLabel } from "@/constants/sample-data";
 import { BackButtonComponent } from "@/components/general/back-button";
+import { DuplicateSessionDialog } from "@/components/page/session/duplicate-session-dialog";
 
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Input } from "@/components/ui/input";
@@ -92,7 +96,7 @@ export const SessionDetailPage = () => {
   const { isManager } = useAdminPermission();
   const params = useParams();
   const { id } = params;
-  const { data, isLoading } = useGetSessionDetail(id as string);
+  const { data, isLoading, refetch: refetchDetail } = useGetSessionDetail(id as string);
   const [page, setPage] = useState(1);
   const [openDialog, setOpenDialog] = useState(false);
   const [validityDays, setValidityDays] = useState(15);
@@ -133,6 +137,9 @@ export const SessionDetailPage = () => {
   const { mutateAsync: cancelBooking } = useCancelBooking();
   const [openReminder, setOpenReminder] = useState(false);
   const { mutateAsync: remindAll } = useSendReminderSession();
+  const { mutateAsync: publishAsync, isPending: isPublishing } = usePublishSession();
+  const { mutateAsync: unpublishAsync, isPending: isUnpublishing } = useUnpublishSession();
+  const [openDuplicate, setOpenDuplicate] = useState(false);
   const [openRemark, setOpenRemark] = useState(false);
   const [selectedRemarkRow, setSelectedRemarkRow] = useState<IParticipantsSession | null>(null);
   const [remarkValue, setRemarkValue] = useState("");
@@ -247,6 +254,20 @@ export const SessionDetailPage = () => {
       const err = e as { response?: { data?: { error?: { details?: { remark?: string[] }; message?: string } } } };
       const msg = err?.response?.data?.error?.details?.remark?.[0] || err?.response?.data?.error?.message;
       if (msg) setRemarkError(msg);
+    }
+  };
+
+  const onOpenDuplicate = () => {
+    setOpenDuplicate(true);
+  };
+
+  const onTogglePublish = async () => {
+    try {
+      if (data?.data?.is_published === false) await publishAsync(id as string);
+      else await unpublishAsync(id as string);
+      refetchDetail();
+    } catch (error) {
+      console.log(error);
     }
   };
 
@@ -544,6 +565,11 @@ export const SessionDetailPage = () => {
                   {data?.data?.status}
                 </Badge>
                 {data?.data?.is_credit_only ? <Badge variant="secondary">Credit Only</Badge> : null}
+                {data?.data?.is_published === false ? (
+                  <Badge variant="secondary">
+                    {isScheduled(data?.data) ? `Scheduled ${formatPublishCountdown(data?.data?.publish_at)}` : "Draft"}
+                  </Badge>
+                ) : null}
               </div>
 
               <p className="text-sm text-gray-500">Review all session details and make updates as needed</p>
@@ -551,11 +577,16 @@ export const SessionDetailPage = () => {
           </BackButtonComponent>
 
           <div className="flex flex-row items-center gap-2">
-            {/* <div>
-              <Button variant={"outline"}>
-                <File /> Export
+            <div>
+              <Button variant="outline" onClick={onOpenDuplicate}>
+                <CopyPlus /> Duplicate
               </Button>
-            </div> */}
+            </div>
+            <div>
+              <Button variant="outline" onClick={onTogglePublish} disabled={isPublishing || isUnpublishing}>
+                {data?.data?.is_published === false ? "Publish" : "Unpublish"}
+              </Button>
+            </div>
             <div>
               <Button onClick={() => router.push(`${id}/edit`)}>
                 <PenIcon /> Edit
@@ -929,6 +960,13 @@ export const SessionDetailPage = () => {
           confirmText={pendingAttendance.status ? "Confirm" : "Reset"}
           onCancel={() => setPendingAttendance(null)}
           image="warning-1"
+        />
+      )}
+      {openDuplicate && (
+        <DuplicateSessionDialog
+          source={data?.data ?? null}
+          open={openDuplicate}
+          onOpenChange={setOpenDuplicate}
         />
       )}
       {openRemark && (

@@ -12,6 +12,7 @@ import type {
 } from "@/components/reui/event-calendar/event-calendar-types";
 import { SEHELA_BRANCH } from "@/constants/sample-data";
 import type { ISessionItem } from "@/types/class-sessions.interface";
+import { formatPublishCountdown, isScheduled } from "@/utils/session-badge";
 import { format } from "date-fns";
 import { useMemo, useState } from "react";
 
@@ -34,6 +35,14 @@ const STATUS_CHIP: Record<string, { bg: string; line: string; ink: string }> = {
 
 const chipFor = (status?: string): { bg: string; line: string; ink: string } =>
   (status ? STATUS_CHIP[status] : undefined) ?? { bg: "#F1F3F6", line: "#D4DAE2", ink: "#64748B" };
+
+// Drafts ignore status colors so unpublished sessions read as distinct at a glance.
+const DRAFT_CHIP = { bg: "#F8FAFC", line: "#CBD5E1", ink: "#64748B" };
+const chipForSession = (session?: ISessionItem | null) =>
+  session?.is_published === false ? DRAFT_CHIP : chipFor(session?.status);
+const isDraft = (session?: ISessionItem | null) => session?.is_published === false;
+const draftLabel = (session?: ISessionItem | null) =>
+  isScheduled(session) ? `SCHED ${formatPublishCountdown(session?.publish_at)}` : "DRAFT";
 
 function toCalendarEvent(row: ISessionItem): CalendarEvent<ISessionItem> | null {
   const start = new Date(row.start_datetime);
@@ -82,15 +91,16 @@ const dimFor = (status: string) => (status === "ended" || status === "canceled" 
 function renderSessionChip({ occurrence, segment, view }: EventCalendarRenderEventProps<ISessionItem>) {
   const session = occurrence.event.data;
   const name = session?.session_name ?? occurrence.event.title;
-  const chip = chipFor(session?.status);
-  const branch = session?.branch ? colorFor(session.branch) : chip.ink;
+  const chip = chipForSession(session);
+  const draft = isDraft(session);
+  const branch = draft ? chip.ink : session?.branch ? colorFor(session.branch) : chip.ink;
   const dim = dimFor(session?.status ?? "");
   const minutes = (segment.endMin ?? 0) - (segment.startMin ?? 0);
 
   if (view === "month") {
     return (
       <span
-        className={`flex w-full min-w-0 items-center gap-1.5 rounded border border-l-4 px-1.5 py-px ${dim}`}
+        className={`flex w-full min-w-0 items-center gap-1.5 rounded border border-l-4 px-1.5 py-px ${dim} ${draft ? "border-dashed" : ""}`}
         style={{ borderColor: chip.line, borderLeftColor: chip.ink }}
       >
         {session ? (
@@ -104,6 +114,11 @@ function renderSessionChip({ occurrence, segment, view }: EventCalendarRenderEve
         >
           {name}
         </span>
+        {draft && (
+          <span className="shrink-0 rounded border border-dashed px-1 text-[10px] font-bold tracking-wide" style={{ borderColor: chip.line, color: chip.ink }}>
+            {draftLabel(session)}
+          </span>
+        )}
         {segment.isStart && (
           <span className="ms-auto shrink-0 text-[11px] tabular-nums opacity-80" style={{ color: chip.ink }}>
             {timeOf(occurrence.start)}
@@ -119,8 +134,15 @@ function renderSessionChip({ occurrence, segment, view }: EventCalendarRenderEve
       <span className={`flex min-w-0 items-start gap-1.5 leading-snug ${dim}`}>
         <InstructorAvatar name={session.instructor_name} tint={branch} className="size-5 shrink-0" />
         <span className="flex min-w-0 flex-col">
-          <span className="truncate font-serif text-[13px] leading-tight font-medium" style={{ color: chip.ink }}>
-            {name}
+          <span className="flex items-center gap-1.5">
+            <span className="truncate font-serif text-[13px] leading-tight font-medium" style={{ color: chip.ink }}>
+              {name}
+            </span>
+            {draft && (
+              <span className="shrink-0 rounded border border-dashed px-1 text-[10px] font-bold tracking-wide" style={{ borderColor: chip.line, color: chip.ink }}>
+                {draftLabel(session)}
+              </span>
+            )}
           </span>
           <span className="truncate text-[11px] tabular-nums opacity-80" style={{ color: chip.ink }}>
             {timeOf(occurrence.start)} – {timeOf(occurrence.end)}
@@ -138,11 +160,17 @@ function renderSessionChip({ occurrence, segment, view }: EventCalendarRenderEve
 
   // Compact chip: week/day short blocks and all-day bars share the monthly
   // language. All-day bars carry no time readout.
+  const compactDraft = isDraft(session);
   return (
     <span className={`flex w-full min-w-0 items-center gap-1.5 ${dim}`}>
       <span className="truncate font-serif text-[12.5px] font-medium" style={{ color: chip.ink }}>
         {name}
       </span>
+      {compactDraft && (
+        <span className="shrink-0 rounded border border-dashed px-1 text-[10px] font-bold tracking-wide" style={{ borderColor: chip.line, color: chip.ink }}>
+          {draftLabel(session)}
+        </span>
+      )}
       {!occurrence.allDay && (
         <span className="ms-auto shrink-0 text-[11px] tabular-nums opacity-80" style={{ color: chip.ink }}>
           {timeOf(occurrence.start)}
@@ -154,8 +182,9 @@ function renderSessionChip({ occurrence, segment, view }: EventCalendarRenderEve
 
 function renderSessionAgendaRow({ occurrence }: EventCalendarRenderEventProps<ISessionItem>) {
   const session = occurrence.event.data;
-  const chip = chipFor(session?.status);
-  const branch = session?.branch ? colorFor(session.branch) : chip.ink;
+  const chip = chipForSession(session);
+  const draft = isDraft(session);
+  const branch = draft ? chip.ink : session?.branch ? colorFor(session.branch) : chip.ink;
   return (
     <span className={`flex w-full min-w-0 items-center gap-2.5 ${dimFor(session?.status ?? "")}`}>
       <span aria-hidden className="h-8 w-1 shrink-0 rounded-full" style={{ backgroundColor: chip.ink }} />
@@ -170,6 +199,14 @@ function renderSessionAgendaRow({ occurrence }: EventCalendarRenderEventProps<IS
       <span className="truncate font-serif text-sm font-medium" style={{ color: chip.ink }}>
         {occurrence.event.title}
       </span>
+      {draft && (
+        <span
+          className="shrink-0 rounded border border-dashed px-1.5 py-0.5 text-[10px] font-bold tracking-wide"
+          style={{ backgroundColor: chip.bg, borderColor: chip.line, color: chip.ink }}
+        >
+          {draftLabel(session)}
+        </span>
+      )}
       {session && (
         <span
           className="ms-auto hidden shrink-0 rounded-full border px-2 py-0.5 text-[11px] font-semibold sm:inline"
@@ -216,6 +253,12 @@ export const SessionsCalendarView = ({
             </span>
           );
         })}
+        <span
+          className="rounded border border-dashed border-l-4 px-2 py-0.5 text-[11px] font-semibold"
+          style={{ backgroundColor: DRAFT_CHIP.bg, borderColor: DRAFT_CHIP.line, borderLeftColor: DRAFT_CHIP.ink, color: DRAFT_CHIP.ink }}
+        >
+          Draft · hidden from public
+        </span>
         <span aria-hidden className="mx-1 h-4 w-px bg-brand-100" />
         {SEHELA_BRANCH.map((b) => (
           <span key={b.value} className="flex items-center gap-1.5 text-xs text-gray-500">

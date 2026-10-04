@@ -7,5 +7,5 @@ export const useGetSessionBookings = (params: { id: string; page: number; limit:
     queryKey: ["dashboard", "orders", "session", "session-detail", params],
     queryFn: () => getSesionDetailBooking(params),
     refetchOnWindowFocus: false,
-    enabled: !!params,
+    enabled: !!params?.id,
   });

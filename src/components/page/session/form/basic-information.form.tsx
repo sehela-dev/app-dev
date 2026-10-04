@@ -7,6 +7,7 @@ import { FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/comp
 import { Input } from "@/components/ui/input";
 
 import { Textarea } from "@/components/ui/textarea";
+import { Switch } from "@/components/ui/switch";
 import { useGetClassSessionsCategory } from "@/hooks/api/queries/admin/class-session";
 import { useEffect, useMemo, useState } from "react";
 
@@ -277,6 +278,48 @@ export const SessionBasicInfoFormComponent = ({ type }: { type?: string }) => {
               </FormItem>
             )}
           />
+          <FormField
+            control={control}
+            name="is_published"
+            render={({ field }) => (
+              <FormItem className="flex items-center justify-between rounded-lg border p-3 mt-2">
+                <div>
+                  <p className="text-sm font-medium text-brand-999">Publish immediately</p>
+                  <p className="text-xs text-gray-500">When off, the session is saved as a draft (hidden from public).</p>
+                </div>
+                <FormControl>
+                  <Switch
+                    checked={!!field.value}
+                    onCheckedChange={(v) => {
+                      field.onChange(v);
+                      if (v) methods?.setValue("publish_at", "");
+                    }}
+                  />
+                </FormControl>
+              </FormItem>
+            )}
+          />
+          {!methods?.watch("is_published") && (
+            <FormField
+              control={control}
+              name="publish_at"
+              render={({ field }) => (
+                <FormItem className="flex flex-col mt-2">
+                  <FormLabel className="text-brand-999 font-medium text-sm">Go live at (optional)</FormLabel>
+                  <FormControl>
+                    <Input
+                      type="datetime-local"
+                      className="w-full px-4 py-4 border-2 border-gray-200 rounded-lg text-gray-999 placeholder-gray-400 focus:outline-none focus:border-brand-500 transition-colors h-[42px]"
+                      {...field}
+                      value={field.value ?? ""}
+                    />
+                  </FormControl>
+                  <p className="text-xs text-gray-500">Stays hidden until then, then goes live automatically. Empty = stays draft.</p>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          )}
         </CardContent>
       </Card>
     </FormProvider>

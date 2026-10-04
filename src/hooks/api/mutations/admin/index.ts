@@ -4,6 +4,7 @@ export * from "./use-create-manual-order";
 export * from "./use-create-new-session";
 export * from "./use-edit-session";
 export * from "./use-delete-session";
+export * from "./use-duplicate-session";
 export * from "./use-create-instructor";
 export * from "./use-edit-instructor";
 export * from "./use-delete-instructor";

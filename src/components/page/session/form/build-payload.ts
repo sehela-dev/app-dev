@@ -2,6 +2,7 @@
 
 import { createFormData } from "@/lib/helper";
 import { ICreateSessionPaylaod } from "@/types/class-sessions.interface";
+import { fromLocalInputValue } from "@/utils/session-badge";
 
 export const createSessionDefaultValues = {
   //BASIC INFORMATION
@@ -46,6 +47,8 @@ export const createSessionDefaultValues = {
   //OTHER
   type: "regular",
   level: "all_levels",
+  is_published: true,
+  publish_at: "",
   isOveride: false,
   payment: {
     payment_model: "",
@@ -103,6 +106,9 @@ export const buildSessionPayload = (data: CreateSessionFormData): ICreateSession
     start_date: data?.start_date as string,
     time_start: data?.time_start as string,
     time_end: data?.time_end as string,
+    is_published: data?.is_published ?? true,
+    // Future publish_at + draft = scheduled go-live; explicit publish clears any schedule (BE).
+    ...(!data?.is_published && data?.publish_at ? { publish_at: fromLocalInputValue(data.publish_at) } : null),
 
     ...(data?.isOveride && (data?.type === "private" || data?.type === "special")
       ? {

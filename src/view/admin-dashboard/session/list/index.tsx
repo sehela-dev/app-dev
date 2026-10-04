@@ -5,17 +5,20 @@ import { BaseDialogConfirmation } from "@/components/general/dialog-confirnation
 import { CustomPagination } from "@/components/general/pagination-component";
 import { GeneralTabComponent } from "@/components/general/tabs-component";
 import { SessionsCalendarView } from "@/components/page/session/sessions-calendar-view";
+import { DuplicateRangeDialog } from "@/components/page/session/duplicate-range-dialog";
+import { PendingGoLiveSection } from "@/components/page/session/pending-go-live-section";
 import { SessionDetailSheet } from "@/components/page/session/session-detail-sheet";
 import { QuickCreateSlot, SessionQuickCreateSheet } from "@/components/page/session/session-quick-create-sheet";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { SearchInput } from "@/components/ui/search-input";
-import { useDeleteSession } from "@/hooks/api/mutations/admin";
+import { useDeleteSession, usePublishSession, useUnpublishSession } from "@/hooks/api/mutations/admin";
 import { useGetSessions } from "@/hooks/api/queries/admin/class-session";
 import { useAdminPermission } from "@/hooks/use-role-access";
 import { defaultDate, formatDateHelper } from "@/lib/helper";
 import { cn } from "@/lib/utils";
+import { formatPublishCountdown, isScheduled } from "@/utils/session-badge";
 // import { IClassSessionCategory } from "@/types/class-category.interface";
 import { ISessionItem } from "@/types/class-sessions.interface";
 import { ICommonParams } from "@/types/general.interface";
@@ -24,7 +27,7 @@ import type { EventCalendarRangeInfo, EventCalendarSlotInfo } from "@/components
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { branchLabel, SEHELA_BRANCH } from "@/constants/sample-data";
-import { CirclePlus, CalendarDays, CalendarPlus, Ellipsis, LayoutList } from "lucide-react";
+import { CirclePlus, CalendarDays, CalendarPlus, CopyPlus, Ellipsis, LayoutList } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { format } from "date-fns";
@@ -73,6 +76,7 @@ export const SessionListPage = () => {
   const [creditOnly, setCreditOnly] = useState(false);
   const [hasPhoto, setHasPhoto] = useState<boolean | null>(null);
   const [branch, setBranch] = useState("all");
+  const [visibility, setVisibility] = useState("all");
   const { data, isLoading, refetch } = useGetSessions({
     page: view === "calendar" ? 1 : page,
     // ponytail: single unpaginated fetch capped at 200, add server range paging if a month exceeds it
@@ -82,8 +86,10 @@ export const SessionListPage = () => {
     startDate: selectedRange.from as string,
     endDate: selectedRange.to as string,
     ...(branch !== "all" ? { branch } : null),
+    ...(visibility === "published" ? { is_published: true } : visibility === "draft" ? { is_published: false } : null),
   } as ICommonParams & Record<string, unknown>);
 
+  const [openDuplicateRange, setOpenDuplicateRange] = useState(false);
   const [quickSlot, setQuickSlot] = useState<QuickCreateSlot | null>(null);
   const [slotPopup, setSlotPopup] = useState<(QuickCreateSlot & { x: number; y: number }) | null>(null);
 
@@ -110,6 +116,8 @@ export const SessionListPage = () => {
   };
 
   const { mutateAsync } = useDeleteSession();
+  const { mutateAsync: publishAsync } = usePublishSession();
+  const { mutateAsync: unpublishAsync } = useUnpublishSession();
 
   const headers = [
     {
@@ -168,16 +176,24 @@ export const SessionListPage = () => {
       id: "status",
       text: "Status",
       value: (row: ISessionItem) => (
-        <p
-          className={cn("capitalize font-semibold", {
-            "text-green-500": row.status === "ongoing",
-            "text-blue-500": row.status === "scheduled",
-            "text-red-500": row.status === "ended",
-            "text-yellow-500": row.status === "canceled",
-          })}
-        >
-          {row.status}
-        </p>
+        <div className="flex flex-col gap-1">
+          <p
+            className={cn("capitalize font-semibold", {
+              "text-gray-500": row.is_published === false,
+              "text-green-500": row.is_published !== false && row.status === "ongoing",
+              "text-blue-500": row.is_published !== false && row.status === "scheduled",
+              "text-red-500": row.is_published !== false && row.status === "ended",
+              "text-yellow-500": row.is_published !== false && row.status === "canceled",
+            })}
+          >
+            {row.status}
+          </p>
+          {row.is_published === false ? (
+            <Badge variant="secondary" className="w-fit border-dashed text-xs">
+              {isScheduled(row) ? `Scheduled ${formatPublishCountdown(row.publish_at)}` : "Draft · hidden"}
+            </Badge>
+          ) : null}
+        </div>
       ),
     },
   ];
@@ -201,6 +217,26 @@ export const SessionListPage = () => {
         <DropdownMenuContent align="start" className="w-32">
           {can("session:update") && <DropdownMenuItem onClick={() => router.push(`session/${row.id}/edit`)}>Edit</DropdownMenuItem>}
           {can("session:detail") && <DropdownMenuItem onClick={() => router.push(`session/${row.id}`)}>View Details</DropdownMenuItem>}
+          {can("session:update") && row.is_published === false ? (
+            <DropdownMenuItem
+              onClick={async () => {
+                await publishAsync(row.id);
+                refetch();
+              }}
+            >
+              Publish
+            </DropdownMenuItem>
+          ) : null}
+          {can("session:update") && row.is_published !== false ? (
+            <DropdownMenuItem
+              onClick={async () => {
+                await unpublishAsync(row.id);
+                refetch();
+              }}
+            >
+              Unpublish
+            </DropdownMenuItem>
+          ) : null}
 
           {row.status === "ended" || row.status === "canceled" ? (
             <></>
@@ -247,17 +283,17 @@ export const SessionListPage = () => {
     <div className="flex w-full  flex-col gap-2">
       <div className="flex flex-row justify-between w-full items-center">
         <div className="max-w-auto">
-          {view === "list" && (
-            <GeneralTabComponent
-              selecetedTab={tabs}
-              setTab={(e) => {
-                setTabs(e);
-                setSearch("");
-                setPage(1);
-              }}
-              tabs={tabFilter}
-            />
-          )}
+
+          <GeneralTabComponent
+            selecetedTab={tabs}
+            setTab={(e) => {
+              setTabs(e);
+              setSearch("");
+              setPage(1);
+            }}
+            tabs={tabFilter}
+          />
+
         </div>
         <div className="flex flex-row items-center w-full justify-end gap-2 flex-wrap">
           <div className="flex gap-1 rounded-md border border-brand-100 p-1">
@@ -275,7 +311,12 @@ export const SessionListPage = () => {
               <CalendarDays /> Calendar
             </Button>
           </div>
-          <div>
+          <div className="flex gap-2">
+            {can("session:create") && (
+              <Button variant="outline" className=" text-sm font-medium" onClick={() => setOpenDuplicateRange(true)}>
+                <CopyPlus /> Duplicate
+              </Button>
+            )}
             {can("session:create") && (
               <Button className=" text-sm font-medium" onClick={() => router.push("session/create")}>
                 <CirclePlus /> Create New Session
@@ -285,6 +326,13 @@ export const SessionListPage = () => {
         </div>
       </div>
 
+      {view === "calendar" && (
+        <PendingGoLiveSection
+          startDate={selectedRange.from ?? undefined}
+          endDate={selectedRange.to ?? undefined}
+          onChanged={refetch}
+        />
+      )}
       <Card className="border-brand-100 w-full">
         <CardHeader className="flex flex-row w-full justify-between items-center">
           <div className="flex flex-col gap-1">
@@ -292,6 +340,24 @@ export const SessionListPage = () => {
             <p className="text-sm text-gray-500">Manage class schedules and sessions</p>
           </div>
           <div className="flex items-center flex-row gap-2">
+            <div>
+              <Select
+                value={visibility}
+                onValueChange={(v) => {
+                  setVisibility(v);
+                  setPage(1);
+                }}
+              >
+                <SelectTrigger className="w-36 min-h-[42px]">
+                  <SelectValue placeholder="Visibility" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Visibility</SelectItem>
+                  <SelectItem value="published">Published</SelectItem>
+                  <SelectItem value="draft">Draft</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
             <div>
               <Select
                 value={branch}
@@ -375,7 +441,8 @@ export const SessionListPage = () => {
         )}
       </Card>
 
-      <SessionDetailSheet session={selectedSession} open={!!selectedSession} onOpenChange={(o) => !o && setSelectedSession(null)} />
+      <DuplicateRangeDialog open={openDuplicateRange} onOpenChange={setOpenDuplicateRange} onDuplicated={refetch} />
+      <SessionDetailSheet session={selectedSession} open={!!selectedSession} onOpenChange={(o) => !o && setSelectedSession(null)} onChanged={refetch} />
       {slotPopup && view === "calendar" && (
         <>
           <div className="fixed inset-0 z-40" onClick={() => setSlotPopup(null)} />

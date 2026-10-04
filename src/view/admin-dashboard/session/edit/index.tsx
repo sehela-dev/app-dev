@@ -14,6 +14,7 @@ import { useEditSession } from "@/hooks/api/mutations/admin";
 import { useGetSessionDetail } from "@/hooks/api/queries/admin/class-session";
 import { useAdminPermission } from "@/hooks/use-role-access";
 import { createFormData } from "@/lib/helper";
+import { fromLocalInputValue, toLocalInputValue } from "@/utils/session-badge";
 
 import { Loader2 } from "lucide-react";
 import { useParams, useRouter } from "next/navigation";
@@ -63,6 +64,8 @@ const defaultValues = {
   //OTHER
   type: "regular",
   level: "all_levels",
+  is_published: true,
+  publish_at: "",
   isOveride: false,
   payment: {
     payment_model: null,
@@ -160,6 +163,8 @@ export const EditSessionPage = () => {
       //OTHER
       type: data?.data?.type,
       level: data?.data?.level ?? "all_levels",
+      is_published: data?.data?.is_published ?? true,
+      publish_at: toLocalInputValue(data?.data?.publish_at),
       isOveride: !!data?.data?.instructor_payment_model || false,
       ...(data?.data?.type === "private" || data?.data?.type === "special"
         ? {
@@ -189,6 +194,10 @@ export const EditSessionPage = () => {
   const classType = watch("type");
   const onSubmit = handleSubmit(async (data) => {
     try {
+      const publishedNow = data?.is_published ?? true;
+      const publishedToggled = publishedNow !== (values.is_published ?? true);
+      const schedInput = (data?.publish_at as string) || "";
+      const schedIso = fromLocalInputValue(schedInput);
       const payload = {
         session_description: data?.description,
         session_name: data?.session_name,
@@ -219,6 +228,11 @@ export const EditSessionPage = () => {
         start_date: data?.start_date as string,
         time_start: data?.time_start as string,
         time_end: data?.time_end as string,
+        // Explicit is_published always clears any schedule (BE) — only send it when toggled.
+        ...(publishedToggled ? { is_published: publishedNow } : null),
+        // Draft kept draft: ISO = schedule, null = unschedule, omit = leave as-is.
+        ...(!publishedToggled && !publishedNow && schedInput && schedIso ? { publish_at: schedIso } : null),
+        ...(!publishedToggled && !publishedNow && !schedInput && values.publish_at ? { publish_at: null } : null),
         ...(data?.isOveride && (data?.type === "private" || data?.type === "special")
           ? {
             payment: {
