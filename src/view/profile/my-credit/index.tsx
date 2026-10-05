@@ -3,13 +3,17 @@
 import { GeneralTabComponent } from "@/components/general/tabs-component";
 import { NavHeaderComponent } from "@/components/layout/header-checkout";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { getShareErrorMessage } from "@/api-req/customer-app/payments";
 import { useAuthMember } from "@/context/member.ctx";
+import { useSharePackagePurchase } from "@/hooks/api/mutations/customers";
 import { useGetMyCreditsInfinite } from "@/hooks/api/queries/customer/profile";
 import { formatDateHelper } from "@/lib/helper";
 import { CalendarClock, Clock3, GemIcon, Loader2, MapPin, Plus, Ticket, Users } from "lucide-react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
+import { toast } from "sonner";
 
 const tabs = [
   {
@@ -145,12 +149,24 @@ export const MyCreditsCardsItem = ({ item, variant = "active" }: IProps) => {
   const isExpired = variant === "expired" || item.is_expired;
   const isDepleted = !isExpired && item.credits_remaining <= 0;
   const isMuted = isExpired || isDepleted;
+  const [shareOpen, setShareOpen] = useState(false);
   const pct = item.total_credits ? Math.min(100, Math.round((item.credits_used / item.total_credits) * 100)) : 0;
   const expiry = formatExpiry(item.expires_at, item.validity_status, item.validity_days);
   const isRefund = item.package_type === "refund";
   const showNotStarted = !isExpired && !isDepleted && item.validity_status === "not_started";
   const place = formatRestriction(item.place_restriction);
   const sessionType = formatRestriction(item.session_type_restriction);
+  // Shareable only when unused: a single credit_spend locks sharing (server enforces SHARE_USED).
+  // Received packages can never be re-shared: owner-only and never shared_by someone else.
+  const canShare =
+    item.is_owner &&
+    !item.shared_by_user_id &&
+    !item.is_shared &&
+    !item.shared_with_user_id &&
+    item.is_shareable === true &&
+    !isMuted &&
+    item.credits_used === 0 &&
+    (item.status ? item.status === "paid" : true);
 
   return (
     <div
@@ -261,6 +277,19 @@ export const MyCreditsCardsItem = ({ item, variant = "active" }: IProps) => {
           <Users size={12} /> Shared credit
         </div>
       )}
+      {item.is_owner && !!item.shared_with_user_name && (
+        <div className="inline-flex items-center gap-1.5 rounded-lg bg-brand-25 px-2.5 py-1.5 text-[11px] text-brand-700">
+          <Users size={12} /> Shared with {item.shared_with_user_name}
+        </div>
+      )}
+      {canShare && (
+        <SharePackagePanel
+          open={shareOpen}
+          onOpenChange={setShareOpen}
+          purchaseId={item.package_purchase_id}
+          packageName={item.package_name}
+        />
+      )}
     </div>
   );
 };
@@ -281,3 +310,107 @@ export const EmptyStateCredit = ({ variant = "active" }: { variant?: "active" | 
     </div>
   );
 };
+
+function SharePackagePanel({
+  open,
+  onOpenChange,
+  purchaseId,
+  packageName,
+}: {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  purchaseId: string;
+  packageName: string;
+}) {
+  const [email, setEmail] = useState("");
+  const [error, setError] = useState<string | null>(null);
+  const { mutateAsync, isPending } = useSharePackagePurchase();
+
+  const handleShare = async () => {
+    const trimmed = email.trim();
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmed)) {
+      setError("Enter a valid email address.");
+      return;
+    }
+    setError(null);
+    try {
+      const res = await mutateAsync({ purchaseId, email: trimmed });
+      toast.success("Package shared", {
+        description: `Shared with ${res.data?.shared_with?.name || res.data?.shared_with?.email || trimmed}.`,
+        position: "top-center",
+      });
+      onOpenChange(false);
+      setEmail("");
+      setError(null);
+    } catch (err) {
+      const apiError = (err as { response?: { data?: { error?: { code?: string; message?: string } } } })?.response
+        ?.data?.error;
+      setError(getShareErrorMessage(apiError?.code, apiError?.message));
+    }
+  };
+
+  return (
+    <div className="rounded-2xl border border-amber-200 bg-amber-50 p-3.5">
+      <p className="text-sm font-bold text-brand-900">Share with 1 other person</p>
+      <p className="mt-1 text-[11px] leading-relaxed text-gray-600">
+        Add them before your first class, it can&apos;t be changed after that.
+      </p>
+      {!open ? (
+        <Button
+          variant="outline"
+          className="mt-3 min-h-11 w-full gap-1.5 rounded-xl border-brand-300 bg-white text-xs font-bold text-brand-700"
+          onClick={() => onOpenChange(true)}
+        >
+          <Plus size={14} /> Add person
+        </Button>
+      ) : (
+        <div className="mt-3 flex flex-col gap-2">
+          <label htmlFor={`share-email-${purchaseId}`} className="text-xs font-bold text-brand-900">
+            Their email
+          </label>
+          <div className="flex gap-2">
+            <Input
+              id={`share-email-${purchaseId}`}
+              type="email"
+              inputMode="email"
+              autoComplete="email"
+              placeholder="name@email.com"
+              value={email}
+              disabled={isPending}
+              onChange={(e) => {
+                setEmail(e.target.value);
+                if (error) setError(null);
+              }}
+              aria-label={`Email of the person to share ${packageName} with`}
+              aria-invalid={!!error}
+              className="min-h-11 rounded-xl bg-white"
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  e.preventDefault();
+                  void handleShare();
+                }
+              }}
+            />
+            <Button className="min-h-11 shrink-0" onClick={() => void handleShare()} disabled={isPending || !email.trim()}>
+              {isPending ? (
+                <span className="inline-flex items-center gap-2">
+                  <Loader2 className="h-4 w-4 animate-spin" /> Saving…
+                </span>
+              ) : (
+                "Save"
+              )}
+            </Button>
+          </div>
+          {error && (
+            <p role="alert" className="text-[11px] font-medium text-red-600">
+              {error}
+            </p>
+          )}
+          <p className="text-[11px] leading-relaxed text-gray-500">
+            They must already have a Sehela account. Sharing lasts until the package expires and cannot be revoked.
+          </p>
+        </div>
+      )}
+    </div>
+  );
+}

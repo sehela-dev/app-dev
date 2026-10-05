@@ -4,6 +4,7 @@ import { LogoComponent } from "../asset/logo";
 import { Button } from "../ui/button";
 import { Fragment, useState } from "react";
 import { Divider } from "../ui/divider";
+import { BaseDialogConfirmation } from "../general/dialog-confirnation";
 import { useAuthMember } from "@/context/member.ctx";
 import { useRouter } from "next/navigation";
 
@@ -36,23 +37,41 @@ export const MainHeaderComponent = () => {
   );
 };
 
+interface MenuItem {
+  label: string;
+  href?: string;
+  external?: boolean;
+  action?: "logout";
+  danger?: boolean;
+}
+
 interface MobileMenuProps {
-  items?: Array<{ label: string; href: string; external?: boolean }>;
+  items?: MenuItem[];
   isLoggedIn: boolean;
 }
 
 export const MobileMenu = ({ items = [], isLoggedIn }: MobileMenuProps) => {
   const [isOpen, setIsOpen] = useState(false);
+  const [openLogoutDialog, setOpenLogoutDialog] = useState(false);
+  const { logout } = useAuthMember();
+  const router = useRouter();
+
+  const handleConfirmLogout = () => {
+    setOpenLogoutDialog(false);
+    setIsOpen(false);
+    logout();
+    router.replace("/auth/login");
+  };
 
   // not loggedin
-  const defaultItems = [
+  const defaultItems: MenuItem[] = [
     { label: "Login", href: "/auth/login" },
     { label: "About", href: "https://sehelaspace.com", external: true },
 
     { label: "Terms and Conditions", href: "/terms-and-conditions" },
   ];
 
-  const userMenu = [
+  const userMenu: MenuItem[] = [
     { label: "Home", href: "/" },
     // { label: "Book Session", href: "/book" },
     { label: "Profile", href: "/profile" },
@@ -103,19 +122,41 @@ Logout
         <nav className="flex flex-col p-4 gap-2">
           {menu.map((item, index: number) => (
             <Fragment key={index}>
-              <a
-                href={item.href}
-                className="px-4 py-3 text-brand-700 hover:bg-brand-100 rounded-lg font-medium transition-colors text-sm"
-                onClick={() => setIsOpen(false)}
-                target={item?.external ? "_blank" : "_self"}
-              >
-                {item.label}
-              </a>
+              {item.action === "logout" ? (
+                <button
+                  onClick={() => {
+                    setIsOpen(false);
+                    setOpenLogoutDialog(true);
+                  }}
+                  className="px-4 py-3 text-red-600 hover:bg-red-50 rounded-lg font-medium transition-colors text-sm text-left"
+                >
+                  {item.label}
+                </button>
+              ) : (
+                <a
+                  href={item.href}
+                  className="px-4 py-3 text-brand-700 hover:bg-brand-100 rounded-lg font-medium transition-colors text-sm"
+                  onClick={() => setIsOpen(false)}
+                  target={item?.external ? "_blank" : "_self"}
+                >
+                  {item.label}
+                </a>
+              )}
               {index <= menuItems?.length && <Divider />}
             </Fragment>
           ))}
         </nav>
       </div>
+      <BaseDialogConfirmation
+        open={openLogoutDialog}
+        image="warning-1"
+        title="Logout from your account?"
+        subtitle="You will need to sign in again to access your classes and profile."
+        cancelText="Cancel"
+        confirmText="Logout"
+        onCancel={() => setOpenLogoutDialog(false)}
+        onConfirm={handleConfirmLogout}
+      />
     </>
   );
 };

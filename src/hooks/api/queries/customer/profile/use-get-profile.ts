@@ -6,6 +6,7 @@ export const useGetProfile = (enabled: boolean = true) =>
     queryKey: ["user", "profile"],
     queryFn: () => userAuthGetProfile(),
     refetchOnWindowFocus: false,
+    retry: false,
     enabled,
   });
 // userAuthGetProfileCallback
@@ -15,5 +16,6 @@ export const useGetProfileCallback = (token: string) =>
     queryKey: ["user", "profile", "detail", "auth", token],
     queryFn: () => userAuthGetProfileCallback(token),
     refetchOnWindowFocus: false,
+    retry: false,
     enabled: !!token,
   });

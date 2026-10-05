@@ -29,6 +29,7 @@ export interface ISessionItem {
   status: string;
   is_published?: boolean;
   publish_at?: string | null;
+  cancellation_fee_idr?: number;
   created_at: string;
   updated_at: string;
   class: IClassSession;
@@ -48,6 +49,7 @@ export interface IClassSession {
   id: string;
   class_name: string;
   allow_credit: boolean;
+  cancellation_fee_idr?: number;
 }
 
 export interface ICreateSessionPaylaod {
@@ -148,13 +150,7 @@ export interface IDuplicateSessionResult {
   errors?: { date: string; error: string }[];
 }
 
-export type TDuplicateSessionData = ({
-  id,
-  data,
-}: {
-  id: string;
-  data: IDuplicateSessionPayload;
-}) => Promise<IResponseData<IDuplicateSessionResult>>;
+export type TDuplicateSessionData = ({ id, data }: { id: string; data: IDuplicateSessionPayload }) => Promise<IResponseData<IDuplicateSessionResult>>;
 
 export interface IPublishBatchResult {
   sessions: ISessionItem[];
@@ -230,3 +226,69 @@ export interface IDuplicateRangeResult {
 
 export type TDuplicatePreviewData = (data: IDuplicateRangeBase) => Promise<IResponseData<IDuplicatePreviewResult>>;
 export type TDuplicateRangeData = (data: IDuplicateRangePayload) => Promise<IResponseData<IDuplicateRangeResult>>;
+export type TSessionCancelRefundType = "none" | "smart" | "credit_return" | "credit_issue_new" | "manual_external";
+
+export interface ISessionCancelParams {
+  id: string;
+  confirm?: boolean;
+  default_refund_type?: TSessionCancelRefundType;
+  cancel_reason?: string;
+  refund_validity_days?: number;
+}
+
+export type TSessionCancelRefundTo =
+  | { kind: "original_package"; package_purchase_id: string; package_name: string; expires_at?: string; days_remaining?: number }
+  | {
+      kind: "new_refund_package";
+      package_name: string;
+      credits: number;
+      value_idr?: number;
+      validity_days?: number;
+      restrictions?: { session_type?: string; place?: string; class_ids?: string[] };
+    }
+  | { kind: "none" };
+
+export interface ISessionCancelPreviewBooking {
+  booking_id: string;
+  user_id?: string | null;
+  customer_name?: string;
+  payment_method?: string;
+  payment_detail?: string | null;
+  package_name?: string | null;
+  credits_used?: number;
+  package_purchase_id?: string | null;
+  source_platform?: string | null;
+  package_expired?: boolean;
+  package_days_remaining?: number | null;
+  refund_type: string;
+  escalation_reason?: string | null;
+  refund_to?: TSessionCancelRefundTo | null;
+}
+
+export interface ISessionCancelPreview {
+  mode: "preview";
+  session: { id: string; session_name: string; start_datetime: string; status: string; type?: string; place?: string; class_id?: string };
+  active_bookings_count: number;
+  bookings: ISessionCancelPreviewBooking[];
+}
+
+export interface ISessionCancelCommitRefundResult {
+  booking_id: string;
+  refund_type: string;
+  status: string;
+  credits_refunded?: number;
+  refund_value_idr?: number;
+  refund_package_purchase_id?: string;
+  auto_escalated?: boolean;
+  escalation_reason?: string;
+  error?: string;
+}
+
+export interface ISessionCancelCommit {
+  mode: "commit";
+  data: ISessionItem;
+  refunds?: {
+    summary: { total_bookings: number; succeeded: number; failed: number; auto_escalated: number };
+    results: ISessionCancelCommitRefundResult[];
+  };
+}

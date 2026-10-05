@@ -20,6 +20,9 @@ import { useBookingSession } from "@/hooks/api/mutations/admin";
 import { OrderCustomerSectionComponent } from "@/components/page/orders";
 import { useAdminPermission } from "@/hooks/use-role-access";
 import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { format } from "date-fns";
 
 const enrollmentType = [
   {
@@ -53,6 +56,8 @@ export const EnrollStudentView = () => {
 
   const [search, setSearch] = useState("");
   const debounceClass = useDebounce(search, 300);
+  const [transactionDate, setTransactionDate] = useState("");
+  const [transactionDateError, setTransactionDateError] = useState<string | null>(null);
 
   const handleSearch = (query: string) => {
     setSearch(query);
@@ -96,6 +101,13 @@ export const EnrollStudentView = () => {
 
   const handleBookingSession = async () => {
     try {
+      const today = format(new Date(), "yyyy-MM-dd");
+      const backdate = isManager && transactionDate && transactionDate !== today ? transactionDate : "";
+      if (backdate && backdate > today) {
+        setTransactionDateError("Backdate cannot be in the future");
+        return;
+      }
+      setTransactionDateError(null);
       const payload = {
         class_session_id: sessionData?.id as string,
         ...(tabs === "credit"
@@ -110,6 +122,7 @@ export const EnrollStudentView = () => {
             branch: customerData?.branch,
           }),
         status: "paid",
+        ...(backdate ? { transaction_date: backdate } : null),
 
         // ...(customerData?.package?.package_purchase_id ? {})
       };
@@ -128,6 +141,8 @@ export const EnrollStudentView = () => {
   const clearForm = () => {
     selectSession(null);
     addCustomer();
+    setTransactionDate("");
+    setTransactionDateError(null);
   };
 
   const canProceed =
@@ -305,13 +320,29 @@ export const EnrollStudentView = () => {
                     </div>
                   )}
 
+                  {isManager && (
+                    <div className="flex flex-col gap-1">
+                      <Label className="text-sm text-gray-500">Transaction date (backdate)</Label>
+                      <p className="text-xs text-gray-500">Leave empty to use today.</p>
+                      <Input
+                        type="date"
+                        className="h-[42px] w-full rounded-lg border-2 border-gray-200 px-4 text-gray-999 focus:border-brand-500 focus:outline-none"
+                        value={transactionDate}
+                        max={format(new Date(), "yyyy-MM-dd")}
+                        onChange={(e) => {
+                          setTransactionDate(e.target.value);
+                          if (transactionDateError) setTransactionDateError(null);
+                        }}
+                      />
+                      {transactionDateError && <p className="text-sm text-red-500">{transactionDateError}</p>}
+                    </div>
+                  )}
                   <div className="flex flex-row items-center w-full gap-4">
                     <div className="flex w-full">
                       <Button className="w-full" variant={"secondary"} onClick={clearForm}>
                         Clear
                       </Button>
-                    </div>
-                    <div className="flex w-full">
+                    </div>                    <div className="flex w-full">
                       <Button
                         className="w-full"
                         disabled={isPending || !canProceed}

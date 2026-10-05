@@ -26,9 +26,11 @@ import { BANK_LIST, SEHELA_BANKS, SEHELA_BRANCH } from "@/constants/sample-data"
 import Select from "react-select";
 import { BaseDialogComponent } from "@/components/general/base-dialog-component";
 import { useDebounce } from "@/hooks";
+import { useAdminPermission } from "@/hooks/use-role-access";
 import { useGetCustomers } from "@/hooks/api/queries/admin/customers";
 import { ICustomerData } from "@/types/customers.interface";
 import { parseProductCartItemId } from "@/components/page/orders/product-section";
+import { format } from "date-fns";
 
 export const PAYMENT_METHODS = [
   {
@@ -46,6 +48,7 @@ export const PAYMENT_METHODS = [
 ];
 export const DetailFormAddTransaction = () => {
   const router = useRouter();
+  const { isManager } = useAdminPermission();
 
   const { cartItems, updateItem, updateStepper, customerData, removeItem, updateQuantity, clearCart, addCustomer } = useAdminManualTransaction();
   const [selectedVoucher, setSelectedVoucher] = useState<IVouchersListItem | null>(null);
@@ -56,6 +59,8 @@ export const DetailFormAddTransaction = () => {
   const [selectedBankTo, setSelectedBankTo] = useState<{ label: string; value: string } | null>(null);
   const [selectedBranch, setSelectedBranch] = useState<{ label: string; value: string } | null>(null);
   const [branchError, setBranchError] = useState<string | null>(null);
+  const [transactionDate, setTransactionDate] = useState("");
+  const [transactionDateError, setTransactionDateError] = useState<string | null>(null);
 
   useEffect(() => {
     if (customerData?.branch && !selectedBranch) {
@@ -88,6 +93,8 @@ export const DetailFormAddTransaction = () => {
   const [search, setSearch] = useState("");
   const debounceSearch = useDebounce(search, 300);
   const [selectedUser, setSelectedUser] = useState<ICustomerData | null>(null);
+  const [shareEmail, setShareEmail] = useState("");
+  const [shareEmailError, setShareEmailError] = useState<string | null>(null);
   const [selectedUsers, setSelectedUsers] = useState<ICustomerData[]>([]);
   const [openSessionSharing, setOpenSessionSharing] = useState(false);
 
@@ -144,6 +151,14 @@ export const DetailFormAddTransaction = () => {
       return;
     }
 
+    const today = format(new Date(), "yyyy-MM-dd");
+    const backdate = isManager && transactionDate && transactionDate !== today ? transactionDate : "";
+    if (backdate && backdate > today) {
+      setTransactionDateError("Backdate cannot be in the future");
+      return;
+    }
+    setTransactionDateError(null);
+
     const sessions: ISession[] = [];
     const products: IProduct[] = [];
     const packages: IPackages[] = [];
@@ -164,9 +179,11 @@ export const DetailFormAddTransaction = () => {
         packages.push({
           package_id: item.id as string,
           ...(item.badge === "Sharing"
-            ? {
-                share_with_user_id: item.share_with_user_id,
-              }
+            ? item.share_with_email
+              ? { share_with_email: item.share_with_email }
+              : item.share_with_user_id
+                ? { share_with_user_id: item.share_with_user_id }
+                : null
             : null),
         });
       }
@@ -197,6 +214,7 @@ export const DetailFormAddTransaction = () => {
       user_id: customerData?.id as string,
       branch: (selectedBranch?.value ?? customerData?.branch) as string,
       ...(discountData ? { voucher_code: selectedVoucher?.code } : null),
+      ...(backdate ? { transaction_date: backdate } : null),
     };
     // console.log(payload)
     // return
@@ -207,6 +225,7 @@ export const DetailFormAddTransaction = () => {
         setOpen(true);
         clearCart();
         addCustomer(undefined);
+        setTransactionDate("");
       }
     } catch (error) {
       console.log(error);
@@ -222,6 +241,7 @@ export const DetailFormAddTransaction = () => {
     setOpen(false);
     clearCart();
     addCustomer(undefined);
+    setTransactionDate("");
     updateStepper();
   };
 
@@ -268,23 +288,43 @@ export const DetailFormAddTransaction = () => {
   };
 
   const onSaveShareWithUser = () => {
-    if (!selectedUser || !selectedItem) return;
+    if (!selectedItem) return;
+    const trimmedEmail = shareEmail.trim();
+    if (trimmedEmail) {
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmedEmail)) {
+        setShareEmailError("Enter a valid email address.");
+        return;
+      }
+      if (selectedUser) {
+        setShareEmailError("Fill either a member or an email, not both.");
+        return;
+      }
+    } else if (!selectedUser) {
+      return;
+    }
 
     // Find the item to update
 
     updateItem(selectedItem?.id, {
-      share_with_user_id: selectedUser.id,
-      shared_with_user: {
-        id: selectedUser.id,
-        name: selectedUser.full_name,
-        phone: selectedUser.phone,
-        email: selectedUser.email,
-      },
+      share_with_user_id: trimmedEmail ? undefined : selectedUser?.id,
+      share_with_email: trimmedEmail || undefined,
+      shared_with_user: trimmedEmail
+        ? { id: "", name: trimmedEmail, phone: "", email: trimmedEmail }
+        : selectedUser
+          ? {
+              id: selectedUser.id,
+              name: selectedUser.full_name,
+              phone: selectedUser.phone,
+              email: selectedUser.email,
+            }
+          : null,
     });
     setOpenModalSharing(false);
     setSelectedUser(null);
     setSelectedItem(null);
     setSearch("");
+    setShareEmail("");
+    setShareEmailError(null);
   };
 
   const onsSaveShareSession = () => {
@@ -389,11 +429,11 @@ export const DetailFormAddTransaction = () => {
                               <div className="text-brand-999 font-medium text-sm col-span-2 flex flex-col">
                                 {item?.type === "packages" && item.badge === "Sharing" ? (
                                   <>
-                                    {item?.share_with_user_id ? (
+                                    {item?.share_with_user_id || item?.share_with_email ? (
                                       <div className="flex flex-row items-center gap-4">
                                         <div className="flex flex-col">
                                           <p>{item?.shared_with_user?.name}</p>
-                                          <p>{item?.shared_with_user?.phone}</p>
+                                          <p>{item?.share_with_email ?? item?.shared_with_user?.phone}</p>
                                         </div>
                                         <Button
                                           size={"icon"}
@@ -401,6 +441,7 @@ export const DetailFormAddTransaction = () => {
                                           onClick={() => {
                                             updateItem(item.id, {
                                               share_with_user_id: undefined,
+                                              share_with_email: undefined,
                                               shared_with_user: null,
                                             });
                                           }}
@@ -684,6 +725,23 @@ export const DetailFormAddTransaction = () => {
                       />
                       {branchError && <p className="text-sm text-red-500">{branchError}</p>}
                     </div>
+                    {isManager && (
+                      <div className="flex flex-col gap-1 mt-2">
+                        <Label className="text-gray-500">Transaction date (backdate)</Label>
+                        <p className="text-xs text-gray-500">Leave empty to use today. Managers only.</p>
+                        <Input
+                          type="date"
+                          className="w-full px-4 border-2 border-gray-200 rounded-lg text-gray-999 focus:outline-none focus:border-brand-500 transition-colors h-[42px]"
+                          value={transactionDate}
+                          max={format(new Date(), "yyyy-MM-dd")}
+                          onChange={(e) => {
+                            setTransactionDate(e.target.value);
+                            if (transactionDateError) setTransactionDateError(null);
+                          }}
+                        />
+                        {transactionDateError && <p className="text-sm text-red-500">{transactionDateError}</p>}
+                      </div>
+                    )}
 
                     {/* {selectedPaymentMethod === "bank_transfer" &&} */}
                   </div>
@@ -711,13 +769,15 @@ export const DetailFormAddTransaction = () => {
         <BaseDialogComponent
           onConfirm={onSaveShareWithUser}
           isOpen={openModalSharing}
-          title="Select User to share package"
+          title="Select user to share package"
           btnConfirm="Save"
           onClose={() => {
             setOpenModalSharing(false);
             setSelectedUser(null);
             setSelectedItem(null);
             setSearch("");
+            setShareEmail("");
+            setShareEmailError(null);
           }}
         >
           <Select
@@ -744,6 +804,10 @@ export const DetailFormAddTransaction = () => {
             inputValue={search}
             onChange={(e) => {
               setSelectedUser(e);
+              if (e) {
+                setShareEmail("");
+                setShareEmailError(null);
+              }
             }}
           />
           {selectedUser && (
@@ -756,6 +820,19 @@ export const DetailFormAddTransaction = () => {
               </div>
             </div>
           )}
+          <p className="text-sm text-gray-500">Or share by email (member must already be registered). Fill one, not both.</p>
+          <Input
+            type="email"
+            placeholder="friend@mail.com"
+            value={shareEmail}
+            onChange={(e) => {
+              setShareEmail(e.target.value);
+              if (shareEmailError) setShareEmailError(null);
+              if (e.target.value.trim()) setSelectedUser(null);
+            }}
+            aria-label="Share with email"
+          />
+          {shareEmailError && <p className="text-sm text-red-500">{shareEmailError}</p>}
         </BaseDialogComponent>
       )}
       {openSessionSharing && (

@@ -66,11 +66,21 @@ export interface IPackagePurchaseManualAction {
   created_at: string;
 }
 
+export interface IPackagePurchaseShareInfo {
+  is_shared: boolean;
+  share_id: string | null;
+  shared_with_user_id: string | null;
+  shared_with_user_name: string | null;
+  shared_by_user_id: string | null;
+}
+
 export interface IPackagePurchaseDetail {
   id: string;
   user_id: string;
   credit_package_id: string;
   payment_id: string | null;
+  pending_share_with_user_id?: string | null;
+  shared?: IPackagePurchaseShareInfo | null;
   status: "pending_payment" | "paid" | "expired" | "refunded";
   purchased_at: string | null;
   expires_at: string | null;

@@ -44,8 +44,12 @@ export interface IOrderDetailBooking {
     id?: string;
     session_name?: string;
     start_datetime?: string;
+    end_datetime?: string;
     place?: string;
     type?: string;
+    level?: string;
+    instructor_name?: string;
+    class?: { id?: string; class_name?: string } | null;
   } | null;
 }
 
@@ -80,6 +84,7 @@ export interface IAdminCartItemData {
   subtotal: number;
   type?: string;
   share_with_user_id?: string;
+  share_with_email?: string;
   location_id?: string;
   location_name?: string;
   share_with_user_ids?: string[];
@@ -116,12 +121,15 @@ export interface IClassData {
 }
 
 export interface IDetailOrder {
+  id?: string;
   order_id: string;
   payment_method: string;
+  type?: string;
+  branch?: string | null;
   status: string;
   date: string;
   discount?: number;
-  discount_formatted?: string;
+  discount_formatted?: string | null;
   subtotal: number;
   subtotal_formatted: string;
   time: string;
@@ -133,29 +141,56 @@ export interface IDetailOrder {
     account_bank_from?: string | null;
     account_bank_to?: string | null;
   } | null;
-  items: IOrderedItem[];
-  total_price: number;
-  total_price_formatted: string;
   voucher?: {
     code: string;
     name: string;
     discount_applied: number;
-  };
+  } | null;
+  void?: unknown;
+  items: IOrderedItem[];
+  total_price: number;
+  total_price_formatted: string;
 
   created_by?: { id: string; name: string | null } | null;
   payment_status?: string;
   order_code?: string;
+  bookings?: IOrderDetailBooking[];
+}
+
+export interface IProductOrderDetail {
+  id?: string;
+  items?: { product_name?: string; variant_name?: string | null; quantity?: number }[];
+  payment_status?: string;
+  order_code?: string;
+  bookings?: IOrderDetailBooking[];
+}
+
+export interface IOrderedItemSession {
+  id: string;
+  session_name: string;
+  start_datetime: string;
+  end_datetime: string;
+  place: string;
+  type: string;
+  level: string;
+  instructor_name: string;
+  class: {
+    id: string;
+    class_name: string;
+  } | null;
 }
 
 export interface IOrderedItem {
+  type?: string;
   name: string;
-  variant?: string;
+  variant?: string | null;
   qty: number;
   total_price: number;
   booked_for?: {
     user_id: string;
     name: string;
   }[];
+  session?: IOrderedItemSession | null;
   shared_with?: {
     name: string;
     user_id: string;
@@ -171,6 +206,7 @@ export interface IAddTransactionPayload {
   products?: IProduct[] | [];
   notes: string;
   status: string;
+  transaction_date?: string;
   transfer_details?: {
     account_name_from?: string;
     account_bank_from?: string;
@@ -185,6 +221,7 @@ export interface ISession {
 export interface IPackages {
   package_id: string;
   share_with_user_id?: string;
+  share_with_email?: string;
 }
 
 export interface IProduct {
@@ -248,6 +285,7 @@ export interface IBookingPayload {
   payment_method?: string;
   package_purchase_id?: string;
   branch?: string | null;
+  transaction_date?: string;
 }
 
 export interface IBookingResponseData {
@@ -317,6 +355,11 @@ export interface ICancelBooking {
   cancel_reason: string;
   refund_validity_days?: string | number;
   refund_amount_idr?: number;
+  charge_fee?: boolean;
+  fee_amount_idr?: number;
+  fee_payment_method?: "cash" | "edc" | "transfer" | "midtrans";
+  transfer_details?: { account_bank_to?: string };
+  fee_branch?: string;
 }
 
 export type IAttendanceStatus = "attended" | "no_show" | null;
@@ -376,6 +419,7 @@ export interface IResponseSendReceipt {
 }
 export type TOrderList = (param: ICommonParams) => Promise<IResponseData<IOrderItem[]>>;
 export type TOrderDetail = (id: string) => Promise<IResponseData<IDetailOrder>>;
+export type TProductOrderDetail = (id: string) => Promise<IResponseData<IProductOrderDetail>>;
 export type TCreateManualOrder = (payload: IAddTransactionPayload) => Promise<IResponseData<ICreatManualTrxResponse>>;
 
 export type TBookingsSession = (data: IBookingPayload) => Promise<IResponseData<IBookingResponseData>>;

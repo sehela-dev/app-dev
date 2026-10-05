@@ -16,6 +16,7 @@ export interface IAuthContextMember {
   login: (data: ILocalStorageData) => void;
   logout: () => void;
   isCompleteProfile?: boolean;
+  isNewMember?: boolean;
   profile?: IProfileResponse;
   refetch?: () => void;
 }
@@ -67,6 +68,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     refetch,
     isAuthenticated: !!access_token,
     isCompleteProfile: data?.data?.is_profile_complete,
+    isNewMember: data?.data?.is_new_member,
   };
 
   useEffect(() => {

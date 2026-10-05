@@ -71,7 +71,7 @@ export const AuthCallBackPage = () => {
   const hashError = typeof window !== "undefined" ? parseHashError() : null;
 
   // If already have session in localStorage, use it to decide where to go (avoids "Link Expired" when hash empty)
-  const { data: storedProfile, isLoading: storedLoading } = useGetProfile(Boolean(storedAccessToken) && isHydrated && !isTokenCallback && !tokens.access_token);
+  const { data: storedProfile, isLoading: storedLoading } = useGetProfile(Boolean(storedAccessToken) && isHydrated && !isTokenCallback);
 
   // helper to preserve booking intent via ?next (BE contract) with ?redirect fallback
   const getNextParam = () => {
@@ -102,17 +102,31 @@ export const AuthCallBackPage = () => {
     }
   }, [isTokenCallback, qpToken, qpEmail, router]);
 
+  // Clear only the hash, keep ?next=?redirect so booking intent survives.
+  // ponytail: bare replaceState(null,"","/auth/callback") wiped ?next on every login.
+  const clearHashPreservingSearch = () => {
+    if (typeof window === "undefined") return;
+    window.history.replaceState(null, "", `/auth/callback${window.location.search}`);
+  };
+
   const { data, isLoading, isError } = useGetProfileCallback(tokens?.access_token);
 
   useEffect(() => {
-    setTokens(parseHashTokens());
+    const parsed = parseHashTokens();
+    setTokens(parsed);
     setIsReady(true);
+    // Persist session immediately so a slow/hanging /profile fetch can't leave
+    // the page spinning forever — the stored-session effect below can redirect.
+    if (parsed.access_token && parsed.access_token !== storedAccessToken) {
+      setJwtToken({ access_token: parsed.access_token, refresh_token: parsed.refresh_token });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {
     // optional but recommended — remove token from URL
     if (tokens.access_token) {
-      window.history.replaceState(null, "", "/auth/callback");
+      clearHashPreservingSearch();
     }
   }, [tokens.access_token]);
 
@@ -164,6 +178,20 @@ export const AuthCallBackPage = () => {
       router.replace(redirect);
     }
   }, [data, router, setJwtToken, tokens]);
+
+  // Safety net: token stored but /profile hangs (network/401 loop) → don't spin
+  // forever. Destination guards re-check the session, so redirect anyway.
+  useEffect(() => {
+    if (isTokenCallback || !isHydrated || !storedAccessToken) return;
+    const t = setTimeout(() => {
+      const redirect = getSafeStoredRedirect();
+      try {
+        sessionStorage.removeItem("auth.redirect");
+      } catch {}
+      window.location.href = redirect;
+    }, 10000);
+    return () => clearTimeout(t);
+  }, [isTokenCallback, isHydrated, storedAccessToken]);
 
   // Already logged in via localStorage → skip hash check, go by profile complete flag
   // but don't auto-redirect if hash contains explicit error (otp_expired) — let error UI show

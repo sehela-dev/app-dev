@@ -87,6 +87,7 @@ export interface IProfileResponse {
   email_confirmed_at: string;
   auth_provider: string;
   is_profile_complete: boolean;
+  is_new_member?: boolean;
   overview: IOverviewSession;
 }
 

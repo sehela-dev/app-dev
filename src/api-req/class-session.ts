@@ -17,6 +17,8 @@ import {
   TSessionBookings,
   TSessionDetailData,
   TSessionListData,
+  ISessionCancelParams,
+  ISessionCancelPreview,
 } from "@/types/class-sessions.interface";
 
 export const getSessions: TSessionListData = async ({
@@ -106,8 +108,31 @@ export const createNewSession: TCreateSessionData = async (data) => {
   return res.data;
 };
 
-export const deleteSession: TSessionDetailData = async (id) => {
-  const res = await axiosx(true).delete(`${MAIN_API_URL}/classes/sessions/${id}`);
+export const deleteSession = async ({ id, confirm, default_refund_type, cancel_reason, refund_validity_days }: ISessionCancelParams) => {
+  const res = await axiosx(true).delete(`${MAIN_API_URL}/classes/sessions/${id}`, {
+    params: {
+      ...(confirm ? { confirm: "true" } : null),
+      ...(default_refund_type ? { default_refund_type } : null),
+      ...(cancel_reason ? { cancel_reason } : null),
+      ...(typeof refund_validity_days === "number" ? { refund_validity_days } : null),
+    },
+  });
+  return res.data;
+};
+
+export const previewSessionCancel = async ({
+  id,
+  default_refund_type = "smart",
+  cancel_reason,
+  refund_validity_days,
+}: Omit<ISessionCancelParams, "confirm">): Promise<{ success: boolean; data: ISessionCancelPreview }> => {
+  const res = await axiosx(true).get(`${MAIN_API_URL}/classes/sessions/${id}/preview`, {
+    params: {
+      ...(default_refund_type ? { default_refund_type } : null),
+      ...(cancel_reason ? { cancel_reason } : null),
+      ...(typeof refund_validity_days === "number" ? { refund_validity_days } : null),
+    },
+  });
   return res.data;
 };
 

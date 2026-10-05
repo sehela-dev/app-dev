@@ -50,6 +50,8 @@ const defaultValues: IPackageFormValues = {
   is_active: true,
   is_visible: true,
   is_shareable: false,
+  max_purchases_per_user: "",
+  only_for_new_users: false,
 };
 export const AddCreditPacakgesPage = () => {
   const router = useRouter();
@@ -85,6 +87,8 @@ export const AddCreditPacakgesPage = () => {
         place_restriction: data?.place_restriction,
         session_type_restriction: data?.session_type_restriction,
         is_shareable: data?.is_shareable,
+        max_purchases_per_user: data?.max_purchases_per_user ? parseInt(data.max_purchases_per_user) : null,
+        only_for_new_users: data?.only_for_new_users ?? false,
       };
 
       const res = await mutateAsync(payload);
@@ -362,6 +366,42 @@ export const AddCreditPacakgesPage = () => {
                         </div>
                         <FormMessage />
                         <FormDescription className="text-brand-500 font-medium mt-2">*) You can select multiple classes at once</FormDescription>
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={control}
+                    name="max_purchases_per_user"
+                    render={({ field }) => (
+                      <FormItem className="flex flex-col">
+                        <FormLabel className=" text-brand-999 font-medium text-sm">
+                          Max purchases per user
+                        </FormLabel>
+                        <FormControl>
+                          <Input
+                            className="w-full px-4 py-4 border-2 border-gray-200 rounded-lg text-gray-999  placeholder-gray-400 focus:outline-none focus:border-brand-500 transition-colors h-[42px]"
+                            placeholder="Unlimited"
+                            inputMode="numeric"
+                            {...field}
+                          />
+                        </FormControl>
+                        <FormDescription>Empty = unlimited. 1 = one-time buy.</FormDescription>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={control}
+                    name="only_for_new_users"
+                    render={({ field }) => (
+                      <FormItem className="flex flex-row w-full justify-between items-center pt-4 col-span-2">
+                        <div className="flex flex-col gap-2">
+                          <FormLabel className=" text-brand-999 font-medium text-sm">New members only</FormLabel>
+                          <FormDescription>Only buyable by users with no settled package/class/transaction history</FormDescription>
+                        </div>
+                        <FormControl>
+                          <Switch checked={field.value} onCheckedChange={field.onChange} />
+                        </FormControl>
                       </FormItem>
                     )}
                   />

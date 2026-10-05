@@ -346,6 +346,7 @@ export interface ICreditsLedgerParams {
   package_purchase_id?: string;
   entry_type?: string; // csv e.g. "credit_spend,credit_refund"
   status?: string; // csv of RecognitionStatus labels (post-enrich filter)
+  branch?: string; // csv e.g. "studio_kemang" atau "studio_kemang,studio_pd_labu" (BE admin v295/v38+)
   start_date?: string; // YYYY-MM-DD
   end_date?: string;
   purchased_month?: string; // YYYY-MM — bulan paket dibeli (WIB)
@@ -360,6 +361,7 @@ export interface ICreditsLedgerItem {
   id: string;
   entry_type: LedgerRowEntryType;
   customer_name: string | null;
+  branch: string | null; // studio_kemang / studio_pd_labu / null bila tak terlacak (BE v295/v38+)
   amount: number;
   nilai_idr: number;
   package_name: string | null;
@@ -385,6 +387,7 @@ export interface ICreditsLedgerMeta {
     package_purchase_id?: string | null;
     entry_type?: string | string[] | null;
     status?: string[] | null;
+    branch?: string[] | null;
     start_date: string | null;
     end_date: string | null;
     purchased_month?: string | null;
@@ -419,6 +422,7 @@ export interface ICreditsLedgerSummary {
     user_id?: string | null;
     package_purchase_id?: string | null;
     entry_type?: string | null;
+    branch?: string[] | null;
     start_date: string | null;
     end_date: string | null;
     q?: string | null;
@@ -490,13 +494,21 @@ export interface IOrdersReportRow {
   salesStatus: string;
   notes: string;
   transactionType: string;
+  originalPrice: number;
+  discount: number;
+  voucherCode: string;
+  commissionFee: number;
+  sourcePlatform: string;
+  commisionPct?: number | null; // BE spelling (single-s); percent, 15 = 15%
+  commissionPct?: number | null;
+  commissionPercentage?: number | null;
 }
 
 export interface IOrdersReportPreview {
   success: boolean;
   data: IOrdersReportRow[];
   pagination: IPagiantion;
-  totals: { row_count: number; total_paid_idr: number };
+  totals: { row_count: number; total_paid_idr: number; total_original_idr: number; total_discount_idr: number; total_commission_idr: number };
   filters: { month: string; type: string; branch: string | null; payment_type?: string | null; transaction_type?: string | null; start_date?: string | null; end_date?: string | null };
 }
 

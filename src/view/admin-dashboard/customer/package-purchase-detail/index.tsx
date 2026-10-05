@@ -9,10 +9,14 @@ import { Input } from "@/components/ui/input";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Textarea } from "@/components/ui/textarea";
-import { useAdjustPackagePurchaseCredits, useOverridePackagePurchaseExpiry } from "@/hooks/api/mutations/admin";
+import { useAdjustPackagePurchaseCredits, useOverridePackagePurchaseExpiry, useSharePackagePurchaseAdmin } from "@/hooks/api/mutations/admin";
 import { useGetPackagePurchaseDetail } from "@/hooks/api/queries/admin/package-purchase";
+import { useGetCustomers } from "@/hooks/api/queries/admin/customers";
 import { useAdminPermission } from "@/hooks/use-role-access";
+import { useDebounce } from "@/hooks";
+import { getShareErrorMessage } from "@/api-req/customer-app/payments";
 import { formatCurrency } from "@/lib/helper";
+import type { ICustomerData } from "@/types/customers.interface";
 import {
   ClearExpiryFormValues,
   clearExpirySchema,
@@ -28,9 +32,10 @@ import { ArrowLeft, CalendarClock, Loader2, ShieldAlert } from "lucide-react";
 import { useParams, useRouter } from "next/navigation";
 import { useState } from "react";
 import { Control, FieldPath, FieldValues, FormProvider, useForm, useWatch } from "react-hook-form";
+import Select from "react-select";
 import { toast } from "sonner";
 
-type DialogKind = "adjust" | "remove-all" | "expiry" | null;
+type DialogKind = "adjust" | "remove-all" | "expiry" | "share" | null;
 type PendingAction =
   | { kind: "credit-adjustment"; delta: number; reason: string; idempotencyKey?: string }
   | { kind: "expiry-override"; expiresAt: string; reason: string; idempotencyKey?: string };
@@ -60,6 +65,16 @@ export const PackagePurchaseDetailPage = () => {
   const { data, isLoading, isError, error, refetch } = useGetPackagePurchaseDetail(params.purchaseId);
   const { mutateAsync: adjustCredits, isPending: adjustingCredits } = useAdjustPackagePurchaseCredits();
   const { mutateAsync: overrideExpiry, isPending: overridingExpiry } = useOverridePackagePurchaseExpiry();
+  const { mutateAsync: sharePurchase, isPending: sharingPurchase } = useSharePackagePurchaseAdmin();
+  const [shareEmail, setShareEmail] = useState("");
+  const [shareError, setShareError] = useState<string | null>(null);
+  const [shareUser, setShareUser] = useState<ICustomerData | null>(null);
+  const [shareSearch, setShareSearch] = useState("");
+  const debouncedShareSearch = useDebounce(shareSearch, 300);
+  const { data: shareCustomers, isLoading: shareCustomersLoading } = useGetCustomers({
+    search: debouncedShareSearch,
+    status: "true",
+  });
   const [dialog, setDialog] = useState<DialogKind>(null);
   const [pendingAction, setPendingAction] = useState<PendingAction | null>(null);
   const [confirmationError, setConfirmationError] = useState<string | null>(null);
@@ -89,6 +104,16 @@ export const PackagePurchaseDetailPage = () => {
   const closeActionDialog = () => {
     setDialog(null);
     setConfirmationError(null);
+    setShareError(null);
+  };
+
+  const closeShareDialog = () => {
+    if (sharingPurchase) return;
+    setShareEmail("");
+    setShareUser(null);
+    setShareSearch("");
+    setShareError(null);
+    setDialog(null);
   };
 
   const applyFieldErrors = (apiError: IPackagePurchaseApiError, action: PendingAction) => {
@@ -224,6 +249,49 @@ export const PackagePurchaseDetailPage = () => {
   const isExpired = purchase.status === "expired";
   const canAdjust = purchase.status === "paid" && (!purchase.expires_at || new Date(purchase.expires_at).getTime() > Date.now());
   const canOverrideExpiry = purchase.status !== "pending_payment" && purchase.status !== "refunded";
+  // Unused-only share: a single credit_spend locks sharing; no revoke.
+  const hasSpend = purchase.ledger_history.some((e) => e.entry_type === "credit_spend");
+  const isShared = purchase.shared?.is_shared === true;
+  const canShare =
+    purchase.status === "paid" &&
+    purchase.credits_remaining > 0 &&
+    purchase.credits_used === 0 &&
+    !hasSpend &&
+    !isShared &&
+    canAdjust;
+
+  const handleShare = async () => {
+    const trimmed = shareEmail.trim();
+    if (trimmed) {
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmed)) {
+        setShareError("Enter a valid email address.");
+        return;
+      }
+      if (shareUser) {
+        setShareError("Fill either a member or an email, not both.");
+        return;
+      }
+    } else if (!shareUser) {
+      setShareError("Pick a member or enter an email.");
+      return;
+    }
+    setShareError(null);
+    try {
+      const target = trimmed || shareUser?.email || shareUser?.full_name || "";
+      await sharePurchase(
+        trimmed
+          ? { id: params.purchaseId, email: trimmed }
+          : { id: params.purchaseId, user_id: shareUser?.id },
+      );
+      toast.success("Package shared", { description: `Shared with ${target}.`, position: "top-center" });
+      closeShareDialog();
+      await refetch();
+    } catch (caughtError) {
+      const axiosError = caughtError as AxiosError<IPackagePurchaseErrorResponse>;
+      const apiError = axiosError.response?.data?.error;
+      setShareError(getShareErrorMessage(apiError?.code, apiError?.message));
+    }
+  };
 
   return (
     <div className="flex flex-col gap-4">
@@ -235,9 +303,16 @@ export const PackagePurchaseDetailPage = () => {
           <h1 className="text-2xl font-semibold text-brand-999">Package purchase detail</h1>
           <p className="text-sm text-gray-500">Review credits, payment state, and manager action history.</p>
         </div>
-        <Badge variant={purchase.status === "paid" ? "default" : purchase.status === "expired" ? "destructive" : "secondary"} className="capitalize">
-          {purchase.status.replace("_", " ")}
-        </Badge>
+        <div className="flex flex-wrap items-center gap-2">
+          <Badge variant={purchase.status === "paid" ? "default" : purchase.status === "expired" ? "destructive" : "secondary"} className="capitalize">
+            {purchase.status.replace("_", " ")}
+          </Badge>
+          {isShared && (
+            <Badge variant="outline" className="gap-1 border-violet-200 bg-violet-50 text-violet-700">
+              Shared
+            </Badge>
+          )}
+        </div>
       </div>
 
       <div className="grid gap-4 lg:grid-cols-2">
@@ -246,6 +321,9 @@ export const PackagePurchaseDetailPage = () => {
           <CardContent className="grid gap-3 text-sm sm:grid-cols-2">
             <DetailItem label="Member" value={purchase.user?.full_name ?? "-"} />
             <DetailItem label="Phone" value={purchase.user?.phone ?? "-"} />
+            {isShared && purchase.shared?.shared_with_user_name && (
+              <DetailItem label="Shared with" value={purchase.shared.shared_with_user_name} />
+            )}
             <DetailItem label="Package" value={purchase.credit_package?.name ?? "-"} />
             <DetailItem label="Original credits" value={String(purchase.credit_package?.credits ?? 0)} />
             <DetailItem label="Purchased" value={formatJakarta(purchase.purchased_at)} />
@@ -290,7 +368,16 @@ export const PackagePurchaseDetailPage = () => {
                 <Button variant="outline" onClick={() => setDialog("expiry")} disabled={!canOverrideExpiry}>
                   <CalendarClock /> Set or extend expiry
                 </Button>
+                <Button variant="outline" onClick={() => setDialog("share")} disabled={!canShare}>
+                  Share package
+                </Button>
                 {!canAdjust && <p className="w-full text-sm text-gray-500">Credit adjustments are available only for active paid packages.</p>}
+                {canAdjust && !canShare && !isShared && (
+                  <p className="w-full text-sm text-gray-500">Sharing is available only for unused packages with remaining credits.</p>
+                )}
+                {isShared && (
+                  <p className="w-full text-sm text-gray-500">This package has already been shared and cannot be revoked.</p>
+                )}
               </>
             )}
           </CardContent>
@@ -508,6 +595,78 @@ export const PackagePurchaseDetailPage = () => {
               </DialogFooter>
             </form>
           </FormProvider>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={dialog === "share"} onOpenChange={(open) => !open && closeShareDialog()}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Share package</DialogTitle>
+            <DialogDescription>
+              Pick a member from the list or enter a registered email. Sharing works only for unused packages, lasts
+              until expiry, and cannot be revoked.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-3">
+            <div>
+              <p className="mb-1 text-sm font-medium">Member</p>
+              <Select
+                options={shareCustomers?.data?.map((item) => ({
+                  ...item,
+                  label: `${item.full_name} - ${item.phone}`,
+                }))}
+                value={shareUser}
+                isLoading={shareCustomersLoading}
+                getOptionValue={(opt) => opt.id}
+                onInputChange={setShareSearch}
+                inputValue={shareSearch}
+                placeholder="Search member..."
+                onChange={(e) => {
+                  setShareUser(e);
+                  if (e) {
+                    setShareEmail("");
+                    setShareError(null);
+                  }
+                }}
+              />
+            </div>
+            <div>
+              <p className="mb-1 text-sm font-medium">Or recipient email</p>
+              <Input
+                type="email"
+                placeholder="friend@mail.com"
+                value={shareEmail}
+                onChange={(e) => {
+                  setShareEmail(e.target.value);
+                  if (shareError) setShareError(null);
+                  if (e.target.value.trim()) setShareUser(null);
+                }}
+                aria-label="Recipient email"
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") {
+                    e.preventDefault();
+                    void handleShare();
+                  }
+                }}
+              />
+            </div>
+            {shareError && (
+              <p role="alert" className="rounded-md border border-destructive/30 bg-destructive/10 p-3 text-sm text-destructive">
+                {shareError}
+              </p>
+            )}
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={closeShareDialog} disabled={sharingPurchase}>
+              Cancel
+            </Button>
+            <Button
+              onClick={() => void handleShare()}
+              disabled={sharingPurchase || (!shareEmail.trim() && !shareUser)}
+            >
+              {sharingPurchase && <Loader2 className="animate-spin" />} Share package
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
 

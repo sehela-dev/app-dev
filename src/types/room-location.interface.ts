@@ -22,5 +22,5 @@ export interface IRoomPayload {
 export type TRoomResponseData = (params: ICommonParams) => Promise<IResponseData<IRoomItem[]>>;
 export type TRoomDetailResponseData = (id: string) => Promise<IResponseData<IRoomItem>>;
 export type TCreateRoomLocation = (paylaod: IRoomPayload) => Promise<IResponseData<IRoomItem>>;
-export type TUpdateRoomLocation = ({ id, data }: { id: string; data: IRoomPayload }) => Promise<IResponseData<IRoomItem>>;
+export type TUpdateRoomLocation = ({ id, data }: { id: string; data: Partial<IRoomPayload> }) => Promise<IResponseData<IRoomItem>>;
 export type TDeleteRoomLocation = (id: string) => Promise<IResponseData<unknown>>;

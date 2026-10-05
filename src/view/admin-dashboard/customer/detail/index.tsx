@@ -18,7 +18,7 @@ import {
 import { useAdminPermission } from "@/hooks/use-role-access";
 import { formatCurrency, formatDateHelper } from "@/lib/helper";
 import { ICustomerActvity, ICustomerTrx, IHistoricalPackagePurchase } from "@/types/customers.interface";
-import { File, Loader2, PenIcon } from "lucide-react";
+import { File, Loader2, PenIcon, Users } from "lucide-react";
 import { useParams, useRouter } from "next/navigation";
 import { useState } from "react";
 import { Select, SelectContent, SelectGroup, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -342,6 +342,16 @@ export const CustomerDetailPage = () => {
                   <div className="grid col-span-9">{data?.data?.profile?.phone}</div>
                   <div className="grid col-span-3 text-gray-500">Email</div>
                   <div className="grid col-span-9">{data?.data?.profile?.email}</div>
+                  <div className="grid col-span-3 text-gray-500">Gender</div>
+                  <div className="grid col-span-9 capitalize">
+                    {data?.data?.profile?.gender ? data.data.profile.gender : <span className="text-muted-foreground">-</span>}
+                  </div>
+                  <div className="grid col-span-3 text-gray-500">Date of Birth</div>
+                  <div className="grid col-span-9">
+                    {data?.data?.profile?.date_of_birth
+                      ? formatDateHelper(data.data.profile.date_of_birth, "dd MMM yyyy")
+                      : <span className="text-muted-foreground">-</span>}
+                  </div>
                   <div className="grid col-span-3 text-gray-500">Created At</div>
                   <div className="grid col-span-9">{formatDateHelper(data?.data?.profile?.created_at as string)}</div>
                   <div className="grid col-span-3 text-gray-500">Status</div>
@@ -363,7 +373,19 @@ export const CustomerDetailPage = () => {
                   {(data?.data?.wallet?.active_packages.length as number) > 0 ? (
                     data?.data?.wallet?.active_packages?.map((item) => (
                       <Card className="border-brand-500 shadow-md p-4 gap-1" key={item.package_purchase_id}>
-                        <CardHeader className="p-0 font-medium text-sm">{item.package_name}</CardHeader>
+                        <CardHeader className="p-0 font-medium text-sm">
+                          <span className="flex flex-wrap items-center gap-1.5">
+                            {item.package_name}
+                            {item.is_shared && (
+                              <Badge
+                                variant="outline"
+                                className="gap-1 border-violet-200 bg-violet-50 text-[10px] font-semibold text-violet-700"
+                              >
+                                <Users size={10} /> Shared
+                              </Badge>
+                            )}
+                          </span>
+                        </CardHeader>
                         <CardContent className="p-0">
                           <div className="grid grid-cols-12 gap-1">
                             <div className="grid col-span-4 text-gray-500 text-sm">Amount</div>
@@ -372,6 +394,16 @@ export const CustomerDetailPage = () => {
                             <div className="grid col-span-8 text-brand-999 text-sm">
                               {item.expires_at ? formatDateHelper(item.expires_at, "dd MMM yyyy") : "-"}
                             </div>
+                            {item.is_shared && (item.shared_by_user_name || item.shared_with_user_name) && (
+                              <>
+                                <div className="grid col-span-4 text-gray-500 text-sm">Shared</div>
+                                <div className="grid col-span-8 text-sm font-medium text-violet-700">
+                                  {item.is_owner
+                                    ? `with ${item.shared_with_user_name}`
+                                    : `by ${item.shared_by_user_name}`}
+                                </div>
+                              </>
+                            )}
                           </div>
                         </CardContent>
                         {isManager && (

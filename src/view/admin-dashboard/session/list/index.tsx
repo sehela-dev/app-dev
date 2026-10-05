@@ -1,7 +1,7 @@
 "use client";
 import { DateRangePicker } from "@/components/base/date-range-picker";
 import { buildNumber, CustomTable } from "@/components/general/custom-table";
-import { BaseDialogConfirmation } from "@/components/general/dialog-confirnation";
+import { CancelSessionDialog } from "@/components/general/cancel-session-dialog";
 import { CustomPagination } from "@/components/general/pagination-component";
 import { GeneralTabComponent } from "@/components/general/tabs-component";
 import { SessionsCalendarView } from "@/components/page/session/sessions-calendar-view";
@@ -34,6 +34,7 @@ import { Ban, CirclePlus, CalendarDays, CalendarPlus, CopyPlus, Ellipsis, Layout
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import { addHours, format } from "date-fns";
+import { BaseDialogConfirmation } from "@/components/general/dialog-confirnation";
 
 const tabFilter = [
   {
@@ -265,11 +266,12 @@ export const SessionListPage = () => {
             <></>
           ) : (
             can("session:delete") && (
-              <DropdownMenuItem variant="destructive" className="" onClick={() => onDelete(row.id)}>
+              <DropdownMenuItem variant="destructive" className="" onClick={() => onDelete(row)}>
                 Cancel Session
               </DropdownMenuItem>
             )
           )}
+
         </DropdownMenuContent>
       </DropdownMenu>
     ),
@@ -284,22 +286,9 @@ export const SessionListPage = () => {
     setSelectedRange((prev) => ({ ...prev, from: startDate, to: endDate ?? "" }));
   };
 
-  const onDelete = (id: string) => {
-    setOpenDialogConfirm(!openDialogConfirm);
-    setSelectedId(id);
-  };
-
-  const onConfirmDelete = async () => {
-    try {
-      const res = await mutateAsync(selectedId);
-      if (res) {
-        setOpenNotif(true);
-        onDelete("");
-        refetch();
-      }
-    } catch (error) {
-      console.log(error);
-    }
+  const onDelete = (row?: ISessionItem) => {
+    setSelectedSession(row ?? null);
+    setOpenDialogConfirm(!!row);
   };
 
   const onConfirmDeleteBlock = async () => {
@@ -578,27 +567,8 @@ export const SessionListPage = () => {
           image="trash-1"
           onCancel={() => onDelete("")}
           open={openDialogConfirm}
-          title="Cancel Session?"
-          subtitle="Some participants have paid for this session. Cancelling it will affect their bookings. Continue?"
-          onConfirm={onConfirmDelete}
-          cancelText="Cancel"
-          confirmText="Proceed & Refund"
-        />
-      )}
-      {openNotif && (
-        <BaseDialogConfirmation
-          image="trash-success"
-          onCancel={() => onDelete("")}
-          hideCancel
-          open={openNotif}
-          title="Session Deleted Successfully"
-          subtitle="Your session has been successfully removed from the system"
-          onConfirm={() => {
-            setOpenNotif(false);
-            refetch();
-          }}
-          cancelText="Cancel"
-          confirmText="Ok"
+          onClose={() => onDelete()}
+          onCommitted={() => refetch()}
         />
       )}
     </div>
