@@ -7,7 +7,19 @@ import {
   TDetailClassCategory,
   TEditClassCategory,
 } from "@/types/class-category.interface";
-import { TCreateSessionData, TEditSessionData, TSessionBookings, TSessionDetailData, TSessionListData, ISessionCancelParams, ISessionCancelPreview } from "@/types/class-sessions.interface";
+import {
+  TCreateSessionData,
+  TDuplicatePreviewData,
+  TDuplicateRangeData,
+  TDuplicateSessionData,
+  TEditSessionData,
+  TPublishBatchData,
+  TSessionBookings,
+  TSessionDetailData,
+  TSessionListData,
+  ISessionCancelParams,
+  ISessionCancelPreview,
+} from "@/types/class-sessions.interface";
 
 export const getSessions: TSessionListData = async ({
   page,
@@ -21,6 +33,7 @@ export const getSessions: TSessionListData = async ({
   has_photo,
   date,
   branch,
+  is_published,
 }) => {
   const res = await axiosx(true).get(`${MAIN_API_URL}/classes/sessions`, {
     params: {
@@ -35,6 +48,7 @@ export const getSessions: TSessionListData = async ({
       ...(typeof is_credit_only === "boolean" ? { is_credit_only } : null),
       ...(typeof has_photo === "boolean" ? { has_photo } : null),
       ...(branch && branch !== "all" ? { branch } : null),
+      ...(typeof is_published === "boolean" ? { is_published } : null),
     },
   });
   return res.data;
@@ -124,5 +138,35 @@ export const previewSessionCancel = async ({
 
 export const sendReminderAll = async (data: string) => {
   const res = await axiosx(true).post(`${MAIN_API_URL}/classes/sessions/${data}/send-reminder`, data);
+  return res.data;
+};
+
+export const duplicateSession: TDuplicateSessionData = async ({ id, data }) => {
+  const res = await axiosx(true).post(`${MAIN_API_URL}/classes/sessions/${id}/duplicate`, data);
+  return res.data;
+};
+
+export const publishSession: TSessionDetailData = async (id) => {
+  const res = await axiosx(true).post(`${MAIN_API_URL}/classes/sessions/${id}/publish`, {});
+  return res.data;
+};
+
+export const unpublishSession: TSessionDetailData = async (id) => {
+  const res = await axiosx(true).post(`${MAIN_API_URL}/classes/sessions/${id}/unpublish`, {});
+  return res.data;
+};
+
+export const publishBatch: TPublishBatchData = async (data) => {
+  const res = await axiosx(true).post(`${MAIN_API_URL}/classes/sessions/publish-batch`, data);
+  return res.data;
+};
+
+export const duplicatePreview: TDuplicatePreviewData = async (data) => {
+  const res = await axiosx(true).post(`${MAIN_API_URL}/classes/sessions/duplicate-preview`, data);
+  return res.data;
+};
+
+export const duplicateRange: TDuplicateRangeData = async (data) => {
+  const res = await axiosx(true).post(`${MAIN_API_URL}/classes/sessions/duplicate-range`, data);
   return res.data;
 };

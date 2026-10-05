@@ -14,10 +14,13 @@ import {
   useCancelBooking,
   useChangeAttendanceStatus,
   useEditCustomer,
+  usePublishSession,
   useRescheduleSession,
   useSendReminderSession,
+  useUnpublishSession,
 } from "@/hooks/api/mutations/admin";
 import { useGetSessionBookings, useGetSessionDetail, useGetSessions } from "@/hooks/api/queries/admin/class-session";
+import { formatPublishCountdown, isScheduled } from "@/utils/session-badge";
 import { defaultDate, formatCurrency, formatDateHelper, normalizePhoneNumber, reminderMessage, sendReminder } from "@/lib/helper";
 import { cn } from "@/lib/utils";
 import { IParticipantsSession, ISessionItem } from "@/types/class-sessions.interface";
@@ -29,13 +32,13 @@ import {
   Banknote,
   BellRing,
   Copy,
+  CopyPlus,
   Ellipsis,
   Loader2,
   LucideIcon,
   PenIcon,
   RotateCcw,
   WalletCards,
-  X,
 } from "lucide-react";
 import { differenceInCalendarDays } from "date-fns";
 import { useParams, useRouter } from "next/navigation";
@@ -48,6 +51,7 @@ import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
 import { branchLabel } from "@/constants/sample-data";
 import { BackButtonComponent } from "@/components/general/back-button";
+import { DuplicateSessionDialog } from "@/components/page/session/duplicate-session-dialog";
 
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Input } from "@/components/ui/input";
@@ -62,38 +66,38 @@ const refundOptions: {
   description: string;
   icon: React.ReactElement;
 }[] = [
-  {
-    value: "none",
-    title: "No refund",
-    description: "For no-shows or policy violations",
-    icon: <Ban />,
-  },
-  {
-    value: "credit_return",
-    title: "Return package credits",
-    description: "Restore the credit to the original package",
-    icon: <ArrowLeftRight />,
-  },
-  {
-    value: "credit_issue_new",
-    title: "Issue new credits",
-    description: "Create fresh credits with an expiry date",
-    icon: <WalletCards />,
-  },
-  {
-    value: "manual_external",
-    title: "External cash refund",
-    description: "Record a refund handled outside the platform",
-    icon: <Banknote />,
-  },
-];
+    {
+      value: "none",
+      title: "No refund",
+      description: "For no-shows or policy violations",
+      icon: <Ban />,
+    },
+    {
+      value: "credit_return",
+      title: "Return package credits",
+      description: "Restore the credit to the original package",
+      icon: <ArrowLeftRight />,
+    },
+    {
+      value: "credit_issue_new",
+      title: "Issue new credits",
+      description: "Create fresh credits with an expiry date",
+      icon: <WalletCards />,
+    },
+    {
+      value: "manual_external",
+      title: "External cash refund",
+      description: "Record a refund handled outside the platform",
+      icon: <Banknote />,
+    },
+  ];
 
 export const SessionDetailPage = () => {
   const router = useRouter();
   const { isManager } = useAdminPermission();
   const params = useParams();
   const { id } = params;
-  const { data, isLoading } = useGetSessionDetail(id as string);
+  const { data, isLoading, refetch: refetchDetail } = useGetSessionDetail(id as string);
   const [page, setPage] = useState(1);
   const [openDialog, setOpenDialog] = useState(false);
   const [validityDays, setValidityDays] = useState(15);
@@ -141,6 +145,9 @@ export const SessionDetailPage = () => {
   const { mutateAsync: cancelBooking } = useCancelBooking();
   const [openReminder, setOpenReminder] = useState(false);
   const { mutateAsync: remindAll } = useSendReminderSession();
+  const { mutateAsync: publishAsync, isPending: isPublishing } = usePublishSession();
+  const { mutateAsync: unpublishAsync, isPending: isUnpublishing } = useUnpublishSession();
+  const [openDuplicate, setOpenDuplicate] = useState(false);
   const [openRemark, setOpenRemark] = useState(false);
   const [selectedRemarkRow, setSelectedRemarkRow] = useState<IParticipantsSession | null>(null);
   const [remarkValue, setRemarkValue] = useState("");
@@ -258,11 +265,11 @@ export const SessionDetailPage = () => {
         }),
         ...(isLateCancel &&
           chargeFee && {
-            charge_fee: true,
-            ...(feeAmount !== "" && { fee_amount_idr: Number(feeAmount) }),
-            fee_payment_method: feeMethod,
-            ...(feeMethod === "transfer" && transferRef.trim() && { transfer_details: { account_bank_to: transferRef.trim() } }),
-          }),
+          charge_fee: true,
+          ...(feeAmount !== "" && { fee_amount_idr: Number(feeAmount) }),
+          fee_payment_method: feeMethod,
+          ...(feeMethod === "transfer" && transferRef.trim() && { transfer_details: { account_bank_to: transferRef.trim() } }),
+        }),
       };
       const res = await cancelBooking(payload);
       const feePayment = (res as { data?: { fee_payment?: { status?: string; snap_token?: string; snap_redirect_url?: string }; booking_status?: string; message?: string } })
@@ -327,6 +334,20 @@ export const SessionDetailPage = () => {
     }
   };
 
+  const onOpenDuplicate = () => {
+    setOpenDuplicate(true);
+  };
+
+  const onTogglePublish = async () => {
+    try {
+      if (data?.data?.is_published === false) await publishAsync(id as string);
+      else await unpublishAsync(id as string);
+      refetchDetail();
+    } catch (error) {
+      console.log(error);
+    }
+  };
+
   const headers = [
     {
       id: "customer_name",
@@ -373,8 +394,8 @@ export const SessionDetailPage = () => {
               isCredits
                 ? "border-brand-200 bg-brand-25 text-brand-700"
                 : provider === "third_party"
-                ? "border-amber-200 bg-amber-50 text-amber-700"
-                : "border-emerald-200 bg-emerald-50 text-emerald-700",
+                  ? "border-amber-200 bg-amber-50 text-amber-700"
+                  : "border-emerald-200 bg-emerald-50 text-emerald-700",
             )}
           >
             {label}
@@ -554,9 +575,9 @@ export const SessionDetailPage = () => {
             Reschedule
           </DropdownMenuItem>
           {row.booking_status !== "cancelled" &&
-          row.booking_status !== "canceled" &&
-          row.payment_status !== "voided" &&
-          ((row.attendance_status === "attended" && isManager) || !row.attendance_status) ? (
+            row.booking_status !== "canceled" &&
+            row.payment_status !== "voided" &&
+            ((row.attendance_status === "attended" && isManager) || !row.attendance_status) ? (
             <DropdownMenuItem onClick={() => onTriggerCancel(row)} className="text-red-500" disabled={isPending}>
               Cancel Booking
             </DropdownMenuItem>
@@ -621,6 +642,11 @@ export const SessionDetailPage = () => {
                   {data?.data?.status}
                 </Badge>
                 {data?.data?.is_credit_only ? <Badge variant="secondary">Credit Only</Badge> : null}
+                {data?.data?.is_published === false ? (
+                  <Badge variant="secondary">
+                    {isScheduled(data?.data) ? `Scheduled ${formatPublishCountdown(data?.data?.publish_at)}` : "Draft"}
+                  </Badge>
+                ) : null}
               </div>
 
               <p className="text-sm text-gray-500">Review all session details and make updates as needed</p>
@@ -628,11 +654,16 @@ export const SessionDetailPage = () => {
           </BackButtonComponent>
 
           <div className="flex flex-row items-center gap-2">
-            {/* <div>
-              <Button variant={"outline"}>
-                <File /> Export
+            <div>
+              <Button variant="outline" onClick={onOpenDuplicate}>
+                <CopyPlus /> Duplicate
               </Button>
-            </div> */}
+            </div>
+            <div>
+              <Button variant="outline" onClick={onTogglePublish} disabled={isPublishing || isUnpublishing}>
+                {data?.data?.is_published === false ? "Publish" : "Unpublish"}
+              </Button>
+            </div>
             <div>
               <Button onClick={() => router.push(`${id}/edit`)}>
                 <PenIcon /> Edit
@@ -880,9 +911,8 @@ export const SessionDetailPage = () => {
                         {selectedDataCancel.customer_name} ·{" "}
                         {isCredits
                           ? `Package: ${selectedDataCancel.paid_with?.package_name ?? "-"} (${selectedDataCancel.paid_with?.credits_used ?? 1} cr)`
-                          : `Cash: ${formatCurrency(selectedDataCancel.paid_with?.revenue_idr ?? data?.data?.price_idr)} · ${
-                              isThirdParty ? "3rd Party" : isCash ? "Midtrans/cash" : selectedDataCancel.payment_method
-                            }`}
+                          : `Cash: ${formatCurrency(selectedDataCancel.paid_with?.revenue_idr ?? data?.data?.price_idr)} · ${isThirdParty ? "3rd Party" : isCash ? "Midtrans/cash" : selectedDataCancel.payment_method
+                          }`}
                         {hoursUntil !== null && ` · starts in ${hoursUntil.toFixed(1)}h`}
                       </p>
                     )}
@@ -1132,20 +1162,27 @@ export const SessionDetailPage = () => {
             pendingAttendance.status === "attended"
               ? "Confirm Check In"
               : pendingAttendance.status === "no_show"
-              ? "Confirm No Show"
-              : "Confirm Reset Attendance"
+                ? "Confirm No Show"
+                : "Confirm Reset Attendance"
           }
           subtitle={
             pendingAttendance.status === "attended"
               ? "Mark this participant as attended?"
               : pendingAttendance.status === "no_show"
-              ? "Mark this participant as no show?"
-              : "Reset this participant's attendance status? This action cannot be undone."
+                ? "Mark this participant as no show?"
+                : "Reset this participant's attendance status? This action cannot be undone."
           }
           onConfirm={onConfirmAttendanceChange}
           confirmText={pendingAttendance.status ? "Confirm" : "Reset"}
           onCancel={() => setPendingAttendance(null)}
           image="warning-1"
+        />
+      )}
+      {openDuplicate && (
+        <DuplicateSessionDialog
+          source={data?.data ?? null}
+          open={openDuplicate}
+          onOpenChange={setOpenDuplicate}
         />
       )}
       {openRemark && (

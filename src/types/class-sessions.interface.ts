@@ -27,6 +27,8 @@ export interface ISessionItem {
   price_idr: number;
   price_credit_amount: number;
   status: string;
+  is_published?: boolean;
+  publish_at?: string | null;
   cancellation_fee_idr?: number;
   created_at: string;
   updated_at: string;
@@ -85,6 +87,8 @@ export interface ICreateSessionPaylaod {
   type: string; //regular
   level: string; // "advanced",
   payment?: IPaymentRule | null;
+  is_published?: boolean;
+  publish_at?: string | null;
 }
 
 export interface IBookingPaidWith {
@@ -132,6 +136,96 @@ export type TSessionBookings = ({ id, page, limit }: { id: string; page: number;
 export type TCreateSessionData = (data: ICreateSessionPaylaod | FormData) => Promise<IResponseData<ISessionItem>>;
 export type TEditSessionData = ({ id, data }: { id: string; data: ICreateSessionPaylaod | FormData }) => Promise<IResponseData<ISessionItem>>;
 
+export type TDuplicateDateItem = string | { start_date: string; time_start?: string; time_end?: string };
+
+export interface IDuplicateSessionPayload {
+  dates: TDuplicateDateItem[];
+  is_published?: boolean;
+  publish_at?: string | null;
+}
+
+export interface IDuplicateSessionResult {
+  sessions: ISessionItem[];
+  summary: { total_requested: number; created: number; failed: number };
+  errors?: { date: string; error: string }[];
+}
+
+export type TDuplicateSessionData = ({ id, data }: { id: string; data: IDuplicateSessionPayload }) => Promise<IResponseData<IDuplicateSessionResult>>;
+
+export interface IPublishBatchResult {
+  sessions: ISessionItem[];
+  summary: { total_requested: number; updated: number; not_found: number };
+  not_found_ids?: string[];
+}
+
+export type TPublishBatchData = (data: { ids: string[]; is_published?: boolean }) => Promise<IResponseData<IPublishBatchResult>>;
+
+export type TDuplicateRangeMode = "day" | "week" | "month" | "custom";
+
+export interface IDuplicateRangeSource {
+  mode: TDuplicateRangeMode;
+  date?: string;
+  start_date?: string;
+  end_date?: string;
+}
+
+export interface IDuplicateRangeBase {
+  source: IDuplicateRangeSource;
+  target_date: string;
+}
+
+export interface IDuplicateConflictWith {
+  kind?: "session" | "block";
+  existing_session_name?: string;
+  block_title?: string;
+  [k: string]: unknown;
+}
+
+export interface IDuplicateSourceBlock {
+  id?: string;
+  title?: string;
+  [k: string]: unknown;
+}
+
+export interface IDuplicatePreviewEntry {
+  source_id: string;
+  session_name: string;
+  new_start_datetime: string;
+  room_id: string | null;
+  conflict: boolean;
+  conflict_with?: IDuplicateConflictWith | null;
+}
+
+export interface IDuplicatePreviewResult {
+  source: {
+    mode: string;
+    start_date: string;
+    end_date: string;
+    entries: number;
+    classes_count: number;
+    blocks_count?: number;
+    blocks?: IDuplicateSourceBlock[];
+  };
+  target: { date: string; entries: number };
+  entries: IDuplicatePreviewEntry[];
+  summary: { total: number; conflicts: number; copies: number };
+}
+
+export interface IDuplicateRangePayload extends IDuplicateRangeBase {
+  is_published?: boolean;
+  publish_at?: string | null;
+  skip_conflicts?: boolean;
+}
+
+export interface IDuplicateRangeResult {
+  sessions: ISessionItem[];
+  summary: { total: number; created: number; skipped: number; failed: number };
+  skipped_conflicts?: IDuplicatePreviewEntry[];
+  errors?: { date?: string; source_id?: string; error: string }[];
+}
+
+export type TDuplicatePreviewData = (data: IDuplicateRangeBase) => Promise<IResponseData<IDuplicatePreviewResult>>;
+export type TDuplicateRangeData = (data: IDuplicateRangePayload) => Promise<IResponseData<IDuplicateRangeResult>>;
 export type TSessionCancelRefundType = "none" | "smart" | "credit_return" | "credit_issue_new" | "manual_external";
 
 export interface ISessionCancelParams {
