@@ -27,19 +27,24 @@ export const formatPublishCountdown = (publishAt?: string | null): string => {
   return `in ${d}d${h % 24 ? ` ${h % 24}h` : ""}`;
 };
 
-// datetime-local value <-> ISO (BE stores UTC, wall-clock input is fine per handoff).
+// All wall-clock inputs are WIB (GMT+7, no DST). publish_at MUST carry an
+// explicit +07:00 — a bare local ISO string is parsed by BE as UTC and would
+// go live 7 hours early. WIB-anchored both ways so browser TZ never matters.
 export const toLocalInputValue = (iso?: string | null): string => {
   if (!iso) return "";
   const d = new Date(iso);
   if (Number.isNaN(d.getTime())) return "";
+  const wib = new Date(d.getTime() + 7 * 3600 * 1000);
   const pad = (n: number) => String(n).padStart(2, "0");
-  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+  return `${wib.getUTCFullYear()}-${pad(wib.getUTCMonth() + 1)}-${pad(wib.getUTCDate())}T${pad(wib.getUTCHours())}:${pad(wib.getUTCMinutes())}`;
 };
 
 export const fromLocalInputValue = (local?: string | null): string | null => {
   if (!local) return null;
-  const d = new Date(local);
-  return Number.isNaN(d.getTime()) ? null : d.toISOString();
+  if (Number.isNaN(new Date(local).getTime())) return null;
+  const m = local.match(/^(\d{4}-\d{2}-\d{2}T\d{2}:\d{2})(?::\d{2})?$/);
+  if (!m) return null;
+  return `${m[1]}:00+07:00`;
 };
 
 export const getSessionTypeBadge = (type: string): ISessionBadge => {

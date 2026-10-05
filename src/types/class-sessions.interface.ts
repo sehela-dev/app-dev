@@ -178,17 +178,38 @@ export interface IDuplicateRangeBase {
   target_date: string;
 }
 
+export interface IDuplicateConflictWith {
+  kind?: "session" | "block";
+  existing_session_name?: string;
+  block_title?: string;
+  [k: string]: unknown;
+}
+
+export interface IDuplicateSourceBlock {
+  id?: string;
+  title?: string;
+  [k: string]: unknown;
+}
+
 export interface IDuplicatePreviewEntry {
   source_id: string;
   session_name: string;
   new_start_datetime: string;
   room_id: string | null;
   conflict: boolean;
-  conflict_with?: { existing_session_name?: string; [k: string]: unknown } | null;
+  conflict_with?: IDuplicateConflictWith | null;
 }
 
 export interface IDuplicatePreviewResult {
-  source: { mode: string; start_date: string; end_date: string; entries: number; classes_count: number };
+  source: {
+    mode: string;
+    start_date: string;
+    end_date: string;
+    entries: number;
+    classes_count: number;
+    blocks_count?: number;
+    blocks?: IDuplicateSourceBlock[];
+  };
   target: { date: string; entries: number };
   entries: IDuplicatePreviewEntry[];
   summary: { total: number; conflicts: number; copies: number };

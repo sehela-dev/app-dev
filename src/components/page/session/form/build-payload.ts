@@ -72,6 +72,8 @@ export type CreateSessionFormData = typeof createSessionDefaultValues;
 // Single source for the create payload; used by the full page and the
 // calendar quick-create sheet alike.
 export const buildSessionPayload = (data: CreateSessionFormData): ICreateSessionPaylaod | FormData => {
+  // WIB wall-clock + explicit +07:00 (BE parses bare strings as UTC).
+  const scheduledAt = !data?.is_published ? fromLocalInputValue(data?.publish_at) : null;
   const payload: ICreateSessionPaylaod = {
     session_description: data?.description,
     session_name: data?.session_name,
@@ -108,7 +110,7 @@ export const buildSessionPayload = (data: CreateSessionFormData): ICreateSession
     time_end: data?.time_end as string,
     is_published: data?.is_published ?? true,
     // Future publish_at + draft = scheduled go-live; explicit publish clears any schedule (BE).
-    ...(!data?.is_published && data?.publish_at ? { publish_at: fromLocalInputValue(data.publish_at) } : null),
+    ...(scheduledAt ? { publish_at: scheduledAt } : null),
 
     ...(data?.isOveride && (data?.type === "private" || data?.type === "special")
       ? {

@@ -151,7 +151,8 @@ export const DuplicateRangeDialog = ({ open, onOpenChange, onDuplicated }: Dupli
           <div className="flex flex-col gap-2 rounded-xl border border-brand-100 bg-brand-25/50 p-3">
             <div className="flex items-center gap-2">
               <p className="text-sm font-medium">
-                {preview.summary.total} entries · {preview.source.classes_count} classes → {preview.summary.copies} copies
+                {preview.summary.total} entries · {preview.source.classes_count} classes
+                {(preview.source.blocks_count ?? 0) > 0 ? ` · ${preview.source.blocks_count} time blocks` : ""} → {preview.summary.copies} copies
               </p>
               <Button type="button" variant="ghost" size="sm" className="ml-auto h-auto px-2 py-0.5 text-xs" onClick={() => setPreview(null)}>
                 ← Edit
@@ -167,8 +168,17 @@ export const DuplicateRangeDialog = ({ open, onOpenChange, onDuplicated }: Dupli
                 {conflicts.map((c) => (
                   <p key={c.source_id} className="text-xs text-gray-600">
                     <span className="font-medium">{c.session_name}</span>
-                    <span className="text-gray-400"> conflicts with </span>
-                    {c.conflict_with?.existing_session_name ?? "another session"}
+                    {c.conflict_with?.kind === "block" ? (
+                      <>
+                        <span className="text-gray-400"> blocked by </span>
+                        {c.conflict_with?.block_title ?? "blocked time"}
+                      </>
+                    ) : (
+                      <>
+                        <span className="text-gray-400"> conflicts with </span>
+                        {c.conflict_with?.existing_session_name ?? "another session"}
+                      </>
+                    )}
                   </p>
                 ))}
               </div>

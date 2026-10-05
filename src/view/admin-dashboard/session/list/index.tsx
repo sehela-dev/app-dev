@@ -6,6 +6,7 @@ import { CustomPagination } from "@/components/general/pagination-component";
 import { GeneralTabComponent } from "@/components/general/tabs-component";
 import { SessionsCalendarView } from "@/components/page/session/sessions-calendar-view";
 import { DuplicateRangeDialog } from "@/components/page/session/duplicate-range-dialog";
+import { RoomBlockDialog, RoomBlockInitial } from "@/components/page/session/room-block-dialog";
 import { PendingGoLiveSection } from "@/components/page/session/pending-go-live-section";
 import { SessionDetailSheet } from "@/components/page/session/session-detail-sheet";
 import { QuickCreateSlot, SessionQuickCreateSheet } from "@/components/page/session/session-quick-create-sheet";
@@ -13,24 +14,26 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { SearchInput } from "@/components/ui/search-input";
-import { useDeleteSession, usePublishSession, useUnpublishSession } from "@/hooks/api/mutations/admin";
+import { useDeleteRoomBlock, useDeleteSession, usePublishSession, useUnpublishSession } from "@/hooks/api/mutations/admin";
 import { useGetSessions } from "@/hooks/api/queries/admin/class-session";
+import { useGetRoomBlocks } from "@/hooks/api/queries/admin/class-room";
 import { useAdminPermission } from "@/hooks/use-role-access";
 import { defaultDate, formatDateHelper } from "@/lib/helper";
 import { cn } from "@/lib/utils";
 import { formatPublishCountdown, isScheduled } from "@/utils/session-badge";
 // import { IClassSessionCategory } from "@/types/class-category.interface";
 import { ISessionItem } from "@/types/class-sessions.interface";
+import { IRoomBlock } from "@/types/class-room.interface";
 import { ICommonParams } from "@/types/general.interface";
 import type { EventCalendarRangeInfo, EventCalendarSlotInfo } from "@/components/reui/event-calendar/event-calendar-types";
 
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { branchLabel, SEHELA_BRANCH } from "@/constants/sample-data";
-import { CirclePlus, CalendarDays, CalendarPlus, CopyPlus, Ellipsis, LayoutList } from "lucide-react";
+import { Ban, CirclePlus, CalendarDays, CalendarPlus, CopyPlus, Ellipsis, LayoutList } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
-import { format } from "date-fns";
+import { useEffect, useMemo, useState } from "react";
+import { addHours, format } from "date-fns";
 
 const tabFilter = [
   {
@@ -90,6 +93,8 @@ export const SessionListPage = () => {
   } as ICommonParams & Record<string, unknown>);
 
   const [openDuplicateRange, setOpenDuplicateRange] = useState(false);
+  const [openBlockDialog, setOpenBlockDialog] = useState(false);
+  const [selectedBlock, setSelectedBlock] = useState<IRoomBlock | null>(null);
   const [quickSlot, setQuickSlot] = useState<QuickCreateSlot | null>(null);
   const [slotPopup, setSlotPopup] = useState<(QuickCreateSlot & { x: number; y: number }) | null>(null);
 
@@ -107,6 +112,18 @@ export const SessionListPage = () => {
     setSlotPopup({ date: slot.date, end: slot.end, allDay: slot.allDay, x: e.clientX, y: e.clientY });
   };
 
+  // Prefill for the popover's "Block time" option (same defaults as quick-create).
+  // Snapshot into state at click time — slotPopup closes in the same tick.
+  const [blockSeed, setBlockSeed] = useState<RoomBlockInitial | null>(null);
+  const blockInitial: RoomBlockInitial | null = useMemo(() => {
+    if (!slotPopup) return null;
+    return {
+      start_date: format(slotPopup.date, "yyyy-MM-dd"),
+      time_start: slotPopup.allDay ? "10:00" : format(slotPopup.date, "HH:mm"),
+      time_end: slotPopup.allDay ? "13:00" : format(slotPopup.end ?? addHours(slotPopup.date, 1), "HH:mm"),
+    };
+  }, [slotPopup]);
+
   const handleCalendarRangeChange = (info: EventCalendarRangeInfo) => {
     // Active range = the selected month itself; the visible range also covers
     // the grayed-out outside days, which carry no data.
@@ -118,6 +135,12 @@ export const SessionListPage = () => {
   const { mutateAsync } = useDeleteSession();
   const { mutateAsync: publishAsync } = usePublishSession();
   const { mutateAsync: unpublishAsync } = useUnpublishSession();
+  const { mutateAsync: deleteBlockAsync } = useDeleteRoomBlock();
+  // Blocks load only once the calendar sets an active range (hook stays idle otherwise).
+  const { data: blocksData, refetch: refetchBlocks } = useGetRoomBlocks({
+    start_date: selectedRange.from ?? undefined,
+    end_date: selectedRange.to ?? undefined,
+  });
 
   const headers = [
     {
@@ -279,6 +302,17 @@ export const SessionListPage = () => {
     }
   };
 
+  const onConfirmDeleteBlock = async () => {
+    if (!selectedBlock) return;
+    try {
+      await deleteBlockAsync(selectedBlock.id);
+      setSelectedBlock(null);
+      refetchBlocks();
+    } catch (error) {
+      console.log(error);
+    }
+  };
+
   return (
     <div className="flex w-full  flex-col gap-2">
       <div className="flex flex-row justify-between w-full items-center">
@@ -312,6 +346,18 @@ export const SessionListPage = () => {
             </Button>
           </div>
           <div className="flex gap-2">
+            {can("session:create") && (
+              <Button
+                variant="outline"
+                className=" text-sm font-medium"
+                onClick={() => {
+                  setBlockSeed(null);
+                  setOpenBlockDialog(true);
+                }}
+              >
+                <Ban /> Block time
+              </Button>
+            )}
             {can("session:create") && (
               <Button variant="outline" className=" text-sm font-medium" onClick={() => setOpenDuplicateRange(true)}>
                 <CopyPlus /> Duplicate
@@ -413,11 +459,17 @@ export const SessionListPage = () => {
           ) : (
             <SessionsCalendarView
               sessions={data?.data ?? []}
+              blocks={blocksData?.data ?? []}
               onRangeChange={handleCalendarRangeChange}
               onSelectSession={(s) => {
                 setSlotPopup(null);
                 setQuickSlot(null);
                 setSelectedSession(s);
+              }}
+              onSelectBlock={(b) => {
+                setSlotPopup(null);
+                setQuickSlot(null);
+                setSelectedBlock(b);
               }}
               onSlotClick={handleSlotClick}
             />
@@ -442,6 +494,19 @@ export const SessionListPage = () => {
       </Card>
 
       <DuplicateRangeDialog open={openDuplicateRange} onOpenChange={setOpenDuplicateRange} onDuplicated={refetch} />
+      <RoomBlockDialog open={openBlockDialog} onOpenChange={setOpenBlockDialog} onChanged={refetchBlocks} initial={blockSeed} />
+      {selectedBlock && (
+        <BaseDialogConfirmation
+          image="warning-1"
+          onCancel={() => setSelectedBlock(null)}
+          open={!!selectedBlock}
+          title="Delete time block?"
+          subtitle={`${selectedBlock.title} · ${formatDateHelper(selectedBlock.start_date, "dd MMM yyyy")} ${selectedBlock.time_start}–${selectedBlock.time_end}. The room becomes bookable again at this time.`}
+          onConfirm={onConfirmDeleteBlock}
+          cancelText="Keep"
+          confirmText="Delete block"
+        />
+      )}
       <SessionDetailSheet session={selectedSession} open={!!selectedSession} onOpenChange={(o) => !o && setSelectedSession(null)} onChanged={refetch} />
       {slotPopup && view === "calendar" && (
         <>
@@ -450,7 +515,7 @@ export const SessionListPage = () => {
             className="fixed z-50 w-64 rounded-xl border border-brand-100 bg-white p-1.5 shadow-lg"
             style={{
               left: Math.max(8, Math.min(slotPopup.x, window.innerWidth - 272)),
-              top: Math.max(8, Math.min(slotPopup.y, window.innerHeight - 210)),
+              top: Math.max(8, Math.min(slotPopup.y, window.innerHeight - 280)),
             }}
           >
             <p className="px-2 pt-1 pb-1.5 font-serif text-[13px] text-gray-500">
@@ -475,6 +540,25 @@ export const SessionListPage = () => {
               <span>
                 <strong className="block text-sm">New session</strong>
                 <small className="text-xs text-gray-500">Bookable, with capacity</small>
+              </span>
+            </button>
+            <button
+              className="flex w-full items-center gap-2.5 rounded-lg px-2 py-2 text-left hover:bg-brand-25"
+              onClick={() => {
+                setBlockSeed(blockInitial);
+                setOpenBlockDialog(true);
+                setSlotPopup(null);
+              }}
+            >
+              <span
+                className="flex size-8 shrink-0 items-center justify-center rounded-full"
+                style={{ backgroundColor: "#FDF2F2", color: "#B91C1C" }}
+              >
+                <Ban className="size-4" />
+              </span>
+              <span>
+                <strong className="block text-sm">Block time</strong>
+                <small className="text-xs text-gray-500">Room unusable, no booking</small>
               </span>
             </button>
           </div>

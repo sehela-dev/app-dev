@@ -12,6 +12,7 @@ import type {
 } from "@/components/reui/event-calendar/event-calendar-types";
 import { SEHELA_BRANCH } from "@/constants/sample-data";
 import type { ISessionItem } from "@/types/class-sessions.interface";
+import type { IRoomBlock } from "@/types/class-room.interface";
 import { formatPublishCountdown, isScheduled } from "@/utils/session-badge";
 import { format } from "date-fns";
 import { useMemo, useState } from "react";
@@ -38,6 +39,8 @@ const chipFor = (status?: string): { bg: string; line: string; ink: string } =>
 
 // Drafts ignore status colors so unpublished sessions read as distinct at a glance.
 const DRAFT_CHIP = { bg: "#F8FAFC", line: "#CBD5E1", ink: "#64748B" };
+// Time blocks are not sessions — red so "room unusable" reads instantly.
+const BLOCKED_CHIP = { bg: "#FDF2F2", line: "#FECACA", ink: "#B91C1C" };
 const chipForSession = (session?: ISessionItem | null) =>
   session?.is_published === false ? DRAFT_CHIP : chipFor(session?.status);
 const isDraft = (session?: ISessionItem | null) => session?.is_published === false;
@@ -57,6 +60,21 @@ function toCalendarEvent(row: ISessionItem): CalendarEvent<ISessionItem> | null 
     color: chipFor(row.status).bg,
     readOnly: true,
     data: row,
+  };
+}
+
+// Block wall-clock (WIB) is authoritative; UTC raws are fallback.
+function toBlockEvent(row: IRoomBlock): CalendarEvent<ISessionItem> | null {
+  const start = row.start_datetime ? new Date(row.start_datetime) : new Date(`${row.start_date}T${row.time_start}:00+07:00`);
+  const end = row.end_datetime ? new Date(row.end_datetime) : new Date(`${row.start_date}T${row.time_end}:00+07:00`);
+  if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime())) return null;
+  return {
+    id: `block:${row.id}`,
+    title: `Blocked · ${row.title}`,
+    start,
+    end,
+    color: BLOCKED_CHIP.bg,
+    readOnly: true,
   };
 }
 
@@ -91,7 +109,8 @@ const dimFor = (status: string) => (status === "ended" || status === "canceled" 
 function renderSessionChip({ occurrence, segment, view }: EventCalendarRenderEventProps<ISessionItem>) {
   const session = occurrence.event.data;
   const name = session?.session_name ?? occurrence.event.title;
-  const chip = chipForSession(session);
+  // Dataless events are time blocks (see toBlockEvent).
+  const chip = session ? chipForSession(session) : BLOCKED_CHIP;
   const draft = isDraft(session);
   const branch = draft ? chip.ink : session?.branch ? colorFor(session.branch) : chip.ink;
   const dim = dimFor(session?.status ?? "");
@@ -182,7 +201,7 @@ function renderSessionChip({ occurrence, segment, view }: EventCalendarRenderEve
 
 function renderSessionAgendaRow({ occurrence }: EventCalendarRenderEventProps<ISessionItem>) {
   const session = occurrence.event.data;
-  const chip = chipForSession(session);
+  const chip = session ? chipForSession(session) : BLOCKED_CHIP;
   const draft = isDraft(session);
   const branch = draft ? chip.ink : session?.branch ? colorFor(session.branch) : chip.ink;
   return (
@@ -221,18 +240,26 @@ function renderSessionAgendaRow({ occurrence }: EventCalendarRenderEventProps<IS
 
 interface SessionsCalendarViewProps {
   sessions: ISessionItem[];
+  blocks?: IRoomBlock[];
   onRangeChange?: (info: EventCalendarRangeInfo) => void;
   onSelectSession?: (session: ISessionItem) => void;
+  onSelectBlock?: (block: IRoomBlock) => void;
   onSlotClick?: (slot: EventCalendarSlotInfo, e: React.MouseEvent) => void;
 }
 
 export const SessionsCalendarView = ({
   sessions,
+  blocks,
   onRangeChange,
   onSelectSession,
+  onSelectBlock,
   onSlotClick,
 }: SessionsCalendarViewProps) => {
-  const events = useMemo(() => sessions.map(toCalendarEvent).filter((e) => e !== null), [sessions]);
+  const events = useMemo(
+    () => [...sessions.map(toCalendarEvent), ...(blocks ?? []).map(toBlockEvent)].filter((e) => e !== null),
+    [sessions, blocks],
+  );
+  const blockById = useMemo(() => new Map((blocks ?? []).map((b) => [b.id, b])), [blocks]);
   // Month rows size to content (page mode) so an expanded day grows the grid
   // and the card; time views keep their bounded internal scroll.
   const [calView, setCalView] = useState("month");
@@ -259,6 +286,12 @@ export const SessionsCalendarView = ({
         >
           Draft · hidden from public
         </span>
+        <span
+          className="rounded border border-l-4 px-2 py-0.5 text-[11px] font-semibold"
+          style={{ backgroundColor: BLOCKED_CHIP.bg, borderColor: BLOCKED_CHIP.line, borderLeftColor: BLOCKED_CHIP.ink, color: BLOCKED_CHIP.ink }}
+        >
+          Blocked · room unusable
+        </span>
         <span aria-hidden className="mx-1 h-4 w-px bg-brand-100" />
         {SEHELA_BRANCH.map((b) => (
           <span key={b.value} className="flex items-center gap-1.5 text-xs text-gray-500">
@@ -273,7 +306,15 @@ export const SessionsCalendarView = ({
         views={["month", "week", "day", "agenda"]}
         interactions={{ drag: false, resize: false, selectSlot: false }}
         onEventUpdate={() => false}
-        onEventClick={(occurrence) => onSelectSession?.(occurrence.event.data as ISessionItem)}
+        onEventClick={(occurrence) => {
+          const id = String(occurrence.event.id);
+          if (id.startsWith("block:")) {
+            const b = blockById.get(id.slice("block:".length));
+            if (b) onSelectBlock?.(b);
+            return;
+          }
+          onSelectSession?.(occurrence.event.data as ISessionItem);
+        }}
         onSlotClick={onSlotClick}
         onRangeChange={(info) => {
           setCalView(info.view);
