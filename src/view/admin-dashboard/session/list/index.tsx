@@ -14,7 +14,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { SearchInput } from "@/components/ui/search-input";
-import { useDeleteRoomBlock, useDeleteSession, usePublishSession, useUnpublishSession } from "@/hooks/api/mutations/admin";
+import { useDeleteRoomBlock, usePublishSession, useUnpublishSession } from "@/hooks/api/mutations/admin";
 import { useGetSessions } from "@/hooks/api/queries/admin/class-session";
 import { useGetRoomBlocks } from "@/hooks/api/queries/admin/class-room";
 import { useAdminPermission } from "@/hooks/use-role-access";
@@ -71,7 +71,6 @@ export const SessionListPage = () => {
   const [openDialogConfirm, setOpenDialogConfirm] = useState(false);
   const [selectedId, setSelectedId] = useState("");
   const [selectedSession, setSelectedSession] = useState<ISessionItem | null>(null);
-  const [openNotif, setOpenNotif] = useState(false);
 
   const [selectedRange, setSelectedRange] = useState<{ from?: string | null; to?: string | null }>({
     from: null,
@@ -133,7 +132,6 @@ export const SessionListPage = () => {
     setSelectedRange((prev) => (prev.from === from && prev.to === to ? prev : { from, to }));
   };
 
-  const { mutateAsync } = useDeleteSession();
   const { mutateAsync: publishAsync } = usePublishSession();
   const { mutateAsync: unpublishAsync } = useUnpublishSession();
   const { mutateAsync: deleteBlockAsync } = useDeleteRoomBlock();
@@ -266,7 +264,7 @@ export const SessionListPage = () => {
             <></>
           ) : (
             can("session:delete") && (
-              <DropdownMenuItem variant="destructive" className="" onClick={() => onDelete(row)}>
+              <DropdownMenuItem variant="destructive" className="" onClick={() => onDelete(row.id)}>
                 Cancel Session
               </DropdownMenuItem>
             )
@@ -286,9 +284,9 @@ export const SessionListPage = () => {
     setSelectedRange((prev) => ({ ...prev, from: startDate, to: endDate ?? "" }));
   };
 
-  const onDelete = (row?: ISessionItem) => {
-    setSelectedSession(row ?? null);
-    setOpenDialogConfirm(!!row);
+  const onDelete = (id: string) => {
+    setOpenDialogConfirm(!!id);
+    setSelectedId(id);
   };
 
   const onConfirmDeleteBlock = async () => {
@@ -563,11 +561,14 @@ export const SessionListPage = () => {
         }}
       />
       {openDialogConfirm && (
-        <BaseDialogConfirmation
-          image="trash-1"
-          onCancel={() => onDelete("")}
+        <CancelSessionDialog
+          sessionId={selectedId}
+          sessionName={data?.data?.find((s) => s.id === selectedId)?.session_name}
           open={openDialogConfirm}
-          onClose={() => onDelete()}
+          onClose={() => {
+            setOpenDialogConfirm(false);
+            setSelectedId("");
+          }}
           onCommitted={() => refetch()}
         />
       )}
