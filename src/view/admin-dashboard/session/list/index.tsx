@@ -15,7 +15,7 @@ import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { SearchInput } from "@/components/ui/search-input";
 import { useDeleteRoomBlock, usePublishSession, useUnpublishSession } from "@/hooks/api/mutations/admin";
-import { useGetSessions } from "@/hooks/api/queries/admin/class-session";
+import { useGetAllSessions, useGetSessions } from "@/hooks/api/queries/admin/class-session";
 import { useGetRoomBlocks } from "@/hooks/api/queries/admin/class-room";
 import { useAdminPermission } from "@/hooks/use-role-access";
 import { defaultDate, formatDateHelper } from "@/lib/helper";
@@ -80,17 +80,29 @@ export const SessionListPage = () => {
   const [hasPhoto, setHasPhoto] = useState<boolean | null>(null);
   const [branch, setBranch] = useState("all");
   const [visibility, setVisibility] = useState("all");
-  const { data, isLoading, refetch } = useGetSessions({
-    page: view === "calendar" ? 1 : page,
-    // ponytail: single unpaginated fetch capped at 200, add server range paging if a month exceeds it
-    limit: view === "calendar" ? 1000 : limit,
+  const sessionParams = {
     search,
     status: tabs !== "all" ? tabs : "",
     startDate: selectedRange.from as string,
     endDate: selectedRange.to as string,
     ...(branch !== "all" ? { branch } : null),
     ...(visibility === "published" ? { is_published: true } : visibility === "draft" ? { is_published: false } : null),
-  } as ICommonParams & Record<string, unknown>);
+  } as ICommonParams & Record<string, unknown>;
+  const { data, isLoading, refetch: refetchList } = useGetSessions({ ...sessionParams, page, limit }, view === "list");
+  // Calendar must show the whole month: BE caps page_size at 100, so page through all of them.
+  const {
+    data: allData,
+    isLoading: isLoadingAll,
+    refetch: refetchAll,
+  // Strictly date-driven: no range yet (calendar hasn't set its month) = no fetch,
+  // so we never pull unfiltered history. Month nav changes the key → refetch.
+  } = useGetAllSessions(sessionParams, view === "calendar" && !!selectedRange.from && !!selectedRange.to);
+  const calendarData = view === "calendar" ? allData : undefined;
+  const calendarLoading = view === "calendar" ? isLoadingAll : false;
+  const refetch = () => {
+    if (view === "calendar") refetchAll();
+    else refetchList();
+  };
 
   const [openDuplicateRange, setOpenDuplicateRange] = useState(false);
   const [openBlockDialog, setOpenBlockDialog] = useState(false);
@@ -326,6 +338,8 @@ export const SessionListPage = () => {
               size="sm"
               onClick={() => {
                 setTabs("all");
+                setSearch("");
+                setPage(1);
                 setView("calendar");
               }}
             >
@@ -444,22 +458,25 @@ export const SessionListPage = () => {
               actionOptions={actionOptions}
             />
           ) : (
-            <SessionsCalendarView
-              sessions={data?.data ?? []}
-              blocks={blocksData?.data ?? []}
-              onRangeChange={handleCalendarRangeChange}
-              onSelectSession={(s) => {
-                setSlotPopup(null);
-                setQuickSlot(null);
-                setSelectedSession(s);
-              }}
-              onSelectBlock={(b) => {
-                setSlotPopup(null);
-                setQuickSlot(null);
-                setSelectedBlock(b);
-              }}
-              onSlotClick={handleSlotClick}
-            />
+            <>
+              {calendarLoading && <p className="px-1 py-2 text-sm text-gray-500">Loading all sessions…</p>}
+              <SessionsCalendarView
+                sessions={calendarData?.data ?? []}
+                blocks={blocksData?.data ?? []}
+                onRangeChange={handleCalendarRangeChange}
+                onSelectSession={(s) => {
+                  setSlotPopup(null);
+                  setQuickSlot(null);
+                  setSelectedSession(s);
+                }}
+                onSelectBlock={(b) => {
+                  setSlotPopup(null);
+                  setQuickSlot(null);
+                  setSelectedBlock(b);
+                }}
+                onSlotClick={handleSlotClick}
+              />
+            </>
           )}
         </CardContent>
         {view === "list" && (

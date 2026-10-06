@@ -54,6 +54,20 @@ export const getSessions: TSessionListData = async ({
   return res.data;
 };
 
+// BE caps page_size (100) — page through everything so calendar views never truncate.
+export const getAllSessions: TSessionListData = async (params) => {
+  const all: Awaited<ReturnType<typeof getSessions>>["data"] = [];
+  let page = 1;
+  let last = await getSessions({ ...params, page, limit: 100 });
+  for (;;) {
+    all.push(...last.data);
+    if (!last.pagination?.has_next) break;
+    page += 1;
+    last = await getSessions({ ...params, page, limit: 100 });
+  }
+  return { ...last, data: all };
+};
+
 export const editSession: TEditSessionData = async ({ id, data }) => {
   const res = await axiosx(true).patch(`${MAIN_API_URL}/classes/sessions/${id}`, data);
   return res.data;
