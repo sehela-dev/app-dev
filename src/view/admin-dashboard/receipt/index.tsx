@@ -88,6 +88,12 @@ export const OrderReceiptPage = () => {
                 </p>
               </div>
             )}
+            {data?.data?.transfer_details?.account_bank_to && (
+              <div className="grid grid-cols-2">
+                <p className="text-gray-500  text-sm">Transfer To</p>
+                <p className="text-brand-999 text-right text-sm">{data.data.transfer_details.account_bank_to}</p>
+              </div>
+            )}
 
             <div className="grid grid-cols-2">
               <p className="text-gray-500  text-sm">Status</p>

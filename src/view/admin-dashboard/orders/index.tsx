@@ -84,7 +84,18 @@ export const OrdersPageView = () => {
     {
       id: "payment_method",
       text: "Payment Method",
-      value: (row: IOrderItem) => <p className="capitalize">{row?.payment_method}</p>,
+      value: (row: IOrderItem) => (
+        <p className="capitalize">
+          {row?.payment_method === "transfer" && row?.transfer_details?.account_bank_to
+            ? `transfer/${row.transfer_details.account_bank_to}`
+            : row?.payment_method}
+        </p>
+      ),
+    },
+    {
+      id: "branch",
+      text: "Branch",
+      value: (row: IOrderItem) => <p className="capitalize">{row?.branch ? String(row.branch).replace(/_/g, " ") : "-"}</p>,
     },
     {
       id: "price_idr",

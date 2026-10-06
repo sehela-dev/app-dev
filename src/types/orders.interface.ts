@@ -13,7 +13,11 @@ export interface IOrderItem {
   status: string;
   id: string;
   branch?: string;
-  transfer_details?: unknown;
+  transfer_details?: {
+    account_name_from?: string | null;
+    account_bank_from?: string | null;
+    account_bank_to?: string | null;
+  } | null;
   detail?: IOrderDetail | null;
 }
 
@@ -359,7 +363,11 @@ export interface ICancelBooking {
   charge_fee?: boolean;
   fee_amount_idr?: number;
   fee_payment_method?: "cash" | "edc" | "transfer" | "midtrans";
-  transfer_details?: { account_bank_to?: string };
+  transfer_details?: {
+    account_name_from?: string;
+    account_bank_from?: string;
+    account_bank_to?: string;
+  };
   fee_branch?: string;
 }
 

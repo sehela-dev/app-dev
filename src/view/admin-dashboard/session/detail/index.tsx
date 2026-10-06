@@ -49,9 +49,10 @@ import { Label } from "@/components/ui/label";
 import { BaseDialogConfirmation } from "@/components/general/dialog-confirnation";
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
-import { branchLabel } from "@/constants/sample-data";
+import { BANK_LIST, branchLabel, SEHELA_BANKS, SEHELA_BRANCH } from "@/constants/sample-data";
 import { BackButtonComponent } from "@/components/general/back-button";
 import { DuplicateSessionDialog } from "@/components/page/session/duplicate-session-dialog";
+import Select from "react-select";
 
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Input } from "@/components/ui/input";
@@ -124,7 +125,10 @@ export const SessionDetailPage = () => {
   const [chargeFee, setChargeFee] = useState(false);
   const [feeMethod, setFeeMethod] = useState<FeeMethod>("cash");
   const [feeAmount, setFeeAmount] = useState<number | "">(75000);
-  const [transferRef, setTransferRef] = useState("");
+  const [transferFromName, setTransferFromName] = useState("");
+  const [transferBankFrom, setTransferBankFrom] = useState<{ label: string; value: string } | null>(null);
+  const [transferBankTo, setTransferBankTo] = useState<{ label: string; value: string } | null>(null);
+  const [feeBranch, setFeeBranch] = useState<{ label: string; value: string } | null>(null);
   const [feePendingMsg, setFeePendingMsg] = useState<string | null>(null);
   const [feePendingUrl, setFeePendingUrl] = useState<string | null>(null);
   const [feeWaMessage, setFeeWaMessage] = useState<string>("");
@@ -200,7 +204,10 @@ export const SessionDetailPage = () => {
     setChargeFee(false);
     setFeeMethod("cash");
     setFeeAmount(policyFeeIdr);
-    setTransferRef("");
+    setTransferFromName("");
+    setTransferBankFrom(null);
+    setTransferBankTo(null);
+    setFeeBranch(null);
     setFeePendingMsg(null);
     setFeePendingUrl(null);
     setFeeWaMessage("");
@@ -225,7 +232,10 @@ export const SessionDetailPage = () => {
     setFeePendingMsg(null);
     setFeePendingUrl(null);
     setFeeWaMessage("");
-    setTransferRef("");
+    setTransferFromName(row?.customer_name ?? "");
+    setTransferBankFrom(null);
+    setTransferBankTo(null);
+    setFeeBranch(null);
     setFeeMethod("cash");
     setFeeAmount(policyFeeIdr);
     const isCredits = row?.paid_with?.type === "credits" || row?.payment_method === "credits";
@@ -268,7 +278,16 @@ export const SessionDetailPage = () => {
           charge_fee: true,
           ...(feeAmount !== "" && { fee_amount_idr: Number(feeAmount) }),
           fee_payment_method: feeMethod,
-          ...(feeMethod === "transfer" && transferRef.trim() && { transfer_details: { account_bank_to: transferRef.trim() } }),
+          // Same shape as manual bank-transfer order: stored as-is in payments.provider_payload.transfer_details
+          ...(feeMethod === "transfer" && {
+            transfer_details: {
+              ...(transferFromName.trim() && { account_name_from: transferFromName.trim() }),
+              ...(transferBankFrom?.label && { account_bank_from: transferBankFrom.label }),
+              ...(transferBankTo?.label && { account_bank_to: transferBankTo.label }),
+            },
+          }),
+          // Fee branch override; BE falls back to booking's branch when omitted
+          ...(feeBranch?.value && { fee_branch: feeBranch.value }),
         }),
       };
       const res = await cancelBooking(payload);
@@ -899,7 +918,7 @@ export const SessionDetailPage = () => {
               <>
                 <div
                   className={cn(
-                    "flex gap-3 rounded-lg border p-3 text-sm",
+                    "flex gap-3 rounded-lg border p-3 text-sm font-sans",
                     isLateCancel ? "border-amber-300 bg-amber-50 text-amber-900" : "border-brand-100 bg-brand-25 text-brand-900",
                   )}
                 >
@@ -998,7 +1017,7 @@ export const SessionDetailPage = () => {
                 )}
 
                 {isLateCancel && (
-                  <div className="flex flex-col gap-3 rounded-xl border border-brand-200 p-4">
+                  <div className="flex flex-col gap-3 rounded-xl border border-brand-200 p-4 font-sans">
                     <label className="flex items-center gap-2 text-sm font-medium cursor-pointer">
                       <input
                         type="checkbox"
@@ -1051,16 +1070,52 @@ export const SessionDetailPage = () => {
                           </div>
                         </div>
                         {feeMethod === "transfer" && (
-                          <div className="flex flex-col gap-1">
-                            <Label htmlFor="fee-transfer-ref">Reference no.</Label>
-                            <Input
-                              id="fee-transfer-ref"
-                              placeholder="BCA 2809 1147 0032"
-                              value={transferRef}
-                              onChange={(e) => setTransferRef(e.target.value)}
-                            />
+                          <div className="flex flex-col gap-2">
+                            <div className="flex flex-col gap-1">
+                              <Label htmlFor="fee-transfer-from">Transfer from (name)</Label>
+                              <Input
+                                id="fee-transfer-from"
+                                placeholder="Sender name..."
+                                value={transferFromName}
+                                onChange={(e) => setTransferFromName(e.target.value)}
+                              />
+                            </div>
+                            <div className="flex flex-col gap-1">
+                              <Label>Transfer from (bank)</Label>
+                              <Select
+                                options={BANK_LIST as never}
+                                value={transferBankFrom as never}
+                                placeholder="Select sender bank..."
+                                onChange={(e) => setTransferBankFrom(e as unknown as { label: string; value: string })}
+                              />
+                            </div>
+                            <div className="flex flex-col gap-1">
+                              <Label>Transfer to (Sehela account)</Label>
+                              <Select
+                                options={SEHELA_BANKS as never}
+                                value={transferBankTo as never}
+                                placeholder="Select destination..."
+                                onChange={(e) => setTransferBankTo(e as unknown as { label: string; value: string })}
+                              />
+                            </div>
                           </div>
                         )}
+                        <div className="flex flex-col gap-1">
+                          <Label>Fee branch</Label>
+                          <Select
+                            options={SEHELA_BRANCH as never}
+                            value={
+                              (feeBranch ??
+                                (data?.data?.branch
+                                  ? SEHELA_BRANCH.find((b) => b.value === data.data.branch)
+                                  : null)) as never
+                            }
+                            placeholder="Booking branch (auto)"
+                            isClearable
+                            onChange={(e) => setFeeBranch((e as unknown as { label: string; value: string }) ?? null)}
+                          />
+                          <p className="text-xs text-muted-foreground">Empty = booking branch. Set only to override.</p>
+                        </div>
                         {feeMethod === "midtrans" && !feePendingUrl && (
                           <p className="text-xs text-muted-foreground">
                             Tidak ada redirect otomatis. Setelah konfirmasi, salin pesan WA di bawah dan kirim ke customer.
