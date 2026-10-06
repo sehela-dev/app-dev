@@ -83,7 +83,7 @@ export const SessionListPage = () => {
   const { data, isLoading, refetch } = useGetSessions({
     page: view === "calendar" ? 1 : page,
     // ponytail: single unpaginated fetch capped at 200, add server range paging if a month exceeds it
-    limit: view === "calendar" ? 200 : limit,
+    limit: view === "calendar" ? 1000 : limit,
     search,
     status: tabs !== "all" ? tabs : "",
     startDate: selectedRange.from as string,
