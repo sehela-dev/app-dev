@@ -350,6 +350,7 @@ export interface ICreditsLedgerParams {
   start_date?: string; // YYYY-MM-DD
   end_date?: string;
   purchased_month?: string; // YYYY-MM — bulan paket dibeli (WIB)
+  recognition_month?: string; // YYYY-MM — bulan pengakuan pendapatan (WIB); kosong = ikut purchased_month (BE default 7 Okt). Baris recognized bulan lain dibuang; Deferred/Reserved (month null) tetap ikut
   q?: string; // customer name OR package name OR note
   page?: number;
   page_size?: number;
@@ -391,6 +392,7 @@ export interface ICreditsLedgerMeta {
     start_date: string | null;
     end_date: string | null;
     purchased_month?: string | null;
+    recognition_month?: string | null;
     q: string | null;
     order?: string | null;
   };
@@ -425,6 +427,8 @@ export interface ICreditsLedgerSummary {
     branch?: string[] | null;
     start_date: string | null;
     end_date: string | null;
+    purchased_month?: string | null;
+    recognition_month?: string | null;
     q?: string | null;
   };
   deferred_buckets?: {
