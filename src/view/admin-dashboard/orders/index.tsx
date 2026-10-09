@@ -8,6 +8,7 @@ import { TransactionVoidDialog } from "@/components/page/orders";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 import { SearchInput } from "@/components/ui/search-input";
 
@@ -16,6 +17,7 @@ import { useAdminPermission } from "@/hooks/use-role-access";
 
 import { defaultDate, formatCurrency, formatDateHelper, isTransactionVoidable } from "@/lib/helper";
 import { IOrderItem } from "@/types/orders.interface";
+import { SEHELA_BRANCH } from "@/constants/sample-data";
 import { Ban, CirclePlus, File, ListFilter, ReceiptText } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
@@ -28,6 +30,7 @@ export const OrdersPageView = () => {
   const [limit] = useState(10);
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState("");
+  const [branch, setBranch] = useState("all");
   const [openPreview, setOpenPreview] = useState(false);
 
   const [selectedRange, setSelectedRange] = useState({
@@ -46,6 +49,7 @@ export const OrdersPageView = () => {
     startDate: selectedRange.from,
     endDate: selectedRange.to,
     status: statusTab === "all" ? undefined : statusTab,
+    branch: branch !== "all" ? branch : undefined,
   });
 
   const statusTabOptions = [
@@ -182,6 +186,27 @@ export const OrdersPageView = () => {
             <p className="text-sm text-gray-500 font-normal">Recent orders from your store.</p>
           </div>
           <div className="flex flex-row  gap-2">
+            <div>
+              <Select
+                value={branch}
+                onValueChange={(v) => {
+                  setBranch(v);
+                  setPage(1);
+                }}
+              >
+                <SelectTrigger className="w-48">
+                  <SelectValue placeholder="Branch" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Branches</SelectItem>
+                  {SEHELA_BRANCH.map((b) => (
+                    <SelectItem key={b.value} value={b.value}>
+                      {b.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
             <div>
               <DateRangePicker onDateRangeChange={handleDateRangeChangeDual} startDate={selectedRange.from} endDate={selectedRange.to} />
             </div>

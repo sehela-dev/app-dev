@@ -203,7 +203,14 @@ export const LocationListView = () => {
             <p className="text-sm text-gray-500">View and manage the list of locations for your classes.</p>
           </div>
           <div className="flex flex-row items-center gap-2">
-            <GeneralTabComponent tabs={tab} selecetedTab={tabs} setTab={setTabs} />
+            <GeneralTabComponent
+              tabs={tab}
+              selecetedTab={tabs}
+              setTab={(v) => {
+                setTabs(v);
+                setPage(1);
+              }}
+            />
             <SearchInput className="border-brand-100" onSearch={handleSearch} />
           </div>
         </CardHeader>

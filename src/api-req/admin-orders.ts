@@ -42,7 +42,7 @@ export const getOrders: TOrderList = async ({
       ...(status ? { status } : null),
       ...(movement_type ? { movement_type } : null),
       ...(type ? { type } : null),
-      ...(branch ? { branch } : null),
+      ...(branch && branch !== "all" ? { branch } : null),
     },
   });
   return res.data;

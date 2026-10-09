@@ -35,6 +35,7 @@ import {
   IOutstandingReportItem,
   IPackage,
   LedgerEntryType,
+  MovementReason,
   REVERSAL_JOURNAL,
   REVERSAL_STATUS,
   RecognitionStatus,
@@ -46,6 +47,7 @@ import {
   ArrowUpRight,
   BadgeCheck,
   BadgeDollarSign,
+  Ban,
   CalendarDays,
   CheckCircle2,
   Clock3,
@@ -55,6 +57,8 @@ import {
   Hourglass,
   Landmark,
   Loader2,
+  PencilLine,
+  Repeat,
   RotateCcw,
   Search,
   ShoppingBag,
@@ -962,6 +966,27 @@ const RECOGNITION_STATUS_OPTIONS: { value: RecognitionStatus; label: string; cla
 
 const RECOGNITION_CHIP: Record<string, string> = Object.fromEntries(RECOGNITION_STATUS_OPTIONS.map((o) => [o.value, o.className]));
 
+// BE admin v322 (dev only): movement_reason derive post-enrich + ref_id trace key
+const MOVEMENT_REASON_META: Record<MovementReason, { label: string; className: string; Icon: typeof ShoppingBag }> = {
+  purchase: { label: "Pembelian", className: "bg-emerald-50 text-emerald-700 border-emerald-200", Icon: ShoppingBag },
+  refund_reissue: { label: "Refund terbit ulang", className: "bg-blue-50 text-blue-700 border-blue-200", Icon: RotateCcw },
+  rollover_reissue: { label: "Rollover terbit ulang", className: "bg-sky-50 text-sky-700 border-sky-200", Icon: Repeat },
+  booking_spend: { label: "Pemakaian booking", className: "bg-orange-50 text-orange-700 border-orange-200", Icon: ArrowUpRight },
+  booking_cancel_refund: { label: "Refund batal booking", className: "bg-teal-50 text-teal-700 border-teal-200", Icon: Undo2 },
+  expired_breakage: { label: "Hangus", className: "bg-zinc-100 text-zinc-600 border-zinc-200", Icon: Hourglass },
+  void_cancel_sale: { label: "Void batal jual", className: "bg-red-50 text-red-700 border-red-200", Icon: Ban },
+  expiry_restore: { label: "Pulih kedaluwarsa", className: "bg-purple-50 text-purple-700 border-purple-200", Icon: BadgeCheck },
+  manual_correction: { label: "Koreksi manual", className: "bg-amber-50 text-amber-700 border-amber-200", Icon: PencilLine },
+};
+
+const MOVEMENT_REASON_OPTIONS: { value: MovementReason; label: string }[] = (
+  Object.keys(MOVEMENT_REASON_META) as MovementReason[]
+).map((value) => ({ value, label: MOVEMENT_REASON_META[value].label }));
+
+const MOVEMENT_REASON_CHIP: Record<string, string> = Object.fromEntries(
+  (Object.keys(MOVEMENT_REASON_META) as MovementReason[]).map((k) => [k, MOVEMENT_REASON_META[k].className]),
+);
+
 // ponytail: single shared copy — paste §6 verbatim on every revenue/session surface
 const RECOGNITION_DISCLAIMER =
   "Pendapatan dihitung setiap hari jam 23:59 WIB (bukan saat uang masuk): kelas yang berakhir hari ini baru tercatat sebagai pendapatan setelah proses malam hari. Angka hari ini masih sementara.";
@@ -988,6 +1013,11 @@ function CreditsLedgerLog() {
   const [statuses, setStatuses] = useState<string[]>(
     searchParams.get("status")
       ? (searchParams.get("status") as string).split(",").filter((v) => RECOGNITION_STATUS_OPTIONS.some((o) => o.value === v))
+      : [],
+  );
+  const [movementReasons, setMovementReasons] = useState<string[]>(
+    searchParams.get("movement_reason")
+      ? (searchParams.get("movement_reason") as string).split(",").filter((v) => MOVEMENT_REASON_OPTIONS.some((o) => o.value === v))
       : [],
   );
   const [startDate, setStartDate] = useState(searchParams.get("start_date") ?? monthStartStr);
@@ -1036,7 +1066,7 @@ function CreditsLedgerLog() {
   // reset page on filter change
   useEffect(() => {
     setPage(1);
-  }, [q, entryTypes, statuses, startDate, endDate, order, userId, purchasedMonth, recognitionMonth, branch]);
+  }, [q, entryTypes, statuses, movementReasons, startDate, endDate, order, userId, purchasedMonth, recognitionMonth, branch]);
 
   // persist to URL
   useEffect(() => {
@@ -1048,6 +1078,8 @@ function CreditsLedgerLog() {
     else p.delete("entry_type");
     if (statuses.length) p.set("status", statuses.join(","));
     else p.delete("status");
+    if (movementReasons.length) p.set("movement_reason", movementReasons.join(","));
+    else p.delete("movement_reason");
     if (startDate) p.set("start_date", startDate);
     else p.delete("start_date");
     if (endDate) p.set("end_date", endDate);
@@ -1066,7 +1098,7 @@ function CreditsLedgerLog() {
     else p.delete("branch");
     router.replace(`?${p.toString()}`, { scroll: false } as never);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [q, entryTypes, statuses, startDate, endDate, purchasedMonth, recognitionMonth, page, pageSize, order, userId, branch]);
+  }, [q, entryTypes, statuses, movementReasons, startDate, endDate, purchasedMonth, recognitionMonth, page, pageSize, order, userId, branch]);
 
   const rangeError = useMemo(() => {
     if (!startDate || !endDate) return null;
@@ -1087,6 +1119,7 @@ function CreditsLedgerLog() {
       q: q || undefined,
       entry_type: entryTypes.length ? entryTypes.join(",") : undefined,
       status: statuses.length ? statuses.join(",") : undefined,
+      movement_reason: movementReasons.length ? movementReasons.join(",") : undefined,
       branch: branchParam,
       start_date: !rangeError && startDate ? startDate : undefined,
       end_date: !rangeError && endDate ? endDate : undefined,
@@ -1097,7 +1130,7 @@ function CreditsLedgerLog() {
       order,
       user_id: userId || undefined,
     }),
-    [q, entryTypes, statuses, branchParam, startDate, endDate, purchasedMonthParam, recognitionMonthParam, page, pageSize, order, userId, rangeError],
+    [q, entryTypes, statuses, movementReasons, branchParam, startDate, endDate, purchasedMonthParam, recognitionMonthParam, page, pageSize, order, userId, rangeError],
   );
 
   const { data, isLoading, isFetching, isError, error, refetch } = useGetCreditsLedger(params);
@@ -1173,6 +1206,7 @@ function CreditsLedgerLog() {
         q: q || undefined,
         entry_type: entryTypes.length ? entryTypes.join(",") : undefined,
         status: statuses.length ? statuses.join(",") : undefined,
+        movement_reason: movementReasons.length ? movementReasons.join(",") : undefined,
         branch: branchParam,
         start_date: startDate || undefined,
         end_date: endDate || undefined,
@@ -1186,12 +1220,13 @@ function CreditsLedgerLog() {
       const a = document.createElement("a");
       a.href = url;
       const typeSuffix = entryTypes.length ? `_${entryTypes.join("-")}` : "";
+      const reasonSuffix = movementReasons.length ? `_alasan-${movementReasons.join("-")}` : "";
       const qSuffix = q ? `_q-${q.replace(/\s+/g, "_")}` : "";
       const pmSuffix = purchasedMonth ? `_beli-${purchasedMonth}` : "";
       const rmSuffix = recognitionMonthParam ? `_diakui-${recognitionMonthParam}` : "";
       const branchSuffix = branchParam ? `_${branchParam}` : "";
       const rangeSuffix = startDate && endDate ? `_${startDate}_${endDate}` : startDate ? `_${startDate}` : endDate ? `_${endDate}` : "_semua-tanggal";
-      a.download = `credits_ledger${rangeSuffix}${typeSuffix}${branchSuffix}${qSuffix}${pmSuffix}${rmSuffix}.csv`;
+      a.download = `credits_ledger${rangeSuffix}${typeSuffix}${reasonSuffix}${branchSuffix}${qSuffix}${pmSuffix}${rmSuffix}.csv`;
       a.click();
       window.URL.revokeObjectURL(url);
       toast.success("Ekspor dimulai", { description: "File CSV terunduh", position: "top-center" });
@@ -1205,6 +1240,8 @@ function CreditsLedgerLog() {
 
   const toggleEntryType = (v: string) => setEntryTypes((prev) => (prev.includes(v) ? prev.filter((x) => x !== v) : [...prev, v]));
   const toggleStatus = (v: string) => setStatuses((prev) => (prev.includes(v) ? prev.filter((x) => x !== v) : [...prev, v]));
+  const toggleMovementReason = (v: string) =>
+    setMovementReasons((prev) => (prev.includes(v) ? prev.filter((x) => x !== v) : [...prev, v]));
 
   // reset semua filter — tanggal kembali ke default awal bulan s/d hari ini;
   // effect persist URL ikut membersihkan/menulis start_date/end_date/dll ke URL + query API
@@ -1213,6 +1250,7 @@ function CreditsLedgerLog() {
     setQ("");
     setEntryTypes([]);
     setStatuses([]);
+    setMovementReasons([]);
     setStartDate(monthStartStr);
     setEndDate(todayStr);
     setPmMonth("");
@@ -1237,6 +1275,25 @@ function CreditsLedgerLog() {
             {ENTRY_TYPE_LABEL[row.entry_type] ?? row.entry_type}
           </Badge>
         ),
+      },
+      {
+        id: "movement_reason",
+        text: "Alasan",
+        value: (row: ICreditsLedgerItem) => {
+          const meta = row.movement_reason ? MOVEMENT_REASON_META[row.movement_reason as MovementReason] : null;
+          if (!meta) return "—";
+          const { Icon } = meta;
+          return (
+            <Badge
+              variant="outline"
+              title={row.movement_reason ?? ""}
+              className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium whitespace-nowrap shadow-sm ${meta.className}`}
+            >
+              <Icon size={12} className="shrink-0" />
+              {meta.label}
+            </Badge>
+          );
+        },
       },
       {
         id: "customer_name",
@@ -1329,6 +1386,27 @@ function CreditsLedgerLog() {
             {row.note ?? "—"}
           </span>
         ),
+      },
+      {
+        id: "ref_id",
+        text: "Ref ID",
+        value: (row: ICreditsLedgerItem) =>
+          !row.ref_id ? (
+            "—"
+          ) : (
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <span className="font-mono text-xs text-muted-foreground cursor-default">
+                    {row.ref_id.slice(0, 8)}…
+                  </span>
+                </TooltipTrigger>
+                <TooltipContent side="left" className="font-mono text-xs max-w-[320px] break-all">
+                  {row.ref_id}
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+          ),
       },
       {
         id: "recognized_at",
@@ -1552,6 +1630,28 @@ function CreditsLedgerLog() {
             ))}
             {statuses.length > 0 && (
               <Button variant="ghost" size="sm" onClick={() => setStatuses([])}>
+                Hapus
+              </Button>
+            )}
+          </div>
+
+          <div className="flex flex-wrap items-center gap-3">
+            <span className="text-sm font-medium">Alasan:</span>
+            {MOVEMENT_REASON_OPTIONS.map((o) => {
+              const meta = MOVEMENT_REASON_META[o.value];
+              const { Icon } = meta;
+              return (
+                <label key={o.value} className="flex items-center gap-1.5 text-sm cursor-pointer" title={o.value}>
+                  <Checkbox checked={movementReasons.includes(o.value)} onCheckedChange={() => toggleMovementReason(o.value)} />
+                  <Badge variant="outline" className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium shadow-sm ${meta.className}`}>
+                    <Icon size={12} className="shrink-0" />
+                    {o.label}
+                  </Badge>
+                </label>
+              );
+            })}
+            {movementReasons.length > 0 && (
+              <Button variant="ghost" size="sm" onClick={() => setMovementReasons([])}>
                 Hapus
               </Button>
             )}
