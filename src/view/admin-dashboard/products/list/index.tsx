@@ -1,6 +1,7 @@
 /* eslint-disable @next/next/no-img-element */
 "use client";
 
+import { BaseDialogComponent } from "@/components/general/base-dialog-component";
 import { buildNumber, CustomTable } from "@/components/general/custom-table";
 import { CustomPagination } from "@/components/general/pagination-component";
 import { GeneralTabComponent } from "@/components/general/tabs-component";
@@ -8,32 +9,21 @@ import { GeneralTabComponent } from "@/components/general/tabs-component";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { Switch } from "@/components/ui/switch";
 
 import { SearchInput } from "@/components/ui/search-input";
 
-import { useGetProductList } from "@/hooks/api/queries/admin/products";
+import { useDeleteProduct, useUpdateProduct } from "@/hooks/api/mutations/admin";
+import { useGetProductCategories, useGetProductList } from "@/hooks/api/queries/admin/products";
+import { downloadCsvBlob, exportProductMasterCsv } from "@/api-req/products";
 
 import { formatDateHelper } from "@/lib/helper";
 import { IProductItemList } from "@/types/product.interface";
-import { CirclePlus, Ellipsis, File, ListFilter } from "lucide-react";
+import { CirclePlus, Download, Ellipsis, Loader2 } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
-
-// const tabOptions = [
-//   {
-//     value: "week",
-//     name: "Week",
-//   },
-//   {
-//     value: "month",
-//     name: "Month",
-//   },
-//   {
-//     value: "Year",
-//     name: "Year",
-//   },
-// ];
-
+import { useMemo, useState } from "react";
+import Select, { SingleValue } from "react-select";
+import { toast } from "sonner";
 
 const tabOption = [
   {
@@ -48,22 +38,31 @@ const tabOption = [
 
 export const ProductListPage = () => {
   const router = useRouter();
-  // const [selecetedTab, setSelectedTab] = useState("week");
   const [limit] = useState(10);
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState("");
-  const [tab, setTab] = useState("false")
+  const [tab, setTab] = useState("false");
+  const [categoryId, setCategoryId] = useState("");
+  const [includeInactive, setIncludeInactive] = useState(true);
+  const [deleteTarget, setDeleteTarget] = useState<IProductItemList | null>(null);
+  const [exporting, setExporting] = useState(false);
 
-  // const [selectedRange, setSelectedRange] = useState({
-  //   from: defaultDate().formattedOneMonthAgo,
-  //   to: defaultDate().formattedToday,
-  // });
+  const { data, isLoading, refetch } = useGetProductList({
+    page,
+    limit,
+    search,
+    is_rentable: tab,
+    ...(categoryId ? { category_id: categoryId } : null),
+    ...(includeInactive ? { include_inactive: true } : null),
+  });
+  const { data: categories } = useGetProductCategories({ page: 1, limit: 999 });
+  const { mutateAsync: deleteAsync } = useDeleteProduct();
+  const { mutateAsync: updateAsync } = useUpdateProduct();
 
-  // const handleDateRangeChangeDual = (startDate: string, endDate?: string) => {
-  //   setSelectedRange((prev) => ({ ...prev, from: startDate, to: endDate ?? "" }));
-  // };
-
-  const { data, isLoading } = useGetProductList({ page, limit, search, is_rentable: tab });
+  const categoryOption = useMemo(
+    () => (categories?.data ?? []).map((c) => ({ value: c.id, label: c.name })),
+    [categories],
+  );
 
   const numberOptions = {
     text: "No",
@@ -76,8 +75,39 @@ export const ProductListPage = () => {
     setPage(1);
   };
 
-  const headers = [
+  const handleToggleActive = async (row: IProductItemList) => {
+    const payload = new FormData();
+    payload.append("is_active", String(!row.is_active));
+    await updateAsync({ id: row.id, payload });
+    refetch();
+  };
 
+  const handleDelete = async () => {
+    if (!deleteTarget) return;
+    await deleteAsync(deleteTarget.id);
+    setDeleteTarget(null);
+    refetch();
+  };
+
+  const handleExport = async () => {
+    try {
+      setExporting(true);
+      const blob = await exportProductMasterCsv({
+        search,
+        is_rentable: tab,
+        ...(categoryId ? { category_id: categoryId } : {}),
+        ...(includeInactive ? { include_inactive: true } : {}),
+      });
+      downloadCsvBlob(blob, `product_master_${tab === "true" ? "rent" : "sell"}.csv`);
+      toast.success("CSV downloaded");
+    } catch {
+      toast.error("Gagal export CSV");
+    } finally {
+      setExporting(false);
+    }
+  };
+
+  const headers = [
     {
       id: "name",
       text: "Name",
@@ -88,13 +118,11 @@ export const ProductListPage = () => {
         <p>{row?.name}</p>
       </div>,
     },
-
     {
       id: "category",
       text: "Category",
       value: (row: IProductItemList) => row?.category.name,
     },
-
     {
       id: "status",
       text: "Status",
@@ -130,11 +158,12 @@ export const ProductListPage = () => {
             <Ellipsis />
           </Button>
         </DropdownMenuTrigger>
-        <DropdownMenuContent align="end" className="w-32">
-          <DropdownMenuItem onClick={() => alert(row.id)}>Archive</DropdownMenuItem>
+        <DropdownMenuContent align="end" className="w-40">
           <DropdownMenuItem onClick={() => router.push(`products/${row.id}`)}>View Details</DropdownMenuItem>
-          <DropdownMenuItem>Set as Inactive</DropdownMenuItem>
-          <DropdownMenuItem variant="destructive" className="" onClick={() => { }}>
+          <DropdownMenuItem onClick={() => handleToggleActive(row)}>
+            {row.is_active ? "Set as Inactive" : "Set as Active"}
+          </DropdownMenuItem>
+          <DropdownMenuItem variant="destructive" onClick={() => setDeleteTarget(row)}>
             Delete
           </DropdownMenuItem>
         </DropdownMenuContent>
@@ -144,18 +173,12 @@ export const ProductListPage = () => {
   return (
     <div className="flex flex-col w-full h-full gap-2">
       <div className="flex  w-full flex-row justify-between items-center">
-        <div>{/* <GeneralTabComponent tabs={tabOptions} selecetedTab={selecetedTab} setTab={setSelectedTab} /> */}</div>
+        <div></div>
         <div className="flex flex-row items-center gap-2">
-          <div className="flex w-full">
-            <Button variant={"outline"} className="text-brand-999 text-sm font-medium">
-              <ListFilter /> Filter
-            </Button>
-          </div>
-          <div className="flex w-full">
-            <Button variant={"outline"} className="text-brand-999 text-sm font-medium">
-              <File /> Export
-            </Button>
-          </div>{" "}
+          <Button variant="outline" className="text-sm font-medium" disabled={exporting} onClick={handleExport}>
+            {exporting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
+            Export
+          </Button>
           <div className="flex w-full">
             <Button className=" text-sm font-medium" onClick={() => router.push("products/create")}>
               <CirclePlus /> Add Products
@@ -169,14 +192,31 @@ export const ProductListPage = () => {
             <h3 className="text-brand-999 text-2xl font-semibold">Products</h3>
             <p className="text-sm text-gray-500 font-normal">Manage your products and view their sales performance</p>
           </div>
-          <div className="flex flex-row  gap-2">
-            <div>
-              {/* <DateRangePicker onDateRangeChange={handleDateRangeChangeDual} startDate={selectedRange.from} endDate={selectedRange.to} /> */}
+          <div className="flex flex-row gap-2 items-center">
+            <div className="flex w-full items-center gap-2 text-sm text-gray-500">
+              <Switch checked={includeInactive} onCheckedChange={(v) => { setIncludeInactive(v); setPage(1); }} />
+              <span>
+                Show inactive
+              </span>
             </div>
-            <SearchInput className="border-brand-100" search={search} onSearch={handleSearch} />
+            <div className="flex w-full">
+              <Select
+                options={categoryOption}
+                isClearable
+                placeholder="Filter by category"
+                className="text-sm"
+                onChange={(selected: SingleValue<{ value: string; label: string }>) => {
+                  setCategoryId(selected?.value ?? "");
+                  setPage(1);
+                }}
+              />
+            </div>
+
+            <div className="flex w-full">
+
+              <SearchInput className="border-brand-100" search={search} onSearch={handleSearch} />
+            </div>
           </div>
-
-
         </CardHeader>
 
         <CardContent>
@@ -194,9 +234,6 @@ export const ProductListPage = () => {
             headers={headers}
             numberOptions={numberOptions}
             isLoading={isLoading}
-            // setSelectedData={setSelectedData}
-            // selectedData={selectedData}
-
             actionOptions={actionOptions}
           />
         </CardContent>
@@ -215,6 +252,20 @@ export const ProductListPage = () => {
           />
         </CardFooter>
       </Card>
+      {deleteTarget && (
+        <BaseDialogComponent
+          title="Delete Product"
+          isOpen={!!deleteTarget}
+          btnConfirm="Delete"
+          onCloseText="Cancel"
+          onClose={() => setDeleteTarget(null)}
+          onConfirm={handleDelete}
+        >
+          <p className="text-sm text-gray-500">
+            Delete <span className="font-semibold text-foreground">{deleteTarget.name}</span> and all its variants? This cannot be undone.
+          </p>
+        </BaseDialogComponent>
+      )}
     </div>
   );
 };

@@ -72,6 +72,7 @@ export const dataNavReport = [
 // Cards for the /admin/report hub — All Reports (cash-flow is independent menu, visible via sidebar for both roles).
 export const reportHubCards = [
   { title: "Orders Report", url: "/admin/report/orders", icon: Receipt, permission: "reports" },
+  { title: "Stock Report", url: "/admin/report/stock", icon: PackageSearch, permission: "reports" },
   { title: "Outstanding Credit", url: "/admin/report/outstanding-credit", icon: DollarSign, permission: "reports" },
   { title: "Refund Report", url: "/admin/report/refund-report", icon: Undo2, permission: "reports" },
   { title: "Sales Summary", url: "/admin/report/sales-summary", icon: ChartNoAxesCombined, permission: "reports" },

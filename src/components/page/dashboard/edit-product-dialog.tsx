@@ -5,6 +5,7 @@ import { PhotoUploadForm } from "@/components/general/photo-upload-form";
 import { FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Select as Selects, SelectItem, SelectGroup, SelectContent, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import { useGetProductCategories } from "@/hooks/api/queries/admin/products";
 import { useUpdateProduct } from "@/hooks/api/mutations/admin";
@@ -52,6 +53,8 @@ export const EditProductDialog = ({ isOpen, onClose, product, onSuccess }: EditP
         category_id: product.category_id,
         description: product.description,
         photos,
+        is_active: product.is_active,
+        is_rentable: product.is_rentable,
       });
     }
   }, [isOpen, product, reset]);
@@ -74,6 +77,8 @@ export const EditProductDialog = ({ isOpen, onClose, product, onSuccess }: EditP
         category_id: data.category_id,
         description: data.description,
         existing_photos: existingPhotos,
+        ...(data.is_active !== undefined ? { is_active: data.is_active } : null),
+        ...(data.is_rentable !== undefined ? { is_rentable: data.is_rentable } : null),
       });
       newPhotos.forEach((file) => payload.append("photos", file));
 
@@ -177,6 +182,32 @@ export const EditProductDialog = ({ isOpen, onClose, product, onSuccess }: EditP
             )}
           />
           <PhotoUploadForm name="photos" label="Photo Product (first photo is the cover)" />
+          <div className="grid grid-cols-2 gap-4">
+            <FormField
+              control={control}
+              name="is_active"
+              render={({ field }) => (
+                <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3">
+                  <FormLabel className="text-brand-999 font-medium text-sm">Active</FormLabel>
+                  <FormControl>
+                    <Switch checked={field.value} onCheckedChange={field.onChange} />
+                  </FormControl>
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={control}
+              name="is_rentable"
+              render={({ field }) => (
+                <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3">
+                  <FormLabel className="text-brand-999 font-medium text-sm">For Rent</FormLabel>
+                  <FormControl>
+                    <Switch checked={field.value} onCheckedChange={field.onChange} />
+                  </FormControl>
+                </FormItem>
+              )}
+            />
+          </div>
         </form>
       </FormProvider>
     </BaseDialogComponent>
