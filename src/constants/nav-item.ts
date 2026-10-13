@@ -17,6 +17,7 @@ import {
   Settings,
   Undo2,
   Award,
+  ScanLine,
 } from "lucide-react";
 
 export const dataNavMain = [
@@ -27,6 +28,14 @@ export const dataNavMain = [
 export const dataNavMarketPlace = [
   { title: "Reporting and Analytics", url: "/admin/dashboard", icon: BarChart2, permission: "dashboard:view" },
   { title: "Orders", url: "/admin/orders", isActive: true, icon: Receipt, permission: "order:view" },
+  {
+    title: "Attendence",
+    url: "#",
+    icon: Users,
+    items: [
+      { title: "Checked In", url: "/admin/attendance/checked-in", icon: ScanLine, permission: "session:view" },
+    ],
+  },
   { title: "Credit Packages", url: "/admin/credit-packages", icon: Gem, permission: "credit_package:view" },
   {
     title: "Class",

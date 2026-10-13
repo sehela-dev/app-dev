@@ -393,6 +393,32 @@ export interface IClassSession {
   start_datetime: string;
 }
 
+// GET /admin/bookings/:id — admin self check-in (scan QR)
+export interface IAdminBookingSessionDetail {
+  id: string;
+  session_name: string;
+  start_datetime: string;
+  end_datetime: string;
+  place: string;
+  type: string;
+  status: string;
+  instructor_name: string;
+  class: { class_name: string } | null;
+}
+export interface IAdminBookingDetail {
+  id: string;
+  customer_name: string;
+  customer_phone: string;
+  customer_email: string;
+  booking_status: string;
+  attendance_status: IAttendanceStatus;
+  payment_method: string;
+  price_idr: number;
+  notes?: string | null;
+  class_session: IAdminBookingSessionDetail;
+}
+export type TAdminBookingDetail = (id: string) => Promise<{ success: boolean; data: IAdminBookingDetail }>;
+
 export interface IReschedulePaylaod {
   id: string;
   new_session_id: string;
