@@ -3,12 +3,15 @@
 import { buildNumber, CustomTable } from "@/components/general/custom-table";
 import { CustomPagination } from "@/components/general/pagination-component";
 import { DateRangePicker } from "@/components/base/date-range-picker";
+import { Button } from "@/components/ui/button";
+import { downloadCsvBlob, exportProductMovementsCsv } from "@/api-req/products";
 import { useGetInventoryLocations, useGetProductMovements } from "@/hooks/api/queries/admin/products";
 import { formatDateHelper } from "@/lib/helper";
 import { IProductMovement, IProductVariantItem } from "@/types/product.interface";
-import { History } from "lucide-react";
+import { Download, History, Loader2 } from "lucide-react";
 import { useMemo, useState } from "react";
 import Select, { SingleValue } from "react-select";
+import { toast } from "sonner";
 
 const MOVEMENT_TYPE_LABELS: Record<string, string> = {
   initial_stock: "Initial Stock",
@@ -39,6 +42,9 @@ const MOVEMENT_TYPE_STYLES: Record<string, string> = {
 interface IProps {
   productId: string;
   variants: IProductVariantItem[];
+  // Dikunci ke satu variant (dipakai dialog history per-row): filter variant
+  // disembunyikan dan query langsung terfilter sejak awal.
+  initialVariantId?: string;
 }
 
 type SelectOption = { value: string; label: string };
@@ -51,14 +57,15 @@ const selectClassNames = {
   input: () => "text-brand-999 bg-none",
 };
 
-export const ProductMovementsTab = ({ productId, variants }: IProps) => {
+export const ProductMovementsTab = ({ productId, variants, initialVariantId }: IProps) => {
   const [page, setPage] = useState(1);
   const [limit] = useState(10);
-  const [variantId, setVariantId] = useState<string>("");
+  const [variantId, setVariantId] = useState<string>(initialVariantId ?? "");
   const [locationId, setLocationId] = useState<string>("");
   const [referenceType, setReferenceType] = useState<string>("");
   const [startDate, setStartDate] = useState<string>("");
   const [endDate, setEndDate] = useState<string>("");
+  const [exporting, setExporting] = useState(false);
 
   const { data: locations, isLoading: locationLoading } = useGetInventoryLocations();
   const { data, isLoading } = useGetProductMovements(productId, {
@@ -95,6 +102,25 @@ export const ProductMovementsTab = ({ productId, variants }: IProps) => {
     setStartDate(from);
     setEndDate(to ?? "");
     setPage(1);
+  };
+
+  const handleExport = async () => {
+    try {
+      setExporting(true);
+      const blob = await exportProductMovementsCsv(productId, {
+        ...(variantId ? { variant_id: variantId } : {}),
+        ...(locationId ? { location_id: locationId } : {}),
+        ...(referenceType ? { reference_type: referenceType } : {}),
+        ...(startDate ? { start_date: startDate } : {}),
+        ...(endDate ? { end_date: endDate } : {}),
+      });
+      downloadCsvBlob(blob, `kartu_stok_${productId.slice(0, 8)}.csv`);
+      toast.success("CSV downloaded");
+    } catch {
+      toast.error("Gagal export CSV");
+    } finally {
+      setExporting(false);
+    }
   };
 
   const numberOptions = {
@@ -197,16 +223,18 @@ export const ProductMovementsTab = ({ productId, variants }: IProps) => {
   return (
     <div className="flex flex-col gap-4">
       <div className="flex flex-row items-center gap-2 flex-wrap">
-        <div className="w-[240px]">
-          <Select
-            options={variantOption}
-            isClearable
-            placeholder="Filter by variant"
-            className="text-sm"
-            classNames={selectClassNames}
-            onChange={handleFilterChange(setVariantId)}
-          />
-        </div>
+        {!initialVariantId && (
+          <div className="w-[240px]">
+            <Select
+              options={variantOption}
+              isClearable
+              placeholder="Filter by variant"
+              className="text-sm"
+              classNames={selectClassNames}
+              onChange={handleFilterChange(setVariantId)}
+            />
+          </div>
+        )}
         <div className="w-[240px]">
           <Select
             options={locationOption}
@@ -238,6 +266,12 @@ export const ProductMovementsTab = ({ productId, variants }: IProps) => {
         <p className="text-sm text-muted-foreground">
           {isLoading ? "Loading movement history..." : `${data?.pagination?.total_items ?? 0} movement record(s) found`}
         </p>
+        <div className="ml-auto">
+          <Button variant="outline" size="sm" disabled={exporting} onClick={handleExport}>
+            {exporting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
+            Export
+          </Button>
+        </div>
       </div>
 
       <CustomTable data={data?.data ?? []} headers={headers} numberOptions={numberOptions} isLoading={isLoading} />
