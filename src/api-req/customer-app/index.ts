@@ -2,5 +2,7 @@ export * from "./auth";
 export * from "./booking";
 export * from "./credits";
 export * from "./my-class";
+export * from "./orders";
 export * from "./payments";
+export * from "./products";
 export * from "./public";

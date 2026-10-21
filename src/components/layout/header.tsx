@@ -76,6 +76,7 @@ export const MobileMenu = ({ items = [], isLoggedIn }: MobileMenuProps) => {
     // { label: "Book Session", href: "/book" },
     { label: "Profile", href: "/profile" },
     { label: "My Sessions", href: "/profile/my-sessions" },
+    { label: "My Orders", href: "/profile/orders" },
     { label: "About", href: "https://sehelaspace.com", external: true },
     { label: "Terms and Conditions", href: "/terms-and-conditions" },
     { label: "Logout", action: "logout", danger: true },

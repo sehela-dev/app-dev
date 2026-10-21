@@ -30,6 +30,7 @@ export const getProductList: TProductItemList = async ({ page, limit, search, vi
     params: {
       page,
       page_size: limit,
+
       ...(search ? { q: search } : null),
       ...(view ? { view } : null),
       ...(is_rentable !== undefined && is_rentable !== "" ? { is_rentable } : null),
@@ -459,8 +460,16 @@ export const getCategoryNameByProductId = async (): Promise<Map<string, string>>
 export const stockReportFilename = (params: Pick<IStockReportParams, "location_code" | "is_rentable" | "include_inactive"> = {}): string => {
   const date = new Date().toISOString().slice(0, 10);
   const segs = [
-    params.location_code?.trim().toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, ""),
-    params.is_rentable === true || params.is_rentable === "true" ? "rentable" : params.is_rentable === false || params.is_rentable === "false" ? "sell" : "",
+    params.location_code
+      ?.trim()
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, "-")
+      .replace(/^-|-$/g, ""),
+    params.is_rentable === true || params.is_rentable === "true"
+      ? "rentable"
+      : params.is_rentable === false || params.is_rentable === "false"
+        ? "sell"
+        : "",
     params.include_inactive ? "inactive" : "",
   ].filter(Boolean);
   return [`stock_report_${date}`, ...segs].join("_") + ".csv";

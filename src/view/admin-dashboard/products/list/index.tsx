@@ -13,12 +13,12 @@ import { Switch } from "@/components/ui/switch";
 
 import { SearchInput } from "@/components/ui/search-input";
 
-import { useDeleteProduct, useUpdateProduct } from "@/hooks/api/mutations/admin";
+import { useDeleteProduct, useDeleteProductVariant, useUpdateProduct, useUpdateVariantDetail } from "@/hooks/api/mutations/admin";
 import { useGetProductCategories, useGetProductList } from "@/hooks/api/queries/admin/products";
 import { downloadCsvBlob, exportProductMasterCsv } from "@/api-req/products";
 
 import { formatDateHelper } from "@/lib/helper";
-import { IProductItemList } from "@/types/product.interface";
+import { IProductItemList, IProductVariantItem } from "@/types/product.interface";
 import { CirclePlus, Download, Ellipsis, Loader2 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
@@ -36,15 +36,31 @@ const tabOption = [
   },
 ];
 
+const viewOption = [
+  {
+    name: "Products",
+    value: "full",
+  },
+  {
+    name: "Variants",
+    value: "variants",
+  },
+];
+
+const idr = new Intl.NumberFormat("id-ID");
+
+type DeleteTarget = { kind: "product"; row: IProductItemList } | { kind: "variant"; row: IProductVariantItem } | null;
+
 export const ProductListPage = () => {
   const router = useRouter();
   const [limit] = useState(10);
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState("");
   const [tab, setTab] = useState("false");
+  const [viewMode, setViewMode] = useState("full");
   const [categoryId, setCategoryId] = useState("");
   const [includeInactive, setIncludeInactive] = useState(true);
-  const [deleteTarget, setDeleteTarget] = useState<IProductItemList | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<DeleteTarget>(null);
   const [exporting, setExporting] = useState(false);
 
   const { data, isLoading, refetch } = useGetProductList({
@@ -54,10 +70,15 @@ export const ProductListPage = () => {
     is_rentable: tab,
     ...(categoryId ? { category_id: categoryId } : null),
     ...(includeInactive ? { include_inactive: true } : null),
+    view: viewMode as "full" | "variants",
   });
   const { data: categories } = useGetProductCategories({ page: 1, limit: 999 });
   const { mutateAsync: deleteAsync } = useDeleteProduct();
+  const { mutateAsync: deleteVariantAsync } = useDeleteProductVariant();
   const { mutateAsync: updateAsync } = useUpdateProduct();
+  const { mutateAsync: updateVariantAsync } = useUpdateVariantDetail();
+
+  const isVariantView = viewMode === "variants";
 
   const categoryOption = useMemo(
     () => (categories?.data ?? []).map((c) => ({ value: c.id, label: c.name })),
@@ -75,16 +96,25 @@ export const ProductListPage = () => {
     setPage(1);
   };
 
-  const handleToggleActive = async (row: IProductItemList) => {
+  const handleToggleProduct = async (row: IProductItemList) => {
     const payload = new FormData();
     payload.append("is_active", String(!row.is_active));
     await updateAsync({ id: row.id, payload });
     refetch();
   };
 
+  const handleToggleVariant = async (row: IProductVariantItem) => {
+    await updateVariantAsync({ id: row.product_id, idVar: row.id, data: { is_active: !row.is_active } });
+    refetch();
+  };
+
   const handleDelete = async () => {
     if (!deleteTarget) return;
-    await deleteAsync(deleteTarget.id);
+    if (deleteTarget.kind === "product") {
+      await deleteAsync(deleteTarget.row.id);
+    } else {
+      await deleteVariantAsync({ id: deleteTarget.row.product_id, idVar: deleteTarget.row.id });
+    }
     setDeleteTarget(null);
     refetch();
   };
@@ -107,7 +137,7 @@ export const ProductListPage = () => {
     }
   };
 
-  const headers = [
+  const productHeaders = [
     {
       id: "name",
       text: "Name",
@@ -148,7 +178,45 @@ export const ProductListPage = () => {
       value: (row: IProductItemList) => formatDateHelper(row.created_at, "dd/MM/yyyy H:mm"),
     },
   ];
-  const actionOptions = {
+
+  const variantHeaders = [
+    {
+      id: "product_name",
+      text: "Product",
+      value: (row: IProductVariantItem) => <span className="font-medium text-foreground">{row.product_name || "-"}</span>,
+    },
+    {
+      id: "variant_name",
+      text: "Variant",
+      value: (row: IProductVariantItem) => (
+        <div className="flex flex-col gap-1">
+          <p className="font-medium text-foreground">{row.variant_name}</p>
+          <span className="w-fit rounded bg-muted px-1.5 py-0.5 font-mono text-xs text-muted-foreground">{row.sku || "-"}</span>
+        </div>
+      ),
+    },
+    {
+      id: "price_idr",
+      text: "Price (IDR)",
+      value: (row: IProductVariantItem) => <span className="font-semibold whitespace-nowrap">Rp {idr.format(row.price_idr ?? 0)}</span>,
+    },
+    {
+      id: "stock_available",
+      text: "Stock Available",
+      value: (row: IProductVariantItem) => <span className="font-medium tabular-nums">{row.stock_available ?? 0}</span>,
+    },
+    {
+      id: "status",
+      text: "Status",
+      value: (row: IProductVariantItem) => (
+        <div className={`grid col-span-9 capitalize ${row?.is_active ? `text-green-500` : `text-red-500`}`}>
+          {row.is_active ? "Active" : "Inactive"}
+        </div>
+      ),
+    },
+  ];
+
+  const productActions = {
     text: "Action",
     show: true,
     render: (row: IProductItemList) => (
@@ -160,16 +228,40 @@ export const ProductListPage = () => {
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end" className="w-40">
           <DropdownMenuItem onClick={() => router.push(`products/${row.id}`)}>View Details</DropdownMenuItem>
-          <DropdownMenuItem onClick={() => handleToggleActive(row)}>
+          <DropdownMenuItem onClick={() => handleToggleProduct(row)}>
             {row.is_active ? "Set as Inactive" : "Set as Active"}
           </DropdownMenuItem>
-          <DropdownMenuItem variant="destructive" onClick={() => setDeleteTarget(row)}>
+          <DropdownMenuItem variant="destructive" onClick={() => setDeleteTarget({ kind: "product", row })}>
             Delete
           </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
     ),
   };
+
+  const variantActions = {
+    text: "Action",
+    show: true,
+    render: (row: IProductVariantItem) => (
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <Button variant="ghost" className="data-[state=open]:bg-muted text-muted-foreground flex size-8" size="icon">
+            <Ellipsis />
+          </Button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="end" className="w-40">
+          <DropdownMenuItem onClick={() => router.push(`products/${row.product_id}`)}>View Details</DropdownMenuItem>
+          <DropdownMenuItem onClick={() => handleToggleVariant(row)}>
+            {row.is_active ? "Set as Inactive" : "Set as Active"}
+          </DropdownMenuItem>
+          <DropdownMenuItem variant="destructive" onClick={() => setDeleteTarget({ kind: "variant", row })}>
+            Delete
+          </DropdownMenuItem>
+        </DropdownMenuContent>
+      </DropdownMenu>
+    ),
+  };
+
   return (
     <div className="flex flex-col w-full h-full gap-2">
       <div className="flex  w-full flex-row justify-between items-center">
@@ -193,12 +285,12 @@ export const ProductListPage = () => {
             <p className="text-sm text-gray-500 font-normal">Manage your products and view their sales performance</p>
           </div>
           <div className="flex flex-row gap-2 items-center">
-            <div className="flex w-full items-center gap-2 text-sm text-gray-500">
+            {/* <div className="flex w-full items-center gap-2 text-sm text-gray-500">
               <Switch checked={includeInactive} onCheckedChange={(v) => { setIncludeInactive(v); setPage(1); }} />
               <span>
                 Show inactive
               </span>
-            </div>
+            </div> */}
             <div className="flex w-full">
               <Select
                 options={categoryOption}
@@ -220,21 +312,31 @@ export const ProductListPage = () => {
         </CardHeader>
 
         <CardContent>
-          <div className="max-w-auto">
+          <div className="flex flex-col gap-2">
             <GeneralTabComponent
               selecetedTab={tab}
               setTab={(e) => {
                 setTab(e);
+                setPage(1);
               }}
               tabs={tabOption}
+            />
+            <GeneralTabComponent
+              selecetedTab={viewMode}
+              setTab={(e) => {
+                setViewMode(e);
+                setPage(1);
+              }}
+              tabs={viewOption}
+              variant="line"
             />
           </div>
           <CustomTable
             data={data?.data ?? []}
-            headers={headers}
+            headers={isVariantView ? variantHeaders : productHeaders}
             numberOptions={numberOptions}
             isLoading={isLoading}
-            actionOptions={actionOptions}
+            actionOptions={isVariantView ? variantActions : productActions}
           />
         </CardContent>
         <CardFooter className="flex w-full">
@@ -252,17 +354,32 @@ export const ProductListPage = () => {
           />
         </CardFooter>
       </Card>
-      {deleteTarget && (
+      {deleteTarget?.kind === "product" && (
         <BaseDialogComponent
           title="Delete Product"
-          isOpen={!!deleteTarget}
+          isOpen
           btnConfirm="Delete"
           onCloseText="Cancel"
           onClose={() => setDeleteTarget(null)}
           onConfirm={handleDelete}
         >
           <p className="text-sm text-gray-500">
-            Delete <span className="font-semibold text-foreground">{deleteTarget.name}</span> and all its variants? This cannot be undone.
+            Delete <span className="font-semibold text-foreground">{deleteTarget.row.name}</span> and all its variants? This cannot be undone.
+          </p>
+        </BaseDialogComponent>
+      )}
+      {deleteTarget?.kind === "variant" && (
+        <BaseDialogComponent
+          title="Delete Variant"
+          isOpen
+          btnConfirm="Delete"
+          onCloseText="Cancel"
+          onClose={() => setDeleteTarget(null)}
+          onConfirm={handleDelete}
+        >
+          <p className="text-sm text-gray-500">
+            Delete variant <span className="font-semibold text-foreground">{deleteTarget.row.variant_name}</span> ({deleteTarget.row.sku})? This
+            cannot be undone.
           </p>
         </BaseDialogComponent>
       )}

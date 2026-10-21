@@ -28,6 +28,7 @@ export const dataNavMain = [
 export const dataNavMarketPlace = [
   { title: "Reporting and Analytics", url: "/admin/dashboard", icon: BarChart2, permission: "dashboard:view" },
   { title: "Orders", url: "/admin/orders", isActive: true, icon: Receipt, permission: "order:view" },
+  { title: "Product Orders", url: "/admin/product-orders", icon: ShoppingCart, permission: "order:view" },
   {
     title: "Attendence",
     url: "#",
