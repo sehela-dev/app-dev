@@ -84,10 +84,6 @@ export const ForgotPasswordPageView = () => {
                 className="underline text-brand-500"
               >
                 WhatsApp
-              </a>{" "}
-              or{" "}
-              <a href="mailto:sehelaspace@gmail.com" className="underline text-brand-500">
-                email
               </a>
               .
             </p>

@@ -20,7 +20,7 @@ const FRIENDLY_ERRORS: Record<string, string> = {
   EMAIL_NOT_FOUND: "Email not registered — check or sign up",
   ACCOUNT_INACTIVE: "Account inactive — contact support",
   PROFILE_INCOMPLETE:
-    "This email is already registered but not activated yet. Check your activation email, or contact admin on WhatsApp +62 811-1496-88 / sehelaspace@gmail.com to activate.",
+    "This email is already registered but not activated yet. Check your activation email, or contact admin on WhatsApp +62 811-1496-88 to activate.",
   EMAIL_SEND_FAILED: "Mail failed, please retry",
 };
 
