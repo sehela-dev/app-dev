@@ -19,6 +19,7 @@ export const useAuthForgotPassword = () => {
 const FRIENDLY_ERRORS: Record<string, string> = {
   EMAIL_NOT_FOUND: "Email not registered — check or sign up",
   ACCOUNT_INACTIVE: "Account inactive — contact support",
+  PROFILE_INCOMPLETE: "Registration not completed yet — use the activation link in your email.",
   EMAIL_SEND_FAILED: "Mail failed, please retry",
 };
 

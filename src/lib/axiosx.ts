@@ -54,7 +54,9 @@ export const axiosx = (auth?: boolean, params?: string, type?: string) => {
       }
 
       // BE booking guard: incomplete profile → 403 PROFILE_INCOMPLETE
-      if (error?.response?.status === 403 && error?.response?.data?.error?.code === "PROFILE_INCOMPLETE") {
+      // only for a logged-in session; otherwise (e.g. forgot-password for an
+      // unactivated account) the public page must handle the error itself.
+      if (getToken() && error?.response?.status === 403 && error?.response?.data?.error?.code === "PROFILE_INCOMPLETE") {
         if (typeof window !== "undefined" && !window.location.pathname.startsWith("/complete-profile")) {
           toast.error("Please complete your profile first", { id: "profile-incomplete", position: "top-center" });
           const fullPath = `${window.location.pathname}${window.location.search}`;
