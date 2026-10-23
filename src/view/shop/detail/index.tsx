@@ -236,15 +236,23 @@ export const ShopDetailView = () => {
 
       <StickyContainerComponent>
         <div className="flex flex-row gap-2 p-4">
-          <Button className="bg-brand-50" onClick={() => router.push("/cart")} aria-label="Cart">
-            <ShoppingCart color="var(--color-brand-500)" />
-          </Button>
-          <Button variant="outline" className="w-full border-brand-500 text-brand-500" disabled={!canAdd} onClick={() => handleAdd(false)}>
-            Add to Cart
-          </Button>
-          <Button className="w-full" disabled={!canAdd} onClick={() => handleAdd(true)}>
-            Buy
-          </Button>
+          <div>
+            <Button className="bg-brand-50" onClick={() => router.push("/cart")} aria-label="Cart">
+              <ShoppingCart color="var(--color-brand-500)" />
+            </Button>
+          </div>
+          <div className="flex-1">
+
+            <Button variant="outline" className="w-full border-brand-500 text-brand-500" disabled={!canAdd} onClick={() => handleAdd(false)}>
+              Add to Cart
+            </Button>
+          </div>
+          <div>
+
+            <Button className="w-full" disabled={!canAdd} onClick={() => handleAdd(true)}>
+              Buy
+            </Button>
+          </div>
         </div>
       </StickyContainerComponent>
 
