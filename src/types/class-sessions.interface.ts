@@ -133,6 +133,16 @@ export interface IParticipantsSession {
 export type TSessionListData = (data: ICommonParams) => Promise<IResponseData<ISessionItem[]>>;
 export type TSessionDetailData = (id: string) => Promise<IResponseData<ISessionItem>>;
 export type TSessionBookings = ({ id, page, limit }: { id: string; page: number; limit: number }) => Promise<IResponseData<IParticipantsSession[]>>;
+
+// GET /classes/sessions/:id/participants — confirmed participants, no paging
+export interface ISessionParticipantsResponse {
+  session_id: string;
+  session_name: string;
+  class_name: string;
+  total: number;
+  participants: { index: number; name: string | null; attendance_status: string | null }[];
+}
+export type TSessionParticipants = (id: string) => Promise<IResponseData<ISessionParticipantsResponse>>;
 export type TCreateSessionData = (data: ICreateSessionPaylaod | FormData) => Promise<IResponseData<ISessionItem>>;
 export type TEditSessionData = ({ id, data }: { id: string; data: ICreateSessionPaylaod | FormData }) => Promise<IResponseData<ISessionItem>>;
 

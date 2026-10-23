@@ -15,6 +15,7 @@ import {
   TEditSessionData,
   TPublishBatchData,
   TSessionBookings,
+  TSessionParticipants,
   TSessionDetailData,
   TSessionListData,
   ISessionCancelParams,
@@ -85,6 +86,11 @@ export const getSesionDetailBooking: TSessionBookings = async ({ id, page, limit
       page_size: limit,
     },
   });
+  return res.data;
+};
+
+export const getSessionParticipants: TSessionParticipants = async (id) => {
+  const res = await axiosx(true).get(`${MAIN_API_URL}/classes/sessions/${id}/participants`);
   return res.data;
 };
 

@@ -20,6 +20,7 @@ import {
   useUnpublishSession,
 } from "@/hooks/api/mutations/admin";
 import { useGetSessionBookings, useGetSessionDetail, useGetSessions } from "@/hooks/api/queries/admin/class-session";
+import { getSessionParticipants } from "@/api-req/class-session";
 import { formatPublishCountdown, isScheduled } from "@/utils/session-badge";
 import { defaultDate, formatCurrency, formatDateHelper, normalizePhoneNumber, reminderMessage, sendReminder } from "@/lib/helper";
 import { cn } from "@/lib/utils";
@@ -157,6 +158,40 @@ export const SessionDetailPage = () => {
   const [remarkValue, setRemarkValue] = useState("");
   const [remarkError, setRemarkError] = useState<string | null>(null);
   const { mutateAsync: updateCustomerRemark, isPending: isUpdatingRemark } = useEditCustomer();
+
+  // Lapor daftar peserta ke guru via WhatsApp (copy chat)
+  const [openWaReport, setOpenWaReport] = useState(false);
+  const [waMessage, setWaMessage] = useState("");
+  const [waTotal, setWaTotal] = useState(0);
+  const [loadingWa, setLoadingWa] = useState(false);
+
+  const onOpenWaReport = async () => {
+    setOpenWaReport(true);
+    setWaMessage("");
+    setLoadingWa(true);
+    try {
+      const res = await getSessionParticipants(id as string);
+      setWaTotal(res?.data?.total ?? 0);
+      const list = (res?.data?.participants ?? [])
+        .filter((p) => p.name)
+        .map((p, i) => `${i + 1}. ${p.name}`)
+        .join("\n");
+      const d = data?.data;
+      const sched = d?.start_date
+        ? `${formatDateHelper(d.start_date as string, "dd MMM yyyy")} ${d?.time_start ?? ""}-${d?.time_end ?? ""}`
+        : (d?.session_name ?? "");
+      setWaMessage(
+        `hi kak ${d?.instructor_name ?? ""}, mau infokan untuk murid kelas ${sched} di ${d?.location ?? branchLabel(d?.branch ?? null) ?? "studio"} yaa kakk\n` +
+        `sebagai berikut\n${list}\n\n` +
+        `untuk next update akan admin infokan kembali yaa kakk, terima kasihhh`,
+      );
+    } catch {
+      toast.error("Gagal memuat daftar peserta", { position: "top-center" });
+      setOpenWaReport(false);
+    } finally {
+      setLoadingWa(false);
+    }
+  };
 
   const onConfirmAttendance = async (id: string, status: IAttendanceStatus) => {
     try {
@@ -538,9 +573,6 @@ export const SessionDetailPage = () => {
     refetchSession();
     setSearch("");
   };
-  const onClickReminder = () => {
-    setOpenReminder(true);
-  };
   const onRemindAll = async () => {
     try {
       const res = await remindAll(id as string);
@@ -768,15 +800,9 @@ export const SessionDetailPage = () => {
           <div className="flex flex-col gap-4">
             <div className="flex flex-row items-center justify-between">
               <h4 className="text-sm font-semibold">Participants</h4>
-              {/* {data?.data?.status !== 'canceled' && data?.data?.status !== 'ended' &&
-                <div>
-                  <Button onClick={() => {
-                    onClickReminder()
-                  }}>
-                    <BellRing /> Remind All
-                  </Button>
-                </div>
-              } */}
+              <Button variant="outline" onClick={onOpenWaReport} disabled={loadingWa}>
+                <Copy /> Lapor ke Guru
+              </Button>
             </div>
             <div className="flex flex-col gap-2">
               <CustomTable
@@ -1239,6 +1265,37 @@ export const SessionDetailPage = () => {
           open={openDuplicate}
           onOpenChange={setOpenDuplicate}
         />
+      )}
+      {openWaReport && (
+        <BaseDialogComponent
+          isOpen={openWaReport}
+          title="Lapor Daftar Peserta ke Guru (WhatsApp)"
+          btnConfirm="Copy Pesan"
+          onClose={() => setOpenWaReport(false)}
+          onConfirm={() => {
+            navigator.clipboard.writeText(waMessage);
+            toast.success("Pesan copied! Tempel di chat WhatsApp guru.", { position: "top-center" });
+          }}
+        >
+          <div className="flex flex-col gap-2">
+            <p className="text-sm text-muted-foreground">
+              {data?.data?.class?.class_name} · {data?.data?.session_name} · {waTotal} peserta confirmed
+            </p>
+            {loadingWa ? (
+              <div className="flex items-center justify-center py-6">
+                <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+              </div>
+            ) : (
+              <Textarea
+                value={waMessage}
+                onChange={(e) => setWaMessage(e.target.value)}
+                rows={12}
+                placeholder="Daftar peserta..."
+                className="font-sans text-sm"
+              />
+            )}
+          </div>
+        </BaseDialogComponent>
       )}
       {openRemark && (
         <BaseDialogComponent
