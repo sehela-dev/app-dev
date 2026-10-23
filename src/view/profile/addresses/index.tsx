@@ -77,8 +77,8 @@ export const AddressListView = () => {
       const fieldMessage = details ? Object.values(details)[0]?.[0] : undefined;
       setFormError(
         fieldMessage ||
-          message ||
-          (code === "ADDRESS_DEFAULT_CONFLICT" ? "Default address changed elsewhere. Please try again." : "Failed to save address."),
+        message ||
+        (code === "ADDRESS_DEFAULT_CONFLICT" ? "Default address changed elsewhere. Please try again." : "Failed to save address."),
       );
     }
   };
@@ -111,7 +111,7 @@ export const AddressListView = () => {
   return (
     <div className="flex flex-col w-full font-serif h-full text-brand-500">
       <NavHeaderComponent title="Address Book" />
-      <div className="flex flex-col gap-3 px-4 py-4 pb-28">
+      <div className="flex flex-col gap-3 px-4 py-4">
         {isLoading ? (
           <div className="flex items-center justify-center py-12">
             <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
@@ -162,11 +162,13 @@ export const AddressListView = () => {
         )}
       </div>
 
-      <div className="sticky bottom-16 flex w-full bg-brand-50 p-4">
-        <Button className="w-full" onClick={openCreate}>
-          <Plus /> Add Address
-        </Button>
-      </div>
+      {addresses.length > 0 && (
+        <div className="sticky bottom-4 z-40 pointer-events-none flex justify-center pb-1">
+          <Button className="pointer-events-auto h-11 rounded-full px-6 shadow-lg" onClick={openCreate}>
+            <Plus /> Add Address
+          </Button>
+        </div>
+      )}
 
       <Sheet open={open} onOpenChange={setOpen}>
         <SheetContent side="bottom" className="max-h-[90vh] overflow-y-auto bg-brand-25 font-serif">
@@ -202,12 +204,18 @@ export const AddressListView = () => {
             {formError && <p className="text-xs font-medium text-red-600">{formError}</p>}
 
             <div className="flex gap-2 pt-2">
-              <Button variant="outline" className="w-full text-brand-500" onClick={() => setOpen(false)}>
-                Cancel
-              </Button>
-              <Button className="w-full" disabled={isSaving} onClick={handleSubmit}>
-                {isSaving ? <Loader2 className="h-4 w-4 animate-spin" /> : "Save"}
-              </Button>
+              <div className="flex w-full">
+
+                <Button variant="outline" className="w-full text-brand-500" onClick={() => setOpen(false)}>
+                  Cancel
+                </Button>
+              </div>
+              <div className="flex w-full">
+
+                <Button className="w-full" disabled={isSaving} onClick={handleSubmit}>
+                  {isSaving ? <Loader2 className="h-4 w-4 animate-spin" /> : "Save"}
+                </Button>
+              </div>
             </div>
           </div>
         </SheetContent>
