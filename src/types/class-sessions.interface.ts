@@ -143,6 +143,24 @@ export interface ISessionParticipantsResponse {
   participants: { index: number; name: string | null; attendance_status: string | null }[];
 }
 export type TSessionParticipants = (id: string) => Promise<IResponseData<ISessionParticipantsResponse>>;
+
+// Admin waitlist — GET /classes/sessions/:id/waitlist (joined_at ASC, no pagination)
+export interface IWaitlistEntry {
+  id: string;
+  user_id: string;
+  full_name: string | null;
+  email: string | null;
+  joined_at: string;
+  notified_at: string | null;
+}
+export interface ISessionWaitlist {
+  session_id: string;
+  total: number;
+  entries: IWaitlistEntry[];
+}
+export type TSessionWaitlist = (id: string) => Promise<IResponseData<ISessionWaitlist>>;
+// DELETE /classes/sessions/:id/waitlist/:userId — idempotent (removed:false = never joined)
+export type TRemoveWaitlistEntry = ({ sessionId, userId }: { sessionId: string; userId: string }) => Promise<IResponseData<{ removed: boolean }>>;
 export type TCreateSessionData = (data: ICreateSessionPaylaod | FormData) => Promise<IResponseData<ISessionItem>>;
 export type TEditSessionData = ({ id, data }: { id: string; data: ICreateSessionPaylaod | FormData }) => Promise<IResponseData<ISessionItem>>;
 

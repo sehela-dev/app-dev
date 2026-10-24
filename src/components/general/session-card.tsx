@@ -1,5 +1,5 @@
 "use client";
-import { Gem, MapPin, Users, Video } from "lucide-react";
+import { Bell, Gem, MapPin, Users, Video } from "lucide-react";
 import { Card } from "../ui/card";
 import Image from "next/image";
 import { Badge } from "../ui/badge";
@@ -14,6 +14,7 @@ interface ISessionCardProps {
   location: string;
   instructor?: string;
   slot: string;
+  isFull?: boolean;
   isSpecial?: boolean;
   isOnline?: boolean;
   credit: string;
@@ -38,6 +39,7 @@ export const SessionCardComponent = ({
   location,
   instructor,
   slot,
+  isFull,
   isSpecial,
   isOnline,
   credit,
@@ -86,7 +88,13 @@ export const SessionCardComponent = ({
             </div>
 
             <div className="mt-auto flex items-center justify-between gap-2 pt-1">
-              <Badge className="rounded-full border-brand-100 bg-brand-500/10 text-xs text-brand-500">{slot} seats left</Badge>
+              {isFull ? (
+                <Badge className="rounded-full text-xs flex items-center gap-1 bg-red-500/10 text-red-800 border-red-500/20">
+                  <Bell size={12} className="shrink-0" /> Fully booked — join waitlist
+                </Badge>
+              ) : (
+                <Badge className="rounded-full border-brand-100 bg-brand-500/10 text-xs text-brand-500">{slot} seats left</Badge>
+              )}
               <div className="flex items-center justify-end gap-2">
                 {credit && (
                   <p className="flex items-center gap-1 text-xs font-bold text-brand-500 whitespace-nowrap">
