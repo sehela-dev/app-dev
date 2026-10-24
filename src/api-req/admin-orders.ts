@@ -2,6 +2,7 @@ import { axiosx } from "@/lib/axiosx";
 import { MAIN_API_URL } from "@/lib/config";
 import { ICommonParams } from "@/types/general.interface";
 import {
+  TAdminBookingDetail,
   TBookingsSession,
   TCancelBooking,
   TChangeAttendanceStatus,
@@ -95,6 +96,12 @@ export const changeAttendanceStatus: TChangeAttendanceStatus = async (data) => {
     attendance_status: data?.attendance_status,
     notes: data?.notes,
   });
+  return res.data;
+};
+
+// Admin self check-in: lookup booking by scan (GET /admin/bookings/:id)
+export const getAdminBookingDetail: TAdminBookingDetail = async (id) => {
+  const res = await axiosx(true).get(`${MAIN_API_URL}/admin/bookings/${id}`);
   return res.data;
 };
 export const cancelBookingSession: TCancelBooking = async (data) => {

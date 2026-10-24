@@ -148,6 +148,7 @@ export interface IPaymentHistoryDetail extends IPackagePaymentHistoryItem {
   purchase_status?: string | null;
   purchased_at?: string | null;
   booking_status?: string | null;
+  fulfillment_status?: string | null;
   voucher_code?: string | null;
   discount_idr?: number | null;
 }

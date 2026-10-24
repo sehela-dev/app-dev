@@ -1,181 +1,276 @@
 "use client";
-import { StickyContainerComponent } from "@/components/layout";
-import { ProductCategorySection } from "@/components/shop/product-section";
-import { Button } from "@/components/ui/button";
-import { Sheet, SheetContent, SheetFooter, SheetHeader, SheetTitle } from "@/components/ui/sheet";
-import { cn } from "@/lib/utils";
-import clsx from "clsx";
-import { ShoppingCart } from "lucide-react";
-import { useParams, useRouter } from "next/navigation";
-import { useState } from "react";
 
-const sizeOption = [
-  {
-    id: 1,
-    name: "150cm",
-  },
-  {
-    id: 2,
-    name: "152cm",
-  },
-  {
-    id: 3,
-    name: "153cm",
-  },
-  {
-    id: 4,
-    name: "154cm",
-  },
-];
+import { BaseDialogConfirmation } from "@/components/general/dialog-confirnation";
+import { StickyContainerComponent } from "@/components/layout";
+import { Button } from "@/components/ui/button";
+import { useCart } from "@/context/cart.ctx";
+import { useGetPublicProductDetail } from "@/hooks/api/queries/customer/public";
+import { formatCurrency } from "@/lib/helper";
+import { cn } from "@/lib/utils";
+import { AlertCircle, ChevronLeft, Loader2, Minus, Plus, ShoppingCart } from "lucide-react";
+import Image from "next/image";
+import { useParams, useRouter } from "next/navigation";
+import { useEffect, useMemo, useState } from "react";
+import { toast } from "sonner";
+
 export const ShopDetailView = () => {
-  const [selectedPict, setSelectedPict] = useState(1);
   const router = useRouter();
   const params = useParams();
-  const { id } = params;
+  const id = params?.id as string;
+  const { data: product, isLoading, isError } = useGetPublicProductDetail(id);
+  const { items, addItem, clearCart, locationId: cartLocationId } = useCart();
 
+  const [selectedPhoto, setSelectedPhoto] = useState(0);
+  const [selectedVariantId, setSelectedVariantId] = useState<string | null>(null);
+  const [selectedLocationId, setSelectedLocationId] = useState<string | null>(null);
   const [qty, setQty] = useState(1);
+  const [pendingReplace, setPendingReplace] = useState<"cart" | "checkout" | null>(null);
 
-  const [openDialog, setOpenDialog] = useState(false);
-  const [selectedVariantOne, setSelectedVariantOne] = useState(1);
+  const selectedVariant = useMemo(
+    () => product?.variants.find((v) => v.id === selectedVariantId) ?? null,
+    [product?.variants, selectedVariantId],
+  );
 
-  const onSelectPict = (id: number) => {
-    setSelectedPict(id);
+  const selectedAvailability = useMemo(
+    () => selectedVariant?.availability.find((a) => a.location_id === selectedLocationId) ?? null,
+    [selectedVariant?.availability, selectedLocationId],
+  );
+
+  useEffect(() => {
+    if (!product?.variants.length) return;
+    const firstAvailable = product.variants.find((v) => v.stock_available > 0) ?? product.variants[0];
+    setSelectedVariantId(firstAvailable.id);
+  }, [product?.variants]);
+
+  useEffect(() => {
+    if (!selectedVariant) return;
+    const firstAvailable = selectedVariant.availability.find((a) => a.stock_available > 0) ?? selectedVariant.availability[0];
+    setSelectedLocationId(firstAvailable?.location_id ?? null);
+    setQty(1);
+  }, [selectedVariant]);
+
+  const maxQty = selectedAvailability?.stock_available ?? 0;
+
+  const buildCartItem = () => {
+    if (!product || !selectedVariant || !selectedAvailability) return null;
+    return {
+      variant_id: selectedVariant.id,
+      product_id: product.id,
+      product_name: product.name,
+      variant_name: selectedVariant.variant_name,
+      price_idr: selectedVariant.price_idr,
+      quantity: qty,
+      location_id: selectedAvailability.location_id,
+      location_name: selectedAvailability.location_name,
+      photo: product.photos?.[0] ?? null,
+    };
   };
 
-  const onViewAll = (data: string) => {
-    console.log(data);
+  const commitAdd = (thenCheckout: boolean) => {
+    const item = buildCartItem();
+    if (!item) {
+      toast.error("Please select a variant and location with stock.");
+      return;
+    }
+    addItem(item);
+    if (thenCheckout) router.push("/cart/checkout");
+    else toast.success("Added to cart");
   };
 
-  const onSelectVariant = (id: number) => {
-    setSelectedVariantOne(id);
+  const handleAdd = (thenCheckout: boolean) => {
+    if (!buildCartItem()) {
+      toast.error("Please select a variant and location with stock.");
+      return;
+    }
+    if (items.length > 0 && cartLocationId && cartLocationId !== selectedLocationId) {
+      setPendingReplace(thenCheckout ? "checkout" : "cart");
+      return;
+    }
+    commitAdd(thenCheckout);
   };
 
-  const onModifyQty = (type: "+" | "-") => {
-    const newQty = type === "+" ? qty + 1 : qty - 1;
-    if (newQty < 1) return;
-    setQty(newQty);
-  };
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center py-16">
+        <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+      </div>
+    );
+  }
 
-  const onBuyItem = () => {
-    router.push(`/shop/checkout/${id}`);
-  };
+  if (isError || !product) {
+    return (
+      <div className="flex flex-col items-center gap-3 px-4 py-16 text-center font-serif text-brand-500">
+        <AlertCircle className="h-12 w-12 text-red-500" />
+        <p className="text-lg font-semibold">Product not available</p>
+        <Button onClick={() => router.push("/shop")}>Back to Shop</Button>
+      </div>
+    );
+  }
+
+  const photos = product.photos?.length ? product.photos : ["/assets/shop/example-matt.png"];
+  const canAdd = !!selectedVariant && !!selectedAvailability && maxQty > 0;
 
   return (
-    <div className="flex flex-col w-full gap-[37px] min-h-screen h-full justify-between">
-      <div className="font-serif flex-col mx-auto p-4 w-full">
-        <div className="flex flex-col gap-4">
-          <div className="md:max-w-[360px] min-h-[318px] max-h-[318px] w-full h-full bg-gray-300 rounded-md">{selectedPict}</div>
-          <div className="flex flex-row gap-1.5">
-            {[1, 2, 3, 4].map((item) => (
-              <div
-                className={clsx("md:max-w-[85.75px] w-full min-h-[76px] max-h-[76px] h-full bg-gray-500 rounded-md cursor-pointer", {
-                  "outline outline-indigo-400 outline-offset-1": item === selectedPict,
-                })}
-                key={item}
-                onClick={() => onSelectPict(item)}
-              >
-                item
-              </div>
-            ))}
+    <div className="flex min-h-full w-full flex-col justify-between gap-6 font-serif text-brand-500">
+      <div className="mx-auto w-full p-4">
+        <Button variant="ghost" className="mb-2 !px-0" onClick={() => router.back()}>
+          <ChevronLeft /> Back
+        </Button>
+
+        <div className="flex flex-col gap-3">
+          <div className="relative h-[318px] w-full overflow-hidden rounded-md bg-brand-100">
+            <Image src={photos[selectedPhoto]} alt={product.name} fill sizes="550px" className="object-cover" />
           </div>
+          {photos.length > 1 && (
+            <div className="flex flex-row gap-1.5">
+              {photos.map((photo, index) => (
+                <button
+                  key={photo}
+                  type="button"
+                  onClick={() => setSelectedPhoto(index)}
+                  className={cn("relative h-[76px] w-[86px] overflow-hidden rounded-md bg-brand-100", {
+                    "outline outline-2 outline-offset-1 outline-brand-500": index === selectedPhoto,
+                  })}
+                >
+                  <Image src={photo} alt="" fill sizes="86px" className="object-cover" />
+                </button>
+              ))}
+            </div>
+          )}
         </div>
-        <p className="text-xl font-bold text-brand-500 mt-4">Premium Yoga Mat Panjang Banget Pokoknya</p>
-        <div className="flex flex-row gap-2 items-center">
-          <p className="text-xl font-bold text-brand-500">Rp 250.000</p>
-          <p className="text-md font-medium text-brand-500 line-through">Rp 550.000</p>
+
+        <h1 className="mt-4 text-xl font-bold">{product.name}</h1>
+        <div className="mt-1 flex items-center gap-2">
+          <p className="text-xl font-bold">{formatCurrency(selectedVariant?.price_idr ?? 0)}</p>
+          {product.category?.name && <span className="text-xs font-medium text-brand-400">{product.category.name}</span>}
         </div>
-        <hr style={{ borderColor: "var(--color-brand-200" }} className="my-4" />
+
+        <hr className="my-4 border-brand-200" />
 
         <div className="flex flex-col gap-2">
-          <p className="text-xl font-bold text-brand-500">Description</p>
-          <p className="text-[16px] font-normal text-brand-500">
-            Our approach is altruistic by nature and we are dedicated to the development of the participant and their future endeavors. OSY sees yoga
-            in a healing light that has many forms, and each member of our team is committed to being in service to our students. This is true for all
-            of our courses.
-          </p>
+          <p className="text-base font-bold">Variant</p>
+          <div className="flex flex-wrap gap-2">
+            {product.variants.map((variant) => {
+              const disabled = variant.stock_available <= 0;
+              return (
+                <button
+                  key={variant.id}
+                  type="button"
+                  disabled={disabled}
+                  onClick={() => setSelectedVariantId(variant.id)}
+                  className={cn(
+                    "rounded-md border border-brand-500 px-3 py-2 text-sm",
+                    selectedVariantId === variant.id && "bg-brand-100 font-semibold",
+                    disabled && "cursor-not-allowed border-gray-300 text-gray-400 line-through",
+                  )}
+                >
+                  {variant.variant_name}
+                </button>
+              );
+            })}
+          </div>
         </div>
 
-        <ProductCategorySection title="Related Products" onClickViewAll={() => onViewAll("sport-wear")} />
+        <div className="mt-4 flex flex-col gap-2">
+          <p className="text-base font-bold">Pickup location</p>
+          {selectedVariant?.availability.length ? (
+            <div className="flex flex-col gap-2">
+              {selectedVariant.availability.map((availability) => {
+                const disabled = availability.stock_available <= 0;
+                return (
+                  <button
+                    key={availability.location_id}
+                    type="button"
+                    disabled={disabled}
+                    onClick={() => setSelectedLocationId(availability.location_id)}
+                    className={cn(
+                      "flex items-center justify-between rounded-md border border-brand-500 px-3 py-2 text-sm",
+                      selectedLocationId === availability.location_id && "bg-brand-100",
+                      disabled && "cursor-not-allowed border-gray-300 text-gray-400",
+                    )}
+                  >
+                    <span>{availability.location_name}</span>
+                    <span className="text-xs">{disabled ? "Out of stock" : `${availability.stock_available} left`}</span>
+                  </button>
+                );
+              })}
+            </div>
+          ) : (
+            <p className="text-sm text-red-500">No pickup location available.</p>
+          )}
+        </div>
+
+        <div className="mt-4 flex items-center justify-between">
+          <p className="text-base font-bold">Quantity</p>
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              className="h-8 w-8 bg-transparent"
+              disabled={qty <= 1}
+              onClick={() => setQty((q) => Math.max(1, q - 1))}
+            >
+              <Minus size={14} />
+            </Button>
+            <div className="flex h-8 w-8 items-center justify-center rounded-md bg-brand-100">{qty}</div>
+            <Button
+              variant="outline"
+              className="h-8 w-8 bg-transparent"
+              disabled={qty >= maxQty}
+              onClick={() => setQty((q) => Math.min(maxQty, q + 1))}
+            >
+              <Plus size={14} />
+            </Button>
+          </div>
+        </div>
+
+        {product.description && (
+          <>
+            <hr className="my-4 border-brand-200" />
+            <div className="flex flex-col gap-2">
+              <p className="text-base font-bold">Description</p>
+              <p className="text-sm font-normal leading-relaxed">{product.description}</p>
+            </div>
+          </>
+        )}
       </div>
 
-      <Sheet open={openDialog}>
-        <SheetContent side="bottom" className="min-h-[30vh] rounded-t-2xl  bg-brand-50 font-serif">
-          <SheetHeader hidden>
-            <SheetTitle></SheetTitle>
-          </SheetHeader>
-          <div className="px-4 py-5 w-full text-brand-500 ">
-            <div className="flex flex-col gap-6">
-              <div className="flex flex-col gap-2.5">
-                <p className="font-semibold">Size</p>
-                <div className="flex flex-row gap-3.75">
-                  {sizeOption?.map((item) => (
-                    <ItemSelection
-                      title={item.name}
-                      selected={item.id === selectedVariantOne}
-                      id={item.id}
-                      key={item.id}
-                      onSelect={() => onSelectVariant(item.id)}
-                    />
-                  ))}
-                </div>
-              </div>
-              <div className="flex flex-col gap-2.5">
-                <p className="font-semibold">Size</p>
-                <div className="flex flex-row gap-3.75">
-                  {sizeOption?.map((item) => (
-                    <ItemSelection
-                      title={item.name}
-                      selected={item.id === selectedVariantOne}
-                      id={item.id}
-                      key={item.id}
-                      onSelect={() => onSelectVariant(item.id)}
-                    />
-                  ))}
-                </div>
-              </div>
-
-              <div className="flex flex-row justify-between items-center">
-                <p className="font-semibold">Quantity</p>
-                <div className="flex flex-row gap-2 items-center">
-                  <Button variant={"outline"} className="bg-transparent w-8 h-8" onClick={() => onModifyQty("-")}>
-                    -
-                  </Button>
-                  <div className="w-8 h-8 flex items-center justify-center bg-brand-100 rounded-md">{qty}</div>
-
-                  <Button variant={"outline"} className="bg-transparent w-8 h-8" onClick={() => onModifyQty("+")}>
-                    +
-                  </Button>
-                </div>
-              </div>
-            </div>
-          </div>
-          <SheetFooter className="bg-white">
-            <div className="flex flex-row gap-4">
-              <div className="flex w-full">
-                <Button variant={"outline"} className="w-full border border-brand-500 text-brand-500" onClick={() => setOpenDialog(false)}>
-                  Cancel
-                </Button>
-              </div>
-              <div className="flex w-full">
-                <Button className="w-full">Add to Cart</Button>
-              </div>
-            </div>
-          </SheetFooter>
-        </SheetContent>
-      </Sheet>
-
       <StickyContainerComponent>
-        <div className="flex flex-row p-4 gap-2">
-          <Button className="bg-brand-50" onClick={() => setOpenDialog(!openDialog)}>
-            <ShoppingCart color="var(--color-brand-500)" />
-          </Button>
-          <div className="flex w-full">
-            <Button className="w-full" onClick={() => onBuyItem()}>
+        <div className="flex flex-row gap-2 p-4">
+          <div>
+            <Button className="bg-brand-50" onClick={() => router.push("/cart")} aria-label="Cart">
+              <ShoppingCart color="var(--color-brand-500)" />
+            </Button>
+          </div>
+          <div className="flex-1">
+
+            <Button variant="outline" className="w-full border-brand-500 text-brand-500" disabled={!canAdd} onClick={() => handleAdd(false)}>
+              Add to Cart
+            </Button>
+          </div>
+          <div>
+
+            <Button className="w-full" disabled={!canAdd} onClick={() => handleAdd(true)}>
               Buy
             </Button>
           </div>
         </div>
       </StickyContainerComponent>
+
+      <BaseDialogConfirmation
+        open={!!pendingReplace}
+        image="warning-1"
+        title="Start a new cart?"
+        subtitle={`Your cart has items for another pickup location. Adding this item will clear the current cart.`}
+        cancelText="Cancel"
+        confirmText="Replace cart"
+        onCancel={() => setPendingReplace(null)}
+        onConfirm={() => {
+          const thenCheckout = pendingReplace === "checkout";
+          clearCart();
+          setPendingReplace(null);
+          commitAdd(thenCheckout);
+        }}
+      />
     </div>
   );
 };
@@ -186,10 +281,11 @@ interface IItemSelection {
   id: number;
   onSelect: () => void;
 }
+
 export const ItemSelection = ({ selected, title, onSelect }: IItemSelection) => {
   return (
     <div
-      className={cn("flex items-center justify-center border border-brand-500 py-2.5 item w-[80px] rounded-md hover:bg-brand-100 h-[38px]", {
+      className={cn("flex h-[38px] w-[80px] items-center justify-center rounded-md border border-brand-500 py-2.5 hover:bg-brand-100", {
         "bg-brand-100": selected,
       })}
       onClick={onSelect}

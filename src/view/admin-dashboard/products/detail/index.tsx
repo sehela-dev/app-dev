@@ -13,7 +13,7 @@ import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Divider } from "@/components/ui/divider";
 import { FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
-import { useAddNewVariants } from "@/hooks/api/mutations/admin";
+import { useAddNewVariants, useDeleteProductVariant } from "@/hooks/api/mutations/admin";
 import { useGetInventoryLocations, useGetProductDetail } from "@/hooks/api/queries/admin/products";
 import { useAdminPermission } from "@/hooks/use-role-access";
 import { formatCurrency } from "@/lib/helper";
@@ -54,6 +54,7 @@ export const ProductDetailView = () => {
   const [openManageStock, setOpenManageStock] = useState(false);
   const [openEditProduct, setOpenEditProduct] = useState(false);
   const [openEditVariant, setOpenEditVariant] = useState(false);
+  const [deleteVariantTarget, setDeleteVariantTarget] = useState<IProductVariantItem | null>(null);
   const [selectedVariant, setSelectedVariant] = useState<IProductVariantItem | null>(null);
   const { isManager } = useAdminPermission();
   const methods = useForm<UpdateVariantsFormValues>({
@@ -65,6 +66,7 @@ export const ProductDetailView = () => {
   const { control, handleSubmit, watch } = methods;
   const { fields, append, remove } = useFieldArray({ name: "variants", control, keyName: "id" });
   const { mutateAsync } = useAddNewVariants();
+  const { mutateAsync: deleteVariantAsync } = useDeleteProductVariant();
 
   // Watch the variants to track location changes
   const variants = watch("variants");
@@ -126,6 +128,16 @@ export const ProductDetailView = () => {
     setSelectedVariant(variant);
     setOpenManageStock(true);
     console.log(variant)
+  };
+
+  const activeVariants = (data?.data?.variants ?? []).filter((v) => v.is_active);
+  const handleDeleteVariant = async () => {
+    if (!deleteVariantTarget) return;
+    // ponytail: min 1 active must remain — guard client-side, BE enforces too
+    if (activeVariants.length <= 1 && deleteVariantTarget.is_active) return;
+    await deleteVariantAsync({ id: id as string, idVar: deleteVariantTarget.id });
+    setDeleteVariantTarget(null);
+    refetch();
   };
 
 
@@ -239,11 +251,13 @@ export const ProductDetailView = () => {
                       <InventoryCardComponent
                         variant={v}
                         key={v.id}
+                        canDelete={activeVariants.length > 1}
                         onOpenVariant={handleOpenManageStock}
                         onEditVariant={(variant) => {
                           setSelectedVariant(variant);
                           setOpenEditVariant(true);
                         }}
+                        onDeleteVariant={(variant) => setDeleteVariantTarget(variant)}
                       />
                     ))}
                   </div>
@@ -491,6 +505,23 @@ export const ProductDetailView = () => {
           onSuccess={refetch}
         />
       }
+      {deleteVariantTarget &&
+        <BaseDialogComponent
+          title="Delete Variant"
+          isOpen={!!deleteVariantTarget}
+          btnConfirm="Delete"
+          onCloseText="Cancel"
+          onClose={() => setDeleteVariantTarget(null)}
+          onConfirm={handleDeleteVariant}
+        >
+          <p className="text-sm text-gray-500">
+            Delete variant <span className="font-semibold text-foreground">{deleteVariantTarget.variant_name} ({deleteVariantTarget.sku})</span>?
+            {activeVariants.length <= 1 && deleteVariantTarget.is_active
+              ? " Cannot delete the last active variant."
+              : " This cannot be undone."}
+          </p>
+        </BaseDialogComponent>
+      }
     </div >
   );
 };
@@ -499,9 +530,11 @@ interface IProps {
   variant: IProductVariantItem;
   onOpenVariant: (data: IProductVariantItem) => void;
   onEditVariant: (data: IProductVariantItem) => void;
+  onDeleteVariant: (data: IProductVariantItem) => void;
+  canDelete?: boolean;
 }
 
-export const InventoryCardComponent = ({ variant, onOpenVariant, onEditVariant }: IProps) => {
+export const InventoryCardComponent = ({ variant, onOpenVariant, onEditVariant, onDeleteVariant, canDelete = true }: IProps) => {
   const [open, setOpen] = useState(false);
   const { isManager } = useAdminPermission()
   const getStockStatus = (available: number, total: number) => {
@@ -574,6 +607,9 @@ export const InventoryCardComponent = ({ variant, onOpenVariant, onEditVariant }
                   <div><Button variant="secondary" size={"sm"} onClick={() => onOpenVariant(variant)}><Warehouse />Manage Stock</Button></div>
                 }
                 <div><Button variant="default" size={"sm"} onClick={() => onEditVariant(variant)}><PenIcon />Edit Variant</Button></div>
+                {canDelete &&
+                  <div><Button variant="destructive" size={"sm"} onClick={() => onDeleteVariant(variant)}><Trash />Delete</Button></div>
+                }
               </div>
 
             </div>

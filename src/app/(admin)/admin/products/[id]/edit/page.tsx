@@ -1,18 +1,7 @@
-import { AdminPermissionGuard } from "@/layout/admin/admin-permission-guard";
-import { OrdersPageView } from "@/view/admin-dashboard/orders";
+import { redirect } from "next/navigation";
 
-import type { Metadata } from "next";
-
-export const metadata: Metadata = {
-  title: "Edit Product — Sehela Admin",
-  description: "Edit Product - Sehela Admin Panel",
-};
-
-
-export default function Page() {
-  return (
-    <AdminPermissionGuard permission="products:update">
-      <OrdersPageView />
-    </AdminPermissionGuard>
-  );
+// ponytail: edit lives in the detail dialog — route redirects instead of a duplicate page
+export default async function Page({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
+  redirect(`/admin/products/${id}`);
 }

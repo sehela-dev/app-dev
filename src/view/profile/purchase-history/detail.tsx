@@ -8,7 +8,8 @@ import {
   getPendingPackagePayment,
   humanizePaymentStatus,
 } from "@/lib/pending-package-payment";
-import { AlertCircle, Gem as GemIcon, Loader2, Ticket as TicketIcon } from "lucide-react";
+import { getPurchaseKind, PURCHASE_KIND_BADGE, PURCHASE_KIND_ICON_BG, PURCHASE_KIND_LABEL } from "@/lib/purchase-kind";
+import { AlertCircle, Gem as GemIcon, Loader2, Package as PackageIcon, ReceiptText, Ticket as TicketIcon } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 
@@ -22,9 +23,10 @@ export const PurchaseHistoryDetailView = ({ refId }: { refId: string }) => {
   const { data, isLoading, isError } = useGetPaymentHistoryDetail(refId);
   const item = data?.data;
 
-  const kind = item?.payable_type ? String(item.payable_type) : "";
-  const isPackage = kind === "package_purchase";
-  const isBooking = kind === "booking";
+  const kind = getPurchaseKind(item?.payable_type);
+  const isPackage = kind === "credit";
+  const isBooking = kind === "class";
+  const isProduct = kind === "product";
   const status = item?.status ? String(item.status) : "";
   const serverPending = status === "pending";
 
@@ -65,6 +67,8 @@ export const PurchaseHistoryDetailView = ({ refId }: { refId: string }) => {
       router.push(packageId ? `/topup-credit/${packageId}/payment?${qs.toString()}` : "/profile/purchase-history");
     } else if (isBooking && item.payable_id) {
       router.push(`/profile/my-sessions/${String(item.payable_id)}`);
+    } else if (isProduct) {
+      router.push(item.payable_id ? `/profile/orders/${String(item.payable_id)}` : "/profile/orders");
     }
   };
 
@@ -100,8 +104,10 @@ export const PurchaseHistoryDetailView = ({ refId }: { refId: string }) => {
     ? String(item.package_name ?? "Credit package")
     : isBooking
       ? String(item.session_name ?? "Class booking")
-      : "Payment";
-  const lifecycle = item.purchase_status ?? item.booking_status;
+      : isProduct
+        ? "Product order"
+        : "Payment";
+  const lifecycle = item.purchase_status ?? item.booking_status ?? item.fulfillment_status;
   const discount = item.discount_idr != null ? Number(item.discount_idr) : 0;
 
   return (
@@ -111,16 +117,27 @@ export const PurchaseHistoryDetailView = ({ refId }: { refId: string }) => {
         <div className="rounded-2xl border border-brand-100 bg-white px-4 py-4">
           <div className="flex items-center gap-3">
             <span
-              className={
-                isPackage
-                  ? "flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-brand-500"
-                  : "flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-sky-600"
-              }
+              className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-full ${PURCHASE_KIND_ICON_BG[kind]}`}
             >
-              {isPackage ? <GemIcon size={16} className="text-white" /> : <TicketIcon size={16} className="text-white" />}
+              {isPackage ? (
+                <GemIcon size={16} className="text-white" />
+              ) : isBooking ? (
+                <TicketIcon size={16} className="text-white" />
+              ) : isProduct ? (
+                <PackageIcon size={16} className="text-white" />
+              ) : (
+                <ReceiptText size={16} className="text-white" />
+              )}
             </span>
             <div className="min-w-0 flex-1">
-              <p className="truncate text-sm font-semibold text-brand-900">{title}</p>
+              <div className="flex items-center gap-1.5">
+                <span
+                  className={`shrink-0 rounded-full px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wide ${PURCHASE_KIND_BADGE[kind]}`}
+                >
+                  {PURCHASE_KIND_LABEL[kind]}
+                </span>
+                <p className="truncate text-sm font-semibold text-brand-900">{title}</p>
+              </div>
               <p className="text-[11px] text-gray-500">{humanizePaymentStatus(displayStatus)}</p>
             </div>
             <p className="shrink-0 text-base font-bold text-brand-900">{formatCurrency(String(amount))}</p>
@@ -131,7 +148,7 @@ export const PurchaseHistoryDetailView = ({ refId }: { refId: string }) => {
 
           <div className="mt-2 space-y-2 border-t border-brand-50 pt-2 text-sm">
             {lifecycle && (
-              <Row label={isPackage ? "Purchase" : "Booking"} value={String(lifecycle)} capitalize />
+              <Row label={isPackage ? "Purchase" : isBooking ? "Booking" : "Fulfillment"} value={String(lifecycle)} capitalize />
             )}
             {isPackage && item.package_credits != null && (
               <Row label="Credits" value={`${String(item.package_credits)} credits`} />
@@ -161,9 +178,19 @@ export const PurchaseHistoryDetailView = ({ refId }: { refId: string }) => {
         {!isPending && (SUCCESS.includes(status)) && (
           <Button
             className="min-h-12 w-full text-sm font-extrabold"
-            onClick={() => router.push(isBooking ? "/profile/my-sessions" : "/profile/my-credits")}
+            onClick={() =>
+              router.push(
+                isBooking
+                  ? "/profile/my-sessions"
+                  : isProduct
+                    ? item.payable_id
+                      ? `/profile/orders/${String(item.payable_id)}`
+                      : "/profile/orders"
+                    : "/profile/my-credits"
+              )
+            }
           >
-            {isBooking ? "View My Class" : "View My Credits"}
+            {isBooking ? "View My Class" : isProduct ? "View My Order" : "View My Credits"}
           </Button>
         )}
         <div className="text-center">
