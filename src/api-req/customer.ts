@@ -27,11 +27,11 @@ export const getCustomers: TCustomerData = async ({ page, limit, status, search 
 };
 
 export const createCustomer: TCreteateCustomerAdmin = async (data) => {
-  const res = await axiosx(true).post(`${MAIN_API_URL}/admin/create-student`, data);
+  const res = await axiosx(true).post(`${MAIN_API_URL}/admin/create-student`, "email" in data ? { ...data, email: (data as { email?: string }).email?.trim().toLowerCase() } : data);
   return res.data;
 };
 export const editCustomer: TEditCustomer = async ({ data, id }) => {
-  const res = await axiosx(true).patch(`${MAIN_API_URL}/admin/students/${id}`, data);
+  const res = await axiosx(true).patch(`${MAIN_API_URL}/admin/students/${id}`, "email" in data ? { ...data, email: (data as { email?: string }).email?.trim().toLowerCase() } : data);
   return res.data;
 };
 export const deleteCustomer: TDeleteCustomer = async (id) => {

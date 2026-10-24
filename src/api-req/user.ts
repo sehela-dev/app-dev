@@ -3,7 +3,7 @@ import { MAIN_API_URL, MAIN_AUTH_API_URL } from "@/lib/config";
 import { TLogin, TRefreshToken } from "@/types/auth/user.interface";
 
 export const adminLoginRequest: TLogin = async (data) => {
-  const res = await axiosx(false, "", "auth").post(`${MAIN_AUTH_API_URL}/token?grant_type=password`, data);
+  const res = await axiosx(false, "", "auth").post(`${MAIN_AUTH_API_URL}/token?grant_type=password`, { ...data, email: data.email.trim().toLowerCase() });
   return res.data;
 };
 
