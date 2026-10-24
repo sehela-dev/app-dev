@@ -307,7 +307,7 @@ export const DetailFormAddTransaction = () => {
 
     updateItem(selectedItem?.id, {
       share_with_user_id: trimmedEmail ? undefined : selectedUser?.id,
-      share_with_email: trimmedEmail || undefined,
+      share_with_email: trimmedEmail ? trimmedEmail.toLowerCase() : undefined,
       shared_with_user: trimmedEmail
         ? { id: "", name: trimmedEmail, phone: "", email: trimmedEmail }
         : selectedUser

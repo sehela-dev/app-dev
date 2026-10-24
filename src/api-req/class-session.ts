@@ -16,6 +16,8 @@ import {
   TPublishBatchData,
   TSessionBookings,
   TSessionParticipants,
+  TSessionWaitlist,
+  TRemoveWaitlistEntry,
   TSessionDetailData,
   TSessionListData,
   ISessionCancelParams,
@@ -91,6 +93,16 @@ export const getSesionDetailBooking: TSessionBookings = async ({ id, page, limit
 
 export const getSessionParticipants: TSessionParticipants = async (id) => {
   const res = await axiosx(true).get(`${MAIN_API_URL}/classes/sessions/${id}/participants`);
+  return res.data;
+};
+
+export const getSessionWaitlist: TSessionWaitlist = async (id) => {
+  const res = await axiosx(true).get(`${MAIN_API_URL}/classes/sessions/${id}/waitlist`);
+  return res.data;
+};
+
+export const removeWaitlistEntry: TRemoveWaitlistEntry = async ({ sessionId, userId }) => {
+  const res = await axiosx(true).delete(`${MAIN_API_URL}/classes/sessions/${sessionId}/waitlist/${userId}`);
   return res.data;
 };
 

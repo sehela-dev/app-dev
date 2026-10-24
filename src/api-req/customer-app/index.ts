@@ -4,3 +4,4 @@ export * from "./credits";
 export * from "./my-class";
 export * from "./payments";
 export * from "./public";
+export * from "./waitlist";
