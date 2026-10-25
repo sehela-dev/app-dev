@@ -1,7 +1,7 @@
 "use client";
 
 import { BaseDialogConfirmation } from "@/components/general/dialog-confirnation";
-import { PhotoUploadForm } from "@/components/general/photo-upload-form";
+import { PhotoUploadForm, InlinePhotoCell } from "@/components/general/photo-upload-form";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
@@ -28,6 +28,7 @@ const defaultValuesVariant: ProductVariantFormValue = {
   variant_name: "",
   sku: "",
   price_idr: "",
+  photos: [],
   inventory: [], // Array of { location_id, stock_total }
   location: [], // Array for multiple selections (temporary, not in final payload)
 };
@@ -70,15 +71,22 @@ export const CreateProductPage = () => {
 
   const onSubmit = handleSubmit(async (data) => {
     try {
-      const variants = data?.variants?.map((item) => ({
-        price_idr: parseInt(item.price_idr),
-        variant_name: item.variant_name,
-        sku: item?.sku,
-        inventory: item.inventory?.map((i) => ({
-          location_id: i.location_id,
-          stock_total: parseInt(i.stock_total),
-        })),
-      }));
+      // Variant photo files travel outside the `variants` JSON (multipart keys
+      // `variant_photos.<index>`); the URL input is gone, only files now.
+      const variantPhotoFiles: { index: number; file: File }[] = [];
+      const variants = data?.variants?.map((item, index) => {
+        const photoFile = (item.photos as { file?: File }[] | undefined)?.[0]?.file;
+        if (photoFile instanceof File) variantPhotoFiles.push({ index, file: photoFile });
+        return {
+          price_idr: parseInt(item.price_idr),
+          variant_name: item.variant_name,
+          sku: item?.sku,
+          inventory: item.inventory?.map((i) => ({
+            location_id: i.location_id,
+            stock_total: parseInt(i.stock_total),
+          })),
+        };
+      });
       const temp = {
         ...data,
         is_rentable: data?.type === "rent",
@@ -86,16 +94,7 @@ export const CreateProductPage = () => {
         variants,
       };
       const payload = createFormData(temp);
-      // console.log(tem
-
-      // console.log("📤 FormData entries:");
-      // for (const [key, value] of payload.entries()) {
-      //   if (key === "photos") {
-      //     console.log(`${key}:`, value instanceof File ? `✅ File (${(value as File).name})` : `❌ Not a file: ${typeof value}`);
-      //   } else {
-      //     console.log(`${key}:`, typeof value === "string" && value.length > 100 ? value.substring(0, 50) + "..." : value);
-      //   }
-      // }
+      variantPhotoFiles.forEach(({ index, file }) => payload.append(`variant_photos_${index}`, file));
       const res = await mutateAsync(payload);
       if (res) {
         handleOpenModal("SUCCESS");
@@ -256,14 +255,17 @@ export const CreateProductPage = () => {
           <Card>
             <CardContent>
               <div className="grid grid-cols-2 gap-4">
-                <PhotoUploadForm name="photos" />
+                <PhotoUploadForm name="photos" maxPhotos={1} label="Cover Photo (1 max)" />
               </div>
             </CardContent>
           </Card>
           <Card>
             <CardHeader className="font-medium">
               <div className="flex flex-row items-center w-full justify-between">
-                <h3>Product Variant</h3>
+                <div>
+                  <h3>Product Variant</h3>
+                  <p className="text-xs text-gray-500">Fill one row per variant — everything is created in a single save.</p>
+                </div>
                 <div className="flex">
                   <Button size={"sm"} variant={"secondary"} onClick={() => append({ ...defaultValuesVariant })}>
                     <Plus /> Add Variant
@@ -273,157 +275,154 @@ export const CreateProductPage = () => {
             </CardHeader>
             <CardContent>
               <div className="flex flex-col gap-2">
+                {fields?.length > 0 && (
+                  <div className="hidden md:grid md:grid-cols-[1.4fr_1fr_130px_1.6fr_56px_36px] gap-2 px-1 text-xs font-medium text-gray-500">
+                    <span>Variant Name</span>
+                    <span>SKU</span>
+                    <span>Price (IDR)</span>
+                    <span>Branch</span>
+                    <span>Photo</span>
+                    <span />
+                  </div>
+                )}
                 {fields?.map((field, index) => (
-                  <Card key={field.id}>
-                    <CardHeader className="text-lg font-semibold">
-                      <div className="flex flex-row items-center justify-between">
-                        <p className="text-lg font-semibold">#{index + 1}</p>
-                        <div className="flex">
-                          <Button className="h-8 w-8" size={"sm"} variant={"destructive"} onClick={() => remove(index)}>
-                            <Trash />
-                          </Button>
-                        </div>
-                      </div>
-                    </CardHeader>
-                    <CardContent>
-                      <div className="grid grid-cols-2 gap-4">
-                        <FormField
-                          control={control}
-                          name={`variants.${index}.variant_name`}
-                          render={({ field }) => (
-                            <FormItem className="flex flex-col">
-                              <FormLabel className=" text-brand-999 font-medium text-sm" required>
-                                Variant Name
-                              </FormLabel>
-                              <FormControl>
-                                <Input
-                                  className="w-full px-4 py-4 border-2 border-gray-200 rounded-lg text-gray-999  placeholder-gray-400 focus:outline-none focus:border-brand-500 transition-colors h-[42px]"
-                                  placeholder="Type here.."
-                                  {...field}
-                                />
-                              </FormControl>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
-
-                        <FormField
-                          control={control}
-                          name={`variants.${index}.sku`}
-                          render={({ field }) => (
-                            <FormItem className="flex flex-col">
-                              <FormLabel className=" text-brand-999 font-medium text-sm" required>
-                                SKU
-                              </FormLabel>
-                              <FormControl>
-                                <Input
-                                  className="w-full px-4 py-4 border-2 border-gray-200 rounded-lg text-gray-999  placeholder-gray-400 focus:outline-none focus:border-brand-500 transition-colors h-[42px]"
-                                  placeholder="Type here.."
-                                  {...field}
-                                />
-                              </FormControl>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
-                        <FormField
-                          control={control}
-                          name={`variants.${index}.price_idr`}
-                          render={({ field }) => (
-                            <FormItem className="flex flex-col">
-                              <FormLabel className=" text-brand-999 font-medium text-sm" required>
-                                Price
-                              </FormLabel>
-                              <FormControl>
-                                <Input
-                                  className="w-full px-4 py-4 border-2 border-gray-200 rounded-lg text-gray-999  placeholder-gray-400 focus:outline-none focus:border-brand-500 transition-colors h-[42px]"
-                                  placeholder="Type here.."
-                                  {...field}
-                                />
-                              </FormControl>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
-
-                        {/* Branch Selection */}
-                        <FormField
-                          control={control}
-                          name={`variants.${index}.location`}
-                          render={({ field }) => (
-                            <FormItem className="flex flex-col">
-                              <FormLabel className=" text-brand-999 font-medium text-sm" required>
-                                Branch
-                              </FormLabel>
-                              <FormControl>
-                                <Select
-                                  defaultValue={field.value || []}
-                                  options={locationOption}
-                                  isLoading={locationLoading}
-                                  className="basic-multi-select"
-                                  classNames={{
-                                    control: () =>
-                                      "w-full !border-2 !border-gray-200 rounded-lg text-gray-999  focus:outline-none focus:border-brand-500 transition-colors h-[42px] !rounded-md !bg-transparent shadow-xs",
-                                    placeholder: () => "placeholder-gray-400",
-                                    singleValue: () => "text-brand-999",
-                                    input: () => "text-brand-999 bg-none",
-                                  }}
-                                  isMulti
-                                  onChange={(selectedOptions: MultiValue<LocationOption>) => {
-                                    handleLocationChange(index, selectedOptions);
-                                  }}
-                                />
-                              </FormControl>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
-
-                        {/* Dynamic Stock Inputs based on selected locations */}
-                        {(variants?.length as number) > 0 ? (
-                          <>
-                            {variants?.[index]?.inventory && variants[index].inventory.length > 0 && (
-                              <div className="col-span-2">
-                                <div className="space-y-3 bg-gray-50 p-4 rounded-lg">
-                                  <p className="text-sm font-medium text-brand-999">Stock per Branch</p>
-                                  {variants[index].inventory.map((inventoryItem, inventoryIndex: number) => {
-                                    // Find location name for display
-                                    const locationName =
-                                      locationOption?.find((loc: LocationOption) => loc.value === inventoryItem.location_id)?.label || inventoryItem.location_id;
-
-                                    return (
-                                      <FormField
-                                        key={`${index}-inventory-${inventoryIndex}`}
-                                        control={control}
-                                        name={`variants.${index}.inventory.${inventoryIndex}.stock_total`}
-                                        render={({ field }) => (
-                                          <FormItem className="flex flex-col">
-                                            <FormLabel className="text-brand-999 font-medium text-sm">Stock - {locationName}</FormLabel>
-                                            <FormControl>
-                                              <Input
-                                                type="number"
-                                                className="w-full px-4 py-4 border-2 border-gray-200 rounded-lg text-gray-999 placeholder-gray-400 focus:outline-none focus:border-brand-500 transition-colors h-[42px]"
-                                                placeholder="Enter stock quantity"
-                                                {...field}
-                                              />
-                                            </FormControl>
-                                            <FormMessage />
-                                          </FormItem>
-                                        )}
-                                      />
-                                    );
-                                  })}
-                                </div>
-                              </div>
-                            )}
-                          </>
-                        ) : (
-                          <></>
+                  <div key={field.id} className="border border-gray-200 rounded-lg p-3 flex flex-col gap-2">
+                    <div className="grid grid-cols-2 md:grid-cols-[1.4fr_1fr_130px_1.6fr_56px_36px] gap-2 items-center">
+                      <FormField
+                        control={control}
+                        name={`variants.${index}.variant_name`}
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormControl>
+                              <Input
+                                className="w-full px-3 py-2 border-2 border-gray-200 rounded-lg text-sm text-gray-999 placeholder-gray-400 focus:outline-none focus:border-brand-500 transition-colors h-[38px]"
+                                placeholder="e.g. Blue / Size M"
+                                {...field}
+                              />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
                         )}
+                      />
+                      <FormField
+                        control={control}
+                        name={`variants.${index}.sku`}
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormControl>
+                              <Input
+                                className="w-full px-3 py-2 border-2 border-gray-200 rounded-lg text-sm text-gray-999 placeholder-gray-400 focus:outline-none focus:border-brand-500 transition-colors h-[38px]"
+                                placeholder="SKU code"
+                                {...field}
+                              />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      <FormField
+                        control={control}
+                        name={`variants.${index}.price_idr`}
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormControl>
+                              <Input
+                                type="number"
+                                min="0"
+                                className="w-full px-3 py-2 border-2 border-gray-200 rounded-lg text-sm text-gray-999 placeholder-gray-400 focus:outline-none focus:border-brand-500 transition-colors h-[38px]"
+                                placeholder="250000"
+                                {...field}
+                              />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      <FormField
+                        control={control}
+                        name={`variants.${index}.location`}
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormControl>
+                              <Select
+                                defaultValue={field.value || []}
+                                options={locationOption}
+                                isLoading={locationLoading}
+                                classNamePrefix="bulk-variant-select"
+                                classNames={{
+                                  control: () =>
+                                    "!min-h-[38px] !border-2 !border-gray-200 !rounded-lg text-sm focus:outline-none focus:border-brand-500 transition-colors !bg-transparent",
+                                  placeholder: () => "text-gray-400 text-sm",
+                                  singleValue: () => "text-brand-999 text-sm",
+                                  input: () => "text-brand-999 text-sm",
+                                }}
+                                isMulti
+                                onChange={(selectedOptions: MultiValue<LocationOption>) => {
+                                  handleLocationChange(index, selectedOptions);
+                                }}
+                              />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      <InlinePhotoCell name={`variants.${index}.photos`} />
+                      <Button
+                        type="button"
+                        className="h-9 w-9 shrink-0 justify-self-center"
+                        size={"sm"}
+                        variant={"destructive"}
+                        onClick={() => remove(index)}
+                        aria-label={`Remove variant ${index + 1}`}
+                      >
+                        <Trash size={16} />
+                      </Button>
+                    </div>
+                    {/* Stock chips: one compact input per selected branch */}
+                    {variants?.[index]?.inventory && variants[index].inventory.length > 0 ? (
+                      <div className="flex flex-wrap items-center gap-2">
+                        <span className="text-xs font-medium text-gray-500">Stock:</span>
+                        {variants[index].inventory.map((inventoryItem, inventoryIndex: number) => {
+                          const locationName =
+                            locationOption?.find((loc: LocationOption) => loc.value === inventoryItem.location_id)?.label || inventoryItem.location_id;
+                          return (
+                            <div key={`${index}-inventory-${inventoryIndex}`} className="flex items-center gap-1.5 bg-gray-50 border border-gray-200 rounded-md pl-2 pr-1 py-0.5">
+                              <span className="text-xs text-brand-999 whitespace-nowrap">{locationName}</span>
+                              <FormField
+                                control={control}
+                                name={`variants.${index}.inventory.${inventoryIndex}.stock_total`}
+                                render={({ field }) => (
+                                  <FormItem className="m-0">
+                                    <FormControl>
+                                      <Input
+                                        type="number"
+                                        min="0"
+                                        className="w-20 h-7 px-2 border border-gray-200 rounded text-sm text-gray-999 focus:outline-none focus:border-brand-500 transition-colors"
+                                        {...field}
+                                      />
+                                    </FormControl>
+                                    <FormMessage />
+                                  </FormItem>
+                                )}
+                              />
+                            </div>
+                          );
+                        })}
                       </div>
-                    </CardContent>
-                  </Card>
+                    ) : (
+                      <p className="text-xs text-gray-400">Select branch(es) above to enter stock per location.</p>
+                    )}
+                  </div>
                 ))}
+                <Button
+                  type="button"
+                  variant={"outline"}
+                  className="border-2 border-dashed border-gray-300 text-gray-500 hover:border-brand-500 hover:text-brand-500"
+                  onClick={() => append({ ...defaultValuesVariant })}
+                >
+                  <Plus /> Add another variant
+                </Button>
+                <p className="text-xs text-gray-500">Leave the photo empty to fall back to the cover photo publicly.</p>
               </div>
             </CardContent>
           </Card>

@@ -47,9 +47,17 @@ export const ShopDetailView = () => {
     const firstAvailable = selectedVariant.availability.find((a) => a.stock_available > 0) ?? selectedVariant.availability[0];
     setSelectedLocationId(firstAvailable?.location_id ?? null);
     setQty(1);
+    setSelectedPhoto(0);
   }, [selectedVariant]);
 
   const maxQty = selectedAvailability?.stock_available ?? 0;
+
+  // ponytail: BE covers the fallback — variant.photos is never empty when a cover exists;
+  // swap detail image to variant.photo by leading the strip with it (skip when it IS the cover)
+  const basePhotos = product?.photos?.length ? product.photos : ["/assets/shop/example-matt.png"];
+  const variantPhoto = selectedVariant?.photos?.[0];
+  const photos =
+    variantPhoto && variantPhoto !== basePhotos[0] ? [variantPhoto, ...basePhotos] : basePhotos;
 
   const buildCartItem = () => {
     if (!product || !selectedVariant || !selectedAvailability) return null;
@@ -107,7 +115,6 @@ export const ShopDetailView = () => {
     );
   }
 
-  const photos = product.photos?.length ? product.photos : ["/assets/shop/example-matt.png"];
   const canAdd = !!selectedVariant && !!selectedAvailability && maxQty > 0;
 
   return (

@@ -11,7 +11,7 @@ export const ProductFormSchema = z.object({
       z.object({
         variant_name: z.string().min(1, "Variant name is required"),
         sku: z.string().min(1, "SKU is required"),
-
+        photos: z.array(z.any()).optional(),
         price_idr: z
           .string()
           .min(1, "Price is required")
@@ -49,7 +49,7 @@ export const variantSchema = z.object({
     z.object({
       variant_name: z.string().min(1, "Variant name is required"),
       sku: z.string().min(1, "SKU is required"),
-
+      photos: z.array(z.any()).optional(),
       price_idr: z
         .string()
         .min(1, "Price is required")
@@ -93,6 +93,7 @@ export const UpdateProductFormSchema = z.object({
 export const UpdateVariantSchema = z.object({
   variant_name: z.string().min(1, "Variant name is required"),
   sku: z.string().min(1, "SKU is required"),
+  photos: z.array(z.any()).optional(),
   price_idr: z
     .string()
     .min(1, "Price is required")
