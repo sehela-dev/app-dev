@@ -1,6 +1,7 @@
 "use client";
 
 import { BaseDialogComponent } from "@/components/general/base-dialog-component";
+import { PhotoUploadForm } from "@/components/general/photo-upload-form";
 import { FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
@@ -31,38 +32,62 @@ export const EditVariantDialog = ({ isOpen, onClose, variant, onSuccess }: EditV
     if (isOpen && variant) {
       reset({
         variant_name: variant.variant_name,
-        sku: variant.sku,
+        sku: variant.sku ?? "",
         price_idr: String(variant.price_idr),
+        // Existing photo URL is shown as a preview; uploading a file will replace it.
+        photos: variant.photos?.[0] ? [{ id: "existing-0", preview: variant.photos[0], isCover: true }] : [],
         is_active: variant.is_active,
       });
     }
   }, [isOpen, variant, reset]);
 
-  // ponytail: stock never sent here — BE rejects it, use Manage Stock instead
+  const handleClose = () => {
+    reset();
+    onClose();
+  };
+
+  // ponytail: photos replaces wholesale (BE contract): new file → multipart `photos`;
+  // unchanged URL → the URL is re-sent so removed photos do not disappear silently.
   const onSubmit = handleSubmit(async (data) => {
     if (!variant) return;
     try {
-      await mutateAsync({
-        id: variant.product_id,
-        idVar: variant.id,
-        data: {
-          variant_name: data.variant_name,
-          sku: data.sku,
-          price_idr: parseInt(data.price_idr),
-          ...(data.is_active !== undefined ? { is_active: data.is_active } : null),
-        },
-      });
+      const photoItems = (data.photos ?? []) as { file?: File; preview?: string }[];
+      const newFile = photoItems.find((p) => p.file instanceof File)?.file;
+      const existingUrl = photoItems.find((p) => typeof p.preview === "string" && !(p.file instanceof File))?.preview;
+
+      const submit = newFile
+        ? mutateAsync({
+            id: variant.product_id,
+            idVar: variant.id,
+            data: (() => {
+              const fd = new FormData();
+              fd.append("variant_name", data.variant_name);
+              fd.append("sku", data.sku);
+              fd.append("price_idr", String(parseInt(data.price_idr)));
+              if (data.is_active !== undefined) fd.append("is_active", String(data.is_active));
+              fd.append("photos", newFile);
+              return fd;
+            })(),
+          })
+        : mutateAsync({
+            id: variant.product_id,
+            idVar: variant.id,
+            data: {
+              variant_name: data.variant_name,
+              sku: data.sku,
+              price_idr: parseInt(data.price_idr),
+              photos: existingUrl ? [existingUrl] : [],
+              ...(data.is_active !== undefined ? { is_active: data.is_active } : null),
+            },
+          });
+
+      await submit;
       onSuccess?.();
       handleClose();
     } catch (error) {
       console.log(error);
     }
   });
-
-  const handleClose = () => {
-    reset();
-    onClose();
-  };
 
   return (
     <BaseDialogComponent
@@ -148,6 +173,8 @@ export const EditVariantDialog = ({ isOpen, onClose, variant, onSuccess }: EditV
               )}
             />
           </div>
+          <PhotoUploadForm name="photos" maxPhotos={1} label="Variant Photo (1 max)" />
+          <p className="text-xs text-gray-500">Remove the photo to fall back to the product cover publicly.</p>
 
           <div className="bg-gray-50 p-4 rounded-lg">
             <p className="text-sm font-medium text-brand-999 mb-2">Stock Information (Managed via Manage Stock)</p>

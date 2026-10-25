@@ -19,7 +19,7 @@ import { downloadCsvBlob, exportProductMasterCsv } from "@/api-req/products";
 
 import { formatDateHelper } from "@/lib/helper";
 import { IProductItemList, IProductVariantItem } from "@/types/product.interface";
-import { CirclePlus, Download, Ellipsis, Loader2 } from "lucide-react";
+import { CirclePlus, Download, Ellipsis, Loader2, Package } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
 import Select, { SingleValue } from "react-select";
@@ -108,6 +108,16 @@ export const ProductListPage = () => {
     refetch();
   };
 
+  // dashed placeholder for rows without a photo — used by both views
+  const Thumb = ({ src, alt }: { src?: string; alt: string }) =>
+    src ? (
+      <img src={src} alt={alt} className="h-10 w-10 rounded-md border border-gray-200 object-cover" />
+    ) : (
+      <span className="flex h-10 w-10 items-center justify-center rounded-md border border-dashed border-gray-300 bg-gray-50 text-gray-400">
+        <Package size={16} />
+      </span>
+    );
+
   const handleDelete = async () => {
     if (!deleteTarget) return;
     if (deleteTarget.kind === "product") {
@@ -137,16 +147,26 @@ export const ProductListPage = () => {
     }
   };
 
+  const toggleStatusCell = (key: "product" | "variant", row: IProductItemList | IProductVariantItem) => (
+    <div className="flex items-center gap-2">
+      <Switch
+        checked={row.is_active}
+        onCheckedChange={() => (key === "product" ? handleToggleProduct(row as IProductItemList) : handleToggleVariant(row as IProductVariantItem))}
+      />
+      <span className={`text-sm ${row.is_active ? "text-green-500" : "text-red-500"}`}>{row.is_active ? "Active" : "Inactive"}</span>
+    </div>
+  );
+
   const productHeaders = [
     {
       id: "name",
       text: "Name",
-      value: (row: IProductItemList) => <div className="flex flex-row items-center gap-4">
-        <div className="flex h-16 w-16 border border-gray-200 bg-gray-200 rounded-md">
-          <img src={row.photos?.[0]} alt={row.name} className="h-16 w-16" />
+      value: (row: IProductItemList) => (
+        <div className="flex flex-row items-center gap-3">
+          <Thumb src={row.photos?.[0]} alt={row?.name} />
+          <span className="font-medium text-foreground">{row?.name}</span>
         </div>
-        <p>{row?.name}</p>
-      </div>,
+      ),
     },
     {
       id: "category",
@@ -156,11 +176,7 @@ export const ProductListPage = () => {
     {
       id: "status",
       text: "Status",
-      value: (row: IProductItemList) => (
-        <div className={`grid col-span-9 capitalize ${row?.is_active ? `text-green-500` : `text-red-500`}`}>
-          {row.is_active ? "Active" : "Inactive"}
-        </div>
-      ),
+      value: (row: IProductItemList) => toggleStatusCell("product", row),
     },
     {
       id: "variant_count",
@@ -181,19 +197,26 @@ export const ProductListPage = () => {
 
   const variantHeaders = [
     {
-      id: "product_name",
-      text: "Product",
-      value: (row: IProductVariantItem) => <span className="font-medium text-foreground">{row.product_name || "-"}</span>,
-    },
-    {
       id: "variant_name",
       text: "Variant",
       value: (row: IProductVariantItem) => (
-        <div className="flex flex-col gap-1">
-          <p className="font-medium text-foreground">{row.variant_name}</p>
-          <span className="w-fit rounded bg-muted px-1.5 py-0.5 font-mono text-xs text-muted-foreground">{row.sku || "-"}</span>
+        <div className="flex flex-row items-center gap-3">
+          <Thumb src={row.photos?.[0]} alt={row.variant_name} />
+          <div className="flex flex-col gap-1">
+            <span className="max-w-[220px] truncate font-medium text-foreground" title={row.variant_name}>
+              {row.variant_name}
+            </span>
+            <span className="w-fit max-w-[220px] truncate rounded bg-muted px-1.5 py-0.5 font-mono text-xs text-muted-foreground" title={row.sku}>
+              {row.sku || "-"}
+            </span>
+          </div>
         </div>
       ),
+    },
+    {
+      id: "product_name",
+      text: "Product",
+      value: (row: IProductVariantItem) => <span className="text-foreground">{row.product_name || "-"}</span>,
     },
     {
       id: "price_idr",
@@ -208,11 +231,7 @@ export const ProductListPage = () => {
     {
       id: "status",
       text: "Status",
-      value: (row: IProductVariantItem) => (
-        <div className={`grid col-span-9 capitalize ${row?.is_active ? `text-green-500` : `text-red-500`}`}>
-          {row.is_active ? "Active" : "Inactive"}
-        </div>
-      ),
+      value: (row: IProductVariantItem) => toggleStatusCell("variant", row),
     },
   ];
 
@@ -228,9 +247,6 @@ export const ProductListPage = () => {
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end" className="w-40">
           <DropdownMenuItem onClick={() => router.push(`products/${row.id}`)}>View Details</DropdownMenuItem>
-          <DropdownMenuItem onClick={() => handleToggleProduct(row)}>
-            {row.is_active ? "Set as Inactive" : "Set as Active"}
-          </DropdownMenuItem>
           <DropdownMenuItem variant="destructive" onClick={() => setDeleteTarget({ kind: "product", row })}>
             Delete
           </DropdownMenuItem>
@@ -251,9 +267,6 @@ export const ProductListPage = () => {
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end" className="w-40">
           <DropdownMenuItem onClick={() => router.push(`products/${row.product_id}`)}>View Details</DropdownMenuItem>
-          <DropdownMenuItem onClick={() => handleToggleVariant(row)}>
-            {row.is_active ? "Set as Inactive" : "Set as Active"}
-          </DropdownMenuItem>
           <DropdownMenuItem variant="destructive" onClick={() => setDeleteTarget({ kind: "variant", row })}>
             Delete
           </DropdownMenuItem>

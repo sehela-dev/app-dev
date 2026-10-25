@@ -1,7 +1,5 @@
-import { redirect } from "next/navigation";
+import { ProductEditView } from "@/view/admin-dashboard/products/edit";
 
-// ponytail: edit lives in the detail dialog — route redirects instead of a duplicate page
-export default async function Page({ params }: { params: Promise<{ id: string }> }) {
-  const { id } = await params;
-  redirect(`/admin/products/${id}`);
+export default function Page() {
+  return <ProductEditView />;
 }

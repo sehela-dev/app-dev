@@ -12,6 +12,7 @@ export interface IPublicProductVariant {
   variant_name: string;
   sku?: string | null;
   price_idr: number;
+  photos: string[];
   stock_total: number;
   stock_available: number;
   availability: IProductAvailability[];

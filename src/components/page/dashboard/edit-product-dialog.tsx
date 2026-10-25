@@ -43,7 +43,8 @@ export const EditProductDialog = ({ isOpen, onClose, product, onSuccess }: EditP
 
   useEffect(() => {
     if (isOpen && product) {
-      const photos: PhotoItem[] = (product.photos ?? []).map((url, idx) => ({
+      // ponytail: cover model (BE) — merged total must be ≤1, extra legacy photos are sliced to [0]
+      const photos: PhotoItem[] = (product.photos ?? []).slice(0, 1).map((url, idx) => ({
         id: `existing-${idx}`,
         preview: url,
         isCover: idx === 0,
@@ -175,13 +176,14 @@ export const EditProductDialog = ({ isOpen, onClose, product, onSuccess }: EditP
                     className="w-full px-4 py-4 border-2 border-gray-200 rounded-lg text-gray-999  placeholder-gray-400 focus:outline-none focus:border-brand-500 transition-colors"
                     placeholder="Type here.."
                     {...field}
+                    value={field.value ?? ""}
                   />
                 </FormControl>
                 <FormMessage />
               </FormItem>
             )}
           />
-          <PhotoUploadForm name="photos" label="Photo Product (first photo is the cover)" />
+          <PhotoUploadForm name="photos" maxPhotos={1} label="Cover Photo (1 max)" />
           <div className="grid grid-cols-2 gap-4">
             <FormField
               control={control}

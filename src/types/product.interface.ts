@@ -30,6 +30,7 @@ export interface IProductVariantItem {
   variant_name: string;
   sku: string;
   price_idr: number;
+  photos?: string[];
   stock: number;
   stock_total: number;
   stock_rented: number;
@@ -178,6 +179,7 @@ export interface IProductVariantsItem {
   sku: string;
   price: string | number;
   stock: string | number;
+  photos?: string[];
   inventory?: {
     location_id: string;
     stock_total: string | number;
@@ -230,6 +232,7 @@ export interface IVariantsPayload {
 export interface IVariantItemPayload {
   variant_name: string;
   sku: string;
+  photos?: string[];
   inventory: {
     location_id: string;
     stock_total: string | number;
@@ -273,7 +276,7 @@ export type TInventoryTransfer = (data: {
 }) => Promise<IResponseData<unknown>>;
 export type TDeleteProduct = (id: string) => Promise<IResponseData<unknown>>;
 export type TDeleteVariant = ({ id, idVar }: { id: string; idVar: string }) => Promise<IResponseData<unknown>>;
-export type TAddNewVariants = ({ data, id }: { data: IVariantsPayload; id: string }) => Promise<IResponseData<unknown>>;
+export type TAddNewVariants = ({ data, id }: { data: IVariantsPayload | FormData; id: string }) => Promise<IResponseData<unknown>>;
 export type TUpdateSingleVariant = ({ id, idVar, data }: { id: string; idVar: string; data: IUpdateStockVariant }) => Promise<IResponseData<unknown>>;
 
 export interface IUpdateVariantItemPayload {
@@ -281,6 +284,7 @@ export interface IUpdateVariantItemPayload {
   sku?: string;
   price_idr?: string | number;
   is_active?: boolean;
+  photos?: string[];
 }
 export type TUpdateProduct = ({ id, payload }: { id: string; payload: FormData }) => Promise<IResponseData<unknown>>;
-export type TUpdateVariant = ({ id, idVar, data }: { id: string; idVar: string; data: IUpdateVariantItemPayload }) => Promise<IResponseData<unknown>>;
+export type TUpdateVariant = ({ id, idVar, data }: { id: string; idVar: string; data: IUpdateVariantItemPayload | FormData }) => Promise<IResponseData<unknown>>;
