@@ -35,6 +35,7 @@ import {
   IOutstandingReportItem,
   IPackage,
   LedgerEntryType,
+  MovementReason,
   REVERSAL_JOURNAL,
   REVERSAL_STATUS,
   RecognitionStatus,
@@ -46,6 +47,7 @@ import {
   ArrowUpRight,
   BadgeCheck,
   BadgeDollarSign,
+  Ban,
   CalendarDays,
   CheckCircle2,
   Clock3,
@@ -55,6 +57,8 @@ import {
   Hourglass,
   Landmark,
   Loader2,
+  PencilLine,
+  Repeat,
   RotateCcw,
   Search,
   ShoppingBag,
@@ -526,18 +530,16 @@ export const OutstandingCreditView = () => {
                             <button
                               type="button"
                               onClick={() => setSnapshotMetric("idr")}
-                              className={`rounded-full px-3.5 py-1.5 text-xs font-medium transition-colors ${
-                                snapshotMetric === "idr" ? "bg-white shadow-sm text-foreground" : "text-muted-foreground hover:text-foreground"
-                              }`}
+                              className={`rounded-full px-3.5 py-1.5 text-xs font-medium transition-colors ${snapshotMetric === "idr" ? "bg-white shadow-sm text-foreground" : "text-muted-foreground hover:text-foreground"
+                                }`}
                             >
                               IDR
                             </button>
                             <button
                               type="button"
                               onClick={() => setSnapshotMetric("units")}
-                              className={`rounded-full px-3.5 py-1.5 text-xs font-medium transition-colors ${
-                                snapshotMetric === "units" ? "bg-white shadow-sm text-foreground" : "text-muted-foreground hover:text-foreground"
-                              }`}
+                              className={`rounded-full px-3.5 py-1.5 text-xs font-medium transition-colors ${snapshotMetric === "units" ? "bg-white shadow-sm text-foreground" : "text-muted-foreground hover:text-foreground"
+                                }`}
                             >
                               Unit
                             </button>
@@ -653,37 +655,36 @@ export const OutstandingCreditView = () => {
                       </div>
                       <CardAction>
                         {isManager && (
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          disabled={csvExporting}
-                          onClick={async () => {
-                            try {
-                              setCsvExporting(true);
-                              const q = previewAsOf ? { asOf: previewAsOf } : { year: closingYear, month: closingMonth };
-                              const blob = await exportOutstandingDetailCsv(q);
-                              const url = window.URL.createObjectURL(blob);
-                              const a = document.createElement("a");
-                              a.href = url;
-                              a.download = `outstanding_detail_${
-                                previewAsOf ? previewAsOf : `${closingYear}-${String(closingMonth).padStart(2, "0")}`
-                              }.csv`;
-                              a.click();
-                              window.URL.revokeObjectURL(url);
-                            } catch (e: unknown) {
-                              toast.error("Gagal mengunduh", {
-                                description:
-                                  (e as { response?: { data?: { error?: { message?: string } } } })?.response?.data?.error?.message ??
-                                  "Silakan coba lagi",
-                              });
-                            } finally {
-                              setCsvExporting(false);
-                            }
-                          }}
-                        >
-                          {csvExporting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
-                          CSV
-                        </Button>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            disabled={csvExporting}
+                            onClick={async () => {
+                              try {
+                                setCsvExporting(true);
+                                const q = previewAsOf ? { asOf: previewAsOf } : { year: closingYear, month: closingMonth };
+                                const blob = await exportOutstandingDetailCsv(q);
+                                const url = window.URL.createObjectURL(blob);
+                                const a = document.createElement("a");
+                                a.href = url;
+                                a.download = `outstanding_detail_${previewAsOf ? previewAsOf : `${closingYear}-${String(closingMonth).padStart(2, "0")}`
+                                  }.csv`;
+                                a.click();
+                                window.URL.revokeObjectURL(url);
+                              } catch (e: unknown) {
+                                toast.error("Gagal mengunduh", {
+                                  description:
+                                    (e as { response?: { data?: { error?: { message?: string } } } })?.response?.data?.error?.message ??
+                                    "Silakan coba lagi",
+                                });
+                              } finally {
+                                setCsvExporting(false);
+                              }
+                            }}
+                          >
+                            {csvExporting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
+                            CSV
+                          </Button>
                         )}
                       </CardAction>
                     </CardHeader>
@@ -965,6 +966,27 @@ const RECOGNITION_STATUS_OPTIONS: { value: RecognitionStatus; label: string; cla
 
 const RECOGNITION_CHIP: Record<string, string> = Object.fromEntries(RECOGNITION_STATUS_OPTIONS.map((o) => [o.value, o.className]));
 
+// BE admin v322 (dev only): movement_reason derive post-enrich + ref_id trace key
+const MOVEMENT_REASON_META: Record<MovementReason, { label: string; className: string; Icon: typeof ShoppingBag }> = {
+  purchase: { label: "Pembelian", className: "bg-emerald-50 text-emerald-700 border-emerald-200", Icon: ShoppingBag },
+  refund_reissue: { label: "Refund terbit ulang", className: "bg-blue-50 text-blue-700 border-blue-200", Icon: RotateCcw },
+  rollover_reissue: { label: "Rollover terbit ulang", className: "bg-sky-50 text-sky-700 border-sky-200", Icon: Repeat },
+  booking_spend: { label: "Pemakaian booking", className: "bg-orange-50 text-orange-700 border-orange-200", Icon: ArrowUpRight },
+  booking_cancel_refund: { label: "Refund batal booking", className: "bg-teal-50 text-teal-700 border-teal-200", Icon: Undo2 },
+  expired_breakage: { label: "Hangus", className: "bg-zinc-100 text-zinc-600 border-zinc-200", Icon: Hourglass },
+  void_cancel_sale: { label: "Void batal jual", className: "bg-red-50 text-red-700 border-red-200", Icon: Ban },
+  expiry_restore: { label: "Pulih kedaluwarsa", className: "bg-purple-50 text-purple-700 border-purple-200", Icon: BadgeCheck },
+  manual_correction: { label: "Koreksi manual", className: "bg-amber-50 text-amber-700 border-amber-200", Icon: PencilLine },
+};
+
+const MOVEMENT_REASON_OPTIONS: { value: MovementReason; label: string }[] = (
+  Object.keys(MOVEMENT_REASON_META) as MovementReason[]
+).map((value) => ({ value, label: MOVEMENT_REASON_META[value].label }));
+
+const MOVEMENT_REASON_CHIP: Record<string, string> = Object.fromEntries(
+  (Object.keys(MOVEMENT_REASON_META) as MovementReason[]).map((k) => [k, MOVEMENT_REASON_META[k].className]),
+);
+
 // ponytail: single shared copy — paste §6 verbatim on every revenue/session surface
 const RECOGNITION_DISCLAIMER =
   "Pendapatan dihitung setiap hari jam 23:59 WIB (bukan saat uang masuk): kelas yang berakhir hari ini baru tercatat sebagai pendapatan setelah proses malam hari. Angka hari ini masih sementara.";
@@ -993,6 +1015,11 @@ function CreditsLedgerLog() {
       ? (searchParams.get("status") as string).split(",").filter((v) => RECOGNITION_STATUS_OPTIONS.some((o) => o.value === v))
       : [],
   );
+  const [movementReasons, setMovementReasons] = useState<string[]>(
+    searchParams.get("movement_reason")
+      ? (searchParams.get("movement_reason") as string).split(",").filter((v) => MOVEMENT_REASON_OPTIONS.some((o) => o.value === v))
+      : [],
+  );
   const [startDate, setStartDate] = useState(searchParams.get("start_date") ?? monthStartStr);
   const [endDate, setEndDate] = useState(searchParams.get("end_date") ?? todayStr);
   // bulan pembelian paket — dua Select gaya rumah (MONTH_LIST/YEAR_LIST), digabung jadi YYYY-MM
@@ -1001,6 +1028,13 @@ function CreditsLedgerLog() {
   const [pmMonth, setPmMonth] = useState(_pmMatch ? String(Number(_pmMatch[2])) : "");
   const [pmYear, setPmYear] = useState(_pmMatch ? _pmMatch[1] : "");
   const purchasedMonth = pmMonth && pmYear ? `${pmYear}-${pmMonth.padStart(2, "0")}` : "";
+  // bulan pengakuan pendapatan (BE 7 Okt: recognition_month|recognitionMonth, default = purchased_month).
+  // Kosong = ikut bulan pembelian; Deferred/Reserved (month null) selalu ikut.
+  const _rm = searchParams.get("recognition_month") ?? searchParams.get("recognitionMonth") ?? "";
+  const _rmMatch = _rm.match(/^(\d{4})-(0[1-9]|1[0-2])$/);
+  const [rmMonth, setRmMonth] = useState(_rmMatch ? String(Number(_rmMatch[2])) : "");
+  const [rmYear, setRmYear] = useState(_rmMatch ? _rmMatch[1] : "");
+  const recognitionMonth = rmMonth && rmYear ? `${rmYear}-${rmMonth.padStart(2, "0")}` : "";
   const [page, setPage] = useState(Number(searchParams.get("page") ?? "1"));
   const [pageSize] = useState(Number(searchParams.get("page_size") ?? "20"));
   const [order, setOrder] = useState<"asc" | "desc">((searchParams.get("order") as "asc" | "desc") ?? "desc");
@@ -1032,7 +1066,7 @@ function CreditsLedgerLog() {
   // reset page on filter change
   useEffect(() => {
     setPage(1);
-  }, [q, entryTypes, statuses, startDate, endDate, order, userId, purchasedMonth, branch]);
+  }, [q, entryTypes, statuses, movementReasons, startDate, endDate, order, userId, purchasedMonth, recognitionMonth, branch]);
 
   // persist to URL
   useEffect(() => {
@@ -1044,12 +1078,17 @@ function CreditsLedgerLog() {
     else p.delete("entry_type");
     if (statuses.length) p.set("status", statuses.join(","));
     else p.delete("status");
+    if (movementReasons.length) p.set("movement_reason", movementReasons.join(","));
+    else p.delete("movement_reason");
     if (startDate) p.set("start_date", startDate);
     else p.delete("start_date");
     if (endDate) p.set("end_date", endDate);
     else p.delete("end_date");
     if (purchasedMonth) p.set("purchased_month", purchasedMonth);
     else p.delete("purchased_month");
+    if (recognitionMonth) p.set("recognition_month", recognitionMonth);
+    else p.delete("recognition_month");
+    p.delete("recognitionMonth"); // ponytail: canonical snake_case only
     p.set("page", String(page));
     p.set("page_size", String(pageSize));
     p.set("order", order);
@@ -1059,7 +1098,7 @@ function CreditsLedgerLog() {
     else p.delete("branch");
     router.replace(`?${p.toString()}`, { scroll: false } as never);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [q, entryTypes, statuses, startDate, endDate, purchasedMonth, page, pageSize, order, userId, branch]);
+  }, [q, entryTypes, statuses, movementReasons, startDate, endDate, purchasedMonth, recognitionMonth, page, pageSize, order, userId, branch]);
 
   const rangeError = useMemo(() => {
     if (!startDate || !endDate) return null;
@@ -1073,27 +1112,30 @@ function CreditsLedgerLog() {
 
   // YYYY-MM valid → dikirim ke ledger + summary; BE 400 untuk format salah
   const purchasedMonthParam = /^\d{4}-(0[1-9]|1[0-2])$/.test(purchasedMonth) ? purchasedMonth : undefined;
+  const recognitionMonthParam = /^\d{4}-(0[1-9]|1[0-2])$/.test(recognitionMonth) ? recognitionMonth : undefined;
 
   const params = useMemo(
     () => ({
       q: q || undefined,
       entry_type: entryTypes.length ? entryTypes.join(",") : undefined,
       status: statuses.length ? statuses.join(",") : undefined,
+      movement_reason: movementReasons.length ? movementReasons.join(",") : undefined,
       branch: branchParam,
       start_date: !rangeError && startDate ? startDate : undefined,
       end_date: !rangeError && endDate ? endDate : undefined,
       purchased_month: purchasedMonthParam,
+      recognition_month: recognitionMonthParam,
       page,
       page_size: pageSize,
       order,
       user_id: userId || undefined,
     }),
-    [q, entryTypes, statuses, branchParam, startDate, endDate, purchasedMonthParam, page, pageSize, order, userId, rangeError],
+    [q, entryTypes, statuses, movementReasons, branchParam, startDate, endDate, purchasedMonthParam, recognitionMonthParam, page, pageSize, order, userId, rangeError],
   );
 
   const { data, isLoading, isFetching, isError, error, refetch } = useGetCreditsLedger(params);
 
-  // Filtered summary reconciles with the table (passes entry_type + purchased_month + branch).
+  // Filtered summary reconciles with the table (passes entry_type + purchased_month + recognition_month + branch).
   const summaryParams = useMemo(
     () => ({
       q: q || undefined,
@@ -1102,14 +1144,15 @@ function CreditsLedgerLog() {
       start_date: !rangeError && startDate ? startDate : undefined,
       end_date: !rangeError && endDate ? endDate : undefined,
       purchased_month: purchasedMonthParam,
+      recognition_month: recognitionMonthParam,
       user_id: userId || undefined,
     }),
-    [q, entryTypes, branchParam, startDate, endDate, purchasedMonthParam, userId, rangeError],
+    [q, entryTypes, branchParam, startDate, endDate, purchasedMonthParam, recognitionMonthParam, userId, rangeError],
   );
   const { data: summaryRes, isLoading: summaryLoading, refetch: refetchSummary } = useGetCreditsLedgerSummary(summaryParams, !rangeError);
 
   // Period summary drives the accrual cards — omits entry_type by design,
-  // but follows purchased_month (BE: credit buckets + outstanding only for that cohort; cash excluded).
+  // but follows purchased_month + recognition_month (BE: credit buckets + outstanding only for that cohort; cash excluded).
   // Credit buckets (sold/recognized/breakage) are derived from the filtered row-set,
   // so a table-filtered summary would zero them; cash ignores entry_type entirely.
   const periodParams = useMemo(
@@ -1119,9 +1162,10 @@ function CreditsLedgerLog() {
       start_date: !rangeError && startDate ? startDate : undefined,
       end_date: !rangeError && endDate ? endDate : undefined,
       purchased_month: purchasedMonthParam,
+      recognition_month: recognitionMonthParam,
       user_id: userId || undefined,
     }),
-    [q, branchParam, startDate, endDate, purchasedMonthParam, userId, rangeError],
+    [q, branchParam, startDate, endDate, purchasedMonthParam, recognitionMonthParam, userId, rangeError],
   );
   const { data: periodRes, isLoading: periodLoading, refetch: refetchPeriodSummary } = useGetCreditsLedgerSummary(periodParams, !rangeError);
 
@@ -1162,10 +1206,12 @@ function CreditsLedgerLog() {
         q: q || undefined,
         entry_type: entryTypes.length ? entryTypes.join(",") : undefined,
         status: statuses.length ? statuses.join(",") : undefined,
+        movement_reason: movementReasons.length ? movementReasons.join(",") : undefined,
         branch: branchParam,
         start_date: startDate || undefined,
         end_date: endDate || undefined,
         purchased_month: purchasedMonthParam,
+        recognition_month: recognitionMonthParam,
         order,
         user_id: userId || undefined,
         // dedicated export: no pagination — BE ignores page when format=csv
@@ -1174,11 +1220,13 @@ function CreditsLedgerLog() {
       const a = document.createElement("a");
       a.href = url;
       const typeSuffix = entryTypes.length ? `_${entryTypes.join("-")}` : "";
+      const reasonSuffix = movementReasons.length ? `_alasan-${movementReasons.join("-")}` : "";
       const qSuffix = q ? `_q-${q.replace(/\s+/g, "_")}` : "";
       const pmSuffix = purchasedMonth ? `_beli-${purchasedMonth}` : "";
+      const rmSuffix = recognitionMonthParam ? `_diakui-${recognitionMonthParam}` : "";
       const branchSuffix = branchParam ? `_${branchParam}` : "";
       const rangeSuffix = startDate && endDate ? `_${startDate}_${endDate}` : startDate ? `_${startDate}` : endDate ? `_${endDate}` : "_semua-tanggal";
-      a.download = `credits_ledger${rangeSuffix}${typeSuffix}${branchSuffix}${qSuffix}${pmSuffix}.csv`;
+      a.download = `credits_ledger${rangeSuffix}${typeSuffix}${reasonSuffix}${branchSuffix}${qSuffix}${pmSuffix}${rmSuffix}.csv`;
       a.click();
       window.URL.revokeObjectURL(url);
       toast.success("Ekspor dimulai", { description: "File CSV terunduh", position: "top-center" });
@@ -1192,6 +1240,8 @@ function CreditsLedgerLog() {
 
   const toggleEntryType = (v: string) => setEntryTypes((prev) => (prev.includes(v) ? prev.filter((x) => x !== v) : [...prev, v]));
   const toggleStatus = (v: string) => setStatuses((prev) => (prev.includes(v) ? prev.filter((x) => x !== v) : [...prev, v]));
+  const toggleMovementReason = (v: string) =>
+    setMovementReasons((prev) => (prev.includes(v) ? prev.filter((x) => x !== v) : [...prev, v]));
 
   // reset semua filter — tanggal kembali ke default awal bulan s/d hari ini;
   // effect persist URL ikut membersihkan/menulis start_date/end_date/dll ke URL + query API
@@ -1200,10 +1250,13 @@ function CreditsLedgerLog() {
     setQ("");
     setEntryTypes([]);
     setStatuses([]);
+    setMovementReasons([]);
     setStartDate(monthStartStr);
     setEndDate(todayStr);
     setPmMonth("");
     setPmYear("");
+    setRmMonth("");
+    setRmYear("");
     setUserId("");
     setMemberSearch("");
     setBranch("all");
@@ -1222,6 +1275,25 @@ function CreditsLedgerLog() {
             {ENTRY_TYPE_LABEL[row.entry_type] ?? row.entry_type}
           </Badge>
         ),
+      },
+      {
+        id: "movement_reason",
+        text: "Alasan",
+        value: (row: ICreditsLedgerItem) => {
+          const meta = row.movement_reason ? MOVEMENT_REASON_META[row.movement_reason as MovementReason] : null;
+          if (!meta) return "—";
+          const { Icon } = meta;
+          return (
+            <Badge
+              variant="outline"
+              title={row.movement_reason ?? ""}
+              className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium whitespace-nowrap shadow-sm ${meta.className}`}
+            >
+              <Icon size={12} className="shrink-0" />
+              {meta.label}
+            </Badge>
+          );
+        },
       },
       {
         id: "customer_name",
@@ -1287,9 +1359,8 @@ function CreditsLedgerLog() {
           ) : (
             <Badge
               variant="outline"
-              className={`capitalize text-xs ${
-                row.attendance === "attended" ? "bg-green-100 text-green-700 border-green-200" : "bg-red-100 text-red-700 border-red-200"
-              }`}
+              className={`capitalize text-xs ${row.attendance === "attended" ? "bg-green-100 text-green-700 border-green-200" : "bg-red-100 text-red-700 border-red-200"
+                }`}
             >
               {row.attendance.replace("_", " ")}
             </Badge>
@@ -1315,6 +1386,27 @@ function CreditsLedgerLog() {
             {row.note ?? "—"}
           </span>
         ),
+      },
+      {
+        id: "ref_id",
+        text: "Ref ID",
+        value: (row: ICreditsLedgerItem) =>
+          !row.ref_id ? (
+            "—"
+          ) : (
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <span className="font-mono text-xs text-muted-foreground cursor-default">
+                    {row.ref_id.slice(0, 8)}…
+                  </span>
+                </TooltipTrigger>
+                <TooltipContent side="left" className="font-mono text-xs max-w-[320px] break-all">
+                  {row.ref_id}
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+          ),
       },
       {
         id: "recognized_at",
@@ -1408,6 +1500,37 @@ function CreditsLedgerLog() {
               </div>
             </div>
             <div className="flex flex-col gap-1 md:col-span-2">
+              <p className="text-sm font-medium">Bulan pengakuan pendapatan</p>
+              <div className="flex gap-2">
+                <Select value={rmMonth} onValueChange={(v) => setRmMonth(v === "__all__" ? "" : v)}>
+                  <SelectTrigger className="w-full h-10">
+                    <SelectValue placeholder="Bulan" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="__all__">Semua</SelectItem>
+                    {MONTH_LIST.map((m) => (
+                      <SelectItem key={m.value} value={m.value}>
+                        {m.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <Select value={rmYear} onValueChange={(v) => setRmYear(v === "__all__" ? "" : v)}>
+                  <SelectTrigger className="w-full h-10">
+                    <SelectValue placeholder="Tahun" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="__all__">Semua</SelectItem>
+                    {[...new Set([rmYear, ...YEAR_LIST].filter(Boolean))].map((y) => (
+                      <SelectItem key={y} value={y}>
+                        {y}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+            <div className="flex flex-col gap-1 md:col-span-2">
               <p className="text-sm font-medium">Urutan</p>
               <Select value={order} onValueChange={(v) => setOrder(v as "asc" | "desc")}>
                 <SelectTrigger>
@@ -1423,6 +1546,13 @@ function CreditsLedgerLog() {
           {branch !== "all" && (
             <p className="text-[11px] text-muted-foreground">Filter branch aktif: baris tanpa branch tidak ikut hitungan.</p>
           )}
+          {(purchasedMonthParam || recognitionMonthParam) && (
+            <p className="text-[11px] text-muted-foreground">
+              {recognitionMonthParam
+                ? `Bulan pengakuan ${recognitionMonthParam}: baris diakui di bulan lain dibuang; Deferred/Reserved (tanpa bulan) tetap ikut.`
+                : `Bulan pembelian ${purchasedMonthParam}: bulan pengakuan mengikuti bulan pembelian; Deferred/Reserved (tanpa bulan) tetap ikut.`}
+            </p>
+          )}
           <div className="flex flex-col gap-1">
             <p className="text-sm font-medium">Member (customer)</p>
             <ReactSelect
@@ -1432,22 +1562,21 @@ function CreditsLedgerLog() {
               value={
                 selectedMember
                   ? ({
-                      value: (selectedMember as unknown as { id: string }).id,
-                      label: `${(selectedMember as unknown as { full_name: string }).full_name} - ${
-                        (selectedMember as unknown as { phone: string }).phone ?? ""
+                    value: (selectedMember as unknown as { id: string }).id,
+                    label: `${(selectedMember as unknown as { full_name: string }).full_name} - ${(selectedMember as unknown as { phone: string }).phone ?? ""
                       }`,
-                      id: (selectedMember as unknown as { id: string }).id,
-                    } as unknown as never)
+                    id: (selectedMember as unknown as { id: string }).id,
+                  } as unknown as never)
                   : null
               }
               options={
                 (memberData?.data as unknown as { id: string; full_name: string; phone: string }[] | undefined)?.map(
                   (m) =>
-                    ({
-                      value: m.id,
-                      label: `${m.full_name} - ${m.phone ?? ""}`,
-                      id: m.id,
-                    } as unknown as never),
+                  ({
+                    value: m.id,
+                    label: `${m.full_name} - ${m.phone ?? ""}`,
+                    id: m.id,
+                  } as unknown as never),
                 ) ?? []
               }
               onInputChange={(v) => setMemberSearch(v)}
@@ -1506,6 +1635,28 @@ function CreditsLedgerLog() {
             )}
           </div>
 
+          <div className="flex flex-wrap items-center gap-3">
+            <span className="text-sm font-medium">Alasan:</span>
+            {MOVEMENT_REASON_OPTIONS.map((o) => {
+              const meta = MOVEMENT_REASON_META[o.value];
+              const { Icon } = meta;
+              return (
+                <label key={o.value} className="flex items-center gap-1.5 text-sm cursor-pointer" title={o.value}>
+                  <Checkbox checked={movementReasons.includes(o.value)} onCheckedChange={() => toggleMovementReason(o.value)} />
+                  <Badge variant="outline" className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium shadow-sm ${meta.className}`}>
+                    <Icon size={12} className="shrink-0" />
+                    {o.label}
+                  </Badge>
+                </label>
+              );
+            })}
+            {movementReasons.length > 0 && (
+              <Button variant="ghost" size="sm" onClick={() => setMovementReasons([])}>
+                Hapus
+              </Button>
+            )}
+          </div>
+
           {rangeError && <p className="text-sm text-red-600">{rangeError}</p>}
 
           <div className="flex flex-wrap justify-end gap-2 pt-2">
@@ -1517,10 +1668,10 @@ function CreditsLedgerLog() {
               Hitung Ulang ({endDate || "hari ini"})
             </Button>
             {isManager && (
-            <Button onClick={handleExportCsv} disabled={!!rangeError || exporting} variant="outline" size="sm">
-              {exporting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
-              Unduh CSV
-            </Button>
+              <Button onClick={handleExportCsv} disabled={!!rangeError || exporting} variant="outline" size="sm">
+                {exporting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
+                Unduh CSV
+              </Button>
             )}
           </div>
           <p className="text-[11px] text-muted-foreground">
@@ -1570,10 +1721,10 @@ function CreditsLedgerLog() {
           summary.outstanding ??
           (summary.outstanding_credits != null
             ? {
-                packages: summary.outstanding_packages ?? 0,
-                credits: summary.outstanding_credits ?? 0,
-                value_idr: summary.outstanding_value_idr ?? 0,
-              }
+              packages: summary.outstanding_packages ?? 0,
+              credits: summary.outstanding_credits ?? 0,
+              value_idr: summary.outstanding_value_idr ?? 0,
+            }
             : null);
         const netEmpty = summary.net_credits === 0 && summary.net_value_idr === 0;
         const outstandingAnomaly = !!out && out.credits > 0 && out.value_idr < 0;
@@ -1583,9 +1734,9 @@ function CreditsLedgerLog() {
           : (filterEcho?.entry_type as string | undefined) ?? "";
         const filterEntry = rawFilterEntry
           ? rawFilterEntry
-              .split(",")
-              .map((v) => ENTRY_TYPE_LABEL[v.trim()] ?? v.trim())
-              .join(", ")
+            .split(",")
+            .map((v) => ENTRY_TYPE_LABEL[v.trim()] ?? v.trim())
+            .join(", ")
           : "";
         const isFiltered =
           !!filterEntry || (Array.isArray(filterEcho?.branch) && filterEcho.branch.length > 0);
@@ -1623,6 +1774,16 @@ function CreditsLedgerLog() {
                     {Array.isArray(summary.filters?.branch) && summary.filters.branch.length ? (
                       <Badge variant="outline" className="bg-sky-50 text-sky-700 border-sky-200 text-[11px]">
                         Branch: {summary.filters.branch.map((b) => branchLabel(b)).join(", ")}
+                      </Badge>
+                    ) : null}
+                    {summary.filters?.purchased_month ? (
+                      <Badge variant="outline" className="bg-violet-50 text-violet-700 border-violet-200 text-[11px]">
+                        Beli: {summary.filters.purchased_month}
+                      </Badge>
+                    ) : null}
+                    {summary.filters?.recognition_month ? (
+                      <Badge variant="outline" className="bg-emerald-50 text-emerald-700 border-emerald-200 text-[11px]">
+                        Diakui: {summary.filters.recognition_month}
                       </Badge>
                     ) : null}
                   </div>
@@ -1764,11 +1925,11 @@ function CreditsLedgerLog() {
                 // Pemulihan = pengembalian kredit kedaluwarsa saja (bukan refund); bila kosong → nol
                 const reversal = (src.by_status?.[REVERSAL_STATUS] as unknown as typeof db.breakage | undefined) ??
                   db.reversal ?? {
-                    count: 0,
-                    credits: 0,
-                    value_idr: 0,
-                    journal: REVERSAL_JOURNAL,
-                  };
+                  count: 0,
+                  credits: 0,
+                  value_idr: 0,
+                  journal: REVERSAL_JOURNAL,
+                };
                 const hasReversal = (reversal.count ?? 0) !== 0 || (reversal.value_idr ?? 0) !== 0;
                 if (!sold && !attended && !noShow && !db.breakage && !ending && !cash && !hasReversal) return null;
                 const creditCards = [
@@ -2103,9 +2264,8 @@ function ReconciliationTable({ summary }: { summary: import("@/types/report.inte
                   <Tooltip>
                     <TooltipTrigger asChild>
                       <TableRow
-                        className={`${isDiff ? "font-semibold bg-muted/30" : ""} ${diffBad ? "!bg-red-50 !text-red-700 hover:!bg-red-50" : ""} ${
-                          isSnapshot ? "bg-brand-50/40" : ""
-                        }`}
+                        className={`${isDiff ? "font-semibold bg-muted/30" : ""} ${diffBad ? "!bg-red-50 !text-red-700 hover:!bg-red-50" : ""} ${isSnapshot ? "bg-brand-50/40" : ""
+                          }`}
                       >
                         <TableCell>
                           <span className="inline-flex items-center gap-2">
@@ -2232,38 +2392,38 @@ function OutstandingReportsList({ year, visible }: { year?: number; visible: boo
                         <TableCell className={`text-right tabular-nums ${diffBad ? "text-red-700 font-semibold" : ""}`}>{idr(diff)}</TableCell>
                         <TableCell className="text-right">
                           {isManager ? (
-                          <span className="inline-flex gap-1.5">
-                            {r.summary_file?.download_url && (
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                disabled={downloadingId === `${r.report_id}-summary`}
-                                onClick={() => handleDownload(r.report_id, "summary")}
-                              >
-                                {downloadingId === `${r.report_id}-summary` ? (
-                                  <Loader2 className="h-3 w-3 animate-spin" />
-                                ) : (
-                                  <Download className="h-3 w-3" />
-                                )}{" "}
-                                CSV Ringkasan
-                              </Button>
-                            )}
-                            {r.detail_file?.download_url && (
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                disabled={downloadingId === `${r.report_id}-detail`}
-                                onClick={() => handleDownload(r.report_id, "detail")}
-                              >
-                                {downloadingId === `${r.report_id}-detail` ? (
-                                  <Loader2 className="h-3 w-3 animate-spin" />
-                                ) : (
-                                  <Download className="h-3 w-3" />
-                                )}{" "}
-                                CSV Rincian
-                              </Button>
-                            )}
-                          </span>
+                            <span className="inline-flex gap-1.5">
+                              {r.summary_file?.download_url && (
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  disabled={downloadingId === `${r.report_id}-summary`}
+                                  onClick={() => handleDownload(r.report_id, "summary")}
+                                >
+                                  {downloadingId === `${r.report_id}-summary` ? (
+                                    <Loader2 className="h-3 w-3 animate-spin" />
+                                  ) : (
+                                    <Download className="h-3 w-3" />
+                                  )}{" "}
+                                  CSV Ringkasan
+                                </Button>
+                              )}
+                              {r.detail_file?.download_url && (
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  disabled={downloadingId === `${r.report_id}-detail`}
+                                  onClick={() => handleDownload(r.report_id, "detail")}
+                                >
+                                  {downloadingId === `${r.report_id}-detail` ? (
+                                    <Loader2 className="h-3 w-3 animate-spin" />
+                                  ) : (
+                                    <Download className="h-3 w-3" />
+                                  )}{" "}
+                                  CSV Rincian
+                                </Button>
+                              )}
+                            </span>
                           ) : (
                             <span className="text-xs text-muted-foreground">—</span>
                           )}
@@ -2350,12 +2510,12 @@ export function ReportDownloads({
               </div>
             </div>
             {isManager && (
-            <Button asChild disabled={isLoading} className="w-full gap-2">
-              <a href={detailLink} download>
-                <Download className="h-4 w-4" />
-                Unduh Rincian
-              </a>
-            </Button>
+              <Button asChild disabled={isLoading} className="w-full gap-2">
+                <a href={detailLink} download>
+                  <Download className="h-4 w-4" />
+                  Unduh Rincian
+                </a>
+              </Button>
             )}
           </Card>
         )}
@@ -2373,12 +2533,12 @@ export function ReportDownloads({
               </div>
             </div>
             {isManager && (
-            <Button asChild disabled={isLoading} className="w-full gap-2" variant={"secondary"}>
-              <a href={summaryLink} download>
-                <Download className="h-4 w-4" />
-                Unduh Ringkasan
-              </a>
-            </Button>
+              <Button asChild disabled={isLoading} className="w-full gap-2" variant={"secondary"}>
+                <a href={summaryLink} download>
+                  <Download className="h-4 w-4" />
+                  Unduh Ringkasan
+                </a>
+              </Button>
             )}
           </Card>
         )}

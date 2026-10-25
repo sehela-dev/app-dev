@@ -24,7 +24,7 @@ import { useGetProfile } from "@/hooks/api/queries/customer/profile";
 import { useVerifyCompleteProfile } from "@/hooks/api/queries/customer/use-verify-complete-profile";
 import { IAuthSignUpPaylaod } from "@/types/customer-app/auth-customer.interface";
 import { Textarea } from "@/components/ui/textarea";
-import { Loader2, TriangleAlert, Clock3 } from "lucide-react";
+import { Loader2, TriangleAlert } from "lucide-react";
 import { TncDialog } from "@/components/general/tnc-dialog";
 import { useJwtToken } from "@/hooks";
 import { resendRegistration } from "@/api-req/customer-app/auth";
@@ -69,7 +69,7 @@ export const CompleteProfilePageView = () => {
     return "/book";
   };
 
-  const { resetJwt, setJwtToken } = useJwtToken();
+  const { resetJwt, setJwtToken, access_token, isHydrated } = useJwtToken();
   const [tncDialogOpen, setTncDialogOpen] = useState(false);
 
   // Token path verify (no JWT, 15m)
@@ -96,12 +96,10 @@ export const CompleteProfilePageView = () => {
     const id = setInterval(tick, 1000);
     return () => clearInterval(id);
   }, [expiresAt, isTokenMode]);
-  const countdown =
-    remainingSec !== null ? `${String(Math.floor(remainingSec / 60)).padStart(2, "0")}:${String(remainingSec % 60).padStart(2, "0")}` : null;
   const isExpired = remainingSec === 0;
 
-  // JWT path
-  const { data: profileUser, isLoading, isError, refetch } = useGetProfile(!isTokenMode);
+  // JWT path — only with a session, so an unauthenticated no-token visit can't 401 into "Unable to load"
+  const { data: profileUser, isLoading, isError, refetch } = useGetProfile(!isTokenMode && Boolean(access_token));
 
   useEffect(() => {
     if (!isTokenMode && profileUser?.data?.is_profile_complete) router.replace(getSafeNext());
@@ -110,6 +108,14 @@ export const CompleteProfilePageView = () => {
   useEffect(() => {
     if (verifyErrorCode === "ALREADY_COMPLETED") router.replace(getSafeNext());
   }, [verifyErrorCode, router]);
+
+  // no token and no session → nothing to load here; send to login instead of "Unable to load"
+  useEffect(() => {
+    if (isTokenMode || !isHydrated || access_token) return;
+    const next = getSafeNext();
+    if (next !== "/profile/my-sessions") router.replace(`/auth/login?next=${encodeURIComponent(next)}`);
+    else router.replace("/auth/login");
+  }, [isTokenMode, isHydrated, access_token, router]);
 
   const goToLogin = () => {
     resetJwt();
@@ -306,6 +312,10 @@ export const CompleteProfilePageView = () => {
     }
   }
 
+  if (!isTokenMode && (!isHydrated || !access_token)) {
+    return null;
+  }
+
   if (!isTokenMode && isLoading) {
     return (
       <div className="flex flex-col items-center w-full space-y-12 font-serif">
@@ -357,13 +367,6 @@ export const CompleteProfilePageView = () => {
           <div className="">
             <h3 className="text-3xl font-bold text-brand-500 leading-tight">Complete your Profile</h3>
             <h3 className="text-sm font-normal text-brand-400 leading-tight">Enter your information to complete your profile.</h3>
-            {isTokenMode && countdown && (
-              <div className="mt-3 flex items-center gap-2 text-sm font-medium text-brand-500 bg-brand-50 rounded-md px-3 py-2">
-                <Clock3 className="h-4 w-4" />
-                <span>Link expires in {countdown}</span>
-                <span className="text-xs text-brand-400 ml-auto">15m window</span>
-              </div>
-            )}
           </div>
           <FormProvider {...methods}>
             <form onSubmit={onSubmit} className="space-y-2 my-4">

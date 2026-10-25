@@ -4,8 +4,10 @@ import { BaseDialogComponent } from "@/components/general/base-dialog-component"
 import { StickyContainerComponent } from "@/components/layout";
 import { NavHeaderComponent } from "@/components/layout/header-checkout";
 import { Button } from "@/components/ui/button";
-import { useRepayBooking } from "@/hooks/api/mutations/customers";
+import { useCancelBooking, useRepayBooking } from "@/hooks/api/mutations/customers";
 import { useGetMySessionDetail } from "@/hooks/api/queries/customer/profile";
+import type { ICancelBookingData } from "@/types/customer-app/booking.interface";
+import type { AxiosError } from "axios";
 import { formatCurrency, formatDateHelper, normalizeOrderId } from "@/lib/helper";
 import { Clock, CreditCard, Loader2, MapPin, RefreshCw } from "lucide-react";
 import { useParams, useRouter } from "next/navigation";
@@ -19,9 +21,11 @@ export const MySessionDetail = () => {
   const params = useParams();
   const router = useRouter();
   const { id } = params;
-  const { data, isLoading, isFetched } = useGetMySessionDetail(id as string);
+  const { data, isLoading, isFetched, refetch } = useGetMySessionDetail(id as string);
   const [open, setOpen] = useState(false);
   const [openCancel, setOpenCancel] = useState(false);
+  const [cancelStep, setCancelStep] = useState<"confirm" | "choice">("confirm");
+  const [choiceInfo, setChoiceInfo] = useState<{ penalty: number; message: string | null } | null>(null);
   const prevPendingRef = useRef<boolean | null>(null);
 
   const bookingData = data?.data;
@@ -33,8 +37,12 @@ export const MySessionDetail = () => {
     !isPaymentFailed &&
     !isExpired &&
     (bookingData?.booking_status === "pending_payment" || paymentStatus === "pending");
-  const isCancelled =
-    normalizedBookingStatus === "cancelled" || normalizedBookingStatus === "canceled" || normalizedBookingStatus === "expired" || isExpired;
+  const startMs = bookingData?.start_datetime ? new Date(bookingData.start_datetime).getTime() : NaN;
+  // Session canceled status is enforced server-side (SESSION_CANCELED); this payload carries no session status.
+  const canCancel =
+    (normalizedBookingStatus === "confirmed" || normalizedBookingStatus === "pending_payment") &&
+    Number.isFinite(startMs) &&
+    startMs > Date.now();
   const snapRedirectUrl = bookingData?.payment?.snap_redirect_url;
   const repayMutation = useRepayBooking();
 
@@ -68,6 +76,129 @@ export const MySessionDetail = () => {
       },
     });
   };
+
+  const cancelMutation = useCancelBooking();
+  const bookingId = bookingData?.booking_id;
+
+  const closeCancelDialog = () => {
+    setOpenCancel(false);
+    setCancelStep("confirm");
+    setChoiceInfo(null);
+  };
+
+  const openCancelDialog = () => {
+    setCancelStep("confirm");
+    setChoiceInfo(null);
+    setOpenCancel(true);
+  };
+
+  const handleCancelError = (error: unknown) => {
+    const responseError = (error as AxiosError<{ error?: { code?: string; message?: string } }>)?.response?.data?.error;
+    if (
+      responseError?.code === "ALREADY_CANCELED" ||
+      responseError?.code === "SESSION_STARTED" ||
+      responseError?.code === "SESSION_CANCELED" ||
+      responseError?.code === "NOT_FOUND" ||
+      responseError?.code === "BOOKING_EXPIRED"
+    ) {
+      closeCancelDialog();
+      refetch();
+    }
+    toast.error(responseError?.code ?? "Cancel failed", {
+      id: "cancel-error",
+      description: responseError?.message ?? "Cancel failed. Please try again.",
+      position: "top-center",
+    });
+  };
+
+  const handleProbe = () => {
+    if (!bookingId) return;
+    cancelMutation.mutate(
+      { bookingId, body: {} },
+      {
+        onSuccess: (res) => {
+          const result = res?.data as ICancelBookingData | undefined;
+          if (result?.requires_choice) {
+            setChoiceInfo({
+              penalty: result.penalty_amount_idr ?? 0,
+              message: result.message ?? null,
+            });
+            setCancelStep("choice");
+            return;
+          }
+          closeCancelDialog();
+          refetch();
+          const refunded = result?.credits_refunded ?? 0;
+          toast.success("Booking canceled", {
+            id: "cancel-success",
+            description:
+              result?.window === "free" && refunded > 0
+                ? `${refunded} credit(s) returned${result.refund_type === "credit_return" ? " to your package" : " as a new refund package"}.`
+                : (result?.message ?? "Your booking was canceled."),
+            position: "top-center",
+          });
+        },
+        onError: handleCancelError,
+      },
+    );
+  };
+
+  const handleBurn = () => {
+    if (!bookingId) return;
+    cancelMutation.mutate(
+      { bookingId, body: { choice: "burn" } },
+      {
+        onSuccess: (res) => {
+          closeCancelDialog();
+          refetch();
+          toast.success("Booking canceled", {
+            id: "cancel-success",
+            description: (res?.data as ICancelBookingData | undefined)?.message ?? "No refund. The credit is forfeited.",
+            position: "top-center",
+          });
+        },
+        onError: handleCancelError,
+      },
+    );
+  };
+
+  const handlePenalty = () => {
+    if (!bookingId) return;
+    cancelMutation.mutate(
+      { bookingId, body: { choice: "refund_with_penalty" } },
+      {
+        onSuccess: (res) => {
+          // A pending penalty reuses its Snap link, so re-tapping is safe.
+          const url = (res?.data as ICancelBookingData | undefined)?.snap_redirect_url;
+          if (!url) {
+            toast.error("Payment link missing", {
+              id: "cancel-error",
+              description: "Penalty was created but no payment link came back. Please try again.",
+              position: "top-center",
+            });
+            return;
+          }
+          toast.success("Penalty payment opened", {
+            id: "cancel-success",
+            description: "Booking stays confirmed until the penalty settles. Credits return after payment.",
+            position: "top-center",
+          });
+          window.location.href = url;
+        },
+        onError: handleCancelError,
+      },
+    );
+  };
+
+  const choiceCopy =
+    choiceInfo?.message ??
+    `This session starts in less than 6 hours. To get your credit(s) back, a penalty fee of ${formatCurrency(choiceInfo?.penalty ?? 0)} applies. Or forfeit this booking for free and lose the credit.`;
+
+  const cancelGhostButton = canCancel ? (
+    <Button variant="ghost" className="w-full min-h-[44px] text-red-800" onClick={openCancelDialog}>
+      Cancel booking
+    </Button>
+  ) : null;
 
   return (
     <>
@@ -242,51 +373,76 @@ export const MySessionDetail = () => {
                 Browse Classes
               </Button>
             ) : isPaymentFailed ? (
-              <Button
-                className="w-full min-h-[48px]"
-                onClick={handleRetryPayment}
-                disabled={repayMutation.isPending}
-              >
-                {repayMutation.isPending ? (
-                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                ) : (
-                  <RefreshCw className="h-4 w-4 mr-2" />
-                )}
-                Retry Payment
-              </Button>
-            ) : isPendingPayment ? (
-              <Button className="w-full min-h-[48px]" onClick={handlePayNow} disabled={!snapRedirectUrl}>
-                <CreditCard className="h-4 w-4 mr-2" />
-                Pay Now
-              </Button>
-            ) : (
-              !isCancelled && (
+              <div className="flex w-full flex-col gap-2">
                 <Button
-                  variant={"destructive"}
-                  className="w-full bg-red-200 text-red-800"
-                  onClick={() => {
-                    setOpenCancel(true);
-                  }}
+                  className="w-full min-h-[48px]"
+                  onClick={handleRetryPayment}
+                  disabled={repayMutation.isPending}
                 >
-                  Cancel Class
+                  {repayMutation.isPending ? (
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  ) : (
+                    <RefreshCw className="h-4 w-4 mr-2" />
+                  )}
+                  Retry Payment
                 </Button>
-              )
-            )}
+                {cancelGhostButton}
+              </div>
+            ) : isPendingPayment ? (
+              <div className="flex w-full flex-col gap-2">
+                <Button className="w-full min-h-[48px]" onClick={handlePayNow} disabled={!snapRedirectUrl}>
+                  <CreditCard className="h-4 w-4 mr-2" />
+                  Pay Now
+                </Button>
+                {cancelGhostButton}
+              </div>
+            ) : canCancel ? (
+              <Button variant={"destructive"} className="w-full min-h-[48px] bg-red-200 text-red-800" onClick={openCancelDialog}>
+                Cancel Class
+              </Button>
+            ) : null}
           </div>
         </StickyContainerComponent>
       </div>
-      {openCancel && (
+      {openCancel && cancelStep === "confirm" && (
         <BaseDialogComponent
           isOpen={openCancel}
           title="Cancel Class?"
-          btnConfirm="Cancel Class"
-          onConfirm={() => alert("cancel class")}
-          onClose={() => {
-            setOpenCancel(false);
-          }}
+          btnConfirm={cancelMutation.isPending ? "Working..." : "Yes, Cancel"}
+          onConfirm={handleProbe}
+          onClose={closeCancelDialog}
           onCloseText="Keep My Class"
+          isDisabled={cancelMutation.isPending || !bookingId}
         >
           <p className="text-center font-serif text-brand-500">Are you sure you want to cancel this booking? This action cannot be undone.</p>
+        </BaseDialogComponent>
+      )}
+      {openCancel && cancelStep === "choice" && choiceInfo && (
+        <BaseDialogComponent
+          isOpen={openCancel}
+          title="Late cancellation"
+          btnConfirm=""
+          onClose={closeCancelDialog}
+          onCloseText="Keep My Class"
+        >
+          <div className="flex flex-col gap-4">
+            <p className="text-center font-serif text-sm leading-relaxed text-brand-500">{choiceCopy}</p>
+            <div className="flex w-full flex-col gap-2">
+              <Button className="w-full min-h-[48px]" onClick={handlePenalty} disabled={cancelMutation.isPending}>
+                {cancelMutation.isPending && <Loader2 className="h-4 w-4 animate-spin" />}
+                Pay {formatCurrency(choiceInfo.penalty)}, keep credit
+              </Button>
+              <Button
+                variant="outline"
+                className="w-full min-h-[48px] border-red-200 text-red-800"
+                onClick={handleBurn}
+                disabled={cancelMutation.isPending}
+              >
+                {cancelMutation.isPending && <Loader2 className="h-4 w-4 animate-spin" />}
+                Forfeit, lose credit
+              </Button>
+            </div>
+          </div>
         </BaseDialogComponent>
       )}
     </>

@@ -19,6 +19,8 @@ export const useAuthForgotPassword = () => {
 const FRIENDLY_ERRORS: Record<string, string> = {
   EMAIL_NOT_FOUND: "Email not registered — check or sign up",
   ACCOUNT_INACTIVE: "Account inactive — contact support",
+  PROFILE_INCOMPLETE:
+    "This email is already registered but not activated yet. Check your activation email, or contact admin on WhatsApp +62 811-1496-88 to activate.",
   EMAIL_SEND_FAILED: "Mail failed, please retry",
 };
 
@@ -28,7 +30,7 @@ const useConfig = () => {
     const code = data?.error?.code;
     const serverMsg = data?.error?.message;
     if (error?.response && (error.response.status === 400 || error.response.status === 403 || error.response.status === 404)) {
-      return toast.error(code ?? "Error", {
+      return toast.error(code === "PROFILE_INCOMPLETE" ? "Activation required" : (code ?? "Error"), {
         id: "error",
         description: (code && FRIENDLY_ERRORS[code]) ?? serverMsg ?? "Please check your input.",
         position: "top-center",

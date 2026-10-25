@@ -1,5 +1,6 @@
 // import { AuthMemberProvider } from "@/context/member.ctx";
 // import AuthMemberGuard from "@/layout/authguard-member-layout";
+import { CartProvider } from "@/context/cart.ctx";
 import { AuthProvider } from "@/context/member.ctx";
 import type { Metadata } from "next";
 
@@ -14,5 +15,9 @@ export default function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  return <AuthProvider>{children}</AuthProvider>;
+  return (
+    <AuthProvider>
+      <CartProvider>{children}</CartProvider>
+    </AuthProvider>
+  );
 }

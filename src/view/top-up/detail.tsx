@@ -23,16 +23,17 @@ import { CalendarClock, GemIcon, Info, Loader2, RefreshCw, Ticket, Users } from 
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { Input } from "@/components/ui/input";
-import { getShareErrorMessage } from "@/api-req/customer-app/payments";
+import { getPurchaseErrorMessage, getShareErrorMessage } from "@/api-req/customer-app/payments";
 
 export const TopUpCreditDetailView = ({ id }: { id: string }) => {
   const router = useRouter();
-  const { isAuthenticated } = useAuthMember();
+  const { isAuthenticated, isNewMember } = useAuthMember();
   const { data, isLoading, isError } = useGetPublicCreditPackageDetail(id);
   const { mutateAsync, isPending } = useInitiatePackagePurchase();
   const [agreed, setAgreed] = useState(false);
   const [shareEmail, setShareEmail] = useState("");
   const [shareError, setShareError] = useState<string | null>(null);
+  const [buyError, setBuyError] = useState<string | null>(null);
   // Restore an in-progress payment (e.g. user returns from the Snap tab or refreshes)
   const [pending, setPending] = useState<{ orderId: string; snapUrl: string; initiatedAt: number } | null>(() => {
     const stored = getPendingPackagePayment();
@@ -71,12 +72,14 @@ export const TopUpCreditDetailView = ({ id }: { id: string }) => {
   const placeLabel = place === "offline" ? "in studio" : place === "online" ? "online" : "in studio & online";
   const classNames = item?.class_ids_restriction?.map((c) => c.name).join(", ");
   const classLabel = classNames ? classNames : "All Classes";
+  const isNewOnlyBlocked = item?.only_for_new_users === true && isAuthenticated && isNewMember !== true;
 
   const handleBuy = async () => {
     if (!isAuthenticated) {
       router.push(`/auth/login?next=${encodeURIComponent(`/topup-credit/${id}`)}`);
       return;
     }
+    if (isNewOnlyBlocked) return;
     // Resume the stored Snap URL in a NEW TAB only — never same-tab redirect.
     // Never re-initiate while a payment is in flight (each call = new payment row).
     if (pending && !isTerminal) {
@@ -92,6 +95,7 @@ export const TopUpCreditDetailView = ({ id }: { id: string }) => {
       }
     }
     setShareError(null);
+    setBuyError(null);
     try {
       const res = await mutateAsync({ package_id: id, ...(trimmedEmail ? { share_with_email: trimmedEmail } : {}) });
       const url = res.data?.snap_redirect_url;
@@ -112,6 +116,8 @@ export const TopUpCreditDetailView = ({ id }: { id: string }) => {
         ?.message;
       if (code === "SHARED_USER_NOT_FOUND" || code === "VALIDATION_ERROR" || code?.startsWith("SHARE")) {
         setShareError(getShareErrorMessage(code, serverMessage));
+      } else if (code === "ALREADY_PURCHASED" || code === "NEW_USERS_ONLY") {
+        setBuyError(getPurchaseErrorMessage(code, serverMessage));
       }
       // other errors toast via the mutation; user can retry with the same button
     }
@@ -218,6 +224,16 @@ export const TopUpCreditDetailView = ({ id }: { id: string }) => {
                 Shareable
               </Badge>
             )}
+            {item.only_for_new_users && (
+              <Badge variant="outline" className="rounded-full border-emerald-200 bg-emerald-50 text-[10px] text-emerald-800">
+                New members only
+              </Badge>
+            )}
+            {item.max_purchases_per_user === 1 && (
+              <Badge variant="outline" className="rounded-full border-amber-200 bg-amber-50 text-[10px] text-amber-800">
+                One-time buy
+              </Badge>
+            )}
           </div>
         </div>
 
@@ -266,6 +282,7 @@ export const TopUpCreditDetailView = ({ id }: { id: string }) => {
             <li>
               {item.is_shareable ? "Can be shared with 1 friend before first use." : "For 1 person only."}
               {item.max_purchases_per_user === 1 ? " First-timers only, one purchase per person." : null}
+              {item.only_for_new_users ? " New members only." : null}
             </li>
           </ul>
         </div>
@@ -313,8 +330,8 @@ export const TopUpCreditDetailView = ({ id }: { id: string }) => {
         <Button
           className="min-h-12 w-full text-sm font-extrabold"
           onClick={isFailed || isExpired ? handleRetry : pending && !isTerminal ? handleContinue : handleBuy}
-          disabled={isPending || !agreed}
-          aria-describedby={!agreed ? "tnc-hint" : undefined}
+          disabled={isPending || !agreed || isNewOnlyBlocked}
+          aria-describedby={!agreed || isNewOnlyBlocked ? "tnc-hint" : undefined}
         >
           {isPending ? (
             <span className="inline-flex items-center gap-2">
@@ -330,10 +347,20 @@ export const TopUpCreditDetailView = ({ id }: { id: string }) => {
             "Login to buy"
           )}
         </Button>
-        {!agreed && !(pending && isSettled) && (
+        {!agreed && !(pending && isSettled) && !isNewOnlyBlocked && (
           <p id="tnc-hint" className="text-center text-[11px] text-gray-500">
             Please read and agree to the purchase terms above to continue
             {!isAuthenticated ? " to login and buy" : ""}.
+          </p>
+        )}
+        {isNewOnlyBlocked && (
+          <p id="tnc-hint" role="alert" className="text-center text-[11px] font-semibold text-gray-600">
+            This package is for new members only — not available for your account.
+          </p>
+        )}
+        {buyError && (
+          <p role="alert" className="rounded-xl border border-red-200 bg-red-50 px-3.5 py-3 text-center text-[11px] font-medium text-red-700">
+            {buyError}
           </p>
         )}
         {/* Pending-payment state, like the booking class detail page */}

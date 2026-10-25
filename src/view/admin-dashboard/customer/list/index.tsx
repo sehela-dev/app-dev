@@ -4,6 +4,7 @@ import { BaseDialogConfirmation } from "@/components/general/dialog-confirnation
 import { CustomPagination } from "@/components/general/pagination-component";
 import { GeneralTabComponent } from "@/components/general/tabs-component";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { SearchInput } from "@/components/ui/search-input";
@@ -98,6 +99,20 @@ export const CustomersPage = () => {
       id: "status",
       text: "Status",
       value: (row: ICustomerData) => <p className={row?.is_active ? "text-green-400" : "text-red-500"}>{row.is_active ? "Active" : "Inactive"}</p>,
+    },
+    {
+      id: "profile",
+      text: "Profile",
+      value: (row: ICustomerData & { tnc_agreed_at?: string | null }) =>
+        row?.tnc_agreed_at ? (
+          <Badge variant="outline" className="border-green-200 bg-green-50 text-green-700">
+            Complete
+          </Badge>
+        ) : (
+          <Badge variant="outline" className="border-amber-200 bg-amber-50 text-amber-700">
+            Incomplete
+          </Badge>
+        ),
     },
     // {
     //   id: "resend-regristration",

@@ -5,6 +5,7 @@ import { PhotoUploadForm } from "@/components/general/photo-upload-form";
 import { FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Select as Selects, SelectItem, SelectGroup, SelectContent, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import { useGetProductCategories } from "@/hooks/api/queries/admin/products";
 import { useUpdateProduct } from "@/hooks/api/mutations/admin";
@@ -42,7 +43,8 @@ export const EditProductDialog = ({ isOpen, onClose, product, onSuccess }: EditP
 
   useEffect(() => {
     if (isOpen && product) {
-      const photos: PhotoItem[] = (product.photos ?? []).map((url, idx) => ({
+      // ponytail: cover model (BE) — merged total must be ≤1, extra legacy photos are sliced to [0]
+      const photos: PhotoItem[] = (product.photos ?? []).slice(0, 1).map((url, idx) => ({
         id: `existing-${idx}`,
         preview: url,
         isCover: idx === 0,
@@ -52,6 +54,8 @@ export const EditProductDialog = ({ isOpen, onClose, product, onSuccess }: EditP
         category_id: product.category_id,
         description: product.description,
         photos,
+        is_active: product.is_active,
+        is_rentable: product.is_rentable,
       });
     }
   }, [isOpen, product, reset]);
@@ -74,6 +78,8 @@ export const EditProductDialog = ({ isOpen, onClose, product, onSuccess }: EditP
         category_id: data.category_id,
         description: data.description,
         existing_photos: existingPhotos,
+        ...(data.is_active !== undefined ? { is_active: data.is_active } : null),
+        ...(data.is_rentable !== undefined ? { is_rentable: data.is_rentable } : null),
       });
       newPhotos.forEach((file) => payload.append("photos", file));
 
@@ -170,13 +176,40 @@ export const EditProductDialog = ({ isOpen, onClose, product, onSuccess }: EditP
                     className="w-full px-4 py-4 border-2 border-gray-200 rounded-lg text-gray-999  placeholder-gray-400 focus:outline-none focus:border-brand-500 transition-colors"
                     placeholder="Type here.."
                     {...field}
+                    value={field.value ?? ""}
                   />
                 </FormControl>
                 <FormMessage />
               </FormItem>
             )}
           />
-          <PhotoUploadForm name="photos" label="Photo Product (first photo is the cover)" />
+          <PhotoUploadForm name="photos" maxPhotos={1} label="Cover Photo (1 max)" />
+          <div className="grid grid-cols-2 gap-4">
+            <FormField
+              control={control}
+              name="is_active"
+              render={({ field }) => (
+                <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3">
+                  <FormLabel className="text-brand-999 font-medium text-sm">Active</FormLabel>
+                  <FormControl>
+                    <Switch checked={field.value} onCheckedChange={field.onChange} />
+                  </FormControl>
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={control}
+              name="is_rentable"
+              render={({ field }) => (
+                <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3">
+                  <FormLabel className="text-brand-999 font-medium text-sm">For Rent</FormLabel>
+                  <FormControl>
+                    <Switch checked={field.value} onCheckedChange={field.onChange} />
+                  </FormControl>
+                </FormItem>
+              )}
+            />
+          </div>
         </form>
       </FormProvider>
     </BaseDialogComponent>

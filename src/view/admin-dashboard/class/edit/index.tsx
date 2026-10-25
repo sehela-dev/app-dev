@@ -7,8 +7,9 @@ import { FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessa
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
-import { useCreateClassSession, useEditClassCategory } from "@/hooks/api/mutations/admin";
+import { useEditClassCategory } from "@/hooks/api/mutations/admin";
 import { useGetDetailClassSessionsCategory } from "@/hooks/api/queries/admin/class-session";
+import { useAdminPermission } from "@/hooks/use-role-access";
 import { useParams, useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
 // import { useRouter } from "next/navigation";
@@ -19,9 +20,11 @@ const defaultValues = {
   class_name: "",
   class_description: "",
   allow_credit: true,
+  cancellation_fee_idr: 75000,
 };
 export const EditClassPageView = () => {
   const router = useRouter();
+  const { isManager } = useAdminPermission();
   const { mutateAsync } = useEditClassCategory();
   const params = useParams();
   const { id } = params;
@@ -34,6 +37,7 @@ export const EditClassPageView = () => {
       class_name: data?.data?.class_name,
       class_description: data?.data?.class_description,
       allow_credit: data?.data?.allow_credit,
+      cancellation_fee_idr: data?.data?.cancellation_fee_idr ?? 75000,
     };
   }, [data?.data]);
   const methods = useForm({ defaultValues, values });
@@ -50,10 +54,13 @@ export const EditClassPageView = () => {
   };
   const onSubmit = handleSubmit(async (data) => {
     try {
-      const payload = {
+      const rawFee = (data as unknown as { cancellation_fee_idr: unknown }).cancellation_fee_idr;
+      const payload: Record<string, unknown> = {
         ...data,
+        cancellation_fee_idr: rawFee === "" || rawFee === undefined ? undefined : Number(rawFee),
         is_active: true,
       };
+      if (!isManager) delete payload.cancellation_fee_idr;
       const res = await mutateAsync({
         id: id as string,
         data: { ...payload },
@@ -137,6 +144,33 @@ export const EditClassPageView = () => {
                         <FormControl>
                           <Switch checked={field.value} onCheckedChange={field.onChange} />
                         </FormControl>
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={control}
+                    name="cancellation_fee_idr"
+                    render={({ field }) => (
+                      <FormItem className="flex flex-col">
+                        <FormLabel className=" text-brand-999 font-medium text-sm">Cancellation Fee (IDR)</FormLabel>
+                        <FormControl>
+                          <Input
+                            type="number"
+                            min={0}
+                            step={1000}
+                            placeholder="75000"
+                            disabled={!isManager}
+                            {...field}
+                            onChange={(e) => field.onChange(e.target.value === "" ? "" : Number(e.target.value))}
+                            className="w-full px-4 py-4 border-2 border-gray-200 rounded-lg text-gray-999 placeholder-gray-400 focus:outline-none focus:border-brand-500 transition-colors h-[42px] disabled:opacity-50"
+                          />
+                        </FormControl>
+                        <FormDescription>
+                          {isManager
+                            ? "0 = no penalty even within 6h. Charged via Midtrans when member cancels within 6h and wants credit back."
+                            : "Only manager can edit this field."}
+                        </FormDescription>
+                        <FormMessage />
                       </FormItem>
                     )}
                   />

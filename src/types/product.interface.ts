@@ -30,6 +30,7 @@ export interface IProductVariantItem {
   variant_name: string;
   sku: string;
   price_idr: number;
+  photos?: string[];
   stock: number;
   stock_total: number;
   stock_rented: number;
@@ -90,6 +91,8 @@ export interface IInventorySnapshotItem {
 export interface IInventoryParams extends ICommonParams {
   location_id?: string;
   variant_id?: string;
+  product_id?: string;
+  q?: string;
 }
 
 export interface IProductMovement {
@@ -176,6 +179,7 @@ export interface IProductVariantsItem {
   sku: string;
   price: string | number;
   stock: string | number;
+  photos?: string[];
   inventory?: {
     location_id: string;
     stock_total: string | number;
@@ -185,6 +189,9 @@ export interface IProductVariantsItem {
 export interface IProductListParams extends ICommonParams {
   view?: "full" | "variants";
   is_rentable?: boolean | string;
+  category_id?: string;
+  include_inactive?: boolean;
+  product_id?: string;
 }
 export type TProductItemList = (params: IProductListParams) => Promise<IResponseData<IProductItemList[] | IProductVariantItem[]>>;
 export type TCreateProduct = (paylaod: ICreateProductPaylaod | FormData) => Promise<IResponseData<never>>;
@@ -225,6 +232,7 @@ export interface IVariantsPayload {
 export interface IVariantItemPayload {
   variant_name: string;
   sku: string;
+  photos?: string[];
   inventory: {
     location_id: string;
     stock_total: string | number;
@@ -242,7 +250,16 @@ export interface IUpdateStockVariant {
 export interface IInventoryAdjustmentPayload {
   location_id: string;
   quantity_delta: number;
-  reason: string;
+  note?: string;
+  reason?: string;
+}
+
+export interface IInventoryTransferPayload {
+  variant_id: string;
+  from_location_id: string;
+  to_location_id: string;
+  quantity: number;
+  note?: string;
 }
 
 export type TProductMovements = (id: string, params?: IProductMovementsParams) => Promise<IResponseData<IProductMovement[]>>;
@@ -253,17 +270,21 @@ export type TInventoryAdjustment = (data: {
   payload: IInventoryAdjustmentPayload;
   idempotencyKey: string;
 }) => Promise<IResponseData<unknown>>;
-export type TAddNewVariants = ({ data, id }: { data: IVariantsPayload; id: string }) => Promise<IResponseData<unknown>>;
+export type TInventoryTransfer = (data: {
+  payload: IInventoryTransferPayload;
+  idempotencyKey: string;
+}) => Promise<IResponseData<unknown>>;
+export type TDeleteProduct = (id: string) => Promise<IResponseData<unknown>>;
+export type TDeleteVariant = ({ id, idVar }: { id: string; idVar: string }) => Promise<IResponseData<unknown>>;
+export type TAddNewVariants = ({ data, id }: { data: IVariantsPayload | FormData; id: string }) => Promise<IResponseData<unknown>>;
 export type TUpdateSingleVariant = ({ id, idVar, data }: { id: string; idVar: string; data: IUpdateStockVariant }) => Promise<IResponseData<unknown>>;
 
 export interface IUpdateVariantItemPayload {
   variant_name?: string;
   sku?: string;
   price_idr?: string | number;
-  inventory?: {
-    location_id: string;
-    stock_total: string | number;
-  }[];
+  is_active?: boolean;
+  photos?: string[];
 }
 export type TUpdateProduct = ({ id, payload }: { id: string; payload: FormData }) => Promise<IResponseData<unknown>>;
-export type TUpdateVariant = ({ id, idVar, data }: { id: string; idVar: string; data: IUpdateVariantItemPayload }) => Promise<IResponseData<unknown>>;
+export type TUpdateVariant = ({ id, idVar, data }: { id: string; idVar: string; data: IUpdateVariantItemPayload | FormData }) => Promise<IResponseData<unknown>>;

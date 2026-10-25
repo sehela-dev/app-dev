@@ -111,7 +111,12 @@ export const EnrollStudentView = () => {
       const payload = {
         class_session_id: sessionData?.id as string,
         ...(tabs === "credit"
-          ? { user_id: customerData?.id as string, payment_method: "credits", package_purchase_id: customerData?.package?.package_purchase_id }
+          ? {
+            user_id: customerData?.id as string,
+            payment_method: "credits",
+            package_purchase_id: customerData?.package?.package_purchase_id,
+            credits_to_use: sessionData?.price_credit_amount,
+          }
           : {
             third_party_id: customerData?.third_party?.id,
             booking_id: customerData?.booking_id,
@@ -133,8 +138,10 @@ export const EnrollStudentView = () => {
         clearForm();
         refetch();
       }
-    } catch (error) {
-      console.log(error);
+    } catch (error: unknown) {
+      // Price may have changed since the list loaded — refresh so UI shows the new price.
+      const code = (error as { response?: { data?: { error?: { code?: string } } } })?.response?.data?.error?.code;
+      if (code === "CREDIT_AMOUNT_MISMATCH") refetch();
     }
   };
 
@@ -267,6 +274,14 @@ export const EnrollStudentView = () => {
                       {sessionData?.time_start} - {sessionData.time_end}
                     </p>
                   </div>
+                  {tabs === "credit" && (
+                    <div className="flex flex-col gap-1">
+                      <p className="text-sm text-gray-500">Credit cost</p>
+                      <p className="text-md font-semibold">
+                        {sessionData?.price_credit_amount} Credit{(sessionData?.price_credit_amount ?? 0) > 1 ? "s" : ""}
+                      </p>
+                    </div>
+                  )}
                   <Divider />
                   <div className="flex flex-col gap-1">
                     <p className="text-sm text-gray-500">Capacity Status</p>

@@ -9,18 +9,21 @@ export interface IClassSessionCategory {
   is_active: boolean;
   created_at: string;
   updated_at: string;
+  cancellation_fee_idr?: number;
 }
 export interface ICreateNewCategoryPayload {
   class_name: string;
   class_description: string;
   allow_credit: boolean;
   is_active?: boolean;
+  cancellation_fee_idr?: number;
 }
 export interface IEditategoryPayload {
   class_name?: string;
   class_description?: string;
   allow_credit?: boolean;
   is_active?: boolean;
+  cancellation_fee_idr?: number;
 }
 
 export type TClassSessionCategoryResponse = (params: ICommonParams) => Promise<IResponseData<IClassSessionCategory[]>>;

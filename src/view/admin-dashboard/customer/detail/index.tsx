@@ -251,7 +251,7 @@ export const CustomerDetailPage = () => {
           <Button
             variant="link"
             className="h-auto justify-start p-0 text-left text-brand-500"
-            onClick={() => (isManager ? router.push(`/admin/member/${id}/credit-packages/${row.id}`) : () => { })}
+            onClick={() => router.push(`/admin/member/${id}/credit-packages/${row.id}`)}
           >
             {row.credit_package?.name ?? "-"}
           </Button>
@@ -406,17 +406,15 @@ export const CustomerDetailPage = () => {
                             )}
                           </div>
                         </CardContent>
-                        {isManager && (
-                          <CardFooter className="p-0 pt-3">
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={() => router.push(`/admin/member/${id}/credit-packages/${item.package_purchase_id}`)}
-                            >
-                              Manage
-                            </Button>
-                          </CardFooter>
-                        )}
+                        <CardFooter className="p-0 pt-3">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => router.push(`/admin/member/${id}/credit-packages/${item.package_purchase_id}`)}
+                          >
+                            {isManager ? "Manage" : "View"}
+                          </Button>
+                        </CardFooter>
                       </Card>
                     ))
                   ) : (

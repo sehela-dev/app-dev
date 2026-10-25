@@ -14,11 +14,15 @@ import {
   useCancelBooking,
   useChangeAttendanceStatus,
   useEditCustomer,
+  usePublishSession,
   useRescheduleSession,
   useSendReminderSession,
+  useUnpublishSession,
 } from "@/hooks/api/mutations/admin";
 import { useGetSessionBookings, useGetSessionDetail, useGetSessions } from "@/hooks/api/queries/admin/class-session";
-import { defaultDate, formatCurrency, formatDateHelper, reminderMessage, sendReminder } from "@/lib/helper";
+import { getSessionParticipants } from "@/api-req/class-session";
+import { formatPublishCountdown, isScheduled } from "@/utils/session-badge";
+import { defaultDate, formatCurrency, formatDateHelper, normalizePhoneNumber, reminderMessage, sendReminder } from "@/lib/helper";
 import { cn } from "@/lib/utils";
 import { IParticipantsSession, ISessionItem } from "@/types/class-sessions.interface";
 import { IAttendanceStatus } from "@/types/orders.interface";
@@ -29,13 +33,13 @@ import {
   Banknote,
   BellRing,
   Copy,
+  CopyPlus,
   Ellipsis,
   Loader2,
   LucideIcon,
   PenIcon,
   RotateCcw,
   WalletCards,
-  X,
 } from "lucide-react";
 import { differenceInCalendarDays } from "date-fns";
 import { useParams, useRouter } from "next/navigation";
@@ -46,14 +50,18 @@ import { Label } from "@/components/ui/label";
 import { BaseDialogConfirmation } from "@/components/general/dialog-confirnation";
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
-import { branchLabel } from "@/constants/sample-data";
+import { BANK_LIST, branchLabel, SEHELA_BANKS, SEHELA_BRANCH } from "@/constants/sample-data";
 import { BackButtonComponent } from "@/components/general/back-button";
+import { DuplicateSessionDialog } from "@/components/page/session/duplicate-session-dialog";
+import { SessionWaitlistPanel } from "@/components/page/session/waitlist-panel";
+import Select from "react-select";
 
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Input } from "@/components/ui/input";
 import { useAdminPermission } from "@/hooks/use-role-access";
 import { Separator } from "@radix-ui/react-separator";
 type RefundType = "none" | "credit_return" | "credit_issue_new" | "manual_external";
+type FeeMethod = "cash" | "edc" | "transfer" | "midtrans";
 
 const refundOptions: {
   value: RefundType;
@@ -61,38 +69,38 @@ const refundOptions: {
   description: string;
   icon: React.ReactElement;
 }[] = [
-  {
-    value: "none",
-    title: "No refund",
-    description: "For no-shows or policy violations",
-    icon: <Ban />,
-  },
-  {
-    value: "credit_return",
-    title: "Return package credits",
-    description: "Restore the credit to the original package",
-    icon: <ArrowLeftRight />,
-  },
-  {
-    value: "credit_issue_new",
-    title: "Issue new credits",
-    description: "Create fresh credits with an expiry date",
-    icon: <WalletCards />,
-  },
-  {
-    value: "manual_external",
-    title: "External cash refund",
-    description: "Record a refund handled outside the platform",
-    icon: <Banknote />,
-  },
-];
+    {
+      value: "none",
+      title: "No refund",
+      description: "For no-shows or policy violations",
+      icon: <Ban />,
+    },
+    {
+      value: "credit_return",
+      title: "Return package credits",
+      description: "Restore the credit to the original package",
+      icon: <ArrowLeftRight />,
+    },
+    {
+      value: "credit_issue_new",
+      title: "Issue new credits",
+      description: "Create fresh credits with an expiry date",
+      icon: <WalletCards />,
+    },
+    {
+      value: "manual_external",
+      title: "External cash refund",
+      description: "Record a refund handled outside the platform",
+      icon: <Banknote />,
+    },
+  ];
 
 export const SessionDetailPage = () => {
   const router = useRouter();
   const { isManager } = useAdminPermission();
   const params = useParams();
   const { id } = params;
-  const { data, isLoading } = useGetSessionDetail(id as string);
+  const { data, isLoading, refetch: refetchDetail } = useGetSessionDetail(id as string);
   const [page, setPage] = useState(1);
   const [openDialog, setOpenDialog] = useState(false);
   const [validityDays, setValidityDays] = useState(15);
@@ -116,6 +124,16 @@ export const SessionDetailPage = () => {
   const [selectedDataCancel, setSelectedDataCancel] = useState<IParticipantsSession | null>(null);
   const [pendingAttendance, setPendingAttendance] = useState<{ id: string; status: IAttendanceStatus } | null>(null);
   const [isLateCancel, setIsLateCancel] = useState(false);
+  const [chargeFee, setChargeFee] = useState(false);
+  const [feeMethod, setFeeMethod] = useState<FeeMethod>("cash");
+  const [feeAmount, setFeeAmount] = useState<number | "">(75000);
+  const [transferFromName, setTransferFromName] = useState("");
+  const [transferBankFrom, setTransferBankFrom] = useState<{ label: string; value: string } | null>(null);
+  const [transferBankTo, setTransferBankTo] = useState<{ label: string; value: string } | null>(null);
+  const [feeBranch, setFeeBranch] = useState<{ label: string; value: string } | null>(null);
+  const [feePendingMsg, setFeePendingMsg] = useState<string | null>(null);
+  const [feePendingUrl, setFeePendingUrl] = useState<string | null>(null);
+  const [feeWaMessage, setFeeWaMessage] = useState<string>("");
 
   const { mutateAsync: rescheduleSession } = useRescheduleSession();
 
@@ -133,11 +151,48 @@ export const SessionDetailPage = () => {
   const { mutateAsync: cancelBooking } = useCancelBooking();
   const [openReminder, setOpenReminder] = useState(false);
   const { mutateAsync: remindAll } = useSendReminderSession();
+  const { mutateAsync: publishAsync, isPending: isPublishing } = usePublishSession();
+  const { mutateAsync: unpublishAsync, isPending: isUnpublishing } = useUnpublishSession();
+  const [openDuplicate, setOpenDuplicate] = useState(false);
   const [openRemark, setOpenRemark] = useState(false);
   const [selectedRemarkRow, setSelectedRemarkRow] = useState<IParticipantsSession | null>(null);
   const [remarkValue, setRemarkValue] = useState("");
   const [remarkError, setRemarkError] = useState<string | null>(null);
   const { mutateAsync: updateCustomerRemark, isPending: isUpdatingRemark } = useEditCustomer();
+
+  // Lapor daftar peserta ke guru via WhatsApp (copy chat)
+  const [openWaReport, setOpenWaReport] = useState(false);
+  const [waMessage, setWaMessage] = useState("");
+  const [waTotal, setWaTotal] = useState(0);
+  const [loadingWa, setLoadingWa] = useState(false);
+
+  const onOpenWaReport = async () => {
+    setOpenWaReport(true);
+    setWaMessage("");
+    setLoadingWa(true);
+    try {
+      const res = await getSessionParticipants(id as string);
+      setWaTotal(res?.data?.total ?? 0);
+      const list = (res?.data?.participants ?? [])
+        .filter((p) => p.name)
+        .map((p, i) => `${i + 1}. ${p.name}`)
+        .join("\n");
+      const d = data?.data;
+      const sched = d?.start_date
+        ? `${formatDateHelper(d.start_date as string, "dd MMM yyyy")} ${d?.time_start ?? ""}-${d?.time_end ?? ""}`
+        : (d?.session_name ?? "");
+      setWaMessage(
+        `hi kak ${d?.instructor_name ?? ""}, mau infokan untuk murid kelas ${sched} di ${d?.location ?? branchLabel(d?.branch ?? null) ?? "studio"} yaa kakk\n` +
+        `sebagai berikut\n${list}\n\n` +
+        `untuk next update akan admin infokan kembali yaa kakk, terima kasihhh`,
+      );
+    } catch {
+      toast.error("Gagal memuat daftar peserta", { position: "top-center" });
+      setOpenWaReport(false);
+    } finally {
+      setLoadingWa(false);
+    }
+  };
 
   const onConfirmAttendance = async (id: string, status: IAttendanceStatus) => {
     try {
@@ -171,16 +226,65 @@ export const SessionDetailPage = () => {
     return ms / 3600000;
   };
 
+  // Penalty policy fee comes from the already-fetched session detail (no extra call).
+  const policyFeeIdr = data?.data?.cancellation_fee_idr ?? data?.data?.class?.cancellation_fee_idr ?? 75000;
+
+  const resetCancelState = () => {
+    setOpenCancel(false);
+    setSelectedDataCancel(null);
+    setRescheduleNotes("");
+    setRefundTYpe("none");
+    setValidityDays(15);
+    setRefundAmount(0);
+    setIsLateCancel(false);
+    setChargeFee(false);
+    setFeeMethod("cash");
+    setFeeAmount(policyFeeIdr);
+    setTransferFromName("");
+    setTransferBankFrom(null);
+    setTransferBankTo(null);
+    setFeeBranch(null);
+    setFeePendingMsg(null);
+    setFeePendingUrl(null);
+    setFeeWaMessage("");
+  };
+
+  const buildFeeWaMessage = (snapUrl: string) => {
+    const name = selectedDataCancel?.customer_name ?? "Kak";
+    const sessionName = data?.data?.session_name ?? "kelas";
+    const schedule = data?.data?.start_date
+      ? `${formatDateHelper(data.data.start_date as string, "dd MMM yyyy")} ${data?.data?.time_start ?? ""}-${data?.data?.time_end ?? ""}`.trim()
+      : `${data?.data?.time_start ?? ""}-${data?.data?.time_end ?? ""}`.trim();
+    const place = data?.data?.location ?? data?.data?.branch ?? "studio";
+    const amount = feeAmount !== "" ? Number(feeAmount) : policyFeeIdr;
+    return `Hi Kak ${name}!\n\nKamu late cancel untuk kelas ${sessionName} (${schedule} di ${place}), jadi ada penalty fee sebesar ${formatCurrency(Number.isNaN(amount) ? policyFeeIdr : amount)}.\n\nKredit kamu akan otomatis kembali setelah fee lunas. Silakan selesaikan pembayaran di link berikut:\n${snapUrl}\n\nTerima kasih!`;
+  };
+
   const onTriggerCancel = (row: IParticipantsSession) => {
     setSelectedDataCancel(row);
     const hoursUntil = getHoursUntilSession();
     const late = hoursUntil !== null && hoursUntil < 6;
     setIsLateCancel(late);
+    setFeePendingMsg(null);
+    setFeePendingUrl(null);
+    setFeeWaMessage("");
+    setTransferFromName(row?.customer_name ?? "");
+    setTransferBankFrom(null);
+    setTransferBankTo(null);
+    setFeeBranch(null);
+    setFeeMethod("cash");
+    setFeeAmount(policyFeeIdr);
     const isCredits = row?.paid_with?.type === "credits" || row?.payment_method === "credits";
     if (late) {
-      setRefundTYpe("none");
+      // Late (<6h): penalty fee checkbox. Auto-checked for admin, manager opts in. Fee 0 = free, no penalty.
+      setRefundTYpe(isCredits ? "credit_return" : "none");
+      setChargeFee(isCredits && !isManager && policyFeeIdr > 0);
+    } else if (isCredits) {
+      setRefundTYpe("credit_return");
+      setChargeFee(false);
     } else {
-      setRefundTYpe(isCredits ? "credit_return" : "credit_issue_new");
+      setRefundTYpe("credit_issue_new");
+      setChargeFee(false);
     }
     // cash/midtrans amount prefill for external refund; credits use package expiry
     const isCash = row?.payment_method === "cash" || row?.payment_method === "midtrans" || row?.paid_with?.type === "cash";
@@ -190,7 +294,11 @@ export const SessionDetailPage = () => {
     setOpenCancel(true);
   };
   const onCancelBooking = async () => {
+    let keepOpenForPending = false;
     try {
+      setFeePendingMsg(null);
+      setFeePendingUrl(null);
+      setFeeWaMessage("");
       const payload = {
         id: selectedDataCancel?.id as string,
         refund_type: refundType,
@@ -201,22 +309,53 @@ export const SessionDetailPage = () => {
         ...(refundType === "manual_external" && {
           refund_amount_idr: Number(refundAmount),
         }),
+        ...(isLateCancel &&
+          chargeFee && {
+          charge_fee: true,
+          ...(feeAmount !== "" && { fee_amount_idr: Number(feeAmount) }),
+          fee_payment_method: feeMethod,
+          // Same shape as manual bank-transfer order: stored as-is in payments.provider_payload.transfer_details
+          ...(feeMethod === "transfer" && {
+            transfer_details: {
+              ...(transferFromName.trim() && { account_name_from: transferFromName.trim() }),
+              ...(transferBankFrom?.label && { account_bank_from: transferBankFrom.label }),
+              ...(transferBankTo?.label && { account_bank_to: transferBankTo.label }),
+            },
+          }),
+          // Fee branch override; BE falls back to booking's branch when omitted
+          ...(feeBranch?.value && { fee_branch: feeBranch.value }),
+        }),
       };
       const res = await cancelBooking(payload);
+      const feePayment = (res as { data?: { fee_payment?: { status?: string; snap_token?: string; snap_redirect_url?: string }; booking_status?: string; message?: string } })
+        ?.data?.fee_payment;
+      if (feePayment?.status === "pending" && (feePayment.snap_redirect_url || feePayment.snap_token)) {
+        // Midtrans penalty: no auto redirect. Admin copies the WA text below and sends it manually.
+        const url = feePayment.snap_redirect_url ?? "";
+        toast.info("Fee payment pending", {
+          id: "fee-pending",
+          description: "Copy pesan WA di bawah dan kirim ke customer. Booking batal otomatis setelah fee lunas.",
+          position: "top-center",
+        });
+        setFeePendingUrl(url || null);
+        setFeeWaMessage(url ? buildFeeWaMessage(url) : "");
+        setFeePendingMsg("Fee payment pending. Kirim link berikut ke customer via WhatsApp. Booking batal otomatis setelah Midtrans lunas.");
+        refetch();
+        keepOpenForPending = true;
+        return;
+      }
       if (res) {
         refetch();
-        setOpenCancel(false);
-        setSelectedDataCancel(null);
-        setRescheduleNotes("");
-        setRefundTYpe("none");
-        setValidityDays(15);
-        setRefundAmount(0);
+        resetCancelState();
       }
     } catch (error) {
       console.log(error);
     } finally {
-      setOpenCancel(false);
-      setSelectedDataCancel(null);
+      // keep dialog open on midtrans-pending so admin sees the waiting state
+      if (!keepOpenForPending && !feePendingMsg) {
+        setOpenCancel(false);
+        setSelectedDataCancel(null);
+      }
     }
   };
 
@@ -247,6 +386,20 @@ export const SessionDetailPage = () => {
       const err = e as { response?: { data?: { error?: { details?: { remark?: string[] }; message?: string } } } };
       const msg = err?.response?.data?.error?.details?.remark?.[0] || err?.response?.data?.error?.message;
       if (msg) setRemarkError(msg);
+    }
+  };
+
+  const onOpenDuplicate = () => {
+    setOpenDuplicate(true);
+  };
+
+  const onTogglePublish = async () => {
+    try {
+      if (data?.data?.is_published === false) await publishAsync(id as string);
+      else await unpublishAsync(id as string);
+      refetchDetail();
+    } catch (error) {
+      console.log(error);
     }
   };
 
@@ -296,8 +449,8 @@ export const SessionDetailPage = () => {
               isCredits
                 ? "border-brand-200 bg-brand-25 text-brand-700"
                 : provider === "third_party"
-                ? "border-amber-200 bg-amber-50 text-amber-700"
-                : "border-emerald-200 bg-emerald-50 text-emerald-700",
+                  ? "border-amber-200 bg-amber-50 text-amber-700"
+                  : "border-emerald-200 bg-emerald-50 text-emerald-700",
             )}
           >
             {label}
@@ -421,9 +574,6 @@ export const SessionDetailPage = () => {
     refetchSession();
     setSearch("");
   };
-  const onClickReminder = () => {
-    setOpenReminder(true);
-  };
   const onRemindAll = async () => {
     try {
       const res = await remindAll(id as string);
@@ -477,9 +627,9 @@ export const SessionDetailPage = () => {
             Reschedule
           </DropdownMenuItem>
           {row.booking_status !== "cancelled" &&
-          row.booking_status !== "canceled" &&
-          row.payment_status !== "voided" &&
-          ((row.attendance_status === "attended" && isManager) || !row.attendance_status) ? (
+            row.booking_status !== "canceled" &&
+            row.payment_status !== "voided" &&
+            ((row.attendance_status === "attended" && isManager) || !row.attendance_status) ? (
             <DropdownMenuItem onClick={() => onTriggerCancel(row)} className="text-red-500" disabled={isPending}>
               Cancel Booking
             </DropdownMenuItem>
@@ -544,6 +694,11 @@ export const SessionDetailPage = () => {
                   {data?.data?.status}
                 </Badge>
                 {data?.data?.is_credit_only ? <Badge variant="secondary">Credit Only</Badge> : null}
+                {data?.data?.is_published === false ? (
+                  <Badge variant="secondary">
+                    {isScheduled(data?.data) ? `Scheduled ${formatPublishCountdown(data?.data?.publish_at)}` : "Draft"}
+                  </Badge>
+                ) : null}
               </div>
 
               <p className="text-sm text-gray-500">Review all session details and make updates as needed</p>
@@ -551,11 +706,16 @@ export const SessionDetailPage = () => {
           </BackButtonComponent>
 
           <div className="flex flex-row items-center gap-2">
-            {/* <div>
-              <Button variant={"outline"}>
-                <File /> Export
+            <div>
+              <Button variant="outline" onClick={onOpenDuplicate}>
+                <CopyPlus /> Duplicate
               </Button>
-            </div> */}
+            </div>
+            <div>
+              <Button variant="outline" onClick={onTogglePublish} disabled={isPublishing || isUnpublishing}>
+                {data?.data?.is_published === false ? "Publish" : "Unpublish"}
+              </Button>
+            </div>
             <div>
               <Button onClick={() => router.push(`${id}/edit`)}>
                 <PenIcon /> Edit
@@ -641,15 +801,9 @@ export const SessionDetailPage = () => {
           <div className="flex flex-col gap-4">
             <div className="flex flex-row items-center justify-between">
               <h4 className="text-sm font-semibold">Participants</h4>
-              {/* {data?.data?.status !== 'canceled' && data?.data?.status !== 'ended' &&
-                <div>
-                  <Button onClick={() => {
-                    onClickReminder()
-                  }}>
-                    <BellRing /> Remind All
-                  </Button>
-                </div>
-              } */}
+              <Button variant="outline" onClick={onOpenWaReport} disabled={loadingWa}>
+                <Copy /> Lapor ke Guru
+              </Button>
             </div>
             <div className="flex flex-col gap-2">
               <CustomTable
@@ -675,6 +829,8 @@ export const SessionDetailPage = () => {
               />
             </div>
           </div>
+          <Divider className="my-2" />
+          <SessionWaitlistPanel sessionId={id as string} />
         </div>
       </CardContent>
       {openDialog && (
@@ -769,15 +925,8 @@ export const SessionDetailPage = () => {
           title="Cancel Booking"
           buttonTriggerText="Cancel Booking"
           onConfirm={onCancelBooking}
-          btnConfirm="Cancel Booking"
-          onClose={() => {
-            setOpenCancel(false);
-            setRefundTYpe("none");
-            setValidityDays(15);
-            setRefundAmount(0);
-            setRescheduleNotes("");
-            setIsLateCancel(false);
-          }}
+          btnConfirm={isLateCancel && chargeFee && refundType !== "none" ? "Record Fee & Return Credit" : "Cancel Booking"}
+          onClose={resetCancelState}
         >
           {(() => {
             const hoursUntil = (() => {
@@ -793,108 +942,290 @@ export const SessionDetailPage = () => {
               selectedDataCancel?.payment_method === "cash" ||
               selectedDataCancel?.payment_method === "midtrans" ||
               selectedDataCancel?.paid_with?.type === "cash";
+            const feeMethods: FeeMethod[] = ["cash", "edc", "transfer", "midtrans"];
             return (
-              <div
-                className={cn(
-                  "flex gap-3 rounded-lg border p-3 text-sm",
-                  isLateCancel ? "border-amber-300 bg-amber-50 text-amber-900" : "border-brand-100 bg-brand-25 text-brand-900",
-                )}
-              >
-                <AlertTriangle className={cn("h-5 w-5 shrink-0", isLateCancel ? "text-amber-600" : "text-brand-500")} />
-                <div>
-                  <p className="font-semibold">{isLateCancel ? "Late cancellation — less than 6 hours" : "On-time cancellation"}</p>
-                  {selectedDataCancel && (
-                    <p className="text-xs text-muted-foreground mt-1">
-                      {selectedDataCancel.customer_name} ·{" "}
-                      {isCredits
-                        ? `Package: ${selectedDataCancel.paid_with?.package_name ?? "-"} (${selectedDataCancel.paid_with?.credits_used ?? 1} cr)`
-                        : `Cash: ${formatCurrency(selectedDataCancel.paid_with?.revenue_idr ?? data?.data?.price_idr)} · ${
-                            isThirdParty ? "3rd Party" : isCash ? "Midtrans/cash" : selectedDataCancel.payment_method
-                          }`}
-                      {hoursUntil !== null && ` · starts in ${hoursUntil.toFixed(1)}h`}
-                    </p>
+              <>
+                <div
+                  className={cn(
+                    "flex gap-3 rounded-lg border p-3 text-sm font-sans",
+                    isLateCancel ? "border-amber-300 bg-amber-50 text-amber-900" : "border-brand-100 bg-brand-25 text-brand-900",
                   )}
+                >
+                  <AlertTriangle className={cn("h-5 w-5 shrink-0", isLateCancel ? "text-amber-600" : "text-brand-500")} />
+                  <div>
+                    <p className="font-semibold">{isLateCancel ? "Late cancellation — less than 6 hours" : "On-time cancellation"}</p>
+                    {selectedDataCancel && (
+                      <p className="text-xs text-muted-foreground mt-1">
+                        {selectedDataCancel.customer_name} ·{" "}
+                        {isCredits
+                          ? `Package: ${selectedDataCancel.paid_with?.package_name ?? "-"} (${selectedDataCancel.paid_with?.credits_used ?? 1} cr)`
+                          : `Cash: ${formatCurrency(selectedDataCancel.paid_with?.revenue_idr ?? data?.data?.price_idr)} · ${isThirdParty ? "3rd Party" : isCash ? "Midtrans/cash" : selectedDataCancel.payment_method
+                          }`}
+                        {hoursUntil !== null && ` · starts in ${hoursUntil.toFixed(1)}h`}
+                      </p>
+                    )}
+                    {isLateCancel && (
+                      <p className="text-xs mt-1">
+                        Per T&C the credit is forfeited. To return it, the customer must pay the penalty fee.
+                      </p>
+                    )}
+                  </div>
                 </div>
-              </div>
+
+                <RadioGroup
+                  value={refundType}
+                  onValueChange={(v) => {
+                    setRefundTYpe(v);
+                  }}
+                >
+                  <div className="grid grid-cols-2 gap-2">
+                    {refundOptions.map((option) => (
+                      <div
+                        key={option.value}
+                        className={cn("flex items-center space-x-2 border border-brand-400 rounded-xl p-4", {
+                          "border-2 bg-brand-50": refundType === option.value,
+                        })}
+                      >
+                        <RadioGroupItem value={option.value} id={option.value} />
+                        <Label htmlFor={option.value} className="text-sm font-medium text-brand-999 cursor-pointer">
+                          <div className="flex flex-row items-center gap-4">
+                            {option.icon}
+                            <div className="flex flex-col gap-2">
+                              <p className="font-bold text-xl">{option.title}</p>
+                              <p className="font-normal">{option.description}</p>
+                            </div>
+                          </div>
+                        </Label>
+                      </div>
+                    ))}
+                  </div>
+                </RadioGroup>
+
+                {refundType === "credit_issue_new" && (
+                  <div className="flex flex-col gap-2">
+                    <Label htmlFor="validity-days">Credit validity</Label>
+                    <div className="flex items-center gap-2">
+                      <Input
+                        id="validity-days"
+                        type="number"
+                        min="0"
+                        value={validityDays}
+                        readOnly={!!selectedDataCancel?.paid_with?.package_expires_at}
+                        onChange={(event) => setValidityDays(parseInt(event.target.value))}
+                        className="max-w-32"
+                      />
+                      <span className="text-sm text-muted-foreground">days from cancellation</span>
+                    </div>
+                    {selectedDataCancel?.paid_with?.package_expires_at && (
+                      <p className="text-xs text-muted-foreground">
+                        Expiry matches original package: {formatDateHelper(selectedDataCancel.paid_with.package_expires_at, "dd MMM yyyy")}
+                      </p>
+                    )}
+                  </div>
+                )}
+
+                {refundType === "manual_external" && (
+                  <div className="flex flex-col gap-2">
+                    <Label htmlFor="refund-amount">Refund amount</Label>
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm text-muted-foreground">IDR</span>
+                      <Input
+                        id="refund-amount"
+                        type="number"
+                        min="1"
+                        placeholder="150000"
+                        value={refundAmount || ""}
+                        readOnly={selectedDataCancel?.payment_method === "cash"}
+                        onChange={(event) => setRefundAmount(parseInt(event.target.value))}
+                      />
+                    </div>
+                    {selectedDataCancel?.payment_method === "cash" && (
+                      <p className="text-xs text-muted-foreground">Refund amount is prefilled from the cash payment received.</p>
+                    )}
+                  </div>
+                )}
+
+                {isLateCancel && (
+                  <div className="flex flex-col gap-3 rounded-xl border border-brand-200 p-4 font-sans">
+                    <label className="flex items-center gap-2 text-sm font-medium cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={chargeFee}
+                        disabled={policyFeeIdr === 0}
+                        onChange={(e) => setChargeFee(e.target.checked)}
+                        className="h-4 w-4 accent-teal-700"
+                      />
+                      Charge penalty fee
+                      {policyFeeIdr === 0 ? (
+                        <span className="text-xs text-muted-foreground">Free, no penalty for this class</span>
+                      ) : (
+                        <span className="text-xs text-muted-foreground">{formatCurrency(policyFeeIdr)} set by policy</span>
+                      )}
+                    </label>
+                    {chargeFee && (
+                      <>
+                        <div className="grid grid-cols-2 gap-3">
+                          <div className="flex flex-col gap-1">
+                            <Label htmlFor="fee-amount">Amount (IDR)</Label>
+                            <Input
+                              id="fee-amount"
+                              type="number"
+                              min="1"
+                              placeholder={`${policyFeeIdr} (policy default)`}
+                              value={feeAmount}
+                              readOnly={!isManager}
+                              onChange={(e) => setFeeAmount(e.target.value === "" ? "" : Number(e.target.value))}
+                            />
+                            <p className="text-xs text-muted-foreground">
+                              {isManager ? "Empty = policy default (class fee)." : "Nominal dikunci policy, hanya manager yang bisa ubah."}
+                            </p>
+                          </div>
+                          <div className="flex flex-col gap-1">
+                            <Label>Payment method</Label>
+                            <div className="flex flex-wrap gap-1">
+                              {feeMethods.map((m) => (
+                                <Button
+                                  key={m}
+                                  type="button"
+                                  variant={feeMethod === m ? "default" : "outline"}
+                                  size="sm"
+                                  className="capitalize"
+                                  onClick={() => setFeeMethod(m)}
+                                >
+                                  {m === "edc" ? "EDC" : m === "transfer" ? "Transfer" : m.charAt(0).toUpperCase() + m.slice(1)}
+                                </Button>
+                              ))}
+                            </div>
+                          </div>
+                        </div>
+                        {feeMethod === "transfer" && (
+                          <div className="flex flex-col gap-2">
+                            <div className="flex flex-col gap-1">
+                              <Label htmlFor="fee-transfer-from">Transfer from (name)</Label>
+                              <Input
+                                id="fee-transfer-from"
+                                placeholder="Sender name..."
+                                value={transferFromName}
+                                onChange={(e) => setTransferFromName(e.target.value)}
+                              />
+                            </div>
+                            <div className="flex flex-col gap-1">
+                              <Label>Transfer from (bank)</Label>
+                              <Select
+                                options={BANK_LIST as never}
+                                value={transferBankFrom as never}
+                                placeholder="Select sender bank..."
+                                onChange={(e) => setTransferBankFrom(e as unknown as { label: string; value: string })}
+                              />
+                            </div>
+                            <div className="flex flex-col gap-1">
+                              <Label>Transfer to (Sehela account)</Label>
+                              <Select
+                                options={SEHELA_BANKS as never}
+                                value={transferBankTo as never}
+                                placeholder="Select destination..."
+                                onChange={(e) => setTransferBankTo(e as unknown as { label: string; value: string })}
+                              />
+                            </div>
+                          </div>
+                        )}
+                        <div className="flex flex-col gap-1">
+                          <Label>Fee branch</Label>
+                          <Select
+                            options={SEHELA_BRANCH as never}
+                            value={
+                              (feeBranch ??
+                                (data?.data?.branch
+                                  ? SEHELA_BRANCH.find((b) => b.value === data.data.branch)
+                                  : null)) as never
+                            }
+                            placeholder="Booking branch (auto)"
+                            isClearable
+                            onChange={(e) => setFeeBranch((e as unknown as { label: string; value: string }) ?? null)}
+                          />
+                          <p className="text-xs text-muted-foreground">Empty = booking branch. Set only to override.</p>
+                        </div>
+                        {feeMethod === "midtrans" && !feePendingUrl && (
+                          <p className="text-xs text-muted-foreground">
+                            Tidak ada redirect otomatis. Setelah konfirmasi, salin pesan WA di bawah dan kirim ke customer.
+                          </p>
+                        )}
+                      </>
+                    )}
+                  </div>
+                )}
+
+                {feePendingMsg && (
+                  <div className="flex flex-col gap-3 rounded-lg border border-amber-300 bg-amber-50 p-3 text-sm text-amber-900">
+                    <p>{feePendingMsg}</p>
+                    {feePendingUrl && (
+                      <div className="flex flex-col gap-1">
+                        <Label className="text-amber-900">Link pembayaran</Label>
+                        <div className="flex items-center gap-2">
+                          <Input value={feePendingUrl} readOnly className="bg-white text-xs" />
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            onClick={() => {
+                              navigator.clipboard.writeText(feePendingUrl);
+                              toast.success("Link copied!");
+                            }}
+                          >
+                            <Copy className="h-3.5 w-3.5" />
+                            Copy
+                          </Button>
+                        </div>
+                      </div>
+                    )}
+                    {feeWaMessage && (
+                      <div className="flex flex-col gap-1">
+                        <Label className="text-amber-900">Pesan WA untuk customer</Label>
+                        <Textarea value={feeWaMessage} readOnly rows={7} className="bg-white text-xs" />
+                        <div className="flex flex-wrap gap-2">
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            onClick={() => {
+                              navigator.clipboard.writeText(feeWaMessage);
+                              toast.success("Pesan copied!");
+                            }}
+                          >
+                            <Copy className="h-3.5 w-3.5" />
+                            Copy pesan
+                          </Button>
+                          <Button
+                            type="button"
+                            size="sm"
+                            disabled={!selectedDataCancel?.customer_phone}
+                            onClick={() => {
+                              const phone = normalizePhoneNumber(selectedDataCancel?.customer_phone?.trim() ?? "");
+                              window.open(`https://wa.me/${phone}?text=${encodeURIComponent(feeWaMessage)}`, "_blank", "noopener");
+                            }}
+                          >
+                            Kirim via WhatsApp
+                          </Button>
+                        </div>
+                        {!selectedDataCancel?.customer_phone && (
+                          <p className="text-xs">Nomor WA customer kosong, copy pesan manual.</p>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                <div className="flex flex-col gap-2">
+                  <Label>Notes</Label>
+                  <Textarea
+                    className="w-full px-4 py-4 border-2 border-gray-200 rounded-lg text-gray-999  placeholder-gray-400 focus:outline-none focus:border-brand-500 transition-colors h-[42px]"
+                    placeholder="Type here.."
+                    onChange={(e) => setRescheduleNotes(e.target.value)}
+                  />
+                </div>
+              </>
             );
           })()}
-
-          <RadioGroup value={refundType} onValueChange={(v) => setRefundTYpe(v)}>
-            <div className="grid grid-cols-2 gap-2">
-              {refundOptions.map((option) => (
-                <div
-                  key={option.value}
-                  className={cn("flex items-center space-x-2 border border-brand-400 rounded-xl p-4", {
-                    "border-2 bg-brand-50": refundType === option.value,
-                  })}
-                >
-                  <RadioGroupItem value={option.value} id={option.value} />
-                  <Label htmlFor={option.value} className="text-sm font-medium text-brand-999 cursor-pointer">
-                    <div className="flex flex-row items-center gap-4">
-                      {option.icon}
-                      <div className="flex flex-col gap-2">
-                        <p className="font-bold text-xl">{option.title}</p>
-                        <p className="font-normal">{option.description}</p>
-                      </div>
-                    </div>
-                  </Label>
-                </div>
-              ))}
-            </div>
-          </RadioGroup>
-
-          {refundType === "credit_issue_new" && (
-            <div className="flex flex-col gap-2">
-              <Label htmlFor="validity-days">Credit validity</Label>
-              <div className="flex items-center gap-2">
-                <Input
-                  id="validity-days"
-                  type="number"
-                  min="0"
-                  value={validityDays}
-                  readOnly={!!selectedDataCancel?.paid_with?.package_expires_at}
-                  onChange={(event) => setValidityDays(parseInt(event.target.value))}
-                  className="max-w-32"
-                />
-                <span className="text-sm text-muted-foreground">days from cancellation</span>
-              </div>
-              {selectedDataCancel?.paid_with?.package_expires_at && (
-                <p className="text-xs text-muted-foreground">
-                  Expiry matches original package: {formatDateHelper(selectedDataCancel.paid_with.package_expires_at, "dd MMM yyyy")}
-                </p>
-              )}
-            </div>
-          )}
-
-          {refundType === "manual_external" && (
-            <div className="flex flex-col gap-2">
-              <Label htmlFor="refund-amount">Refund amount</Label>
-              <div className="flex items-center gap-2">
-                <span className="text-sm text-muted-foreground">IDR</span>
-                <Input
-                  id="refund-amount"
-                  type="number"
-                  min="1"
-                  placeholder="150000"
-                  value={refundAmount || ""}
-                  readOnly={selectedDataCancel?.payment_method === "cash"}
-                  onChange={(event) => setRefundAmount(parseInt(event.target.value))}
-                />
-              </div>
-              {selectedDataCancel?.payment_method === "cash" && (
-                <p className="text-xs text-muted-foreground">Refund amount is prefilled from the cash payment received.</p>
-              )}
-            </div>
-          )}
-
-          <div className="flex flex-col gap-2">
-            <Label>Notes</Label>
-            <Textarea
-              className="w-full px-4 py-4 border-2 border-gray-200 rounded-lg text-gray-999  placeholder-gray-400 focus:outline-none focus:border-brand-500 transition-colors h-[42px]"
-              placeholder="Type here.."
-              onChange={(e) => setRescheduleNotes(e.target.value)}
-            />
-          </div>
         </BaseDialogComponent>
       )}
       {openReminder && (
@@ -915,21 +1246,59 @@ export const SessionDetailPage = () => {
             pendingAttendance.status === "attended"
               ? "Confirm Check In"
               : pendingAttendance.status === "no_show"
-              ? "Confirm No Show"
-              : "Confirm Reset Attendance"
+                ? "Confirm No Show"
+                : "Confirm Reset Attendance"
           }
           subtitle={
             pendingAttendance.status === "attended"
               ? "Mark this participant as attended?"
               : pendingAttendance.status === "no_show"
-              ? "Mark this participant as no show?"
-              : "Reset this participant's attendance status? This action cannot be undone."
+                ? "Mark this participant as no show?"
+                : "Reset this participant's attendance status? This action cannot be undone."
           }
           onConfirm={onConfirmAttendanceChange}
           confirmText={pendingAttendance.status ? "Confirm" : "Reset"}
           onCancel={() => setPendingAttendance(null)}
           image="warning-1"
         />
+      )}
+      {openDuplicate && (
+        <DuplicateSessionDialog
+          source={data?.data ?? null}
+          open={openDuplicate}
+          onOpenChange={setOpenDuplicate}
+        />
+      )}
+      {openWaReport && (
+        <BaseDialogComponent
+          isOpen={openWaReport}
+          title="Lapor Daftar Peserta ke Guru (WhatsApp)"
+          btnConfirm="Copy Pesan"
+          onClose={() => setOpenWaReport(false)}
+          onConfirm={() => {
+            navigator.clipboard.writeText(waMessage);
+            toast.success("Pesan copied! Tempel di chat WhatsApp guru.", { position: "top-center" });
+          }}
+        >
+          <div className="flex flex-col gap-2">
+            <p className="text-sm text-muted-foreground">
+              {data?.data?.class?.class_name} · {data?.data?.session_name} · {waTotal} peserta confirmed
+            </p>
+            {loadingWa ? (
+              <div className="flex items-center justify-center py-6">
+                <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+              </div>
+            ) : (
+              <Textarea
+                value={waMessage}
+                onChange={(e) => setWaMessage(e.target.value)}
+                rows={12}
+                placeholder="Daftar peserta..."
+                className="font-sans text-sm"
+              />
+            )}
+          </div>
+        </BaseDialogComponent>
       )}
       {openRemark && (
         <BaseDialogComponent

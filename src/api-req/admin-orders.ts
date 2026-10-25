@@ -2,6 +2,7 @@ import { axiosx } from "@/lib/axiosx";
 import { MAIN_API_URL } from "@/lib/config";
 import { ICommonParams } from "@/types/general.interface";
 import {
+  TAdminBookingDetail,
   TBookingsSession,
   TCancelBooking,
   TChangeAttendanceStatus,
@@ -9,6 +10,7 @@ import {
   TCreateManualOrder,
   TOrderDetail,
   TOrderList,
+  TProductOrderDetail,
   TRescheduleSessionCust,
   TSendEmailReceipt,
   TThirdPartyApp,
@@ -41,7 +43,7 @@ export const getOrders: TOrderList = async ({
       ...(status ? { status } : null),
       ...(movement_type ? { movement_type } : null),
       ...(type ? { type } : null),
-      ...(branch ? { branch } : null),
+      ...(branch && branch !== "all" ? { branch } : null),
     },
   });
   return res.data;
@@ -49,6 +51,11 @@ export const getOrders: TOrderList = async ({
 
 export const getDetailOrder: TOrderDetail = async (id) => {
   const res = await axiosx(true).get(`${MAIN_API_URL}/admin/transactions/${id}`);
+  return res.data;
+};
+
+export const getProductOrderDetail: TProductOrderDetail = async (id) => {
+  const res = await axiosx(true).get(`${MAIN_API_URL}/admin/orders/${id}`);
   return res.data;
 };
 
@@ -91,12 +98,23 @@ export const changeAttendanceStatus: TChangeAttendanceStatus = async (data) => {
   });
   return res.data;
 };
+
+// Admin self check-in: lookup booking by scan (GET /admin/bookings/:id)
+export const getAdminBookingDetail: TAdminBookingDetail = async (id) => {
+  const res = await axiosx(true).get(`${MAIN_API_URL}/admin/bookings/${id}`);
+  return res.data;
+};
 export const cancelBookingSession: TCancelBooking = async (data) => {
   const res = await axiosx(true).post(`${MAIN_API_URL}/admin/bookings/${data.id}/cancel`, {
     refund_type: data?.refund_type,
     cancel_reason: data?.cancel_reason,
     refund_validity_days: data?.refund_validity_days,
     ...(data?.refund_amount_idr ? { refund_amount_idr: data?.refund_amount_idr } : null),
+    ...(data?.charge_fee ? { charge_fee: true } : null),
+    ...(data?.charge_fee && data?.fee_amount_idr ? { fee_amount_idr: data?.fee_amount_idr } : null),
+    ...(data?.charge_fee && data?.fee_payment_method ? { fee_payment_method: data?.fee_payment_method } : null),
+    ...(data?.charge_fee && data?.transfer_details ? { transfer_details: data?.transfer_details } : null),
+    ...(data?.fee_branch ? { fee_branch: data?.fee_branch } : null),
   });
   return res.data;
 };

@@ -31,10 +31,17 @@
   --color-input: var(--color-gray-200);
   --color-destructive-foreground: white;
 
+  --color-muted: var(--color-gray-100);
+  --color-muted-foreground: var(--color-gray-500);
+
   --color-border: var(--color-brand-200);
   --color-ring: var(--color-brand-400);
   --color-background: var(--background);
   --color-foreground: var(--foreground);
+  --color-popover: var(--background);
+  --color-popover-foreground: var(--foreground);
+  --color-card: var(--background);
+  --color-card-foreground: var(--foreground);
 
   --shadow-subtle: 0 2px 4px 0 rgba(0, 0, 0, 0.05);
   /* Gray */

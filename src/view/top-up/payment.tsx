@@ -1,6 +1,7 @@
 "use client";
 import { NavHeaderComponent } from "@/components/layout/header-checkout";
 import { Button } from "@/components/ui/button";
+import { useAuthMember } from "@/context/member.ctx";
 import { useGetPublicCreditPackageDetail } from "@/hooks/api/queries/customer/public";
 import { useGetPaymentStatus } from "@/hooks/api/queries/customer/payments";
 import type { IPaymentStatus } from "@/api-req/customer-app/payments";
@@ -31,6 +32,7 @@ export const PackagePaymentView = () => {
 
   const { data: packageData } = useGetPublicCreditPackageDetail(packageId || null);
   const { data: statusData, refetch } = useGetPaymentStatus(orderId);
+  const { isAuthenticated, isNewMember } = useAuthMember();
   const statusRow = statusData?.data as (IPaymentStatus & { snap_redirect_url?: string; expires_at?: string; created_at?: string }) | undefined;
 
   const stored = getPendingPackagePayment();
@@ -78,6 +80,26 @@ export const PackagePaymentView = () => {
   }, [snapUrl, isSettled, isExpired]);
 
   const item = packageData?.data;
+  // Same new-members-only guard as list/detail. Only hard-block when the
+  // profile has resolved (isNewMember === false) and payment hasn't settled —
+  // a settled order was valid at creation, so always show its success state.
+  const isNewOnlyBlocked =
+    item?.only_for_new_users === true && isAuthenticated && isNewMember === false && !isSettled;
+
+  if (isNewOnlyBlocked) {
+    return (
+      <div className="flex flex-col w-full font-serif h-full text-brand-500">
+        <NavHeaderComponent title="Payment" />
+        <div className="flex flex-col items-center gap-3 px-4 py-12 text-center">
+          <p className="font-semibold text-lg">Not available</p>
+          <p className="text-sm text-brand-500/70">This package is for new members only — not available for your account.</p>
+          <Button className="mt-2 min-h-12 text-sm font-extrabold" onClick={() => router.push("/topup-credit")}>
+            Browse packages
+          </Button>
+        </div>
+      </div>
+    );
+  }
 
   if (!orderId) {
     return (

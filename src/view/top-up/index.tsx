@@ -22,7 +22,7 @@ const placeLabel = (place?: string | null) => {
 };
 
 export const TopUpCreditPageView = () => {
-  const { isAuthenticated } = useAuthMember();
+  const { isAuthenticated, isNewMember } = useAuthMember();
 
   const router = useRouter();
   const [activeFilter, setActiveFilter] = useState<string>("all");
@@ -113,6 +113,8 @@ export const TopUpCreditPageView = () => {
                   key={item.id}
                   item={item}
                   isBest={bestId != null && String(item.id) === bestId}
+                  isNewMember={isNewMember}
+                  isAuthenticated={isAuthenticated}
                   onOpen={open}
                 />
               ))}
@@ -271,15 +273,23 @@ const BalancePanelInner = () => {
 const PackageRow = ({
   item,
   isBest,
+  isNewMember,
+  isAuthenticated,
   onOpen,
 }: {
   item: ICreditPackageItem;
   isBest: boolean;
+  isNewMember?: boolean;
+  isAuthenticated?: boolean;
   onOpen: (id: string) => void;
 }) => {
   const credits = Number(item.credits) || 0;
   const price = Number(item.price_idr) || 0;
   const isFirstTimer = item.max_purchases_per_user === 1;
+  const isNewOnly = item.only_for_new_users === true;
+  // ponytail: default-deny while profile loads (isNewMember undefined) so
+  // authenticated non-new members can't tap through before the flag resolves
+  const isBlocked = isNewOnly && isAuthenticated === true && isNewMember !== true;
   const classNames = item.class_ids_restriction?.map((c) => c.name).join(", ");
   const facts: string[] = [];
   facts.push(`${item.validity_days} days from your first class`);
@@ -289,11 +299,14 @@ const PackageRow = ({
     <button
       type="button"
       onClick={() => onOpen(String(item.id))}
-      aria-label={`${item.name}, ${item.credits} credits, ${formatCurrency(String(item.price_idr))}${isBest ? ", best value" : ""}${isFirstTimer ? ", first-timers only, one purchase per person" : ""}${item.is_shareable ? ", shareable" : ""}`}
+      disabled={isBlocked}
+      aria-label={`${item.name}, ${item.credits} credits, ${formatCurrency(String(item.price_idr))}${isBest ? ", best value" : ""}${isFirstTimer ? ", first-timers only, one purchase per person" : ""}${isNewOnly ? ", new members only" : ""}${item.is_shareable ? ", shareable" : ""}${isBlocked ? ", unavailable for your account" : ""}`}
       className={
-        isBest
-          ? "w-full rounded-2xl border-2 border-brand-500 bg-brand-25 p-4 text-left transition-shadow hover:shadow-md focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-500"
-          : "w-full rounded-2xl border border-brand-200 bg-white p-4 text-left transition-shadow hover:border-brand-500 hover:shadow-md focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-500"
+        isBlocked
+          ? "w-full rounded-2xl border border-brand-200 bg-white p-4 text-left opacity-60"
+          : isBest
+            ? "w-full rounded-2xl border-2 border-brand-500 bg-brand-25 p-4 text-left transition-shadow hover:shadow-md focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-500"
+            : "w-full rounded-2xl border border-brand-200 bg-white p-4 text-left transition-shadow hover:border-brand-500 hover:shadow-md focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-500"
       }
     >
       <span className="flex items-start justify-between gap-4">
@@ -308,6 +321,11 @@ const PackageRow = ({
             {isFirstTimer && (
               <span className="rounded-full border border-amber-200 bg-amber-50 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-amber-800">
                 First-timers · 1 purchase
+              </span>
+            )}
+            {isNewOnly && (
+              <span className="rounded-full border border-emerald-200 bg-emerald-50 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-emerald-800">
+                New members only
               </span>
             )}
           </span>
@@ -335,6 +353,11 @@ const PackageRow = ({
               </span>
             ))}
           </span>
+          {isBlocked && (
+            <span className="mt-1 block text-[11px] font-semibold text-gray-500">
+              For new members only — not available for your account.
+            </span>
+          )}
         </span>
         <span className="shrink-0 whitespace-nowrap text-right">
           <span className="block text-base font-bold tabular-nums">{formatCurrency(String(item.price_idr))}</span>

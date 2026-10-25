@@ -1,103 +1,93 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
 
 import { BaseDialogComponent } from "@/components/general/base-dialog-component";
+import { PhotoUploadForm } from "@/components/general/photo-upload-form";
 import { FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
-import { useGetInventoryLocations } from "@/hooks/api/queries/admin/products";
+import { Switch } from "@/components/ui/switch";
 import { useUpdateVariantDetail } from "@/hooks/api/mutations/admin";
 import { UpdateVariantFormValues, UpdateVariantSchema } from "@/resolver";
 import { IProductVariantItem } from "@/types/product.interface";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useEffect, useMemo } from "react";
+import { useEffect } from "react";
 import { FormProvider, useForm } from "react-hook-form";
-import Select from "react-select";
 
 interface EditVariantDialogProps {
   isOpen: boolean;
   onClose: () => void;
   variant: IProductVariantItem | null;
-  isManager: boolean;
+  isManager?: boolean;
   onSuccess?: () => void;
 }
 
-type LocationOption = { value: string; label: string };
-
-export const EditVariantDialog = ({ isOpen, onClose, variant, isManager, onSuccess }: EditVariantDialogProps) => {
+export const EditVariantDialog = ({ isOpen, onClose, variant, onSuccess }: EditVariantDialogProps) => {
   const { mutateAsync } = useUpdateVariantDetail();
-  const { data: location, isLoading: locationLoading } = useGetInventoryLocations();
   const methods = useForm<UpdateVariantFormValues>({
     resolver: zodResolver(UpdateVariantSchema),
     mode: "all",
   });
-  const { control, handleSubmit, watch, setValue, reset } = methods;
-  const variants = watch("inventory");
-
-  const locationOption: LocationOption[] = useMemo(() => {
-    return (location?.data ?? []).map((item) => ({
-      value: item.id,
-      label: item.name,
-    }));
-  }, [location]);
+  const { control, handleSubmit, reset } = methods;
 
   useEffect(() => {
     if (isOpen && variant) {
-      const inventory = (variant.inventory ?? []).map((inv) => ({
-        location_id: inv.location_id,
-        stock_total: inv.stock_total ?? 0,
-      }));
       reset({
         variant_name: variant.variant_name,
-        sku: variant.sku,
+        sku: variant.sku ?? "",
         price_idr: String(variant.price_idr),
-        inventory,
-        location: inventory.map((item) => ({
-          value: item.location_id,
-          label: locationOption?.find((loc) => loc.value === item.location_id)?.label ?? item.location_id,
-        })),
+        // Existing photo URL is shown as a preview; uploading a file will replace it.
+        photos: variant.photos?.[0] ? [{ id: "existing-0", preview: variant.photos[0], isCover: true }] : [],
+        is_active: variant.is_active,
       });
     }
-  }, [isOpen, variant, reset, locationOption]);
+  }, [isOpen, variant, reset]);
 
-  const handleLocationChange = (selectedLocations: any[]) => {
-    const currentInventory = variants ?? [];
-    const updatedInventory = selectedLocations.map((loc) => {
-      const existingInventory = currentInventory.find((inv: any) => inv.location_id === loc.value);
-      return {
-        location_id: loc.value,
-        stock_total: existingInventory?.stock_total ?? 0,
-      };
-    });
-    setValue("location", [...selectedLocations]);
-    setValue("inventory", updatedInventory);
+  const handleClose = () => {
+    reset();
+    onClose();
   };
 
+  // ponytail: photos replaces wholesale (BE contract): new file → multipart `photos`;
+  // unchanged URL → the URL is re-sent so removed photos do not disappear silently.
   const onSubmit = handleSubmit(async (data) => {
     if (!variant) return;
     try {
-      const payload: any = {
-        variant_name: data.variant_name,
-        sku: data.sku,
-        price_idr: parseInt(data.price_idr),
-      };
-      if (isManager) {
-        payload.inventory = data.inventory?.map((item) => ({
-          location_id: item.location_id,
-          stock_total: parseInt(String(item.stock_total ?? 0)),
-        }));
-      }
-      await mutateAsync({ id: variant.product_id, idVar: variant.id, data: payload });
+      const photoItems = (data.photos ?? []) as { file?: File; preview?: string }[];
+      const newFile = photoItems.find((p) => p.file instanceof File)?.file;
+      const existingUrl = photoItems.find((p) => typeof p.preview === "string" && !(p.file instanceof File))?.preview;
+
+      const submit = newFile
+        ? mutateAsync({
+            id: variant.product_id,
+            idVar: variant.id,
+            data: (() => {
+              const fd = new FormData();
+              fd.append("variant_name", data.variant_name);
+              fd.append("sku", data.sku);
+              fd.append("price_idr", String(parseInt(data.price_idr)));
+              if (data.is_active !== undefined) fd.append("is_active", String(data.is_active));
+              fd.append("photos", newFile);
+              return fd;
+            })(),
+          })
+        : mutateAsync({
+            id: variant.product_id,
+            idVar: variant.id,
+            data: {
+              variant_name: data.variant_name,
+              sku: data.sku,
+              price_idr: parseInt(data.price_idr),
+              photos: existingUrl ? [existingUrl] : [],
+              ...(data.is_active !== undefined ? { is_active: data.is_active } : null),
+            },
+          });
+
+      await submit;
       onSuccess?.();
       handleClose();
     } catch (error) {
       console.log(error);
     }
   });
-
-  const handleClose = () => {
-    reset();
-    onClose();
-  };
 
   return (
     <BaseDialogComponent
@@ -170,42 +160,21 @@ export const EditVariantDialog = ({ isOpen, onClose, variant, isManager, onSucce
                 </FormItem>
               )}
             />
-          </div>
-
-          {isManager && (
             <FormField
               control={control}
-              name="location"
+              name="is_active"
               render={({ field }) => (
-                <FormItem className="flex flex-col">
-                  <FormLabel className=" text-brand-999 font-medium text-sm">
-                    Branch
-                  </FormLabel>
+                <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3">
+                  <FormLabel className="text-brand-999 font-medium text-sm">Active</FormLabel>
                   <FormControl>
-                    <Select
-                      defaultValue={field.value || []}
-                      value={field.value || []}
-                      options={locationOption}
-                      isLoading={locationLoading}
-                      className="basic-multi-select"
-                      classNames={{
-                        control: () =>
-                          "w-full !border-2 !border-gray-200 rounded-lg text-gray-999  focus:outline-none focus:border-brand-500 transition-colors h-[42px] !rounded-md !bg-transparent shadow-xs",
-                        placeholder: () => "placeholder-gray-400",
-                        singleValue: () => "text-brand-999",
-                        input: () => "text-brand-999 bg-none",
-                      }}
-                      isMulti
-                      onChange={(selectedOptions: any) => {
-                        handleLocationChange(selectedOptions);
-                      }}
-                    />
+                    <Switch checked={field.value} onCheckedChange={field.onChange} />
                   </FormControl>
-                  <FormMessage />
                 </FormItem>
               )}
             />
-          )}
+          </div>
+          <PhotoUploadForm name="photos" maxPhotos={1} label="Variant Photo (1 max)" />
+          <p className="text-xs text-gray-500">Remove the photo to fall back to the product cover publicly.</p>
 
           <div className="bg-gray-50 p-4 rounded-lg">
             <p className="text-sm font-medium text-brand-999 mb-2">Stock Information (Managed via Manage Stock)</p>

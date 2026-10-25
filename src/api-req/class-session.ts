@@ -7,7 +7,22 @@ import {
   TDetailClassCategory,
   TEditClassCategory,
 } from "@/types/class-category.interface";
-import { TCreateSessionData, TEditSessionData, TSessionBookings, TSessionDetailData, TSessionListData, ISessionCancelParams, ISessionCancelPreview } from "@/types/class-sessions.interface";
+import {
+  TCreateSessionData,
+  TDuplicatePreviewData,
+  TDuplicateRangeData,
+  TDuplicateSessionData,
+  TEditSessionData,
+  TPublishBatchData,
+  TSessionBookings,
+  TSessionParticipants,
+  TSessionWaitlist,
+  TRemoveWaitlistEntry,
+  TSessionDetailData,
+  TSessionListData,
+  ISessionCancelParams,
+  ISessionCancelPreview,
+} from "@/types/class-sessions.interface";
 
 export const getSessions: TSessionListData = async ({
   page,
@@ -21,6 +36,7 @@ export const getSessions: TSessionListData = async ({
   has_photo,
   date,
   branch,
+  is_published,
 }) => {
   const res = await axiosx(true).get(`${MAIN_API_URL}/classes/sessions`, {
     params: {
@@ -35,9 +51,24 @@ export const getSessions: TSessionListData = async ({
       ...(typeof is_credit_only === "boolean" ? { is_credit_only } : null),
       ...(typeof has_photo === "boolean" ? { has_photo } : null),
       ...(branch && branch !== "all" ? { branch } : null),
+      ...(typeof is_published === "boolean" ? { is_published } : null),
     },
   });
   return res.data;
+};
+
+// BE caps page_size (100) — page through everything so calendar views never truncate.
+export const getAllSessions: TSessionListData = async (params) => {
+  const all: Awaited<ReturnType<typeof getSessions>>["data"] = [];
+  let page = 1;
+  let last = await getSessions({ ...params, page, limit: 100 });
+  for (;;) {
+    all.push(...last.data);
+    if (!last.pagination?.has_next) break;
+    page += 1;
+    last = await getSessions({ ...params, page, limit: 100 });
+  }
+  return { ...last, data: all };
 };
 
 export const editSession: TEditSessionData = async ({ id, data }) => {
@@ -57,6 +88,21 @@ export const getSesionDetailBooking: TSessionBookings = async ({ id, page, limit
       page_size: limit,
     },
   });
+  return res.data;
+};
+
+export const getSessionParticipants: TSessionParticipants = async (id) => {
+  const res = await axiosx(true).get(`${MAIN_API_URL}/classes/sessions/${id}/participants`);
+  return res.data;
+};
+
+export const getSessionWaitlist: TSessionWaitlist = async (id) => {
+  const res = await axiosx(true).get(`${MAIN_API_URL}/classes/sessions/${id}/waitlist`);
+  return res.data;
+};
+
+export const removeWaitlistEntry: TRemoveWaitlistEntry = async ({ sessionId, userId }) => {
+  const res = await axiosx(true).delete(`${MAIN_API_URL}/classes/sessions/${sessionId}/waitlist/${userId}`);
   return res.data;
 };
 
@@ -124,5 +170,35 @@ export const previewSessionCancel = async ({
 
 export const sendReminderAll = async (data: string) => {
   const res = await axiosx(true).post(`${MAIN_API_URL}/classes/sessions/${data}/send-reminder`, data);
+  return res.data;
+};
+
+export const duplicateSession: TDuplicateSessionData = async ({ id, data }) => {
+  const res = await axiosx(true).post(`${MAIN_API_URL}/classes/sessions/${id}/duplicate`, data);
+  return res.data;
+};
+
+export const publishSession: TSessionDetailData = async (id) => {
+  const res = await axiosx(true).post(`${MAIN_API_URL}/classes/sessions/${id}/publish`, {});
+  return res.data;
+};
+
+export const unpublishSession: TSessionDetailData = async (id) => {
+  const res = await axiosx(true).post(`${MAIN_API_URL}/classes/sessions/${id}/unpublish`, {});
+  return res.data;
+};
+
+export const publishBatch: TPublishBatchData = async (data) => {
+  const res = await axiosx(true).post(`${MAIN_API_URL}/classes/sessions/publish-batch`, data);
+  return res.data;
+};
+
+export const duplicatePreview: TDuplicatePreviewData = async (data) => {
+  const res = await axiosx(true).post(`${MAIN_API_URL}/classes/sessions/duplicate-preview`, data);
+  return res.data;
+};
+
+export const duplicateRange: TDuplicateRangeData = async (data) => {
+  const res = await axiosx(true).post(`${MAIN_API_URL}/classes/sessions/duplicate-range`, data);
   return res.data;
 };

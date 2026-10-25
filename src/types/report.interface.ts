@@ -341,15 +341,29 @@ export type RecognitionStatus =
 
 export type LedgerAttendance = "attended" | "no_show" | null;
 
+// BE admin v322 (dev only): movement_reason derive post-enrich + ref_id trace key.
+export type MovementReason =
+  | "purchase"
+  | "refund_reissue"
+  | "rollover_reissue"
+  | "booking_spend"
+  | "booking_cancel_refund"
+  | "expired_breakage"
+  | "void_cancel_sale"
+  | "expiry_restore"
+  | "manual_correction";
+
 export interface ICreditsLedgerParams {
   user_id?: string;
   package_purchase_id?: string;
   entry_type?: string; // csv e.g. "credit_spend,credit_refund"
   status?: string; // csv of RecognitionStatus labels (post-enrich filter)
+  movement_reason?: string; // csv of MovementReason (post-enrich filter, BE v322+)
   branch?: string; // csv e.g. "studio_kemang" atau "studio_kemang,studio_pd_labu" (BE admin v295/v38+)
   start_date?: string; // YYYY-MM-DD
   end_date?: string;
   purchased_month?: string; // YYYY-MM — bulan paket dibeli (WIB)
+  recognition_month?: string; // YYYY-MM — bulan pengakuan pendapatan (WIB); kosong = ikut purchased_month (BE default 7 Okt). Baris recognized bulan lain dibuang; Deferred/Reserved (month null) tetap ikut
   q?: string; // customer name OR package name OR note
   page?: number;
   page_size?: number;
@@ -360,10 +374,12 @@ export interface ICreditsLedgerParams {
 export interface ICreditsLedgerItem {
   id: string;
   entry_type: LedgerRowEntryType;
+  movement_reason?: MovementReason | null;
   customer_name: string | null;
   branch: string | null; // studio_kemang / studio_pd_labu / null bila tak terlacak (BE v295/v38+)
   amount: number;
   nilai_idr: number;
+  nilai_idr_gross?: number | null;
   package_name: string | null;
   purchased_at: string | null;
   purchased_at_wib: string;
@@ -373,6 +389,7 @@ export interface ICreditsLedgerItem {
   recognition_status: RecognitionStatus;
   recognition_month: string | null; // YYYY-MM
   note: string | null;
+  ref_id?: string | null;
   recognized_at: string | null;
   created_at: string;
   created_at_wib: string;
@@ -387,10 +404,12 @@ export interface ICreditsLedgerMeta {
     package_purchase_id?: string | null;
     entry_type?: string | string[] | null;
     status?: string[] | null;
+    movement_reason?: string[] | null;
     branch?: string[] | null;
     start_date: string | null;
     end_date: string | null;
     purchased_month?: string | null;
+    recognition_month?: string | null;
     q: string | null;
     order?: string | null;
   };
@@ -425,6 +444,8 @@ export interface ICreditsLedgerSummary {
     branch?: string[] | null;
     start_date: string | null;
     end_date: string | null;
+    purchased_month?: string | null;
+    recognition_month?: string | null;
     q?: string | null;
   };
   deferred_buckets?: {

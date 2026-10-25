@@ -2,6 +2,7 @@
 "use client";
 
 import { BaseDialogComponent } from "@/components/general/base-dialog-component";
+import { InlinePhotoCell, PhotoUploadForm } from "@/components/general/photo-upload-form";
 import { EditProductDialog } from "@/components/page/dashboard/edit-product-dialog";
 import { EditVariantDialog } from "@/components/page/dashboard/edit-variant-dialog";
 import { ManageStockDialog } from "@/components/page/dashboard/manage-stock-dialog";
@@ -13,27 +14,51 @@ import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Divider } from "@/components/ui/divider";
 import { FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
-import { useAddNewVariants } from "@/hooks/api/mutations/admin";
+import { useAddNewVariants, useDeleteProductVariant, useUpdateVariantDetail } from "@/hooks/api/mutations/admin";
 import { useGetInventoryLocations, useGetProductDetail } from "@/hooks/api/queries/admin/products";
 import { useAdminPermission } from "@/hooks/use-role-access";
 import { formatCurrency } from "@/lib/helper";
-import { CreateProductFormValues, UpdateVariantsFormValues, variantSchema } from "@/resolver";
+import { UpdateVariantsFormValues, variantSchema } from "@/resolver";
 import { IProductVariantItem } from "@/types/product.interface";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { ChevronDown, Loader2, MapPin, Package, PenIcon, Plus, Trash, Warehouse } from "lucide-react";
 import { useParams } from "next/navigation";
 import { Fragment, useMemo, useState } from "react";
 import { FormProvider, useFieldArray, useForm } from "react-hook-form";
+import { Switch } from "@/components/ui/switch";
 import Select from "react-select";
 
-type ProductVariantFormValue = NonNullable<CreateProductFormValues["variants"]>[number];
+type ProductVariantFormValue = UpdateVariantsFormValues["variants"][number];
 const defaultValuesVariant: ProductVariantFormValue = {
   variant_name: "",
   sku: "",
   price_idr: "",
+  photos: [],
   inventory: [], // Array of { location_id, stock_total }
   location: [], // Array for multiple selections (temporary, not in final payload)
 };
+
+// One row in the Quick Edit bulk grid — mirrors the create-page columns.
+// Exported so the /edit page reuses the same row shape + reset helper.
+export interface IQuickVariantEditRow {
+  id: string;
+  variant_name: string;
+  sku: string;
+  price_idr: string;
+  photos: { file?: File; preview?: string; isCover?: boolean }[];
+  is_active: boolean;
+}
+
+export const toQuickEditRows = (variants: IProductVariantItem[]): { variants: IQuickVariantEditRow[] } => ({
+  variants: variants.map((v) => ({
+    id: v.id,
+    variant_name: v.variant_name,
+    sku: v.sku ?? "",
+    price_idr: String(v.price_idr),
+    photos: v.photos?.[0] ? [{ id: "existing-0", preview: v.photos[0], isCover: true }] : [],
+    is_active: v.is_active,
+  })),
+});
 
 const tabOptions = [
   {
@@ -54,6 +79,7 @@ export const ProductDetailView = () => {
   const [openManageStock, setOpenManageStock] = useState(false);
   const [openEditProduct, setOpenEditProduct] = useState(false);
   const [openEditVariant, setOpenEditVariant] = useState(false);
+  const [deleteVariantTarget, setDeleteVariantTarget] = useState<IProductVariantItem | null>(null);
   const [selectedVariant, setSelectedVariant] = useState<IProductVariantItem | null>(null);
   const { isManager } = useAdminPermission();
   const methods = useForm<UpdateVariantsFormValues>({
@@ -65,6 +91,56 @@ export const ProductDetailView = () => {
   const { control, handleSubmit, watch } = methods;
   const { fields, append, remove } = useFieldArray({ name: "variants", control, keyName: "id" });
   const { mutateAsync } = useAddNewVariants();
+  const { mutateAsync: deleteVariantAsync } = useDeleteProductVariant();
+  const { mutateAsync: updateVariantAsync } = useUpdateVariantDetail();
+
+  // Quick Edit: bulk grid over existing variants (mirrors the create page).
+  // Stock stays in Manage Stock — inventory mutations need the adjustment endpoint.
+  const [bulkOpen, setBulkOpen] = useState(false);
+  const [bulkSaving, setBulkSaving] = useState(false);
+  const bulkMethods = useForm<{ variants: IQuickVariantEditRow[] }>({});
+  const openBulkEdit = () => {
+    bulkMethods.reset(toQuickEditRows(data?.data?.variants ?? []));
+    setBulkOpen(true);
+  };
+  const saveBulkEdit = bulkMethods.handleSubmit(async (values) => {
+    const originals = data?.data?.variants ?? [];
+    try {
+      setBulkSaving(true);
+      await Promise.all(
+        values.variants.map(async (row, index) => {
+          const orig = originals[index];
+          if (orig?.id !== row.id) return; // list changed under us; skip
+          // new file queued → single multipart PATCH replaces fields + photo in one go
+          const file = row.photos?.[0]?.file;
+          if (file instanceof File) {
+            const fd = new FormData();
+            fd.append("variant_name", row.variant_name);
+            fd.append("sku", row.sku);
+            fd.append("price_idr", String(Number(row.price_idr)));
+            fd.append("is_active", String(row.is_active));
+            fd.append("photos", file);
+            await updateVariantAsync({ id: id as string, idVar: row.id, data: fd });
+            return;
+          }
+          const json: Record<string, unknown> = {};
+          if (row.variant_name !== orig.variant_name) json.variant_name = row.variant_name;
+          if ((row.sku ?? "") !== (orig.sku ?? "")) json.sku = row.sku || null;
+          if (Number(row.price_idr) !== orig.price_idr) json.price_idr = Number(row.price_idr);
+          if (row.is_active !== orig.is_active) json.is_active = row.is_active;
+          // cleared thumbnail but variant had a URL → clear (inherits cover)
+          if (!row.photos?.length && orig.photos?.[0]) json.photos = [];
+          if (Object.keys(json).length > 0) {
+            await updateVariantAsync({ id: id as string, idVar: row.id, data: json });
+          }
+        }),
+      );
+      await refetch();
+      setBulkOpen(false);
+    } finally {
+      setBulkSaving(false);
+    }
+  });
 
   // Watch the variants to track location changes
   const variants = watch("variants");
@@ -100,8 +176,12 @@ export const ProductDetailView = () => {
 
   const onSubmit = handleSubmit(async (data) => {
     try {
-      const payload = {
-        variants: data?.variants?.map((item) => ({
+      // Variant photo files ride outside the `variants` JSON as multipart `variant_photos.<index>`
+      const variantPhotoFiles: { index: number; file: File }[] = [];
+      const variants = data?.variants?.map((item, index) => {
+        const photoFile = (item.photos as { file?: File }[] | undefined)?.[0]?.file;
+        if (photoFile instanceof File) variantPhotoFiles.push({ index, file: photoFile });
+        return {
           variant_name: item.variant_name,
           sku: item.sku,
           price_idr: parseInt(item.price_idr),
@@ -109,9 +189,12 @@ export const ProductDetailView = () => {
             location_id: item.location_id,
             stock_total: parseInt(item.stock_total),
           })),
-        })),
-      };
-      const res = await mutateAsync({ data: payload, id: id as string });
+        };
+      });
+      const fd = new FormData();
+      fd.append("variants", JSON.stringify({ variants }));
+      variantPhotoFiles.forEach(({ index, file }) => fd.append(`variant_photos_${index}`, file));
+      const res = await mutateAsync({ data: fd, id: id as string });
       if (res) {
         console.log(res);
         refetch();
@@ -126,6 +209,16 @@ export const ProductDetailView = () => {
     setSelectedVariant(variant);
     setOpenManageStock(true);
     console.log(variant)
+  };
+
+  const activeVariants = (data?.data?.variants ?? []).filter((v) => v.is_active);
+  const handleDeleteVariant = async () => {
+    if (!deleteVariantTarget) return;
+    // ponytail: min 1 active must remain — guard client-side, BE enforces too
+    if (activeVariants.length <= 1 && deleteVariantTarget.is_active) return;
+    await deleteVariantAsync({ id: id as string, idVar: deleteVariantTarget.id });
+    setDeleteVariantTarget(null);
+    refetch();
   };
 
 
@@ -224,28 +317,125 @@ export const ProductDetailView = () => {
                         <Package size={20} />
                         Variants & Inventory
                       </h2>
-                      <div>
+                      <div className="flex">
+                        <Button
+                          variant={bulkOpen ? "secondary" : "outline"}
+                          onClick={() => (bulkOpen ? setBulkOpen(false) : openBulkEdit())}
+                          disabled={bulkSaving}
+                        >
+                          {bulkOpen ? "Close Quick Edit" : <>Quick Edit All</>}
+                        </Button>
                         <Button
                           onClick={() => {
                             setOpenAddVariant(true);
                           }}
+                          disabled={bulkOpen}
                         >
                           <Plus />
                           Add Variants
                         </Button>
                       </div>
                     </div>
-                    {data?.data?.variants?.map((v) => (
-                      <InventoryCardComponent
-                        variant={v}
-                        key={v.id}
-                        onOpenVariant={handleOpenManageStock}
-                        onEditVariant={(variant) => {
-                          setSelectedVariant(variant);
-                          setOpenEditVariant(true);
-                        }}
-                      />
-                    ))}
+                    {bulkOpen ? (
+                      <FormProvider {...bulkMethods}>
+                        <div className="rounded-lg border border-border p-3 flex flex-col gap-2">
+                          <div className="hidden md:grid md:grid-cols-[1.4fr_1fr_130px_80px_40px] items-center gap-2 text-xs font-medium text-muted-foreground">
+                            <span>Variant Name</span>
+                            <span>SKU</span>
+                            <span>Price (IDR)</span>
+                            <span>Active</span>
+                            <span>Photo</span>
+                          </div>
+                          {bulkMethods.watch("variants")?.map((row, index) => (
+                            <div key={row.id} className="border border-border rounded-md p-2 flex flex-col gap-1.5">
+                              <div className="grid grid-cols-2 md:grid-cols-[1.4fr_1fr_130px_80px_40px] items-center gap-2">
+                                <FormField
+                                  control={bulkMethods.control}
+                                  name={`variants.${index}.variant_name`}
+                                  render={({ field }) => (
+                                    <FormItem>
+                                      <FormControl>
+                                        <Input
+                                          className="w-full px-3 py-2 border-2 border-gray-200 rounded-lg text-sm text-gray-999 h-[38px] focus:outline-none focus:border-brand-500 transition-colors"
+                                          {...field}
+                                        />
+                                      </FormControl>
+                                    </FormItem>
+                                  )}
+                                />
+                                <FormField
+                                  control={bulkMethods.control}
+                                  name={`variants.${index}.sku`}
+                                  render={({ field }) => (
+                                    <FormItem>
+                                      <FormControl>
+                                        <Input
+                                          className="w-full px-3 py-2 border-2 border-gray-200 rounded-lg text-sm text-gray-999 h-[38px] focus:outline-none focus:border-brand-500 transition-colors"
+                                          {...field}
+                                        />
+                                      </FormControl>
+                                    </FormItem>
+                                  )}
+                                />
+                                <FormField
+                                  control={bulkMethods.control}
+                                  name={`variants.${index}.price_idr`}
+                                  render={({ field }) => (
+                                    <FormItem>
+                                      <FormControl>
+                                        <Input
+                                          type="number"
+                                          min="0"
+                                          className="w-full px-3 py-2 border-2 border-gray-200 rounded-lg text-sm text-gray-999 h-[38px] focus:outline-none focus:border-brand-500 transition-colors"
+                                          {...field}
+                                        />
+                                      </FormControl>
+                                    </FormItem>
+                                  )}
+                                />
+                                <FormField
+                                  control={bulkMethods.control}
+                                  name={`variants.${index}.is_active`}
+                                  render={({ field }) => (
+                                    <FormItem className="justify-self-center">
+                                      <FormControl>
+                                        <Switch checked={field.value} onCheckedChange={field.onChange} />
+                                      </FormControl>
+                                    </FormItem>
+                                  )}
+                                />
+                                <InlinePhotoCell name={`variants.${index}.photos`} />
+                              </div>
+                              <p className="text-xs text-muted-foreground">Stock is managed separately via Manage Stock on each variant card.</p>
+                            </div>
+                          ))}
+                          <div className="flex justify-end gap-2 pt-1">
+                            <Button variant="secondary" type="button" onClick={() => setBulkOpen(false)} disabled={bulkSaving}>
+                              Cancel
+                            </Button>
+                            <Button type="button" onClick={saveBulkEdit} disabled={bulkSaving}>
+                              {bulkSaving && <Loader2 size={14} className="animate-spin" />}
+                              Save Changes
+                            </Button>
+                          </div>
+                        </div>
+                      </FormProvider>
+                    ) : (
+                      data?.data?.variants?.map((v) => (
+                        <InventoryCardComponent
+                          variant={v}
+                          key={v.id}
+                          canDelete={activeVariants.length > 1}
+                          coverFallback={data?.data?.photos?.[0]}
+                          onOpenVariant={handleOpenManageStock}
+                          onEditVariant={(variant) => {
+                            setSelectedVariant(variant);
+                            setOpenEditVariant(true);
+                          }}
+                          onDeleteVariant={(variant) => setDeleteVariantTarget(variant)}
+                        />
+                      ))
+                    )}
                   </div>
                 </div>
               </div>
@@ -336,6 +526,8 @@ export const ProductDetailView = () => {
                                 </FormItem>
                               )}
                             />
+                            <PhotoUploadForm name={`variants.${index}.photos`} maxPhotos={1} label="Variant Photo (optional, 1 max)" />
+                            <p className="text-xs text-gray-500">Leave empty to fall back to the cover photo publicly.</p>
                             <FormField
                               control={control}
                               name={`variants.${index}.price_idr`}
@@ -491,6 +683,23 @@ export const ProductDetailView = () => {
           onSuccess={refetch}
         />
       }
+      {deleteVariantTarget &&
+        <BaseDialogComponent
+          title="Delete Variant"
+          isOpen={!!deleteVariantTarget}
+          btnConfirm="Delete"
+          onCloseText="Cancel"
+          onClose={() => setDeleteVariantTarget(null)}
+          onConfirm={handleDeleteVariant}
+        >
+          <p className="text-sm text-gray-500">
+            Delete variant <span className="font-semibold text-foreground">{deleteVariantTarget.variant_name} ({deleteVariantTarget.sku})</span>?
+            {activeVariants.length <= 1 && deleteVariantTarget.is_active
+              ? " Cannot delete the last active variant."
+              : " This cannot be undone."}
+          </p>
+        </BaseDialogComponent>
+      }
     </div >
   );
 };
@@ -499,9 +708,12 @@ interface IProps {
   variant: IProductVariantItem;
   onOpenVariant: (data: IProductVariantItem) => void;
   onEditVariant: (data: IProductVariantItem) => void;
+  onDeleteVariant: (data: IProductVariantItem) => void;
+  canDelete?: boolean;
+  coverFallback?: string | null;
 }
 
-export const InventoryCardComponent = ({ variant, onOpenVariant, onEditVariant }: IProps) => {
+export const InventoryCardComponent = ({ variant, onOpenVariant, onEditVariant, onDeleteVariant, canDelete = true, coverFallback }: IProps) => {
   const [open, setOpen] = useState(false);
   const { isManager } = useAdminPermission()
   const getStockStatus = (available: number, total: number) => {
@@ -516,6 +728,9 @@ export const InventoryCardComponent = ({ variant, onOpenVariant, onEditVariant }
     return "In Stock";
   };
 
+  // Contract fallback: variant with photos [] inherits the product cover
+  const variantImage = variant.photos?.[0] ?? coverFallback;
+
   return (
     <div key={variant.id} className="border border-border rounded-lg overflow-hidden bg-card transition-colors">
       {/* Accordion Header */}
@@ -527,8 +742,22 @@ export const InventoryCardComponent = ({ variant, onOpenVariant, onEditVariant }
       >
         <div className="flex items-center gap-4 flex-1 text-left">
           <ChevronDown size={20} className={`text-muted-foreground transition-transform ${open ? "rotate-180" : ""}`} />
+          {/* ponytail: plain img — same reason as PhotoUploadForm, no next/image optimizer */}
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          {variantImage ? (
+            <img src={variantImage} alt={variant.variant_name} className="w-12 h-12 rounded-md object-cover border border-border shrink-0" />
+          ) : (
+            <div className="w-12 h-12 rounded-md border border-dashed border-border bg-muted/30 flex items-center justify-center shrink-0">
+              <Package size={18} className="text-muted-foreground" />
+            </div>
+          )}
           <div className="flex-1">
-            <h3 className="font-semibold text-foreground">{variant.variant_name}</h3>
+            <h3 className="font-semibold text-foreground flex items-center gap-2">
+              {variant.variant_name}
+              <span className={`px-2 py-0.5 rounded text-xs font-medium ${variant.photos?.length ? "bg-muted text-foreground" : "bg-muted text-muted-foreground"}`}>
+                {variant.photos?.length ? "Has photo" : "Using cover"}
+              </span>
+            </h3>
             <p className="text-xs text-muted-foreground mt-1">SKU: {variant.sku}</p>
           </div>
           <div className="flex items-center gap-3">
@@ -574,6 +803,9 @@ export const InventoryCardComponent = ({ variant, onOpenVariant, onEditVariant }
                   <div><Button variant="secondary" size={"sm"} onClick={() => onOpenVariant(variant)}><Warehouse />Manage Stock</Button></div>
                 }
                 <div><Button variant="default" size={"sm"} onClick={() => onEditVariant(variant)}><PenIcon />Edit Variant</Button></div>
+                {canDelete &&
+                  <div><Button variant="destructive" size={"sm"} onClick={() => onDeleteVariant(variant)}><Trash />Delete</Button></div>
+                }
               </div>
 
             </div>

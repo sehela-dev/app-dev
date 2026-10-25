@@ -1,9 +1,11 @@
 import { axiosx } from "@/lib/axiosx";
 import { MAIN_API_URL } from "@/lib/config";
 import {
+  ICancelBookingParams,
   ICreateBookingRequest,
   ICreatePublicBookingRequest,
   IEligibleCreditsParams,
+  TCancelBooking,
   TCreateBooking,
   TCreatePublicBooking,
   TEligibleCreditsResponse,
@@ -30,6 +32,11 @@ export const createPublicBooking: TCreatePublicBooking = async (body: ICreatePub
 
 export const repayBooking: TRepayBooking = async (bookingId: string) => {
   const res = await axiosx(true).post(`${MAIN_API_URL}/profile/bookings/${bookingId}/repay`);
+  return res.data;
+};
+
+export const cancelBooking: TCancelBooking = async ({ bookingId, body }: ICancelBookingParams) => {
+  const res = await axiosx(true).post(`${MAIN_API_URL}/profile/bookings/${bookingId}/cancel`, body);
   return res.data;
 };
 

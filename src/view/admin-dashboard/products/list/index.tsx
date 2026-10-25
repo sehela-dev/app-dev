@@ -1,6 +1,7 @@
 /* eslint-disable @next/next/no-img-element */
 "use client";
 
+import { BaseDialogComponent } from "@/components/general/base-dialog-component";
 import { buildNumber, CustomTable } from "@/components/general/custom-table";
 import { CustomPagination } from "@/components/general/pagination-component";
 import { GeneralTabComponent } from "@/components/general/tabs-component";
@@ -8,32 +9,21 @@ import { GeneralTabComponent } from "@/components/general/tabs-component";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { Switch } from "@/components/ui/switch";
 
 import { SearchInput } from "@/components/ui/search-input";
 
-import { useGetProductList } from "@/hooks/api/queries/admin/products";
+import { useDeleteProduct, useDeleteProductVariant, useUpdateProduct, useUpdateVariantDetail } from "@/hooks/api/mutations/admin";
+import { useGetProductCategories, useGetProductList } from "@/hooks/api/queries/admin/products";
+import { downloadCsvBlob, exportProductMasterCsv } from "@/api-req/products";
 
 import { formatDateHelper } from "@/lib/helper";
-import { IProductItemList } from "@/types/product.interface";
-import { CirclePlus, Ellipsis, File, ListFilter } from "lucide-react";
+import { IProductItemList, IProductVariantItem } from "@/types/product.interface";
+import { CirclePlus, Download, Ellipsis, Loader2, Package } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
-
-// const tabOptions = [
-//   {
-//     value: "week",
-//     name: "Week",
-//   },
-//   {
-//     value: "month",
-//     name: "Month",
-//   },
-//   {
-//     value: "Year",
-//     name: "Year",
-//   },
-// ];
-
+import { useMemo, useState } from "react";
+import Select, { SingleValue } from "react-select";
+import { toast } from "sonner";
 
 const tabOption = [
   {
@@ -46,24 +36,54 @@ const tabOption = [
   },
 ];
 
+const viewOption = [
+  {
+    name: "Products",
+    value: "full",
+  },
+  {
+    name: "Variants",
+    value: "variants",
+  },
+];
+
+const idr = new Intl.NumberFormat("id-ID");
+
+type DeleteTarget = { kind: "product"; row: IProductItemList } | { kind: "variant"; row: IProductVariantItem } | null;
+
 export const ProductListPage = () => {
   const router = useRouter();
-  // const [selecetedTab, setSelectedTab] = useState("week");
   const [limit] = useState(10);
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState("");
-  const [tab, setTab] = useState("false")
+  const [tab, setTab] = useState("false");
+  const [viewMode, setViewMode] = useState("full");
+  const [categoryId, setCategoryId] = useState("");
+  const [includeInactive, setIncludeInactive] = useState(true);
+  const [deleteTarget, setDeleteTarget] = useState<DeleteTarget>(null);
+  const [exporting, setExporting] = useState(false);
 
-  // const [selectedRange, setSelectedRange] = useState({
-  //   from: defaultDate().formattedOneMonthAgo,
-  //   to: defaultDate().formattedToday,
-  // });
+  const { data, isLoading, refetch } = useGetProductList({
+    page,
+    limit,
+    search,
+    is_rentable: tab,
+    ...(categoryId ? { category_id: categoryId } : null),
+    ...(includeInactive ? { include_inactive: true } : null),
+    view: viewMode as "full" | "variants",
+  });
+  const { data: categories } = useGetProductCategories({ page: 1, limit: 999 });
+  const { mutateAsync: deleteAsync } = useDeleteProduct();
+  const { mutateAsync: deleteVariantAsync } = useDeleteProductVariant();
+  const { mutateAsync: updateAsync } = useUpdateProduct();
+  const { mutateAsync: updateVariantAsync } = useUpdateVariantDetail();
 
-  // const handleDateRangeChangeDual = (startDate: string, endDate?: string) => {
-  //   setSelectedRange((prev) => ({ ...prev, from: startDate, to: endDate ?? "" }));
-  // };
+  const isVariantView = viewMode === "variants";
 
-  const { data, isLoading } = useGetProductList({ page, limit, search, is_rentable: tab });
+  const categoryOption = useMemo(
+    () => (categories?.data ?? []).map((c) => ({ value: c.id, label: c.name })),
+    [categories],
+  );
 
   const numberOptions = {
     text: "No",
@@ -76,33 +96,87 @@ export const ProductListPage = () => {
     setPage(1);
   };
 
-  const headers = [
+  const handleToggleProduct = async (row: IProductItemList) => {
+    const payload = new FormData();
+    payload.append("is_active", String(!row.is_active));
+    await updateAsync({ id: row.id, payload });
+    refetch();
+  };
 
+  const handleToggleVariant = async (row: IProductVariantItem) => {
+    await updateVariantAsync({ id: row.product_id, idVar: row.id, data: { is_active: !row.is_active } });
+    refetch();
+  };
+
+  // dashed placeholder for rows without a photo — used by both views
+  const Thumb = ({ src, alt }: { src?: string; alt: string }) =>
+    src ? (
+      <img src={src} alt={alt} className="h-10 w-10 rounded-md border border-gray-200 object-cover" />
+    ) : (
+      <span className="flex h-10 w-10 items-center justify-center rounded-md border border-dashed border-gray-300 bg-gray-50 text-gray-400">
+        <Package size={16} />
+      </span>
+    );
+
+  const handleDelete = async () => {
+    if (!deleteTarget) return;
+    if (deleteTarget.kind === "product") {
+      await deleteAsync(deleteTarget.row.id);
+    } else {
+      await deleteVariantAsync({ id: deleteTarget.row.product_id, idVar: deleteTarget.row.id });
+    }
+    setDeleteTarget(null);
+    refetch();
+  };
+
+  const handleExport = async () => {
+    try {
+      setExporting(true);
+      const blob = await exportProductMasterCsv({
+        search,
+        is_rentable: tab,
+        ...(categoryId ? { category_id: categoryId } : {}),
+        ...(includeInactive ? { include_inactive: true } : {}),
+      });
+      downloadCsvBlob(blob, `product_master_${tab === "true" ? "rent" : "sell"}.csv`);
+      toast.success("CSV downloaded");
+    } catch {
+      toast.error("Gagal export CSV");
+    } finally {
+      setExporting(false);
+    }
+  };
+
+  const toggleStatusCell = (key: "product" | "variant", row: IProductItemList | IProductVariantItem) => (
+    <div className="flex items-center gap-2">
+      <Switch
+        checked={row.is_active}
+        onCheckedChange={() => (key === "product" ? handleToggleProduct(row as IProductItemList) : handleToggleVariant(row as IProductVariantItem))}
+      />
+      <span className={`text-sm ${row.is_active ? "text-green-500" : "text-red-500"}`}>{row.is_active ? "Active" : "Inactive"}</span>
+    </div>
+  );
+
+  const productHeaders = [
     {
       id: "name",
       text: "Name",
-      value: (row: IProductItemList) => <div className="flex flex-row items-center gap-4">
-        <div className="flex h-16 w-16 border border-gray-200 bg-gray-200 rounded-md">
-          <img src={row.photos?.[0]} alt={row.name} className="h-16 w-16" />
+      value: (row: IProductItemList) => (
+        <div className="flex flex-row items-center gap-3">
+          <Thumb src={row.photos?.[0]} alt={row?.name} />
+          <span className="font-medium text-foreground">{row?.name}</span>
         </div>
-        <p>{row?.name}</p>
-      </div>,
+      ),
     },
-
     {
       id: "category",
       text: "Category",
       value: (row: IProductItemList) => row?.category.name,
     },
-
     {
       id: "status",
       text: "Status",
-      value: (row: IProductItemList) => (
-        <div className={`grid col-span-9 capitalize ${row?.is_active ? `text-green-500` : `text-red-500`}`}>
-          {row.is_active ? "Active" : "Inactive"}
-        </div>
-      ),
+      value: (row: IProductItemList) => toggleStatusCell("product", row),
     },
     {
       id: "variant_count",
@@ -120,7 +194,48 @@ export const ProductListPage = () => {
       value: (row: IProductItemList) => formatDateHelper(row.created_at, "dd/MM/yyyy H:mm"),
     },
   ];
-  const actionOptions = {
+
+  const variantHeaders = [
+    {
+      id: "variant_name",
+      text: "Variant",
+      value: (row: IProductVariantItem) => (
+        <div className="flex flex-row items-center gap-3">
+          <Thumb src={row.photos?.[0]} alt={row.variant_name} />
+          <div className="flex flex-col gap-1">
+            <span className="max-w-[220px] truncate font-medium text-foreground" title={row.variant_name}>
+              {row.variant_name}
+            </span>
+            <span className="w-fit max-w-[220px] truncate rounded bg-muted px-1.5 py-0.5 font-mono text-xs text-muted-foreground" title={row.sku}>
+              {row.sku || "-"}
+            </span>
+          </div>
+        </div>
+      ),
+    },
+    {
+      id: "product_name",
+      text: "Product",
+      value: (row: IProductVariantItem) => <span className="text-foreground">{row.product_name || "-"}</span>,
+    },
+    {
+      id: "price_idr",
+      text: "Price (IDR)",
+      value: (row: IProductVariantItem) => <span className="font-semibold whitespace-nowrap">Rp {idr.format(row.price_idr ?? 0)}</span>,
+    },
+    {
+      id: "stock_available",
+      text: "Stock Available",
+      value: (row: IProductVariantItem) => <span className="font-medium tabular-nums">{row.stock_available ?? 0}</span>,
+    },
+    {
+      id: "status",
+      text: "Status",
+      value: (row: IProductVariantItem) => toggleStatusCell("variant", row),
+    },
+  ];
+
+  const productActions = {
     text: "Action",
     show: true,
     render: (row: IProductItemList) => (
@@ -130,32 +245,45 @@ export const ProductListPage = () => {
             <Ellipsis />
           </Button>
         </DropdownMenuTrigger>
-        <DropdownMenuContent align="end" className="w-32">
-          <DropdownMenuItem onClick={() => alert(row.id)}>Archive</DropdownMenuItem>
+        <DropdownMenuContent align="end" className="w-40">
           <DropdownMenuItem onClick={() => router.push(`products/${row.id}`)}>View Details</DropdownMenuItem>
-          <DropdownMenuItem>Set as Inactive</DropdownMenuItem>
-          <DropdownMenuItem variant="destructive" className="" onClick={() => { }}>
+          <DropdownMenuItem variant="destructive" onClick={() => setDeleteTarget({ kind: "product", row })}>
             Delete
           </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
     ),
   };
+
+  const variantActions = {
+    text: "Action",
+    show: true,
+    render: (row: IProductVariantItem) => (
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <Button variant="ghost" className="data-[state=open]:bg-muted text-muted-foreground flex size-8" size="icon">
+            <Ellipsis />
+          </Button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="end" className="w-40">
+          <DropdownMenuItem onClick={() => router.push(`products/${row.product_id}`)}>View Details</DropdownMenuItem>
+          <DropdownMenuItem variant="destructive" onClick={() => setDeleteTarget({ kind: "variant", row })}>
+            Delete
+          </DropdownMenuItem>
+        </DropdownMenuContent>
+      </DropdownMenu>
+    ),
+  };
+
   return (
     <div className="flex flex-col w-full h-full gap-2">
       <div className="flex  w-full flex-row justify-between items-center">
-        <div>{/* <GeneralTabComponent tabs={tabOptions} selecetedTab={selecetedTab} setTab={setSelectedTab} /> */}</div>
+        <div></div>
         <div className="flex flex-row items-center gap-2">
-          <div className="flex w-full">
-            <Button variant={"outline"} className="text-brand-999 text-sm font-medium">
-              <ListFilter /> Filter
-            </Button>
-          </div>
-          <div className="flex w-full">
-            <Button variant={"outline"} className="text-brand-999 text-sm font-medium">
-              <File /> Export
-            </Button>
-          </div>{" "}
+          <Button variant="outline" className="text-sm font-medium" disabled={exporting} onClick={handleExport}>
+            {exporting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
+            Export
+          </Button>
           <div className="flex w-full">
             <Button className=" text-sm font-medium" onClick={() => router.push("products/create")}>
               <CirclePlus /> Add Products
@@ -169,35 +297,59 @@ export const ProductListPage = () => {
             <h3 className="text-brand-999 text-2xl font-semibold">Products</h3>
             <p className="text-sm text-gray-500 font-normal">Manage your products and view their sales performance</p>
           </div>
-          <div className="flex flex-row  gap-2">
-            <div>
-              {/* <DateRangePicker onDateRangeChange={handleDateRangeChangeDual} startDate={selectedRange.from} endDate={selectedRange.to} /> */}
+          <div className="flex flex-row gap-2 items-center">
+            {/* <div className="flex w-full items-center gap-2 text-sm text-gray-500">
+              <Switch checked={includeInactive} onCheckedChange={(v) => { setIncludeInactive(v); setPage(1); }} />
+              <span>
+                Show inactive
+              </span>
+            </div> */}
+            <div className="flex w-full">
+              <Select
+                options={categoryOption}
+                isClearable
+                placeholder="Filter by category"
+                className="text-sm"
+                onChange={(selected: SingleValue<{ value: string; label: string }>) => {
+                  setCategoryId(selected?.value ?? "");
+                  setPage(1);
+                }}
+              />
             </div>
-            <SearchInput className="border-brand-100" search={search} onSearch={handleSearch} />
+
+            <div className="flex w-full">
+
+              <SearchInput className="border-brand-100" search={search} onSearch={handleSearch} />
+            </div>
           </div>
-
-
         </CardHeader>
 
         <CardContent>
-          <div className="max-w-auto">
+          <div className="flex flex-col gap-2">
             <GeneralTabComponent
               selecetedTab={tab}
               setTab={(e) => {
                 setTab(e);
+                setPage(1);
               }}
               tabs={tabOption}
+            />
+            <GeneralTabComponent
+              selecetedTab={viewMode}
+              setTab={(e) => {
+                setViewMode(e);
+                setPage(1);
+              }}
+              tabs={viewOption}
+              variant="line"
             />
           </div>
           <CustomTable
             data={data?.data ?? []}
-            headers={headers}
+            headers={isVariantView ? variantHeaders : productHeaders}
             numberOptions={numberOptions}
             isLoading={isLoading}
-            // setSelectedData={setSelectedData}
-            // selectedData={selectedData}
-
-            actionOptions={actionOptions}
+            actionOptions={isVariantView ? variantActions : productActions}
           />
         </CardContent>
         <CardFooter className="flex w-full">
@@ -215,6 +367,35 @@ export const ProductListPage = () => {
           />
         </CardFooter>
       </Card>
+      {deleteTarget?.kind === "product" && (
+        <BaseDialogComponent
+          title="Delete Product"
+          isOpen
+          btnConfirm="Delete"
+          onCloseText="Cancel"
+          onClose={() => setDeleteTarget(null)}
+          onConfirm={handleDelete}
+        >
+          <p className="text-sm text-gray-500">
+            Delete <span className="font-semibold text-foreground">{deleteTarget.row.name}</span> and all its variants? This cannot be undone.
+          </p>
+        </BaseDialogComponent>
+      )}
+      {deleteTarget?.kind === "variant" && (
+        <BaseDialogComponent
+          title="Delete Variant"
+          isOpen
+          btnConfirm="Delete"
+          onCloseText="Cancel"
+          onClose={() => setDeleteTarget(null)}
+          onConfirm={handleDelete}
+        >
+          <p className="text-sm text-gray-500">
+            Delete variant <span className="font-semibold text-foreground">{deleteTarget.row.variant_name}</span> ({deleteTarget.row.sku})? This
+            cannot be undone.
+          </p>
+        </BaseDialogComponent>
+      )}
     </div>
   );
 };

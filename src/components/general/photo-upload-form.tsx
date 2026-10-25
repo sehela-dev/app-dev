@@ -3,9 +3,10 @@
 
 import React, { useCallback, useState } from "react";
 import { Controller, useFormContext } from "react-hook-form";
+import { FormField, FormItem, FormControl, FormMessage } from "@/components/ui/form";
 import { Button } from "@/components/ui/button";
-import { X, Upload, Image as IconImage } from "lucide-react";
-import Image from "next/image";
+import { X, Upload, Image as IconImage, ImagePlus } from "lucide-react";
+import { toast } from "sonner";
 
 interface PhotoUploadProps {
   name: string;
@@ -20,9 +21,72 @@ interface PhotoItem {
   isCover: boolean;
 }
 
+// ponytail: BE ImageMagick WASM has no HEIC codec — uploads would be silently dropped; widen this set if the BE gains one
+export const SUPPORTED_IMAGE_TYPES = new Set(["image/jpeg", "image/png", "image/webp", "image/gif", "image/avif"]);
+export const UNSUPPORTED_FILE_MESSAGE = "Unsupported image format. Please use JPG, PNG, WEBP, GIF, or AVIF (no HEIC).";
+
+// Compact inline photo cell for bulk table rows — pick/preview/remove in 40px, no dialog.
+// Photo value shape matches PhotoItem[] so createFormData single-photo extraction works.
+export const InlinePhotoCell = ({ name }: { name: string }) => {
+  const { control } = useFormContext();
+  return (
+    <FormField
+      control={control}
+      name={name}
+      render={({ field }) => {
+        const items = (field.value ?? []) as { file?: File; preview?: string }[];
+        const preview = items[0]?.preview;
+        return (
+          <FormItem className="justify-self-center">
+            <FormControl>
+              {preview ? (
+                <div className="relative w-10 h-10">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={preview} alt="Variant photo" className="w-full h-full object-cover rounded-md border border-gray-200" />
+                  <button
+                    type="button"
+                    aria-label="Remove variant photo"
+                    onClick={() => field.onChange([])}
+                    className="absolute -top-1.5 -right-1.5 bg-white rounded-full p-0.5 shadow-sm border border-gray-200"
+                  >
+                    <X size={12} className="text-destructive" />
+                  </button>
+                </div>
+              ) : (
+                <label className="flex w-10 h-10 flex-col items-center justify-center rounded-md border border-dashed border-gray-300 text-gray-400 cursor-pointer hover:border-brand-500 hover:text-brand-500 transition-colors">
+                  <ImagePlus size={16} />
+                  <input
+                    type="file"
+                    accept="image/jpeg,image/png,image/webp,image/gif,image/avif"
+                    className="hidden"
+                    onChange={(e) => {
+                      const file = e.target.files?.[0];
+                      e.target.value = "";
+                      if (!file) return;
+                      if (!SUPPORTED_IMAGE_TYPES.has(file.type)) {
+                        toast.error(UNSUPPORTED_FILE_MESSAGE, { position: "top-center" });
+                        return;
+                      }
+                      const reader = new FileReader();
+                      reader.onload = (ev) => field.onChange([{ id: `${name}-0`, file, preview: ev.target?.result as string, isCover: true }]);
+                      reader.readAsDataURL(file);
+                    }}
+                  />
+                </label>
+              )}
+            </FormControl>
+            <FormMessage />
+          </FormItem>
+        );
+      }}
+    />
+  );
+};
+
 export function PhotoUploadForm({ name, maxPhotos = 4, label = "Photo Product" }: PhotoUploadProps) {
   const { control, watch } = useFormContext();
   const [dragActive, setDragActive] = useState(false);
+  const [typeError, setTypeError] = useState(false);
 
   const fieldValue = watch(name) || [];
   const photos: PhotoItem[] = Array.isArray(fieldValue) ? fieldValue : [];
@@ -51,7 +115,9 @@ export function PhotoUploadForm({ name, maxPhotos = 4, label = "Photo Product" }
       const remainingSlots = maxPhotos - newPhotos.length;
       const validFiles = Array.from(files)
         .slice(0, remainingSlots)
-        .filter((file) => file.type.startsWith("image/"));
+        .filter((file) => SUPPORTED_IMAGE_TYPES.has(file.type));
+
+      setTypeError(validFiles.length === 0 && Array.from(files).length > 0);
 
       if (validFiles.length === 0) {
         onComplete(newPhotos);
@@ -129,10 +195,10 @@ export function PhotoUploadForm({ name, maxPhotos = 4, label = "Photo Product" }
     (id: string, onChange: any) => {
       const input = document.createElement("input");
       input.type = "file";
-      input.accept = "image/*";
+      input.accept = "image/jpeg,image/png,image/webp,image/gif,image/avif";
       input.onchange = (e) => {
         const file = (e.target as HTMLInputElement).files?.[0];
-        if (file && file.type.startsWith("image/")) {
+        if (file && SUPPORTED_IMAGE_TYPES.has(file.type)) {
           const reader = new FileReader();
           reader.onload = (readEvent) => {
             const preview = readEvent.target?.result as string;
@@ -170,7 +236,7 @@ export function PhotoUploadForm({ name, maxPhotos = 4, label = "Photo Product" }
                 <input
                   type="file"
                   multiple
-                  accept="image/*"
+                  accept="image/jpeg,image/png,image/webp,image/gif,image/avif"
                   onChange={(e) => handleFileInput(e, onChange)}
                   className="hidden"
                   id={`photo-input-${name}`}
@@ -189,7 +255,9 @@ export function PhotoUploadForm({ name, maxPhotos = 4, label = "Photo Product" }
             {/* Photo Grid */}
             {photos.map((photo) => (
               <div key={photo.id} className="relative w-[250px] h-[250px] rounded-lg overflow-hidden group">
-                <Image src={photo.preview || "/placeholder.svg"} alt="Product photo" fill className="object-cover" />
+                {/* ponytail: plain img — next/image optimizer hard-404s on data URLs / storage hosts the admin previews */}
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={photo.preview || "/placeholder.svg"} alt="Product photo" className="absolute inset-0 w-full h-full object-cover" />
 
                 {/* Cover Badge */}
                 {photo.isCover && <div className="absolute bottom-2 right-2 bg-teal-600 text-white px-2 py-1 rounded text-xs font-medium">COVER</div>}
@@ -241,7 +309,13 @@ export function PhotoUploadForm({ name, maxPhotos = 4, label = "Photo Product" }
           </div>
 
           {/* Info Text */}
-          <p className="text-sm text-muted-foreground mt-4">
+          {typeError ? (
+            <p className="text-sm text-destructive mt-4">{UNSUPPORTED_FILE_MESSAGE}</p>
+          ) : null}
+          <p className="text-xs text-muted-foreground mt-3">
+            JPG, PNG, WEBP, GIF, or AVIF &middot; {maxPhotos} max &middot; automatically converted to WEBP on upload
+          </p>
+          <p className="text-sm text-muted-foreground mt-1">
             {photos.length}/{maxPhotos} photos uploaded
           </p>
         </div>

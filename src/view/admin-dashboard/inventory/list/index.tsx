@@ -1,16 +1,22 @@
 "use client";
 
+import { BaseDialogComponent } from "@/components/general/base-dialog-component";
 import { buildNumber, CustomTable } from "@/components/general/custom-table";
 import { CustomPagination } from "@/components/general/pagination-component";
 import { GeneralTabComponent } from "@/components/general/tabs-component";
 import { ManageStockDialog } from "@/components/page/dashboard/manage-stock-dialog";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { SearchInput } from "@/components/ui/search-input";
+import { useTransferInventory } from "@/hooks/api/mutations/admin";
 import { useGetInventoryList, useGetInventoryLocations } from "@/hooks/api/queries/admin/products";
+import { downloadCsvBlob, exportInventorySnapshotCsv } from "@/api-req/products";
 import { IInventorySnapshotItem, IStockableVariant } from "@/types/product.interface";
-import { PackageSearch, Warehouse } from "lucide-react";
+import { ArrowRightLeft, Download, Loader2, PackageSearch, Warehouse } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import Select, { SingleValue } from "react-select";
+import { toast } from "sonner";
 import { RentalRecordsPage } from "../rentals";
 
 const tabOptions = [
@@ -29,15 +35,27 @@ export const InventoryListPage = () => {
   const [limit] = useState(10);
   const [page, setPage] = useState(1);
   const [locationId, setLocationId] = useState<string>("");
+  const [q, setQ] = useState("");
   const [openManageStock, setOpenManageStock] = useState(false);
   const [selectedVariant, setSelectedVariant] = useState<IStockableVariant | null>(null);
+  const [transferRow, setTransferRow] = useState<IInventorySnapshotItem | null>(null);
+  const [toLocationId, setToLocationId] = useState("");
+  const [transferQty, setTransferQty] = useState("");
+  const [transferNote, setTransferNote] = useState("");
+  const [exporting, setExporting] = useState(false);
 
   const { data: locations, isLoading: locationLoading } = useGetInventoryLocations();
-  const { data, isLoading, refetch } = useGetInventoryList({ page, limit, location_id: locationId || undefined });
+  const { data, isLoading, refetch } = useGetInventoryList({
+    page,
+    limit,
+    location_id: locationId || undefined,
+    ...(q ? { q } : null),
+  });
+  const { mutateAsync: transferAsync } = useTransferInventory();
 
   useEffect(() => {
     setPage(1);
-  }, [locationId]);
+  }, [locationId, q]);
 
   const locationOption = useMemo(() => {
     return (locations?.data ?? []).map((item) => ({
@@ -151,10 +169,59 @@ export const InventoryListPage = () => {
     text: "Action",
     show: true,
     render: (row: IInventorySnapshotItem) => (
-      <Button variant="default" size="sm" onClick={() => handleManageStock(row)}>
-        <Warehouse /> Manage Stock
-      </Button>
+      <div className="flex gap-2">
+        <Button variant="default" size="sm" onClick={() => handleManageStock(row)}>
+          <Warehouse /> Manage Stock
+        </Button>
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => {
+            setTransferRow(row);
+            setToLocationId("");
+            setTransferQty("");
+            setTransferNote("");
+          }}
+        >
+          <ArrowRightLeft /> Transfer
+        </Button>
+      </div>
     ),
+  };
+
+  const handleTransfer = async () => {
+    if (!transferRow || !toLocationId || !transferQty) return;
+    await transferAsync({
+      payload: {
+        variant_id: transferRow.product_variant_id,
+        from_location_id: transferRow.location_id,
+        to_location_id: toLocationId,
+        quantity: parseInt(transferQty),
+        ...(transferNote.trim() ? { note: transferNote.trim() } : null),
+      },
+      idempotencyKey: crypto.randomUUID(),
+    });
+    setTransferRow(null);
+    refetch();
+  };
+
+  const transferInvalid =
+    !toLocationId || !transferQty || parseInt(transferQty) <= 0 || toLocationId === transferRow?.location_id;
+
+  const handleExport = async () => {
+    try {
+      setExporting(true);
+      const blob = await exportInventorySnapshotCsv({
+        ...(locationId ? { location_id: locationId } : {}),
+        ...(q ? { q } : {}),
+      });
+      downloadCsvBlob(blob, `stock_opname${locationId ? `_${locationId.slice(0, 8)}` : ""}.csv`);
+      toast.success("CSV downloaded");
+    } catch {
+      toast.error("Gagal export CSV");
+    } finally {
+      setExporting(false);
+    }
   };
 
   return (
@@ -173,7 +240,20 @@ export const InventoryListPage = () => {
             </h3>
             <p className="text-sm text-gray-500 font-normal">View and manage stock availability across all locations</p>
           </div>
-          <div className="flex flex-row items-center gap-2 w-[320px]">
+          <div className="flex flex-row items-center gap-2 w-[560px] justify-end">
+            <Button variant="outline" size="sm" disabled={exporting} onClick={handleExport}>
+              {exporting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
+              Export
+            </Button>
+            <SearchInput
+              className="border-brand-100"
+              placeholder="Search SKU / name..."
+              search={q}
+              onSearch={(query) => {
+                setQ(query);
+                setPage(1);
+              }}
+            />
             <Select
               options={locationOption}
               isLoading={locationLoading}
@@ -230,6 +310,49 @@ export const InventoryListPage = () => {
                 refetch();
               }}
             />
+          )}
+          {transferRow && (
+            <BaseDialogComponent
+              title="Transfer Stock"
+              isOpen={!!transferRow}
+              btnConfirm="Transfer"
+              onCloseText="Cancel"
+              isDisabled={transferInvalid}
+              onClose={() => setTransferRow(null)}
+              onConfirm={handleTransfer}
+            >
+              <div className="flex flex-col gap-3">
+                <p className="text-sm text-gray-500">
+                  {transferRow.variant.variant_name} ({transferRow.variant.sku}) — from{" "}
+                  <span className="font-semibold text-foreground">{transferRow.location?.name}</span> (avail: {transferRow.stock_available})
+                </p>
+                <div className="flex flex-col gap-1.5">
+                  <label className="text-xs font-medium text-muted-foreground">To location</label>
+                  <Select
+                    options={locationOption.filter((o) => o.value !== transferRow.location_id)}
+                    isLoading={locationLoading}
+                    placeholder="Select destination"
+                    className="text-sm"
+                    onChange={(selected: SingleValue<{ value: string; label: string }>) => setToLocationId(selected?.value ?? "")}
+                  />
+                </div>
+                <div className="flex flex-col gap-1.5">
+                  <label className="text-xs font-medium text-muted-foreground">Quantity</label>
+                  <Input
+                    type="number"
+                    min="1"
+                    max={transferRow.stock_available}
+                    value={transferQty}
+                    onChange={(e) => setTransferQty(e.target.value)}
+                    placeholder="0"
+                  />
+                </div>
+                <div className="flex flex-col gap-1.5">
+                  <label className="text-xs font-medium text-muted-foreground">Note (optional)</label>
+                  <Input value={transferNote} onChange={(e) => setTransferNote(e.target.value)} placeholder="e.g. restock branch B" />
+                </div>
+              </div>
+            </BaseDialogComponent>
           )}
         </>
       )}

@@ -7,7 +7,7 @@ import { useAuthMember } from "@/context/member.ctx";
 import { useGetMySessions } from "@/hooks/api/queries/customer/profile";
 import { formatDateHelper, getDurationInMinutes } from "@/lib/helper";
 
-import { ChevronRight, History, Loader2, LogOut, ReceiptText, SquarePen, Tickets } from "lucide-react";
+import { ChevronRight, History, Loader2, LogOut, MapPin, Package, ReceiptText, SquarePen, Tickets } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { ReactNode, useState } from "react";
@@ -92,7 +92,7 @@ export const ProfilePageView = () => {
               <div className="flex flex-row  w-full justify-between mb-2 items-center">
                 <div className="flex flex-col">
                   <p className="font-extrabold text-xl">Cancelled Class</p>
-                  <p className="font-normal text-xs text-brand-400">All canceled classes will receive 1 credit for the same class.</p>
+                  <p className="font-normal text-xs text-brand-400">Free cancellation returns credit. Late cancellation forfeits credit unless the penalty is paid.</p>
                 </div>
               </div>
               <ScrollArea className="w-full whitespace-nowrap">
@@ -121,7 +121,9 @@ export const ProfilePageView = () => {
       <div className=" pt-6">
         <div className="flex flex-col gap-2 ">
           <MenuItem icon={<Tickets />} name="My Credits" action={() => router.push("/profile/my-credits")} />
+          <MenuItem icon={<Package />} name="My Orders" action={() => router.push("/profile/orders")} />
           <MenuItem icon={<ReceiptText />} name="Purchase History" action={() => router.push("/profile/purchase-history")} />
+          <MenuItem icon={<MapPin />} name="Address Book" action={() => router.push("/profile/addresses")} />
           <MenuItem icon={<History />} name="Credit History" action={() => router.push("/profile/credit-history")} />
           <MenuItem icon={<SquarePen />} name="Edit Profile" action={() => router.push("/profile/update")} />
         </div>

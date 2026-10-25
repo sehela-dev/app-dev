@@ -1,13 +1,5 @@
-import { CheckoutShopSessionView } from "@/view/checkout/shop";
-
-import type { Metadata } from "next";
-
-export const metadata: Metadata = {
-  title: "Shop Checkout — Sehela Space",
-  description: "Shop Checkout at Sehela Space",
-};
-
+import { redirect } from "next/navigation";
 
 export default function Home() {
-  return <CheckoutShopSessionView />;
+  redirect("/cart");
 }

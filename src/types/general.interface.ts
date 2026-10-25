@@ -32,4 +32,5 @@ export interface ICommonParams {
   class_id?: string;
   is_credit_only?: boolean;
   has_photo?: boolean;
+  is_published?: boolean | string;
 }

@@ -48,7 +48,10 @@ export type TInitiatePackagePurchase = (
 ) => Promise<IResponseData<IInitiatePackagePurchaseResponse>>;
 
 export const initiatePackagePurchase: TInitiatePackagePurchase = async (body) => {
-  const res = await axiosx(true).post(`${MAIN_API_URL}/payments/initiate`, body);
+  const res = await axiosx(true).post(`${MAIN_API_URL}/payments/initiate`, {
+    ...body,
+    share_with_email: body.share_with_email?.trim().toLowerCase() || null,
+  });
   return res.data;
 };
 
@@ -67,7 +70,9 @@ export const sharePackagePurchase = async (
   purchaseId: string,
   body: { email: string },
 ): Promise<IResponseData<ISharePackagePurchaseResponse>> => {
-  const res = await axiosx(true).post(`${MAIN_API_URL}/profile/packages/${encodeURIComponent(purchaseId)}/share`, body);
+  const res = await axiosx(true).post(`${MAIN_API_URL}/profile/packages/${encodeURIComponent(purchaseId)}/share`, {
+    email: body.email.trim().toLowerCase(),
+  });
   return res.data;
 };
 
@@ -82,6 +87,15 @@ const SHARE_ERROR_COPY: Record<string, string> = {
 
 export const getShareErrorMessage = (code?: string, fallback?: string) =>
   (code && SHARE_ERROR_COPY[code]) || fallback || "Unable to share this package. Please try again.";
+
+// POST /payments/initiate|package-purchase — purchase-limit guards (source of truth).
+const PURCHASE_ERROR_COPY: Record<string, string> = {
+  ALREADY_PURCHASED: "You already own this one-time package.",
+  NEW_USERS_ONLY: "This package is for new members only.",
+};
+
+export const getPurchaseErrorMessage = (code?: string, fallback?: string) =>
+  (code && PURCHASE_ERROR_COPY[code]) || fallback || "Unable to start payment. Please try again.";
 
 // ----------------------------------------------------------------------
 // GET /payments/history (A4) — member transaction history list
@@ -134,6 +148,7 @@ export interface IPaymentHistoryDetail extends IPackagePaymentHistoryItem {
   purchase_status?: string | null;
   purchased_at?: string | null;
   booking_status?: string | null;
+  fulfillment_status?: string | null;
   voucher_code?: string | null;
   discount_idr?: number | null;
 }

@@ -10,13 +10,14 @@ import {
   TUpdateRoomLocation,
 } from "@/types/room-location.interface";
 
-export const getRoomLocations: TRoomResponseData = async ({ page, limit, search, branch }) => {
+export const getRoomLocations: TRoomResponseData = async ({ page, limit, search, branch, is_active }) => {
   const res = await axiosx(true).get(`${MAIN_API_URL}/admin/rooms`, {
     params: {
       page,
       page_limit: limit,
       ...(search ? { q: search } : null),
       ...(branch && branch !== "all" ? { branch } : null),
+      ...(is_active !== undefined ? { is_active } : null),
     },
   });
   return res.data;

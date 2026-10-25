@@ -75,6 +75,18 @@ export const ForgotPasswordPageView = () => {
                 </div>
               </form>
             </FormProvider>
+            <p className="mt-4 text-center text-xs text-brand-400">
+              Already registered but not activated? Contact admin on{" "}
+              <a
+                href="https://wa.me/62811149688"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="underline text-brand-500"
+              >
+                WhatsApp
+              </a>
+              .
+            </p>
           </div>
         </div>
       </div>

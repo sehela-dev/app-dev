@@ -6,7 +6,7 @@ import { useCallback } from "react";
 import { useMutation } from "@tanstack/react-query";
 
 import { initiatePackagePurchase } from "@/api-req/customer-app";
-import { getShareErrorMessage } from "@/api-req/customer-app/payments";
+import { getPurchaseErrorMessage, getShareErrorMessage } from "@/api-req/customer-app/payments";
 
 // A3: POST /payments/initiate — on success redirect member to snap_redirect_url.
 export const useInitiatePackagePurchase = () => {
@@ -22,12 +22,13 @@ const useConfig = () => {
   const onError = useCallback((error: AxiosError<any>) => {
     const responseError = error?.response?.data?.error;
     if (error?.response && error?.response?.status < 500) {
+      const fallback = getShareErrorMessage(
+        responseError?.code,
+        responseError?.message ?? "Unable to start payment. Please try again.",
+      );
       return toast.error(responseError?.code ?? "ERROR", {
         id: "error",
-        description: getShareErrorMessage(
-          responseError?.code,
-          responseError?.message ?? "Unable to start payment. Please try again.",
-        ),
+        description: getPurchaseErrorMessage(responseError?.code, fallback),
         position: "top-center",
       });
     }

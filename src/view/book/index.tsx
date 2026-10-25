@@ -446,6 +446,7 @@ export const BookClassView = () => {
                           location={session.place === "online" ? "Online" : session.location_name ?? ""}
                           instructor={session.instructor_name ?? ""}
                           slot={String(session.slots_available)}
+                          isFull={session.is_full}
                           isSpecial={session.type === "special"}
                           isOnline={session.place === "online"}
                           credit={session.allow_credit && session.price_credit_amount ? String(session.price_credit_amount) : ""}
