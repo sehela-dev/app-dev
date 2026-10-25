@@ -16,12 +16,12 @@ export const getAdmins: TGetAdmins = async ({ page, page_size, q, role, is_activ
 };
 
 export const createAdmin: TCreateAdmin = async (data) => {
-  const res = await axiosx(true).post(`${MAIN_API_URL}/admin/admins`, data);
+  const res = await axiosx(true).post(`${MAIN_API_URL}/admin/admins`, { ...data, email: data.email?.trim().toLowerCase() });
   return res.data;
 };
 
 export const updateAdmin: TUpdateAdmin = async ({ id, data }) => {
-  const res = await axiosx(true).patch(`${MAIN_API_URL}/admin/admins/${id}`, data);
+  const res = await axiosx(true).patch(`${MAIN_API_URL}/admin/admins/${id}`, data.email ? { ...data, email: data.email?.trim().toLowerCase() } : data);
   return res.data;
 };
 

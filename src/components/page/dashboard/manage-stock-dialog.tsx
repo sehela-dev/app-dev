@@ -113,6 +113,7 @@ export const ManageStockDialog = ({
           payload: {
             location_id: change.locationId,
             quantity_delta: change.difference,
+            note: reason.trim(),
             reason: reason.trim(),
           },
           idempotencyKey: crypto.randomUUID(),

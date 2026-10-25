@@ -37,6 +37,9 @@ export const sharePackagePurchaseAdmin = async (
   id: string,
   body: { email?: string; user_id?: string },
 ): Promise<IResponseData<ISharePackagePurchaseAdminResponse>> => {
-  const res = await axiosx(true).post(`${packagePurchasePath(id)}/share`, body);
+  const res = await axiosx(true).post(`${packagePurchasePath(id)}/share`, {
+    ...body,
+    email: body.email?.trim().toLowerCase(),
+  });
   return res.data;
 };

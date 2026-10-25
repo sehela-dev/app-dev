@@ -53,6 +53,7 @@ import { Badge } from "@/components/ui/badge";
 import { BANK_LIST, branchLabel, SEHELA_BANKS, SEHELA_BRANCH } from "@/constants/sample-data";
 import { BackButtonComponent } from "@/components/general/back-button";
 import { DuplicateSessionDialog } from "@/components/page/session/duplicate-session-dialog";
+import { SessionWaitlistPanel } from "@/components/page/session/waitlist-panel";
 import Select from "react-select";
 
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
@@ -828,6 +829,8 @@ export const SessionDetailPage = () => {
               />
             </div>
           </div>
+          <Divider className="my-2" />
+          <SessionWaitlistPanel sessionId={id as string} />
         </div>
       </CardContent>
       {openDialog && (

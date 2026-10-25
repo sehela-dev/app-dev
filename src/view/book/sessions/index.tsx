@@ -1,5 +1,7 @@
 "use client";
 
+import { useState } from "react";
+
 import { useParams, useRouter } from "next/navigation";
 import {
   CalendarMinus2,
@@ -19,8 +21,11 @@ import { Button } from "@/components/ui/button";
 import { usePaymentMethodCtx } from "@/context/payment-method.ctx";
 import { useAuthMember } from "@/context/member.ctx";
 import { useGetPublicSession } from "@/hooks/api/queries/customer/public";
+import { useGetWaitlistStatus } from "@/hooks/api/queries/customer/profile";
+import { useJoinWaitlist } from "@/hooks/api/mutations/customers";
 import { formatDateHelper } from "@/lib/helper";
 import { getSessionLevelBadge, getSessionTypeBadge } from "@/utils/session-badge";
+import { toast } from "sonner";
 
 const getDuration = (start: string, end: string): string => {
   const [sh, sm] = start.split(":").map(Number);
@@ -57,14 +62,45 @@ const InfoRow = ({ label, value }: { label: string; value: React.ReactNode }) =>
 export const SessionDetailView = () => {
   const router = useRouter();
   const { id } = useParams();
+  const sessionId = typeof id === "string" ? id : undefined;
   const { onChangePaymentMethod } = usePaymentMethodCtx();
   const { isAuthenticated, isAuthReady } = useAuthMember();
 
-  const { data: session, isLoading, isError } = useGetPublicSession(typeof id === "string" ? id : undefined);
+  const { data: session, isLoading, isError } = useGetPublicSession(sessionId);
+
+  const [justJoined, setJustJoined] = useState(false);
+
+  const { data: waitlist } = useGetWaitlistStatus(sessionId, isAuthReady && isAuthenticated);
+  const { mutate: joinWaitlist, isPending: joinPending } = useJoinWaitlist();
 
   const onCheckoutSession = (paymentMethod: "credit" | "cash") => {
     onChangePaymentMethod(paymentMethod);
-    router.push(`/checkout/${id}`);
+    router.push(`/checkout/${sessionId}`);
+  };
+
+  const handleNotify = () => {
+    if (!isAuthenticated) {
+      router.push(`/auth/login?next=${encodeURIComponent(`/book/session/${sessionId}`)}`);
+      return;
+    }
+    setJustJoined(true); // optimistic — flip back on failure
+    joinWaitlist(sessionId!, {
+      onSuccess: () => {
+        toast.success("You're on the list", {
+          description: "We'll email you if a slot opens up.",
+          position: "top-center",
+        });
+      },
+      onError: (err: unknown) => {
+        setJustJoined(false);
+        const resp = (err as { response?: { data?: { error?: { code?: string; message?: string } } } })?.response?.data?.error;
+        const isGone = resp?.code === "SESSION_STARTED" || resp?.code === "SESSION_CANCELED" || resp?.code === "CLASS_INACTIVE";
+        toast.error("Failed to join waitlist", {
+          description: isGone ? "This session is no longer available." : resp?.message ?? "Please try again later.",
+          position: "top-center",
+        });
+      },
+    });
   };
 
   if (isLoading) {
@@ -93,6 +129,9 @@ export const SessionDetailView = () => {
   const duration = getDuration(session.time_start, session.time_end);
   const levelBadge = getSessionLevelBadge(session.level);
   const typeBadge = getSessionTypeBadge(session.type);
+  const isBookable = session.status?.toLowerCase() !== "canceled" && new Date(session.start_datetime).getTime() > Date.now();
+  const isWaitlisted = justJoined || !!waitlist?.data?.is_waitlisted;
+  const myBookingStatus = waitlist?.data?.is_booked ? (waitlist.data.booking_status ?? "") : "";
 
   return (
     <>
@@ -257,20 +296,45 @@ export const SessionDetailView = () => {
 
       <StickyContainerComponent>
         <div className="flex flex-col gap-4 p-4 font-serif text-brand-500">
-          {!isAuthReady ? (
-            <Button className="h-12 w-full" disabled>
-              Loading...
-            </Button>
-          ) : session.is_full ? (
-            <Button className="font-extrabold !text-gray-50 h-12 w-full">Waiting List</Button>
-          ) : !isAuthenticated ? (
-            <Button
-              className="font-extrabold !text-gray-50 h-12 w-full"
-              onClick={() => router.push(`/auth/login?next=${encodeURIComponent(`/book/session/${id as string}`)}`)}
-            >
-              Join Now
-            </Button>
-          ) : (
+          {isAuthReady && !isBookable
+            ? null
+            : !isAuthReady ? (
+                <Button className="h-12 w-full" disabled>
+                  Loading...
+                </Button>
+              ) : myBookingStatus === "confirmed" ? (
+                <>
+                  <Button className="font-extrabold !text-gray-50 h-12 w-full" onClick={() => router.push("/profile/my-sessions")}>
+                    {"You're booked"}
+                  </Button>
+                  <p className="text-xs text-brand-500/60">You already have a booking for this session.</p>
+                </>
+              ) : myBookingStatus === "pending_payment" ? (
+                <>
+                  <Button className="font-extrabold !text-gray-50 h-12 w-full" onClick={() => router.push("/profile/my-sessions")}>
+                    Complete payment
+                  </Button>
+                  <p className="text-xs text-brand-500/60">Your payment is pending — finish it before the booking expires.</p>
+                </>
+              ) : session.is_full ? (
+                <>
+                  <Button
+                    className="font-extrabold !text-gray-50 h-12 w-full"
+                    onClick={handleNotify}
+                    disabled={isWaitlisted || joinPending}
+                  >
+                    {isWaitlisted ? "You're on the list" : "Notify me"}
+                  </Button>
+                  <p className="text-xs text-brand-500/60">{"No slot is held — you'll be emailed if one opens up."}</p>
+                </>
+              ) : !isAuthenticated ? (
+                <Button
+                  className="font-extrabold !text-gray-50 h-12 w-full"
+                  onClick={() => router.push(`/auth/login?next=${encodeURIComponent(`/book/session/${id as string}`)}`)}
+                >
+                  Join Now
+                </Button>
+              ) : (
             <div className="flex flex-row items-center justify-between gap-4">
               {allowCredit && !isCreditOnly && (
                 <>

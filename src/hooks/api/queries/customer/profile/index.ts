@@ -5,3 +5,4 @@ export * from "./use-get-credit-ledger-infinite";
 export * from "./use-get-eligible-credits";
 export * from "./use-get-my-sesisons";
 export * from "./use-get-my-session-detail";
+export * from "./use-get-waitlist-status";

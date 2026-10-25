@@ -27,7 +27,7 @@ export const getInstructor: TInstructorData = async ({ page, limit, search, stat
 };
 
 export const createInstructor: TCreateInstructor = async (data) => {
-  const res = await axiosx(true).post(`${MAIN_API_URL}/admin/instructors`, data);
+  const res = await axiosx(true).post(`${MAIN_API_URL}/admin/instructors`, data.email ? { ...data, email: data.email?.trim().toLowerCase() } : data);
   return res.data;
 };
 
@@ -49,7 +49,7 @@ export const getInstructorPayments: TClassPaymentInstructor = async ({ page, lim
 };
 
 export const editInstructor: TEditInstructor = async ({ data, id }) => {
-  const res = await axiosx(true).patch(`${MAIN_API_URL}/admin/instructors/${id}`, data);
+  const res = await axiosx(true).patch(`${MAIN_API_URL}/admin/instructors/${id}`, data.email ? { ...data, email: data.email?.trim().toLowerCase() } : data);
   return res.data;
 };
 

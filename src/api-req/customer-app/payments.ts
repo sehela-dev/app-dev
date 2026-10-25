@@ -48,7 +48,10 @@ export type TInitiatePackagePurchase = (
 ) => Promise<IResponseData<IInitiatePackagePurchaseResponse>>;
 
 export const initiatePackagePurchase: TInitiatePackagePurchase = async (body) => {
-  const res = await axiosx(true).post(`${MAIN_API_URL}/payments/initiate`, body);
+  const res = await axiosx(true).post(`${MAIN_API_URL}/payments/initiate`, {
+    ...body,
+    share_with_email: body.share_with_email?.trim().toLowerCase() || null,
+  });
   return res.data;
 };
 
@@ -67,7 +70,9 @@ export const sharePackagePurchase = async (
   purchaseId: string,
   body: { email: string },
 ): Promise<IResponseData<ISharePackagePurchaseResponse>> => {
-  const res = await axiosx(true).post(`${MAIN_API_URL}/profile/packages/${encodeURIComponent(purchaseId)}/share`, body);
+  const res = await axiosx(true).post(`${MAIN_API_URL}/profile/packages/${encodeURIComponent(purchaseId)}/share`, {
+    email: body.email.trim().toLowerCase(),
+  });
   return res.data;
 };
 
@@ -143,6 +148,7 @@ export interface IPaymentHistoryDetail extends IPackagePaymentHistoryItem {
   purchase_status?: string | null;
   purchased_at?: string | null;
   booking_status?: string | null;
+  fulfillment_status?: string | null;
   voucher_code?: string | null;
   discount_idr?: number | null;
 }

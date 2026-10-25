@@ -6,7 +6,8 @@ import { useGetPaymentHistory } from "@/hooks/api/queries/customer/payments";
 import type { IPackagePaymentHistoryItem } from "@/api-req/customer-app/payments";
 import { formatCurrency, formatDateHelper } from "@/lib/helper";
 import { formatExpiryCountdown, humanizePaymentStatus } from "@/lib/pending-package-payment";
-import { Gem as GemIcon, ChevronRight, Loader2, ReceiptText, Ticket as TicketIcon } from "lucide-react";
+import { getPurchaseKind, PURCHASE_KIND_BADGE, PURCHASE_KIND_ICON_BG, PURCHASE_KIND_LABEL } from "@/lib/purchase-kind";
+import { Gem as GemIcon, ChevronRight, Loader2, Package as PackageIcon, ReceiptText, Ticket as TicketIcon } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 
@@ -55,7 +56,7 @@ export const PurchaseHistoryView = () => {
               <ReceiptText className="text-gray-400" size={20} />
             </div>
             <p className="text-sm font-semibold text-brand-900">No purchases yet</p>
-            <p className="max-w-[240px] text-xs text-gray-500">Your credit package purchases will appear here.</p>
+            <p className="max-w-[240px] text-xs text-gray-500">Your credit, class, and product purchases will appear here.</p>
             <Button className="mt-2" onClick={() => router.push("/topup-credit")}>
               Browse packages
             </Button>
@@ -81,9 +82,10 @@ export const PurchaseHistoryView = () => {
 function PurchaseRow({ item }: { item: IPackagePaymentHistoryItem }) {
   const router = useRouter();
   const amount = item.gross_amount_idr ?? (item.amount_idr as number | undefined) ?? 0;
-  const kind = item.payable_type ? String(item.payable_type) : "";
-  const isPackage = kind === "package_purchase";
-  const isBooking = kind === "booking";
+  const kind = getPurchaseKind(item.payable_type);
+  const isPackage = kind === "credit";
+  const isBooking = kind === "class";
+  const isProduct = kind === "product";
   // Status endpoint takes the Midtrans-side id (PKG-…/BK-…) or the internal order id.
   const orderKey = item.provider_txn_id ? String(item.provider_txn_id) : item.order_id ? String(item.order_id) : "";
   const status = item.status ? String(item.status) : "pending";
@@ -106,12 +108,17 @@ function PurchaseRow({ item }: { item: IPackagePaymentHistoryItem }) {
     ? String(item.package_name ?? "Credit package")
     : isBooking
       ? String(item.session_name ?? "Class booking")
-      : "Payment";
+      : isProduct
+        ? "Product order"
+        : "Payment";
+  const createdAt = item.created_at ? formatDateHelper(String(item.created_at), "dd MMM yyyy · HH:mm") : "";
   const subtitle = isPackage
-    ? `${item.package_credits != null ? `${String(item.package_credits)} credits · ` : ""}${item.created_at ? formatDateHelper(String(item.created_at), "dd MMM yyyy · HH:mm") : ""}`
+    ? `${item.package_credits != null ? `${String(item.package_credits)} credits · ` : ""}${createdAt}`
     : isBooking
-      ? `${item.class_name ? `${String(item.class_name)} · ` : ""}${item.created_at ? formatDateHelper(String(item.created_at), "dd MMM yyyy · HH:mm") : ""}`
-      : (item.created_at ? formatDateHelper(String(item.created_at), "dd MMM yyyy · HH:mm") : "");
+      ? `${item.class_name ? `${String(item.class_name)} · ` : ""}${createdAt}`
+      : isProduct
+        ? `${item.order_id ? `#${String(item.order_id)} · ` : ""}${createdAt}`
+        : createdAt;
 
   // Resume on the payment (pending) page — same as drop-in booking cash-payment page.
   // Row carries snap_redirect_url; never re-initiates for pending. Packages only —
@@ -148,17 +155,28 @@ function PurchaseRow({ item }: { item: IPackagePaymentHistoryItem }) {
     >
       <div className="flex items-center gap-3">
         <span
-          className={
-            isPackage
-              ? "flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-brand-500"
-              : "flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-sky-600"
-          }
+          className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full ${PURCHASE_KIND_ICON_BG[kind]}`}
         >
-          {isPackage ? <GemIcon size={15} className="text-white" /> : <TicketIcon size={15} className="text-white" />}
+          {isPackage ? (
+            <GemIcon size={15} className="text-white" />
+          ) : isBooking ? (
+            <TicketIcon size={15} className="text-white" />
+          ) : isProduct ? (
+            <PackageIcon size={15} className="text-white" />
+          ) : (
+            <ReceiptText size={15} className="text-white" />
+          )}
         </span>
         <div className="min-w-0 flex-1">
           <div className="flex items-baseline justify-between gap-2">
-            <p className="truncate text-sm font-semibold text-brand-900">{title}</p>
+            <div className="flex min-w-0 items-center gap-1.5">
+              <span
+                className={`shrink-0 rounded-full px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wide ${PURCHASE_KIND_BADGE[kind]}`}
+              >
+                {PURCHASE_KIND_LABEL[kind]}
+              </span>
+              <p className="truncate text-sm font-semibold text-brand-900">{title}</p>
+            </div>
             <p className="flex shrink-0 items-center gap-0.5">
               <span className="text-sm font-bold text-brand-900">{formatCurrency(String(amount))}</span>
               <ChevronRight size={15} className="text-gray-300" />

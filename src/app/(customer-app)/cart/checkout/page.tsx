@@ -1,3 +1,4 @@
+import AuthMemberGuard from "@/layout/authguard-member-layout";
 import { CartCheckoutView } from "@/view/cart/checkout";
 
 import type { Metadata } from "next";
@@ -9,5 +10,9 @@ export const metadata: Metadata = {
 
 
 export default function Home() {
-  return <CartCheckoutView />;
+  return (
+    <AuthMemberGuard>
+      <CartCheckoutView />
+    </AuthMemberGuard>
+  );
 }
