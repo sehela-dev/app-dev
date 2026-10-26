@@ -1,6 +1,7 @@
 import { NavItem } from "@/components/nav-main";
 import { IOverallResultByClass } from "@/types/dashboard.interface";
 import { addMonths, format, parseISO, subDays, subMonths } from "date-fns";
+import { tz } from "@date-fns/tz";
 import { id } from "date-fns/locale";
 
 export const TRANSACTION_TERMINAL_STATUSES = ["voided", "refunded", "cancelled", "canceled"] as const;
@@ -23,20 +24,30 @@ export function formatCurrency(amount?: string | number, currencyCode = "IDR", l
 }
 
 /**
- * Format date with Indonesian locale
+ * Format date, always in WIB (Asia/Jakarta) regardless of the viewer's device timezone.
+ * Date-only strings ("YYYY-MM-DD") are WIB calendar dates — pinned at WIB midnight so
+ * they can't roll to a neighbouring day on devices in other timezones.
  * @param date - Date string or Date object
  * @param formatStr - Format pattern (default: 'dd/MM/yyyy')
  * @returns Formatted date string
  */
 export const formatDateHelper = (date: string | Date, formatStr: string = "dd/MM/yyyy"): string => {
   try {
+    // time pattern → append literal WIB ('WIB' quoted so date-fns doesn't parse W as ISO-week)
+    const fmt = /[hms]/.test(formatStr) ? `${formatStr} 'WIB'` : formatStr;
+    if (typeof date === "string" && /^\d{4}-\d{2}-\d{2}$/.test(date)) {
+      return format(parseISO(`${date}T00:00:00+07:00`), fmt, { in: tz("Asia/Jakarta") });
+    }
     const dateObj = typeof date === "string" ? parseISO(date) : date;
-    return format(dateObj, formatStr);
+    return format(dateObj, fmt, { in: tz("Asia/Jakarta") });
   } catch (error) {
     console.error("Date formatting error:", error);
     return "";
   }
 };
+
+/** Today's date in WIB, for date-input bounds and API filters keyed on Jakarta days. */
+export const todayWIB = (): string => format(new Date(), "yyyy-MM-dd", { in: tz("Asia/Jakarta") });
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 /**
@@ -300,19 +311,19 @@ export const defaultDate = () => {
   const twoWeeksAdvance = addMonths(today, 14);
   const twoWeeksBefore = subDays(today, 14);
 
-  // Format the dates (you can customize the format string)
-  const formattedToday = format(today, "yyyy-MM-dd");
-  const formattedOneMonthAgo = format(oneMonthAgo, "yyyy-MM-dd");
-  const formattedOneMonthLater = format(oneMonthForward, "yyyy-MM-dd");
-  const formattedTwoWeeksAdvance = format(twoWeeksAdvance, "yyyy-MM-dd");
-  const formattedTwoWeeksBefore = format(twoWeeksBefore, "yyyy-MM-dd");
+  // Format the dates in WIB (filters are keyed on Jakarta days)
+  const formattedToday = format(today, "yyyy-MM-dd", { in: tz("Asia/Jakarta") });
+  const formattedOneMonthAgo = format(oneMonthAgo, "yyyy-MM-dd", { in: tz("Asia/Jakarta") });
+  const formattedOneMonthLater = format(oneMonthForward, "yyyy-MM-dd", { in: tz("Asia/Jakarta") });
+  const formattedTwoWeeksAdvance = format(twoWeeksAdvance, "yyyy-MM-dd", { in: tz("Asia/Jakarta") });
+  const formattedTwoWeeksBefore = format(twoWeeksBefore, "yyyy-MM-dd", { in: tz("Asia/Jakarta") });
 
   return { formattedToday, formattedOneMonthAgo, formattedOneMonthLater, formattedTwoWeeksAdvance, formattedTwoWeeksBefore };
 };
 
 export function combineToISOString(date: string, time: string): string {
-  // Combine date and time strings
-  const dateTimeString = `${date}T${time}:00`;
+  // Combine date and time strings (admin picks WIB wall-clock)
+  const dateTimeString = `${date}T${time}:00+07:00`;
 
   // Create a Date object
   const dateTime = new Date(dateTimeString);

@@ -182,7 +182,7 @@ export const MySessionCardComponent = ({
         : `${String(Math.floor(remainingMs / 60000)).padStart(2, "0")}:${String(Math.floor((remainingMs % 60000) / 1000)).padStart(2, "0")} left`
       : null;
   const expiresLabel = expiresAtMs
-    ? new Date(expiresAtMs).toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit", hour12: false })
+    ? new Date(expiresAtMs).toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit", hour12: false, timeZone: "Asia/Jakarta" })
     : null;
 
   const handlePayNow = (e: React.MouseEvent) => {
@@ -260,7 +260,7 @@ export const MySessionCardComponent = ({
           {createdAt && (
             <p className="flex items-center gap-2 text-xs text-gray-500">
               <Clock size={12} className="shrink-0 text-brand-300" />
-              Booked {formatDateHelper(createdAt, "dd MMM HH:mm")} WIB
+              Booked {formatDateHelper(createdAt, "dd MMM HH:mm")}
               {isPendingPayment && expiresLabel ? ` • Expires ${expiresLabel} WIB` : ""}
             </p>
           )}

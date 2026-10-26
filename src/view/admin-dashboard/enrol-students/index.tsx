@@ -9,7 +9,7 @@ import { Divider } from "@/components/ui/divider";
 import { SearchInput } from "@/components/ui/search-input";
 import { useDebounce } from "@/hooks";
 import { useGetSessions } from "@/hooks/api/queries/admin/class-session";
-import { checkIsinHour, defaultDate, formatDateHelper } from "@/lib/helper";
+import { checkIsinHour, defaultDate, formatDateHelper, todayWIB } from "@/lib/helper";
 import { cn } from "@/lib/utils";
 import { ISessionItem } from "@/types/class-sessions.interface";
 import { Calendar, Clock, Loader2, User, Users } from "lucide-react";
@@ -22,7 +22,6 @@ import { useAdminPermission } from "@/hooks/use-role-access";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { format } from "date-fns";
 
 const enrollmentType = [
   {
@@ -101,7 +100,7 @@ export const EnrollStudentView = () => {
 
   const handleBookingSession = async () => {
     try {
-      const today = format(new Date(), "yyyy-MM-dd");
+      const today = todayWIB();
       const backdate = isManager && transactionDate && transactionDate !== today ? transactionDate : "";
       if (backdate && backdate > today) {
         setTransactionDateError("Backdate cannot be in the future");
@@ -343,7 +342,7 @@ export const EnrollStudentView = () => {
                         type="date"
                         className="h-[42px] w-full rounded-lg border-2 border-gray-200 px-4 text-gray-999 focus:border-brand-500 focus:outline-none"
                         value={transactionDate}
-                        max={format(new Date(), "yyyy-MM-dd")}
+                        max={todayWIB()}
                         onChange={(e) => {
                           setTransactionDate(e.target.value);
                           if (transactionDateError) setTransactionDateError(null);

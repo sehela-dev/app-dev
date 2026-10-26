@@ -10,7 +10,7 @@ import { Divider } from "@/components/ui/divider";
 
 import { ScrollArea } from "@radix-ui/react-scroll-area";
 import { useAdminManualTransaction } from "@/context/admin/add-transaction.ctx";
-import { formatCurrency } from "@/lib/helper";
+import { formatCurrency, todayWIB } from "@/lib/helper";
 import { BaseDialogConfirmation } from "@/components/general/dialog-confirnation";
 import { useCreateNewManualTrx } from "@/hooks/api/mutations/admin/use-create-manual-order";
 import { IAdminCartItemData, IPackages, IProduct, ISession } from "@/types/orders.interface";
@@ -30,7 +30,6 @@ import { useAdminPermission } from "@/hooks/use-role-access";
 import { useGetCustomers } from "@/hooks/api/queries/admin/customers";
 import { ICustomerData } from "@/types/customers.interface";
 import { parseProductCartItemId } from "@/components/page/orders/product-section";
-import { format } from "date-fns";
 
 export const PAYMENT_METHODS = [
   {
@@ -151,7 +150,7 @@ export const DetailFormAddTransaction = () => {
       return;
     }
 
-    const today = format(new Date(), "yyyy-MM-dd");
+    const today = todayWIB();
     const backdate = isManager && transactionDate && transactionDate !== today ? transactionDate : "";
     if (backdate && backdate > today) {
       setTransactionDateError("Backdate cannot be in the future");
@@ -733,7 +732,7 @@ export const DetailFormAddTransaction = () => {
                           type="date"
                           className="w-full px-4 border-2 border-gray-200 rounded-lg text-gray-999 focus:outline-none focus:border-brand-500 transition-colors h-[42px]"
                           value={transactionDate}
-                          max={format(new Date(), "yyyy-MM-dd")}
+                          max={todayWIB()}
                           onChange={(e) => {
                             setTransactionDate(e.target.value);
                             if (transactionDateError) setTransactionDateError(null);
