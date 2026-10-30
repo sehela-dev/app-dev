@@ -77,6 +77,15 @@ export const OrderDetailView = () => {
           </div>
         </div>
 
+        {order.payment_status === "pending" && order.payment_instructions && (
+          <Button
+            className="min-h-12 w-full text-sm font-extrabold"
+            onClick={() => router.push(`/profile/orders/${order.id}/payment`)}
+          >
+            Continue payment
+          </Button>
+        )}
+
         <div className="rounded-xl border border-brand-100 bg-brand-25 p-4">
           <p className="mb-2 text-sm font-bold">Items</p>
           <div className="flex flex-col gap-2">
@@ -163,7 +172,7 @@ export const OrderDetailView = () => {
       {canComplete && (
         <div className="sticky bottom-16 flex w-full bg-brand-50 p-4">
           <Button className="w-full" disabled={completeOrder.isPending} onClick={handleComplete}>
-            {completeOrder.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : "Pesanan diterima"}
+            {completeOrder.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : "Order received"}
           </Button>
         </div>
       )}

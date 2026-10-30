@@ -1,12 +1,15 @@
 "use client";
+import { BaseDialogComponent } from "@/components/general/base-dialog-component";
+import { PaymentChannelList } from "@/components/general/payment-channel-list";
 import { NavHeaderComponent } from "@/components/layout/header-checkout";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useAuthMember } from "@/context/member.ctx";
-import { useInitiatePackagePurchase } from "@/hooks/api/mutations/customers";
+import { useInitiatePackagePurchase, useRetryPackagePayment } from "@/hooks/api/mutations/customers";
 import { useGetPublicCreditPackageDetail } from "@/hooks/api/queries/customer/public";
-import { useGetPaymentStatus } from "@/hooks/api/queries/customer/payments";
+import { useGetPaymentChannels, useGetPaymentStatus } from "@/hooks/api/queries/customer/payments";
+import { ENABLE_NATIVE_PAYMENT } from "@/lib/config";
 import { formatCurrency, formatDateHelper } from "@/lib/helper";
 import {
   PACKAGE_PAYMENT_FAILURE_STATUSES,
@@ -16,7 +19,6 @@ import {
   getPaymentExpiryRemainingMs,
   getPendingPackagePayment,
   humanizePaymentStatus,
-  openSnapInNewTab,
   setPendingPackagePayment,
 } from "@/lib/pending-package-payment";
 import { CalendarClock, GemIcon, Info, Loader2, RefreshCw, Ticket, Users } from "lucide-react";
@@ -30,12 +32,20 @@ export const TopUpCreditDetailView = ({ id }: { id: string }) => {
   const { isAuthenticated, isNewMember } = useAuthMember();
   const { data, isLoading, isError } = useGetPublicCreditPackageDetail(id);
   const { mutateAsync, isPending } = useInitiatePackagePurchase();
+  const retryMutation = useRetryPackagePayment();
   const [agreed, setAgreed] = useState(false);
   const [shareEmail, setShareEmail] = useState("");
   const [shareError, setShareError] = useState<string | null>(null);
   const [buyError, setBuyError] = useState<string | null>(null);
-  // Restore an in-progress payment (e.g. user returns from the Snap tab or refreshes)
-  const [pending, setPending] = useState<{ orderId: string; snapUrl: string; initiatedAt: number } | null>(() => {
+  const [selectedChannel, setSelectedChannel] = useState<string | null>(null);
+  const [changeOpen, setChangeOpen] = useState(false);
+  const [changeChannel, setChangeChannel] = useState<string | null>(null);
+  const { data: channelsData, isLoading: channelsLoading } = useGetPaymentChannels(ENABLE_NATIVE_PAYMENT && isAuthenticated);
+  const channels = channelsData?.data ?? [];
+  const requiresChannel = ENABLE_NATIVE_PAYMENT && channels.length > 0;
+  // Restore an in-progress payment (e.g. user returns from the Snap tab or refreshes).
+  // Native rows have no Snap URL; the payment page reloads instructions from status.
+  const [pending, setPending] = useState<{ orderId: string; snapUrl: string | null; initiatedAt: number } | null>(() => {
     const stored = getPendingPackagePayment();
     if (!stored || stored.package_id !== id) return null;
     // Backfill old records saved without a timestamp so they don't instantly read as expired
@@ -73,6 +83,51 @@ export const TopUpCreditDetailView = ({ id }: { id: string }) => {
   const classNames = item?.class_ids_restriction?.map((c) => c.name).join(", ");
   const classLabel = classNames ? classNames : "All Classes";
   const isNewOnlyBlocked = item?.only_for_new_users === true && isAuthenticated && isNewMember !== true;
+  const selectedChannelLabel = channels.find((channel) => channel.code === selectedChannel)?.label;
+
+  const applyNewPayment = (data: {
+    order_id?: string;
+    snap_redirect_url?: string | null;
+    payment_instructions?: { type: string; expires_at?: string; redirect_url?: string } | null;
+  } | null | undefined) => {
+    const orderId = data?.order_id;
+    if (!orderId) return;
+    const instructions = data?.payment_instructions ?? null;
+    const url = data?.snap_redirect_url ??
+      (instructions?.type === "redirect" ? instructions.redirect_url ?? null : null);
+    const initiatedAt = Date.now();
+    setPendingPackagePayment({ order_id: orderId, package_id: id, snap_redirect_url: url, initiated_at: initiatedAt });
+    setPending({ orderId, snapUrl: url, initiatedAt });
+    setNow(initiatedAt);
+    const qs = new URLSearchParams({ order_id: orderId });
+    if (url) qs.set("snap_redirect_url", url);
+    if (instructions?.expires_at) qs.set("expires_at", instructions.expires_at);
+    router.push(`/topup-credit/${id}/payment?${qs.toString()}`);
+  };
+
+  const handlePackageAction = (paymentChannel?: string) => {
+    if (!pending) return;
+    retryMutation.mutate(
+      {
+        order_id: pending.orderId,
+        ...(paymentChannel ? { payment_channel: paymentChannel } : {}),
+      },
+      {
+        onSuccess: (res) => {
+          setChangeOpen(false);
+          setChangeChannel(null);
+          applyNewPayment(res.data);
+        },
+        onError: (error) => {
+          const code = (error as { response?: { data?: { error?: { code?: string } } } })?.response?.data?.error?.code;
+          if (code === "PAYMENT_NOT_PENDING" || code === "PAYMENT_ALREADY_SETTLED" || code === "PACKAGE_UNAVAILABLE") {
+            setPending(null);
+            clearPendingPackagePayment();
+          }
+        },
+      },
+    );
+  };
 
   const handleBuy = async () => {
     if (!isAuthenticated) {
@@ -80,13 +135,17 @@ export const TopUpCreditDetailView = ({ id }: { id: string }) => {
       return;
     }
     if (isNewOnlyBlocked) return;
-    // Resume the stored Snap URL in a NEW TAB only — never same-tab redirect.
-    // Never re-initiate while a payment is in flight (each call = new payment row).
+    if (pending && isSettled) return;
+    // Resume the stored payment — never re-initiate while one is in flight.
     if (pending && !isTerminal) {
       handleContinue();
       return;
     }
     if (isPending) return;
+    if (requiresChannel && !selectedChannel) {
+      setBuyError("Choose a payment method first.");
+      return;
+    }
     const trimmedEmail = shareEmail.trim();
     if (trimmedEmail) {
       if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmedEmail)) {
@@ -97,18 +156,12 @@ export const TopUpCreditDetailView = ({ id }: { id: string }) => {
     setShareError(null);
     setBuyError(null);
     try {
-      const res = await mutateAsync({ package_id: id, ...(trimmedEmail ? { share_with_email: trimmedEmail } : {}) });
-      const url = res.data?.snap_redirect_url;
-      const orderId = res.data?.order_id;
-      if (!url || !orderId) return;
-      const initiatedAt = Date.now();
-      setPendingPackagePayment({ order_id: orderId, package_id: id, snap_redirect_url: url, initiated_at: initiatedAt });
-      setPending({ orderId, snapUrl: url, initiatedAt });
-      setNow(initiatedAt);
-      // Same as drop-in booking: open Midtrans in a new tab, land on the payment (pending) page
-      // openSnapInNewTab(url);
-      const qs = new URLSearchParams({ order_id: orderId, snap_redirect_url: url });
-      router.push(`/topup-credit/${id}/payment?${qs.toString()}`);
+      const res = await mutateAsync({
+        package_id: id,
+        ...(trimmedEmail ? { share_with_email: trimmedEmail } : {}),
+        ...(requiresChannel && selectedChannel ? { payment_channel: selectedChannel } : {}),
+      });
+      applyNewPayment(res.data);
     } catch (err) {
       const code = (err as { response?: { data?: { error?: { code?: string; message?: string } } } })?.response?.data
         ?.error?.code;
@@ -124,6 +177,10 @@ export const TopUpCreditDetailView = ({ id }: { id: string }) => {
   };
 
   const handleRetry = () => {
+    if (pending) {
+      handlePackageAction();
+      return;
+    }
     setPending(null);
     clearPendingPackagePayment();
   };
@@ -134,13 +191,16 @@ export const TopUpCreditDetailView = ({ id }: { id: string }) => {
   // (pending) page, whose "Open Midtrans" button is a fresh user gesture.
   const handleContinue = () => {
     if (!pending) return;
-    const tab = window.open(pending.snapUrl, "sehela-snap-payment");
-    if (tab) {
-      tab.opener = null;
-      tab.focus();
-      return;
+    const qs = new URLSearchParams({ order_id: pending.orderId });
+    if (pending.snapUrl) qs.set("snap_redirect_url", pending.snapUrl);
+    if (pending.snapUrl) {
+      const tab = window.open(pending.snapUrl, "sehela-snap-payment");
+      if (tab) {
+        tab.opener = null;
+        tab.focus();
+        return;
+      }
     }
-    const qs = new URLSearchParams({ order_id: pending.orderId, snap_redirect_url: pending.snapUrl });
     router.push(`/topup-credit/${id}/payment?${qs.toString()}`);
   };
 
@@ -267,6 +327,36 @@ export const TopUpCreditDetailView = ({ id }: { id: string }) => {
           </div>
         )}
 
+        <div className="flex flex-col gap-3 rounded-2xl border border-brand-100 bg-white px-4 py-3.5">
+          <p className="text-xs font-semibold text-brand-900">Payment preview</p>
+
+          {requiresChannel && (
+            <div className="flex flex-col gap-2">
+              <p className="text-[11px] font-semibold text-brand-900">Payment method</p>
+              <PaymentChannelList
+                channels={channels}
+                selected={selectedChannel}
+                onSelect={(code) => {
+                  setSelectedChannel(code);
+                  setBuyError(null);
+                }}
+              />
+              {selectedChannelLabel && <p className="text-[11px] text-gray-500">Selected: {selectedChannelLabel}</p>}
+            </div>
+          )}
+
+          <div className="flex flex-col gap-1 border-t border-brand-50 pt-2 text-sm">
+            <div className="flex items-center justify-between">
+              <span className="text-brand-500/60">Package price</span>
+              <span className="font-semibold">{formatCurrency(price)}</span>
+            </div>
+            <div className="flex items-center justify-between border-t border-brand-50 pt-2">
+              <span className="font-bold">Total</span>
+              <span className="text-lg font-extrabold">{formatCurrency(price)}</span>
+            </div>
+          </div>
+        </div>
+
         <div className="flex flex-col gap-1.5 rounded-2xl border border-brand-100 bg-white px-4 py-3.5">
           <p className="text-xs font-semibold text-brand-900">This package</p>
           <ul className="flex list-disc flex-col gap-1 pl-4 text-[11px] leading-relaxed text-gray-500">
@@ -330,27 +420,55 @@ export const TopUpCreditDetailView = ({ id }: { id: string }) => {
         <Button
           className="min-h-12 w-full text-sm font-extrabold"
           onClick={isFailed || isExpired ? handleRetry : pending && !isTerminal ? handleContinue : handleBuy}
-          disabled={isPending || !agreed || isNewOnlyBlocked}
-          aria-describedby={!agreed || isNewOnlyBlocked ? "tnc-hint" : undefined}
+          disabled={
+            isPending ||
+            !agreed ||
+            isNewOnlyBlocked ||
+            (pending && isSettled) ||
+            (ENABLE_NATIVE_PAYMENT && channelsLoading) ||
+            (requiresChannel && !selectedChannel)
+          }
+          aria-describedby={!agreed || isNewOnlyBlocked || (requiresChannel && !selectedChannel) ? "tnc-hint" : undefined}
         >
           {isPending ? (
             <span className="inline-flex items-center gap-2">
-              <Loader2 className="h-4 w-4 animate-spin" /> Opening payment…
+              <Loader2 className="h-4 w-4 animate-spin" /> Preparing payment…
             </span>
           ) : isFailed || isExpired ? (
             "Try again"
+          ) : pending && isSettled ? (
+            "Payment complete"
           ) : pending && !isTerminal ? (
             "Continue payment"
           ) : isAuthenticated ? (
-            "Buy now"
+            "Proceed to Pay"
           ) : (
             "Login to buy"
           )}
         </Button>
+        {pending && !isSettled && requiresChannel && (
+          <Button
+            variant="outline"
+            className="min-h-11 w-full rounded-xl border-brand-200 text-sm font-semibold"
+            onClick={() => {
+              setChangeChannel(selectedChannel);
+              setChangeOpen(true);
+            }}
+            disabled={retryMutation.isPending}
+          >
+            {retryMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
+            Change payment method
+          </Button>
+        )}
         {!agreed && !(pending && isSettled) && !isNewOnlyBlocked && (
           <p id="tnc-hint" className="text-center text-[11px] text-gray-500">
             Please read and agree to the purchase terms above to continue
             {!isAuthenticated ? " to login and buy" : ""}.
+          </p>
+        )}
+        {agreed && requiresChannel && !selectedChannel && (
+          <p id="tnc-hint" className="text-center text-[11px] text-gray-500">
+            Choose a payment method to continue.
           </p>
         )}
         {isNewOnlyBlocked && (
@@ -373,8 +491,10 @@ export const TopUpCreditDetailView = ({ id }: { id: string }) => {
                 <p className="font-mono text-sm font-bold text-yellow-800">{formatExpiryCountdown(remainingMs)}</p>
               </div>
               <p className="text-xs leading-relaxed text-yellow-700">
-                Payment opened in a new tab — complete it within 15 minutes. This page checks the status
-                automatically{serverStatus ? ` (now: ${humanizePaymentStatus(serverStatus)})` : ""}.
+                {pending.snapUrl
+                  ? "Payment opened in a new tab — complete it within 15 minutes."
+                  : "Complete the payment on the payment page within 15 minutes."}{" "}
+                This page checks the status automatically{serverStatus ? ` (now: ${humanizePaymentStatus(serverStatus)})` : ""}.
               </p>
               <button
                 type="button"
@@ -419,7 +539,7 @@ export const TopUpCreditDetailView = ({ id }: { id: string }) => {
           </div>
         )}
         <p className="text-center text-[11px] text-gray-500">
-          Payment opens in a new tab — credits appear under My Credits once the payment settles.
+          Credits appear under My Credits once the payment settles.
         </p>
         <div className="text-center">
           <Button variant="link" className="text-xs" onClick={() => router.push("/profile/purchase-history")}>
@@ -427,6 +547,36 @@ export const TopUpCreditDetailView = ({ id }: { id: string }) => {
           </Button>
         </div>
       </div>
+
+      {changeOpen && (
+        <BaseDialogComponent
+          isOpen={changeOpen}
+          title="Change payment method"
+          btnConfirm={retryMutation.isPending ? "Working..." : "Confirm change"}
+          onConfirm={() => {
+            if (changeChannel) handlePackageAction(changeChannel);
+          }}
+          onClose={() => {
+            setChangeOpen(false);
+            setChangeChannel(null);
+          }}
+          onCloseText="Cancel"
+          isDisabled={!changeChannel || retryMutation.isPending}
+        >
+          {channels.length === 0 ? (
+            <p className="text-center text-sm text-brand-500/70">No payment methods are available.</p>
+          ) : (
+            <div className="max-h-[50vh] overflow-y-auto">
+              <PaymentChannelList
+                channels={channels}
+                selected={changeChannel}
+                defaultOpen
+                onSelect={setChangeChannel}
+              />
+            </div>
+          )}
+        </BaseDialogComponent>
+      )}
     </div>
   );
 };
