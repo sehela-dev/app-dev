@@ -1,7 +1,8 @@
 "use client";
 
 import QRCode from "react-qr-code";
-import { Copy } from "lucide-react";
+import { Copy, Download } from "lucide-react";
+import { useRef, useState } from "react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
@@ -76,16 +77,123 @@ const CopyRow = ({
   </div>
 );
 
-const QrBlock = ({ value, alt }: { value: string; alt: string }) => (
-  <div className="mx-auto w-fit rounded-xl border border-brand-100 bg-white p-4">
-    <QRCode value={value} size={220} bgColor="#ffffff" fgColor="#000000" aria-label={alt} />
-  </div>
-);
+const saveBlob = (blob: Blob, filename: string) => {
+  const objectUrl = URL.createObjectURL(blob);
+  const anchor = document.createElement("a");
+  anchor.href = objectUrl;
+  anchor.download = filename;
+  document.body.appendChild(anchor);
+  anchor.click();
+  anchor.remove();
+  window.setTimeout(() => URL.revokeObjectURL(objectUrl), 1000);
+};
 
-const QrImage = ({ url, alt }: { url: string; alt: string }) => (
-  // eslint-disable-next-line @next/next/no-img-element
-  <img src={url} alt={alt} className="mx-auto h-[220px] w-[220px] object-contain" />
-);
+// Rasterise the rendered SVG itself at 1024px so the saved code stays scannable.
+const saveQrSvg = async (svg: SVGSVGElement, filename: string) => {
+  const size = 1024;
+  const clone = svg.cloneNode(true) as SVGSVGElement;
+  clone.setAttribute("width", String(size));
+  clone.setAttribute("height", String(size));
+  const svgUrl = URL.createObjectURL(new Blob([new XMLSerializer().serializeToString(clone)], { type: "image/svg+xml" }));
+  try {
+    const image = new Image();
+    await new Promise<void>((resolve, reject) => {
+      image.onload = () => resolve();
+      image.onerror = () => reject(new Error("Unable to render QR"));
+      image.src = svgUrl;
+    });
+    const canvas = document.createElement("canvas");
+    canvas.width = canvas.height = size;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) throw new Error("Canvas unavailable");
+    ctx.fillStyle = "#ffffff";
+    ctx.fillRect(0, 0, size, size);
+    ctx.drawImage(image, 0, 0, size, size);
+    const blob = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, "image/png"));
+    if (!blob) throw new Error("Unable to encode QR");
+    saveBlob(blob, `${filename}.png`);
+  } finally {
+    URL.revokeObjectURL(svgUrl);
+  }
+};
+
+const saveQrImage = async (url: string, filename: string) => {
+  try {
+    const res = await fetch(url);
+    if (!res.ok) throw new Error("Unable to fetch QR");
+    saveBlob(await res.blob(), `${filename}.png`);
+  } catch {
+    // Cross-origin without CORS: open the image so the user can save it manually.
+    window.open(url, "_blank", "noopener,noreferrer");
+    toast.info("Long-press the image to save it", { position: "top-center" });
+  }
+};
+
+const QrPanel = ({
+  value,
+  url,
+  alt,
+  filename,
+  caption,
+  expired,
+}: {
+  value?: string | null;
+  url?: string | null;
+  alt: string;
+  filename: string;
+  caption: string;
+  expired: boolean;
+}) => {
+  const boxRef = useRef<HTMLDivElement>(null);
+  const [busy, setBusy] = useState(false);
+
+  const handleDownload = async () => {
+    setBusy(true);
+    try {
+      const svg = boxRef.current?.querySelector("svg");
+      if (value && svg) await saveQrSvg(svg, filename);
+      else if (url) await saveQrImage(url, filename);
+    } catch {
+      toast.error("Download failed", {
+        description: "Try saving the QR from a screenshot instead.",
+        position: "top-center",
+      });
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <div className="mx-auto flex w-full max-w-[280px] flex-col items-center gap-3">
+      <div
+        ref={boxRef}
+        className={cn(
+          "w-full rounded-2xl border border-brand-100 bg-white p-4 shadow-sm [&_svg]:h-auto [&_svg]:w-full",
+          expired && "opacity-40",
+        )}
+      >
+        {value ? (
+          <QRCode value={value} size={240} bgColor="#ffffff" fgColor="#000000" aria-label={alt} />
+        ) : (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img src={url as string} alt={alt} className="h-auto w-full" />
+        )}
+      </div>
+      <Button
+        type="button"
+        size="sm"
+        variant="outline"
+        disabled={busy || expired}
+        onClick={() => void handleDownload()}
+        className="w-full rounded-xl border-brand-200"
+      >
+        <Download className="h-4 w-4" />
+        {busy ? "Preparing…" : "Download QR"}
+      </Button>
+      <p className="text-center text-sm text-brand-500/70">{caption}</p>
+    </div>
+  );
+};
 
 export const NativeInstructionsComponent = ({
   instructions,
@@ -142,16 +250,18 @@ export const NativeInstructionsComponent = ({
       })()}
 
       {instructions.type === "qris" && (
-        <div className="flex flex-col items-center gap-3">
-          {instructions.qris.qr_string ? (
-            <QrBlock value={instructions.qris.qr_string} alt="QRIS payment code" />
-          ) : instructions.qris.qr_url ? (
-            <QrImage url={instructions.qris.qr_url} alt="QRIS payment code" />
-          ) : (
-            <p className="text-sm text-brand-500/70">QR code is unavailable. Refresh the page.</p>
-          )}
-          <p className="text-center text-sm text-brand-500/70">Scan with any QRIS app (GoPay, OVO, DANA, ShopeePay, …).</p>
-        </div>
+        instructions.qris.qr_string || instructions.qris.qr_url ? (
+          <QrPanel
+            value={instructions.qris.qr_string}
+            url={instructions.qris.qr_url}
+            alt="QRIS payment code"
+            filename="sehela-qris"
+            caption="Scan with any QRIS app (GoPay, OVO, DANA, ShopeePay, …)."
+            expired={expired}
+          />
+        ) : (
+          <p className="text-sm text-brand-500/70">QR code is unavailable. Refresh the page.</p>
+        )
       )}
 
       {instructions.type === "ewallet" && (() => {
@@ -160,14 +270,14 @@ export const NativeInstructionsComponent = ({
         return (
           <div className="flex flex-col items-center gap-3">
             {hasQr && (
-              <>
-                {ewallet.qr_string ? (
-                  <QrBlock value={ewallet.qr_string} alt="GoPay payment code" />
-                ) : (
-                  <QrImage url={ewallet.qr_url as string} alt="GoPay payment code" />
-                )}
-                <p className="text-center text-sm text-brand-500/70">Scan with the GoPay app to pay.</p>
-              </>
+              <QrPanel
+                value={ewallet.qr_string}
+                url={ewallet.qr_url}
+                alt="GoPay payment code"
+                filename="sehela-gopay"
+                caption="Scan with the GoPay app to pay."
+                expired={expired}
+              />
             )}
 
             {isMobile && ewallet.deeplink_url && (
