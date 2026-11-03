@@ -256,7 +256,7 @@ export const NativeInstructionsComponent = ({
             url={instructions.qris.qr_url}
             alt="QRIS payment code"
             filename="sehela-qris"
-            caption="Scan with any QRIS app (GoPay, OVO, DANA, ShopeePay, …)."
+            caption="Scan with any QRIS app."
             expired={expired}
           />
         ) : (
