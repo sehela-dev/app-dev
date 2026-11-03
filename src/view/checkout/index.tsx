@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { Loader2, MapPin, TicketPercent, Users, Video, X } from "lucide-react";
 
@@ -7,6 +7,7 @@ import { CircleCheckSvg } from "@/components/asset/svg/CircleCheckSvg";
 import { CircleInfoSvg } from "@/components/asset/svg/CircleInfoSvg";
 import { CardCreditComponent } from "@/components/general/card-credit";
 import { CheckoutSessionCardComponent } from "@/components/general/checkout-session-card";
+import { PaymentChannelList } from "@/components/general/payment-channel-list";
 
 import { StickyContainerComponent } from "@/components/layout";
 import { NavHeaderComponent } from "@/components/layout/header-checkout";
@@ -16,8 +17,10 @@ import { Input } from "@/components/ui/input";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 import { usePaymentMethodCtx } from "@/context/payment-method.ctx";
 import { useCreateBooking, useCreatePublicBooking, useValidateVoucher } from "@/hooks/api/mutations/customers";
+import { useGetPaymentChannels } from "@/hooks/api/queries/customer/payments";
 import { useGetEligibleCredits, useGetMyCredits } from "@/hooks/api/queries/customer/profile";
 import { useGetPublicSession } from "@/hooks/api/queries/customer/public";
+import { ENABLE_NATIVE_PAYMENT } from "@/lib/config";
 import { formatDateHelper } from "@/lib/helper";
 import { cn } from "@/lib/utils";
 import { getSessionLevelBadge, getSessionTypeBadge } from "@/utils/session-badge";
@@ -26,7 +29,7 @@ import type { IValidateVoucherResponse } from "@/types/customer-app/booking.inte
 type PaymentMethod = "credit" | "cash";
 
 const PAYMENT_METHODS: { id: PaymentMethod; label: string }[] = [
-  { id: "cash", label: "Drop In" },
+  { id: "cash", label: "Pay online" },
   { id: "credit", label: "Credit Package(s)" },
 ];
 
@@ -42,6 +45,7 @@ export const CheckoutSessionView = () => {
   const { id } = useParams();
   const { paymentType, onChangePaymentMethod } = usePaymentMethodCtx();
   const [selectedCredit, setSelectedCredit] = useState<string | null>(null);
+  const [selectedChannel, setSelectedChannel] = useState<string | null>(null);
   const [couponInput, setCouponInput] = useState("");
   const [appliedCoupon, setAppliedCoupon] = useState<string | null>(null);
   const [validatedVoucher, setValidatedVoucher] = useState<IValidateVoucherResponse | null>(null);
@@ -61,10 +65,31 @@ export const CheckoutSessionView = () => {
   const isCreditOnly = !!session?.is_credit_only || session?.price_idr === 0;
   const allowCredit = !!session?.allow_credit && (session?.price_credit_amount ?? 0) > 0;
   const showCredit = isCreditOnly ? allowCredit : paymentType === "credit" && allowCredit;
+  // Flag off: never send `payment_channel`, so BE mints a Snap token for all channels.
+  const channelsEnabled = ENABLE_NATIVE_PAYMENT && paymentType === "cash" && !isCreditOnly;
+  const requiresChannel = channelsEnabled && (session?.price_idr ?? 0) > 0;
+
+  const {
+    data: channelsData,
+    isLoading: channelsLoading,
+    isError: channelsError,
+    refetch: refetchChannels,
+  } = useGetPaymentChannels(channelsEnabled);
+  const channels = useMemo(() => channelsData?.data ?? [], [channelsData]);
 
   useEffect(() => {
     if (isCreditOnly && paymentType !== "credit" && allowCredit) onChangePaymentMethod("credit");
   }, [isCreditOnly, paymentType, allowCredit, onChangePaymentMethod]);
+
+  useEffect(() => {
+    if (!requiresChannel) {
+      setSelectedChannel(null);
+      return;
+    }
+    if (channels.length === 0) return;
+    // No default selection: Pay stays disabled until the member picks a channel.
+    setSelectedChannel((current) => (current && channels.some((channel) => channel.code === current) ? current : null));
+  }, [requiresChannel, channels]);
 
   if (isLoading) {
     return (
@@ -88,6 +113,7 @@ export const CheckoutSessionView = () => {
   const availableCredits = eligibleParams ? eligibleCreditsData?.data ?? [] : creditsData?.data?.filter((item) => !item.is_expired) ?? [];
   const creditsListLoading = eligibleParams ? eligibleLoading : creditsLoading;
   const selectedPackage = availableCredits.find((item) => item.package_purchase_id === selectedCredit);
+  const selectedChannelLabel = channels.find((channel) => channel.code === selectedChannel)?.label ?? "Pilih metode pembayaran";
   const isOnline = session.place === "online";
   const levelBadge = getSessionLevelBadge(session.level);
   const typeBadge = getSessionTypeBadge(session.type);
@@ -136,10 +162,11 @@ export const CheckoutSessionView = () => {
     if (voucherError) setVoucherError(null);
   };
 
-  // derived pricing for Drop In
+  // derived pricing for online payment
   const subtotal = session?.price_idr ?? 0;
   const discount = validatedVoucher?.calculated_discount ?? 0;
   const total = Math.max(0, subtotal - discount);
+  const channelSelectionMissing = requiresChannel && (!selectedChannel || channelsLoading || channelsError || channels.length === 0);
 
   const handleProcessPayment = async () => {
     const handleBookingError = async (err: unknown) => {
@@ -154,6 +181,26 @@ export const CheckoutSessionView = () => {
         // Price changed since page load — refresh session so UI shows the new price.
         await refetchSession();
         return false; // let the mutation toast show data.error.message ("This session costs N credits")
+      }
+      if (code === "CHANNEL_DISABLED" || code === "CHANNEL_UNAVAILABLE") {
+        // The channel was disabled between load and submit — reload the list.
+        setSelectedChannel(null);
+        void refetchChannels();
+        return false;
+      }
+      if (code === "MIDTRANS_ERROR" || code === "MIDTRANS_CONNECTION_ERROR" || code === "SESSION_FULL") {
+        // BE has already released the slot / changed the session state.
+        await refetchSession();
+        return false;
+      }
+      if (code === "PAYMENT_INSTRUCTIONS_UNAVAILABLE") {
+        // Charge cancelled and slot released; the booking was expired on create.
+        await refetchSession();
+        return false;
+      }
+      if (code === "DUPLICATE_BOOKING") {
+        router.push("/profile/my-sessions");
+        return true;
       }
       return false;
     };
@@ -177,19 +224,12 @@ export const CheckoutSessionView = () => {
           class_session_id: session.id,
           payment_method: "midtrans",
           ...(voucher_code ? { voucher_code } : {}),
+          ...(ENABLE_NATIVE_PAYMENT && requiresChannel && selectedChannel ? { payment_channel: selectedChannel } : {}),
         });
         const bookingData = response.data;
         if (bookingData?.booking_id) {
-          // Always land on cash-payment page; open Midtrans in new tab if available
-          if (bookingData?.snap_redirect_url) {
-            const newTab = window.open(bookingData.snap_redirect_url, "_blank", "noopener,noreferrer");
-            // if popup blocked, cash-payment page will show fallback button via query param
-            void newTab;
-            const qs = new URLSearchParams({ booking_id: bookingData.booking_id, snap_redirect_url: bookingData.snap_redirect_url });
-            router.push(`/checkout/${id}/cash-payment?${qs.toString()}`);
-          } else {
-            router.push(`/checkout/${id}/cash-payment?booking_id=${bookingData.booking_id}`);
-          }
+          // Snap opens as an overlay on the cash-payment page.
+          router.push(`/checkout/${id}/cash-payment?booking_id=${bookingData.booking_id}`);
         } else {
           router.push(`/checkout/${id}/success`);
         }
@@ -269,7 +309,7 @@ export const CheckoutSessionView = () => {
             </div>
           ) : (
             <div className="flex flex-col gap-2">
-              <h3 className="font-semibold">Payment Method</h3>
+              <h3 className="font-semibold">How would you like to pay?</h3>
               <div className="grid grid-cols-2 gap-2">
                 {PAYMENT_METHODS.map((method) => {
                   const disabled = method.id === "credit" && !allowCredit;
@@ -367,6 +407,45 @@ export const CheckoutSessionView = () => {
             </div>
           ) : (
             <>
+              {requiresChannel && (
+                <div className="flex flex-col gap-2">
+                  <h3 className="font-semibold">Choose a payment method</h3>
+                  {channelsLoading ? (
+                    <div className="flex items-center justify-center rounded-2xl border border-brand-100 bg-white py-8">
+                      <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+                    </div>
+                  ) : channelsError ? (
+                    <div className="rounded-2xl border border-red-200 bg-red-50 p-4">
+                      <p className="text-sm font-medium text-red-600">Couldn&apos;t load payment methods.</p>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        className="mt-3 rounded-xl border-red-200 text-red-600"
+                        onClick={() => void refetchChannels()}
+                      >
+                        Retry
+                      </Button>
+                    </div>
+                  ) : channels.length === 0 ? (
+                    <div className="rounded-2xl border border-brand-100 bg-brand-25 p-4">
+                      <p className="text-sm font-medium text-brand-500/70">
+                        No online payment methods are available right now. Please try again later.
+                      </p>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        className="mt-3 rounded-xl border-brand-200"
+                        onClick={() => void refetchChannels()}
+                      >
+                        Refresh
+                      </Button>
+                    </div>
+                  ) : (
+                    <PaymentChannelList channels={channels} selected={selectedChannel} onSelect={setSelectedChannel} />
+                  )}
+                </div>
+              )}
+
               <div className="flex flex-col gap-2">
                 <h3 className="font-semibold">Promo Code</h3>
                 <div className="flex items-center gap-2">
@@ -439,6 +518,12 @@ export const CheckoutSessionView = () => {
                       {discount > 0 ? `- Rp ${discount.toLocaleString("id-ID")}` : "Rp 0"}
                     </span>
                   </div>
+                  {requiresChannel && selectedChannel && (
+                    <div className="flex items-center justify-between text-sm">
+                      <span className="text-brand-500/60">Payment method</span>
+                      <span className="font-semibold text-right">{selectedChannelLabel}</span>
+                    </div>
+                  )}
                   <div className="h-px w-full bg-brand-100" />
                   <div className="flex items-center justify-between">
                     <span className="font-semibold">Total</span>
@@ -447,12 +532,6 @@ export const CheckoutSessionView = () => {
                 </div>
               </div>
 
-              <div className="flex items-start gap-2.5 rounded-xl border border-brand-100 bg-brand-25 p-4">
-                <CircleInfoSvg />
-                <p className="text-xs leading-relaxed text-brand-500/70">
-                  Drop In payment is settled directly at the studio before the class starts.
-                </p>
-              </div>
             </>
           )}
         </div>
@@ -461,7 +540,7 @@ export const CheckoutSessionView = () => {
         <div className="flex w-full p-4">
           <Button
             className="w-full min-h-[48px]"
-            disabled={(showCredit && !selectedCredit) || bookingPending || publicBookingPending}
+            disabled={(showCredit && !selectedCredit) || channelSelectionMissing || bookingPending || publicBookingPending}
             onClick={handleProcessPayment}
           >
             {(bookingPending || publicBookingPending) && <Loader2 className="h-4 w-4 animate-spin" />}

@@ -1,4 +1,5 @@
 import { IResponseData } from "@/lib/config";
+import type { PaymentInstructions } from "./payment.interface";
 
 // ----------------------------------------------------------------------
 // GET /credit-packages/eligible
@@ -63,6 +64,7 @@ export interface ICreatePublicBookingRequest {
   class_session_id: string;
   payment_method: "credits" | "midtrans";
   voucher_code?: string;
+  payment_channel?: string;
   notes?: string;
 }
 
@@ -81,9 +83,8 @@ export interface ICreatePublicBookingResponse {
   payment_method: string;
   snap_token?: string;
   snap_redirect_url?: string;
-  qris_image_url?: string;
-  payment_instructions?: string;
-  expires_at?: string;
+  enabled_payments?: string[];
+  payment_instructions?: PaymentInstructions | null;
 }
 
 export type TCreatePublicBooking = (body: ICreatePublicBookingRequest) => Promise<IResponseData<ICreatePublicBookingResponse>>;
@@ -95,6 +96,7 @@ export interface IValidateVoucherRequest {
   voucher_code: string;
   class_session_id?: string;
   cart_total_idr?: number;
+  transaction_type?: "booking" | "order";
 }
 
 export interface IValidateVoucherResponse {
@@ -158,7 +160,7 @@ export interface ICancelBookingData {
 export type TCancelBooking = (params: ICancelBookingParams) => Promise<IResponseData<ICancelBookingData>>;
 
 // ----------------------------------------------------------------------
-// POST /profile/bookings/:booking_id/repay (retry payment) - migrated from /public
+// POST /profile/bookings/:booking_id/payment-session { intent: "retry" }
 // ----------------------------------------------------------------------
 
 export interface IRepayBookingResponse {
@@ -166,10 +168,19 @@ export interface IRepayBookingResponse {
   payment_id: string;
   order_id: string;
   amount_idr?: number;
+  intent?: "retry" | "change";
+  channel?: string | null;
+  channel_label?: string | null;
   snap_token?: string;
   snap_redirect_url?: string;
-  qris_image_url?: string;
-  expires_at?: string;
+  payment_instructions?: PaymentInstructions | null;
 }
 
-export type TRepayBooking = (bookingId: string) => Promise<IResponseData<IRepayBookingResponse>>;
+export interface IBookingPaymentSessionParams {
+  bookingId: string;
+  intent: "retry" | "change";
+  payment_channel?: string;
+}
+
+export type TBookingPaymentSession = (params: IBookingPaymentSessionParams) => Promise<IResponseData<IRepayBookingResponse>>;
+export type TRepayBooking = (params: IBookingPaymentSessionParams) => Promise<IResponseData<IRepayBookingResponse>>;

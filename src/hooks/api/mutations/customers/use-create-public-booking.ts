@@ -16,13 +16,24 @@ export const useCreatePublicBooking = () => {
   });
 };
 
+const ERROR_COPY: Record<string, string> = {
+  CHANNEL_DISABLED: "Metode pembayaran tidak tersedia. Please pick another one.",
+  CHANNEL_UNAVAILABLE: "Metode pembayaran tidak tersedia. Please pick another one.",
+  MIDTRANS_ERROR: "Payment failed. The slot has been released — please try again.",
+  MIDTRANS_CONNECTION_ERROR: "Payment failed. The slot has been released — please try again.",
+  PAYMENT_INSTRUCTIONS_UNAVAILABLE: "We couldn't prepare this payment. Please try again.",
+  SESSION_FULL: "This session is now full.",
+  DUPLICATE_BOOKING: "You already have a booking for this session.",
+};
+
 const useConfig = (queryClient: ReturnType<typeof useQueryClient>) => {
   const onError = useCallback((error: AxiosError<any>) => {
     const responseError = error?.response?.data?.error;
-    if (error?.response && error?.response?.status < 500) {
-      return toast.error(responseError?.code ?? "ERROR", {
+    const code = responseError?.code as string | undefined;
+    if (error?.response) {
+      return toast.error(code ?? "ERROR", {
         id: "error",
-        description: responseError?.message ?? "Something went wrong. Please try again.",
+        description: (code && ERROR_COPY[code]) || responseError?.message || "Something went wrong. Please try again.",
         position: "top-center",
       });
     }
