@@ -6,11 +6,22 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useAuthMember } from "@/context/member.ctx";
-import { useInitiatePackagePurchase, useRetryPackagePayment } from "@/hooks/api/mutations/customers";
+import { useInitiatePackagePurchase, useRetryPackagePayment, useValidateVoucher } from "@/hooks/api/mutations/customers";
 import { useGetPublicCreditPackageDetail } from "@/hooks/api/queries/customer/public";
 import { useGetPaymentChannels, useGetPaymentStatus } from "@/hooks/api/queries/customer/payments";
-import { ENABLE_NATIVE_PAYMENT } from "@/lib/config";
+import { ENABLE_MEMBER_VOUCHER_LIFECYCLE, ENABLE_MEMBER_VOUCHER_PACKAGE, ENABLE_NATIVE_PAYMENT } from "@/lib/config";
+import { formatPackageEligibility } from "@/lib/credit-package";
 import { formatCurrency, formatDateHelper } from "@/lib/helper";
+import {
+  getSessionTypeRestrictionCopy,
+  getVoucherErrorMessage,
+  isVoucherErrorCode,
+  PACKAGE_DISCOUNT_NOTE,
+  VOUCHER_HELD_NOTE,
+  VOUCHER_PREVIEW_NOTE,
+  VOUCHER_RELEASED_NOTE,
+} from "@/lib/voucher";
+import type { IValidateVoucherResponse } from "@/types/customer-app/booking.interface";
 import {
   PACKAGE_PAYMENT_FAILURE_STATUSES,
   PACKAGE_PAYMENT_SUCCESS_STATUSES,
@@ -21,28 +32,34 @@ import {
   humanizePaymentStatus,
   setPendingPackagePayment,
 } from "@/lib/pending-package-payment";
-import { CalendarClock, GemIcon, Info, Loader2, RefreshCw, Ticket, Users } from "lucide-react";
+import { CalendarClock, GemIcon, Info, Loader2, RefreshCw, Ticket, TicketPercent, Users, X } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { Input } from "@/components/ui/input";
 import { getPurchaseErrorMessage, getShareErrorMessage } from "@/api-req/customer-app/payments";
 
 export const TopUpCreditDetailView = ({ id }: { id: string }) => {
   const router = useRouter();
+  const queryClient = useQueryClient();
   const { isAuthenticated, isNewMember } = useAuthMember();
   const { data, isLoading, isError } = useGetPublicCreditPackageDetail(id);
   const { mutateAsync, isPending } = useInitiatePackagePurchase();
+  const { mutateAsync: validateVoucherAsync, isPending: voucherValidating } = useValidateVoucher();
   const retryMutation = useRetryPackagePayment();
   const [agreed, setAgreed] = useState(false);
   const [shareEmail, setShareEmail] = useState("");
   const [shareError, setShareError] = useState<string | null>(null);
   const [buyError, setBuyError] = useState<string | null>(null);
+  const [voucherInput, setVoucherInput] = useState("");
+  const [appliedVoucher, setAppliedVoucher] = useState<IValidateVoucherResponse | null>(null);
+  const [voucherError, setVoucherError] = useState<string | null>(null);
+  const [freePurchase, setFreePurchase] = useState<{ orderId?: string; code?: string | null } | null>(null);
   const [selectedChannel, setSelectedChannel] = useState<string | null>(null);
   const [changeOpen, setChangeOpen] = useState(false);
   const [changeChannel, setChangeChannel] = useState<string | null>(null);
   const { data: channelsData, isLoading: channelsLoading } = useGetPaymentChannels(ENABLE_NATIVE_PAYMENT && isAuthenticated);
   const channels = channelsData?.data ?? [];
-  const requiresChannel = ENABLE_NATIVE_PAYMENT && channels.length > 0;
   // Restore an in-progress payment (e.g. user returns from the Snap tab or refreshes).
   // Native rows have no Snap URL; the payment page reloads instructions from status.
   const [pending, setPending] = useState<{ orderId: string; snapUrl: string | null; initiatedAt: number } | null>(() => {
@@ -77,6 +94,11 @@ export const TopUpCreditDetailView = ({ id }: { id: string }) => {
   const item = data?.data;
   const credits = Number(item?.credits) || 0;
   const price = Number(item?.price_idr) || 0;
+  const discount = appliedVoucher?.calculated_discount ?? 0;
+  const total = appliedVoucher?.discounted_total_idr ?? price;
+  const requiresChannel = ENABLE_NATIVE_PAYMENT && channels.length > 0 && total > 0;
+  const voucherEnabled = ENABLE_MEMBER_VOUCHER_PACKAGE && isAuthenticated;
+  const sessionRestrictionCopy = getSessionTypeRestrictionCopy(appliedVoucher?.session_types);
   const perClass = credits > 0 ? formatCurrency(String(Math.round(price / credits))) : null;
   const place = (item?.place_restriction ?? "").toLowerCase();
   const placeLabel = place === "offline" ? "in studio" : place === "online" ? "online" : "in studio & online";
@@ -129,6 +151,49 @@ export const TopUpCreditDetailView = ({ id }: { id: string }) => {
     );
   };
 
+  const handleApplyVoucher = async () => {
+    const code = voucherInput.trim().toUpperCase();
+    if (!code) return;
+    setVoucherError(null);
+    try {
+      const raw = await validateVoucherAsync({
+        voucher_code: code,
+        transaction_type: "package_purchase",
+        package_id: id,
+      });
+      const voucher = (raw as unknown as { data?: IValidateVoucherResponse }).data ?? (raw as unknown as IValidateVoucherResponse);
+      if (voucher?.is_valid) {
+        setAppliedVoucher(voucher);
+        setVoucherInput(voucher.voucher_code ?? code);
+      } else {
+        const mismatchCopy =
+          voucher?.error_code === "VOUCHER_SESSION_TYPE_MISMATCH"
+            ? getSessionTypeRestrictionCopy(voucher.session_types)
+            : null;
+        setAppliedVoucher(null);
+        setVoucherError(
+          mismatchCopy ||
+            getVoucherErrorMessage(voucher?.error_code, voucher?.error_message) ||
+            "Kode diskon tidak valid.",
+        );
+      }
+    } catch (err: unknown) {
+      const code = (err as { response?: { data?: { error?: { code?: string } } } })?.response?.data?.error?.code;
+      setAppliedVoucher(null);
+      setVoucherError(
+        getVoucherErrorMessage(code) ||
+          (err as { response?: { data?: { error?: { message?: string } } } })?.response?.data?.error?.message ||
+          "Gagal mengecek kode diskon",
+      );
+    }
+  };
+
+  const handleRemoveVoucher = () => {
+    setAppliedVoucher(null);
+    setVoucherInput("");
+    setVoucherError(null);
+  };
+
   const handleBuy = async () => {
     if (!isAuthenticated) {
       router.push(`/auth/login?next=${encodeURIComponent(`/topup-credit/${id}`)}`);
@@ -160,14 +225,25 @@ export const TopUpCreditDetailView = ({ id }: { id: string }) => {
         package_id: id,
         ...(trimmedEmail ? { share_with_email: trimmedEmail } : {}),
         ...(requiresChannel && selectedChannel ? { payment_channel: selectedChannel } : {}),
+        ...(voucherEnabled && appliedVoucher?.voucher_code ? { voucher_code: appliedVoucher.voucher_code } : {}),
       });
-      applyNewPayment(res.data);
+      const result = res.data;
+      if (Number(result.amount_idr) === 0) {
+        void queryClient.invalidateQueries({ queryKey: ["user", "profile", "my-credits"] });
+        void queryClient.invalidateQueries({ queryKey: ["user", "payments", "history"] });
+        setFreePurchase({ orderId: result.order_id, code: result.voucher_code ?? appliedVoucher?.voucher_code ?? null });
+        return;
+      }
+      applyNewPayment(result);
     } catch (err) {
       const code = (err as { response?: { data?: { error?: { code?: string; message?: string } } } })?.response?.data
         ?.error?.code;
       const serverMessage = (err as { response?: { data?: { error?: { message?: string } } } })?.response?.data?.error
         ?.message;
-      if (code === "SHARED_USER_NOT_FOUND" || code === "VALIDATION_ERROR" || code?.startsWith("SHARE")) {
+      if (isVoucherErrorCode(code)) {
+        setAppliedVoucher(null);
+        setVoucherError(getVoucherErrorMessage(code, serverMessage) ?? null);
+      } else if (code === "SHARED_USER_NOT_FOUND" || code === "VALIDATION_ERROR" || code?.startsWith("SHARE")) {
         setShareError(getShareErrorMessage(code, serverMessage));
       } else if (code === "ALREADY_PURCHASED" || code === "NEW_USERS_ONLY") {
         setBuyError(getPurchaseErrorMessage(code, serverMessage));
@@ -233,6 +309,57 @@ export const TopUpCreditDetailView = ({ id }: { id: string }) => {
     );
   }
 
+  if (freePurchase) {
+    return (
+      <div className="flex flex-col w-full font-serif h-full text-brand-500">
+        <NavHeaderComponent title="Payment" />
+        <div className="flex flex-col gap-4 px-4 mt-4 pb-6">
+          <div className="flex flex-col items-center gap-3 py-6 text-center">
+            <span className="flex h-16 w-16 items-center justify-center rounded-full bg-brand-500">
+              <GemIcon className="h-8 w-8 text-white" />
+            </span>
+            <p className="text-xl font-extrabold">Payment Success</p>
+            <p className="max-w-[300px] text-sm text-brand-500/70">
+              Gratis — tidak perlu pembayaran. Kredit paket sudah ditambahkan ke riwayat pembelianmu.
+            </p>
+          </div>
+          <div className="flex flex-col gap-2 rounded-2xl border border-brand-100 bg-white p-4 text-sm">
+            <div className="flex justify-between">
+              <span className="text-brand-500/60">Package</span>
+              <span className="font-medium">{item.name}</span>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-brand-500/60">Amount</span>
+              <span className="font-bold text-brand-700">Gratis</span>
+            </div>
+            {freePurchase.code && (
+              <div className="flex justify-between">
+                <span className="text-brand-500/60">Kode diskon</span>
+                <span className="font-medium uppercase">{freePurchase.code}</span>
+              </div>
+            )}
+            {freePurchase.orderId && (
+              <div className="flex justify-between">
+                <span className="text-brand-500/60">Order ID</span>
+                <span className="font-mono text-xs">{freePurchase.orderId.replace(/^#+/, "")}</span>
+              </div>
+            )}
+          </div>
+          <Button className="min-h-12 w-full text-sm font-extrabold" onClick={() => router.push("/profile/my-credits")}>
+            View My Credits
+          </Button>
+          <Button
+            variant="outline"
+            className="min-h-12 w-full text-sm font-semibold"
+            onClick={() => router.push("/profile/purchase-history")}
+          >
+            Purchase history
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="flex flex-col w-full font-serif h-full text-brand-500">
       <NavHeaderComponent title={item.name} />
@@ -261,6 +388,7 @@ export const TopUpCreditDetailView = ({ id }: { id: string }) => {
               {classLabel} · {placeLabel}
               {item.session_type_restriction ? ` · ${item.session_type_restriction}` : ""}
             </span>
+            <span>{formatPackageEligibility(item)}</span>
           </div>
           <div className="flex gap-2.5 rounded-xl border border-brand-100 bg-brand-25 px-3.5 py-3">
             <Info size={15} className="mt-0.5 shrink-0 text-brand-500" />
@@ -345,15 +473,80 @@ export const TopUpCreditDetailView = ({ id }: { id: string }) => {
             </div>
           )}
 
+          {voucherEnabled && (
+            <div className="flex flex-col gap-2 border-t border-brand-50 pt-3">
+              <p className="text-[11px] font-semibold text-brand-900">Kode diskon</p>
+              <div className="flex items-center gap-2">
+                <div className="relative flex-1">
+                  <Input
+                    className="min-h-11 rounded-xl border-brand-100 pl-9"
+                    placeholder="Masukkan kode"
+                    value={voucherInput}
+                    onChange={(event) => {
+                      setVoucherInput(event.target.value);
+                      if (voucherError) setVoucherError(null);
+                    }}
+                    onKeyDown={(event) => {
+                      if (event.key === "Enter") {
+                        event.preventDefault();
+                        void handleApplyVoucher();
+                      }
+                    }}
+                    disabled={!!appliedVoucher || voucherValidating || !!pending}
+                  />
+                  <TicketPercent size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-brand-500/40" />
+                </div>
+                {appliedVoucher ? (
+                  <Button type="button" variant="outline" className="min-h-11 rounded-xl" onClick={handleRemoveVoucher}>
+                    <X size={14} /> Hapus
+                  </Button>
+                ) : (
+                  <Button
+                    type="button"
+                    className="min-h-11 rounded-xl bg-brand-500 px-4 text-white"
+                    onClick={handleApplyVoucher}
+                    disabled={!voucherInput.trim() || voucherValidating || !!pending}
+                  >
+                    {voucherValidating ? <Loader2 className="h-4 w-4 animate-spin" /> : "Terapkan"}
+                  </Button>
+                )}
+              </div>
+              {appliedVoucher ? (
+                <div className="flex flex-col gap-1">
+                  <p className="text-[11px] font-medium text-emerald-700">
+                    {appliedVoucher.voucher_code} — {formatCurrency(discount)} off
+                  </p>
+                  {sessionRestrictionCopy && <p className="text-[11px] text-gray-500">{sessionRestrictionCopy}</p>}
+                  {ENABLE_MEMBER_VOUCHER_LIFECYCLE && <p className="text-[11px] text-gray-500">{VOUCHER_PREVIEW_NOTE}</p>}
+                  {ENABLE_MEMBER_VOUCHER_LIFECYCLE && <p className="text-[11px] text-gray-500">{VOUCHER_HELD_NOTE}</p>}
+                  <p className="text-[11px] text-gray-500">{PACKAGE_DISCOUNT_NOTE}</p>
+                </div>
+              ) : voucherError ? (
+                <p role="alert" className="text-[11px] font-medium text-red-600">
+                  {voucherError}
+                </p>
+              ) : null}
+            </div>
+          )}
+
           <div className="flex flex-col gap-1 border-t border-brand-50 pt-2 text-sm">
             <div className="flex items-center justify-between">
               <span className="text-brand-500/60">Package price</span>
               <span className="font-semibold">{formatCurrency(price)}</span>
             </div>
+            {discount > 0 && (
+              <div className="flex items-center justify-between">
+                <span className="text-brand-500/60">Diskon</span>
+                <span className="font-semibold text-emerald-700">- {formatCurrency(discount)}</span>
+              </div>
+            )}
             <div className="flex items-center justify-between border-t border-brand-50 pt-2">
               <span className="font-bold">Total</span>
-              <span className="text-lg font-extrabold">{formatCurrency(price)}</span>
+              <span className="text-lg font-extrabold">{total === 0 && discount > 0 ? "Gratis" : formatCurrency(total)}</span>
             </div>
+            {total === 0 && discount > 0 && (
+              <p className="text-right text-[11px] text-gray-500">Gratis — tidak perlu pembayaran.</p>
+            )}
           </div>
         </div>
 
@@ -425,7 +618,7 @@ export const TopUpCreditDetailView = ({ id }: { id: string }) => {
             !agreed ||
             isNewOnlyBlocked ||
             (pending && isSettled) ||
-            (ENABLE_NATIVE_PAYMENT && channelsLoading) ||
+            (ENABLE_NATIVE_PAYMENT && channelsLoading && total > 0) ||
             (requiresChannel && !selectedChannel)
           }
           aria-describedby={!agreed || isNewOnlyBlocked || (requiresChannel && !selectedChannel) ? "tnc-hint" : undefined}
@@ -496,6 +689,9 @@ export const TopUpCreditDetailView = ({ id }: { id: string }) => {
                   : "Complete the payment on the payment page within 15 minutes."}{" "}
                 This page checks the status automatically{serverStatus ? ` (now: ${humanizePaymentStatus(serverStatus)})` : ""}.
               </p>
+              {ENABLE_MEMBER_VOUCHER_LIFECYCLE && appliedVoucher && (
+                <p className="text-xs leading-relaxed text-yellow-700">{VOUCHER_HELD_NOTE}</p>
+              )}
               <button
                 type="button"
                 className="self-start text-xs font-semibold text-yellow-800 underline"
@@ -535,6 +731,9 @@ export const TopUpCreditDetailView = ({ id }: { id: string }) => {
                   ? "The 15-minute payment window has passed. Tap “Try again” to start a new payment."
                   : "Your previous attempt didn’t go through. Tap “Try again” to start a new payment."}
               </p>
+              {ENABLE_MEMBER_VOUCHER_LIFECYCLE && appliedVoucher && (
+                <p className="text-xs leading-relaxed text-red-700">{VOUCHER_RELEASED_NOTE}</p>
+              )}
             </div>
           </div>
         )}

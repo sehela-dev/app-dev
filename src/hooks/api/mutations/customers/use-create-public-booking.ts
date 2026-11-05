@@ -6,6 +6,7 @@ import { useCallback } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 
 import { createPublicBooking } from "@/api-req/customer-app";
+import { getVoucherErrorMessage } from "@/lib/voucher";
 
 export const useCreatePublicBooking = () => {
   const queryClient = useQueryClient();
@@ -33,7 +34,7 @@ const useConfig = (queryClient: ReturnType<typeof useQueryClient>) => {
     if (error?.response) {
       return toast.error(code ?? "ERROR", {
         id: "error",
-        description: (code && ERROR_COPY[code]) || responseError?.message || "Something went wrong. Please try again.",
+        description: getVoucherErrorMessage(code) || (code && ERROR_COPY[code]) || responseError?.message || "Something went wrong. Please try again.",
         position: "top-center",
       });
     }
@@ -47,9 +48,11 @@ const useConfig = (queryClient: ReturnType<typeof useQueryClient>) => {
   const onSuccess = useCallback(
     (data: any) => {
       queryClient.invalidateQueries({ queryKey: ["user", "profile", "my-session"] });
-      toast.success("Booking Created!", {
+      const result = data?.data;
+      const isPaid = result?.payment_status === "paid" || Number(result?.amount_idr ?? 1) === 0;
+      toast.success(isPaid ? "Booking Confirmed!" : "Booking Created!", {
         id: "success",
-        description: "Redirecting to payment page...",
+        description: isPaid ? "Gratis — your spot is confirmed." : "Redirecting to payment page...",
         position: "top-center",
       });
       // Return data so component can use it for redirect

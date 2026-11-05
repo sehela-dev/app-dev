@@ -95,7 +95,7 @@ export const PurchaseHistoryDetailView = ({ refId }: { refId: string }) => {
     } else if (isBooking && item.payable_id) {
       router.push(`/profile/my-sessions/${String(item.payable_id)}`);
     } else if (isProduct) {
-      router.push(item.payable_id ? `/profile/orders/${String(item.payable_id)}` : "/profile/orders");
+      router.push(item.payable_id ? `/profile/orders/${String(item.payable_id)}/payment` : "/profile/orders");
     }
   };
 

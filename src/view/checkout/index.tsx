@@ -20,8 +20,15 @@ import { useCreateBooking, useCreatePublicBooking, useValidateVoucher } from "@/
 import { useGetPaymentChannels } from "@/hooks/api/queries/customer/payments";
 import { useGetEligibleCredits, useGetMyCredits } from "@/hooks/api/queries/customer/profile";
 import { useGetPublicSession } from "@/hooks/api/queries/customer/public";
-import { ENABLE_NATIVE_PAYMENT } from "@/lib/config";
+import { ENABLE_MEMBER_VOUCHER_LIFECYCLE, ENABLE_NATIVE_PAYMENT } from "@/lib/config";
 import { formatDateHelper } from "@/lib/helper";
+import {
+  getSessionTypeRestrictionCopy,
+  getVoucherErrorMessage,
+  isVoucherErrorCode,
+  VOUCHER_HELD_NOTE,
+  VOUCHER_PREVIEW_NOTE,
+} from "@/lib/voucher";
 import { cn } from "@/lib/utils";
 import { getSessionLevelBadge, getSessionTypeBadge } from "@/utils/session-badge";
 import type { IValidateVoucherResponse } from "@/types/customer-app/booking.interface";
@@ -53,9 +60,13 @@ export const CheckoutSessionView = () => {
 
   const { data: session, isLoading, isError, refetch: refetchSession } = useGetPublicSession(typeof id === "string" ? id : undefined);
   const { data: creditsData, isLoading: creditsLoading } = useGetMyCredits();
-  const eligibleParams = session?.class_id ? { class_id: session.class_id, session_type: session.type, place: session.place } : undefined;
+  const eligibleParams = session?.id ? { class_session_id: session.id } : undefined;
 
-  const { data: eligibleCreditsData, isLoading: eligibleLoading } = useGetEligibleCredits(eligibleParams);
+  const {
+    data: eligibleCreditsData,
+    isLoading: eligibleLoading,
+    refetch: refetchEligibleCredits,
+  } = useGetEligibleCredits(eligibleParams);
   // usinf credit
   const { mutateAsync, isPending: bookingPending } = useCreateBooking();
   // using cash
@@ -67,7 +78,8 @@ export const CheckoutSessionView = () => {
   const showCredit = isCreditOnly ? allowCredit : paymentType === "credit" && allowCredit;
   // Flag off: never send `payment_channel`, so BE mints a Snap token for all channels.
   const channelsEnabled = ENABLE_NATIVE_PAYMENT && paymentType === "cash" && !isCreditOnly;
-  const requiresChannel = channelsEnabled && (session?.price_idr ?? 0) > 0;
+  const requiresChannel =
+    channelsEnabled && (validatedVoucher?.discounted_total_idr ?? session?.price_idr ?? 0) > 0;
 
   const {
     data: channelsData,
@@ -127,7 +139,11 @@ export const CheckoutSessionView = () => {
     if (!code) return;
     setVoucherError(null);
     try {
-      const raw = await validateVoucherAsync({ voucher_code: code, class_session_id: session!.id });
+      const raw = await validateVoucherAsync({
+        voucher_code: code,
+        transaction_type: "booking",
+        class_session_id: session!.id,
+      });
       // raw is { success, data } per edge function
       const v: IValidateVoucherResponse = (raw as unknown as { data: IValidateVoucherResponse }).data ?? (raw as unknown as IValidateVoucherResponse);
       if (v.is_valid) {
@@ -135,15 +151,19 @@ export const CheckoutSessionView = () => {
         setValidatedVoucher(v);
         setVoucherError(null);
       } else {
+        const mismatchCopy =
+          v.error_code === "VOUCHER_SESSION_TYPE_MISMATCH" ? getSessionTypeRestrictionCopy(v.session_types) : null;
         setAppliedCoupon(null);
         setValidatedVoucher(null);
-        setVoucherError(v.error_message || `Invalid voucher (${v.error_code || "UNKNOWN"})`);
+        setVoucherError(mismatchCopy || getVoucherErrorMessage(v.error_code, v.error_message) || "Kode diskon tidak valid.");
       }
     } catch (err: unknown) {
+      const code = (err as { response?: { data?: { error?: { code?: string } } } })?.response?.data?.error?.code;
       const msg =
+        getVoucherErrorMessage(code) ||
         (err as { response?: { data?: { error?: { message?: string } } } })?.response?.data?.error?.message ||
         (err as Error)?.message ||
-        "Failed to validate voucher";
+        "Gagal mengecek kode diskon";
       setVoucherError(msg);
       setAppliedCoupon(null);
       setValidatedVoucher(null);
@@ -165,7 +185,8 @@ export const CheckoutSessionView = () => {
   // derived pricing for online payment
   const subtotal = session?.price_idr ?? 0;
   const discount = validatedVoucher?.calculated_discount ?? 0;
-  const total = Math.max(0, subtotal - discount);
+  const total = validatedVoucher?.discounted_total_idr ?? subtotal;
+  const sessionRestrictionCopy = getSessionTypeRestrictionCopy(validatedVoucher?.session_types);
   const channelSelectionMissing = requiresChannel && (!selectedChannel || channelsLoading || channelsError || channels.length === 0);
 
   const handleProcessPayment = async () => {
@@ -181,6 +202,12 @@ export const CheckoutSessionView = () => {
         // Price changed since page load — refresh session so UI shows the new price.
         await refetchSession();
         return false; // let the mutation toast show data.error.message ("This session costs N credits")
+      }
+      if (code === "CREDIT_PACKAGE_NOT_ELIGIBLE") {
+        // The package rules changed or the selection no longer matches this session.
+        setSelectedCredit(null);
+        await refetchEligibleCredits();
+        return false; // mutation toast shows the server message
       }
       if (code === "CHANNEL_DISABLED" || code === "CHANNEL_UNAVAILABLE") {
         // The channel was disabled between load and submit — reload the list.
@@ -201,6 +228,11 @@ export const CheckoutSessionView = () => {
       if (code === "DUPLICATE_BOOKING") {
         router.push("/profile/my-sessions");
         return true;
+      }
+      if (isVoucherErrorCode(code)) {
+        // The server rejected the reservation; drop the stale preview and show the new total.
+        handleRemoveVoucher();
+        return false;
       }
       return false;
     };
@@ -227,7 +259,9 @@ export const CheckoutSessionView = () => {
           ...(ENABLE_NATIVE_PAYMENT && requiresChannel && selectedChannel ? { payment_channel: selectedChannel } : {}),
         });
         const bookingData = response.data;
-        if (bookingData?.booking_id) {
+        if (bookingData?.payment_status === "paid" || Number(bookingData?.amount_idr ?? 1) === 0) {
+          router.push(`/checkout/${id}/success`);
+        } else if (bookingData?.booking_id) {
           // Snap opens as an overlay on the cash-payment page.
           router.push(`/checkout/${id}/cash-payment?booking_id=${bookingData.booking_id}`);
         } else {
@@ -447,12 +481,12 @@ export const CheckoutSessionView = () => {
               )}
 
               <div className="flex flex-col gap-2">
-                <h3 className="font-semibold">Promo Code</h3>
+                <h3 className="font-semibold">Kode diskon</h3>
                 <div className="flex items-center gap-2">
                   <div className="relative flex-1">
                     <Input
                       className="min-h-[48px] rounded-xl border-brand-100 bg-white pl-10 pr-3"
-                      placeholder="Enter promo code"
+                      placeholder="Masukkan kode diskon"
                       value={couponInput}
                       onChange={(e) => handleCouponInputChange(e.target.value)}
                       onKeyDown={(e) => {
@@ -476,25 +510,30 @@ export const CheckoutSessionView = () => {
                 </div>
 
                 {appliedCoupon && validatedVoucher ? (
-                  <div className="flex w-full items-center justify-between gap-3 rounded-xl border border-brand-500/40 bg-brand-25 py-3 pl-4 pr-2">
-                    <div className="flex items-center gap-3">
-                      <CircleCheckSvg />
-                      <div className="flex flex-col">
-                        <p className="text-sm font-semibold uppercase">{appliedCoupon}</p>
-                        <p className="text-xs text-brand-500/60">
-                          {validatedVoucher.voucher_name
-                            ? `${validatedVoucher.voucher_name} — Rp ${validatedVoucher.calculated_discount.toLocaleString("id-ID")} off`
-                            : `Rp ${validatedVoucher.calculated_discount.toLocaleString("id-ID")} off your booking`}
-                        </p>
+                  <div className="flex flex-col gap-1">
+                    <div className="flex w-full items-center justify-between gap-3 rounded-xl border border-brand-500/40 bg-brand-25 py-3 pl-4 pr-2">
+                      <div className="flex items-center gap-3">
+                        <CircleCheckSvg />
+                        <div className="flex flex-col">
+                          <p className="text-sm font-semibold uppercase">{appliedCoupon}</p>
+                          <p className="text-xs text-brand-500/60">
+                            {validatedVoucher.voucher_name
+                              ? `${validatedVoucher.voucher_name} — Rp ${validatedVoucher.calculated_discount.toLocaleString("id-ID")} off`
+                              : `Rp ${validatedVoucher.calculated_discount.toLocaleString("id-ID")} off your booking`}
+                          </p>
+                          {sessionRestrictionCopy && <p className="text-xs text-brand-500/60">{sessionRestrictionCopy}</p>}
+                        </div>
                       </div>
+                      <button
+                        type="button"
+                        onClick={handleRemoveVoucher}
+                        className="flex h-8 w-8 items-center justify-center rounded-full text-brand-500/50 transition-colors hover:bg-brand-100 hover:text-brand-500"
+                      >
+                        <X size={16} />
+                      </button>
                     </div>
-                    <button
-                      type="button"
-                      onClick={handleRemoveVoucher}
-                      className="flex h-8 w-8 items-center justify-center rounded-full text-brand-500/50 transition-colors hover:bg-brand-100 hover:text-brand-500"
-                    >
-                      <X size={16} />
-                    </button>
+                    {ENABLE_MEMBER_VOUCHER_LIFECYCLE && <p className="text-[11px] text-brand-500/60">{VOUCHER_PREVIEW_NOTE}</p>}
+                    {ENABLE_MEMBER_VOUCHER_LIFECYCLE && <p className="text-[11px] text-brand-500/60">{VOUCHER_HELD_NOTE}</p>}
                   </div>
                 ) : voucherError ? (
                   <div className="rounded-xl border border-red-200 bg-red-50 p-3">
@@ -527,8 +566,13 @@ export const CheckoutSessionView = () => {
                   <div className="h-px w-full bg-brand-100" />
                   <div className="flex items-center justify-between">
                     <span className="font-semibold">Total</span>
-                    <span className="text-lg font-extrabold">Rp {total.toLocaleString("id-ID")}</span>
+                    <span className="text-lg font-extrabold">
+                      {total === 0 && discount > 0 ? "Gratis" : `Rp ${total.toLocaleString("id-ID")}`}
+                    </span>
                   </div>
+                  {total === 0 && discount > 0 && (
+                    <p className="text-right text-[11px] text-brand-500/60">Gratis — tidak perlu pembayaran.</p>
+                  )}
                 </div>
               </div>
 

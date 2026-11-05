@@ -25,6 +25,11 @@ const nextConfig: NextConfig = {
 
     // FE-19 native VA/QRIS/GoPay page; off keeps the Snap-only flow.
     ENABLE_NATIVE_PAYMENT: process.env.NEXT_PUBLIC_ENABLE_NATIVE_PAYMENT,
+
+    // Member discount rollout: dev defaults on; prod set the env flag explicitly
+    // after the BE-04/05/06/07 smoke passes.
+    ENABLE_MEMBER_VOUCHER_PACKAGE: process.env.NEXT_PUBLIC_ENABLE_MEMBER_VOUCHER_PACKAGE,
+    ENABLE_MEMBER_VOUCHER_LIFECYCLE: process.env.NEXT_PUBLIC_ENABLE_MEMBER_VOUCHER_LIFECYCLE,
   },
   images: {
     remotePatterns: [

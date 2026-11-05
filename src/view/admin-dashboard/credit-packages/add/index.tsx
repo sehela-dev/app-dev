@@ -8,6 +8,8 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { useCreatePackage } from "@/hooks/api/mutations/admin";
 import { Select, SelectItem, SelectGroup, SelectContent, SelectTrigger, SelectValue } from "@/components/ui/select";
+import InstructorSelect, { MultiValue } from "react-select";
+import { useGetInstructor } from "@/hooks/api/queries/admin/instructor";
 // import { useRouter } from "next/navigation";
 // import { useState } from "react";
 import { FormProvider, useForm } from "react-hook-form";
@@ -46,6 +48,9 @@ const defaultValues: IPackageFormValues = {
   session_type_restriction: "all", //regular, private, special, or null
   place_restriction: "all", // offline, online, null
   class_ids_restriction: [], //specific class UUID or null
+  instructor_ids_restriction: [], // specific instructor auth_user_id or empty
+  eligible_start_time: "",
+  eligible_end_time: "",
   package_type: "purchase",
   is_active: true,
   is_visible: true,
@@ -60,6 +65,7 @@ export const AddCreditPacakgesPage = () => {
   const { mutateAsync } = useCreatePackage();
 
   const { data: clasCategory, isLoading: loadingCategory } = useGetClassSessionsCategory({ page: 1, limit: 999, status: "true", sort_by: "name" });
+  const { data: instructorData, isLoading: loadingInstructors } = useGetInstructor({ page: 1, limit: 999, status: "active" });
   const [open, setOpen] = useState({
     SUCCESS: false,
     CANCEL: false,
@@ -72,8 +78,34 @@ export const AddCreditPacakgesPage = () => {
     }));
   }, [clasCategory?.data]);
 
+  const instructorOptions = useMemo(
+    () =>
+      instructorData?.data?.map((item) => ({
+        value: item.id,
+        label: item.full_name,
+      })) ?? [],
+    [instructorData?.data],
+  );
+
   const onSubmit = handleSubmit(async (data) => {
+    methods.clearErrors(["eligible_start_time", "eligible_end_time", "instructor_ids_restriction"]);
     try {
+      const start = data?.eligible_start_time?.trim() || "";
+      const end = data?.eligible_end_time?.trim() || "";
+      if (!!start !== !!end) {
+        methods.setError("eligible_start_time", {
+          type: "manual",
+          message: "Start and end time must be set together.",
+        });
+        return;
+      }
+      if (start && end && start === end) {
+        methods.setError("eligible_end_time", {
+          type: "manual",
+          message: "Start and end time must differ.",
+        });
+        return;
+      }
       const payload: ICreatePackagePayload = {
         credits: parseInt(data?.credits),
         package_type: data?.package_type,
@@ -84,6 +116,9 @@ export const AddCreditPacakgesPage = () => {
         price_idr: parseInt(data?.price_idr),
         validity_days: parseInt(data?.validity_days),
         class_ids_restriction: data?.class_ids_restriction,
+        instructor_ids_restriction: data?.instructor_ids_restriction?.length ? data.instructor_ids_restriction : null,
+        eligible_start_time: start || null,
+        eligible_end_time: end || null,
         place_restriction: data?.place_restriction,
         session_type_restriction: data?.session_type_restriction,
         is_shareable: data?.is_shareable,
@@ -96,14 +131,21 @@ export const AddCreditPacakgesPage = () => {
         handleOpenModal("SUCCESS");
       }
     } catch (error) {
-      console.log(error);
+      const responseError = (error as { response?: { data?: { error?: { code?: string; message?: string } } } })?.response
+        ?.data?.error;
+      if (responseError?.code === "INVALID_INSTRUCTOR") {
+        methods.setError("instructor_ids_restriction", { type: "server", message: responseError.message });
+      }
+      if (responseError?.code === "INVALID_TIME_WINDOW") {
+        methods.setError("eligible_start_time", { type: "server", message: responseError.message });
+      }
     }
   });
 
   const handleOpenModal = (type: "SUCCESS" | "CANCEL") => {
     setOpen((prev) => ({ ...prev, [type]: !open[type] }));
   };
-  if (loadingCategory)
+  if (loadingCategory || loadingInstructors)
     return (
       <div className="flex items-center justify-center py-6">
         <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
@@ -369,6 +411,72 @@ export const AddCreditPacakgesPage = () => {
                       </FormItem>
                     )}
                   />
+                  <FormField
+                    control={control}
+                    name="instructor_ids_restriction"
+                    render={({ field }) => (
+                      <FormItem className="col-span-2">
+                        <FormLabel className=" text-brand-999 font-medium text-sm">Instructors</FormLabel>
+                        <FormControl>
+                          <InstructorSelect
+                            isMulti
+                            isClearable
+                            isLoading={loadingInstructors}
+                            options={instructorOptions}
+                            value={instructorOptions.filter((option) => (field.value || []).includes(option.value))}
+                            onChange={(selected: MultiValue<{ value: string; label: string }>) =>
+                              field.onChange(selected.map((option) => option.value))
+                            }
+                            placeholder="Semua instructor"
+                            classNamePrefix="instructor-select"
+                            classNames={{
+                              control: () =>
+                                "!min-h-[42px] !border-2 !border-gray-200 !rounded-lg text-sm focus:outline-none focus:border-brand-500 transition-colors !bg-transparent",
+                              placeholder: () => "text-gray-400 text-sm",
+                              multiValue: () => "bg-brand-100",
+                              multiValueLabel: () => "text-brand-999",
+                              input: () => "text-brand-999 text-sm",
+                            }}
+                          />
+                        </FormControl>
+                        <FormDescription className="text-brand-500 font-medium">
+                          Empty = semua instructor.
+                        </FormDescription>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <div className="col-span-2 grid grid-cols-2 gap-4">
+                    <FormField
+                      control={control}
+                      name="eligible_start_time"
+                      render={({ field }) => (
+                        <FormItem className="flex flex-col">
+                          <FormLabel className=" text-brand-999 font-medium text-sm">Eligible start time (WIB)</FormLabel>
+                          <FormControl>
+                            <Input type="time" className="w-full border-2 border-gray-200 rounded-lg h-[42px]" {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={control}
+                      name="eligible_end_time"
+                      render={({ field }) => (
+                        <FormItem className="flex flex-col">
+                          <FormLabel className=" text-brand-999 font-medium text-sm">Eligible end time (WIB)</FormLabel>
+                          <FormControl>
+                            <Input type="time" className="w-full border-2 border-gray-200 rounded-lg h-[42px]" {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </div>
+                  <p className="col-span-2 text-xs text-gray-500">
+                    Leave both empty for Tanpa batas jam. End time is exclusive; overnight windows (e.g. 22:00–02:00) are allowed.
+                  </p>
                   <FormField
                     control={control}
                     name="max_purchases_per_user"

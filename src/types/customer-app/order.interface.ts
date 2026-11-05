@@ -87,6 +87,8 @@ export interface IMemberOrder {
   cancel_reason: string | null;
   order_code: string;
   payment_status: string;
+  voucher_code?: string | null;
+  voucher_discount_idr?: number | null;
   items: IOrderListItem[];
   payment?: { order_id: string; status: string; provider: string } | null;
   payment_instructions?: PaymentInstructions | null;

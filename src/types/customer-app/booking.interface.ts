@@ -6,9 +6,10 @@ import type { PaymentInstructions } from "./payment.interface";
 // ----------------------------------------------------------------------
 
 export interface IEligibleCreditsParams {
-  class_id: string;
-  session_type: string;
-  place: string;
+  class_session_id?: string;
+  class_id?: string;
+  session_type?: string;
+  place?: string;
 }
 
 export interface IEligibleCreditPackage {
@@ -25,6 +26,9 @@ export interface IEligibleCreditPackage {
   session_type_restriction?: string | string[] | null;
   place_restriction?: string | string[] | null;
   class_ids_restriction?: string[] | null;
+  instructor_ids_restriction?: { id: string; name: string }[] | null;
+  eligible_start_time?: string | null;
+  eligible_end_time?: string | null;
   is_owner: boolean;
   is_shared: boolean;
   is_shareable?: boolean | null;
@@ -95,8 +99,9 @@ export type TCreatePublicBooking = (body: ICreatePublicBookingRequest) => Promis
 export interface IValidateVoucherRequest {
   voucher_code: string;
   class_session_id?: string;
+  package_id?: string;
   cart_total_idr?: number;
-  transaction_type?: "booking" | "order";
+  transaction_type?: "booking" | "package_purchase" | "order";
 }
 
 export interface IValidateVoucherResponse {
@@ -109,6 +114,7 @@ export interface IValidateVoucherResponse {
   calculated_discount: number;
   cart_total_idr: number;
   discounted_total_idr: number;
+  session_types?: string[] | null;
   error_code?: string | null;
   error_message?: string | null;
 }

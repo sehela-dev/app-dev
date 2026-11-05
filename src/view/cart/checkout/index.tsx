@@ -11,14 +11,15 @@ import { useCart } from "@/context/cart.ctx";
 import { useValidateVoucher } from "@/hooks/api/mutations/customers";
 import { useCreateProductOrder, useGetAddresses } from "@/hooks/api/queries/customer/orders";
 import { useGetPaymentChannels } from "@/hooks/api/queries/customer/payments";
-import { ENABLE_NATIVE_PAYMENT } from "@/lib/config";
+import { ENABLE_MEMBER_VOUCHER_LIFECYCLE, ENABLE_NATIVE_PAYMENT } from "@/lib/config";
 import { formatCurrency } from "@/lib/helper";
+import { getVoucherErrorMessage, isVoucherErrorCode, VOUCHER_HELD_NOTE, VOUCHER_PREVIEW_NOTE } from "@/lib/voucher";
 import { cn } from "@/lib/utils";
 import type { IValidateVoucherResponse } from "@/types/customer-app/booking.interface";
 import { ChevronRight, Loader2, MapPin, ShoppingBag, TicketPercent, X } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 
 const ERROR_COPY: Record<string, string> = {
@@ -53,12 +54,13 @@ export const CartCheckoutView = () => {
   const [voucherInput, setVoucherInput] = useState("");
   const [appliedVoucher, setAppliedVoucher] = useState<IValidateVoucherResponse | null>(null);
   const [voucherError, setVoucherError] = useState<string | null>(null);
+  const checkoutSucceeded = useRef(false);
   const { mutateAsync: validateVoucherAsync, isPending: voucherValidating } = useValidateVoucher();
   const { data: channelsData, isLoading: channelsLoading } = useGetPaymentChannels(ENABLE_NATIVE_PAYMENT);
   const channels = channelsData?.data ?? [];
-  const requiresChannel = ENABLE_NATIVE_PAYMENT && channels.length > 0;
   const discount = appliedVoucher?.calculated_discount ?? 0;
-  const total = Math.max(0, subtotal - discount);
+  const total = appliedVoucher?.discounted_total_idr ?? subtotal;
+  const requiresChannel = ENABLE_NATIVE_PAYMENT && channels.length > 0 && total > 0;
   const selectedChannelLabel = channels.find((channel) => channel.code === selectedChannel)?.label;
 
   useEffect(() => {
@@ -67,7 +69,7 @@ export const CartCheckoutView = () => {
   }, [addresses, addressId]);
 
   useEffect(() => {
-    if (!isCartReady || items.length > 0) return;
+    if (!isCartReady || items.length > 0 || checkoutSucceeded.current) return;
     router.replace("/cart");
   }, [isCartReady, items.length, router]);
 
@@ -89,13 +91,15 @@ export const CartCheckoutView = () => {
         setVoucherInput(voucher.voucher_code ?? code);
       } else {
         setAppliedVoucher(null);
-        setVoucherError(voucher?.error_message || "Voucher is not valid");
+        setVoucherError(getVoucherErrorMessage(voucher?.error_code, voucher?.error_message) || "Kode diskon tidak valid.");
       }
     } catch (err: unknown) {
+      const code = (err as { response?: { data?: { error?: { code?: string } } } })?.response?.data?.error?.code;
       const message =
+        getVoucherErrorMessage(code) ||
         (err as { response?: { data?: { error?: { message?: string } } } })?.response?.data?.error?.message ||
         (err as Error)?.message ||
-        "Failed to validate voucher";
+        "Gagal mengecek kode diskon";
       setAppliedVoucher(null);
       setVoucherError(message);
     }
@@ -128,12 +132,12 @@ export const CartCheckoutView = () => {
         ...(requiresChannel && selectedChannel ? { payment_channel: selectedChannel } : {}),
         ...(appliedVoucher?.voucher_code ? { voucher_code: appliedVoucher.voucher_code } : {}),
       });
+      // Clear the cart only after a successful create; suppress the empty-cart
+      // redirect so it cannot race the payment/detail navigation below.
+      checkoutSucceeded.current = true;
       clearCart();
-      const pi = res?.payment_instructions;
-      if (pi?.type === "redirect" && res?.snap_redirect_url) {
-        window.location.href = res.snap_redirect_url;
-        return;
-      }
+      // Always land on the in-app payment page (same pattern as booking). That
+      // page opens Snap in a new tab or renders native VA/QRIS instructions.
       if (res?.payment_status === "paid") {
         router.replace(`/profile/orders/${res.order_id}`);
         return;
@@ -142,7 +146,13 @@ export const CartCheckoutView = () => {
     } catch (error) {
       const { code, message, details } = getOrderApiError(error);
       const fieldMessage = details ? Object.values(details)[0]?.[0] : undefined;
-      toast.error(fieldMessage || message || ERROR_COPY[code ?? ""] || "Failed to create order. Please try again.");
+      const voucherMessage = getVoucherErrorMessage(code);
+      if (isVoucherErrorCode(code)) {
+        // The server recomputed the cart; drop the stale preview so the total resets.
+        setAppliedVoucher(null);
+        setVoucherError(voucherMessage || message || null);
+      }
+      toast.error(fieldMessage || voucherMessage || message || ERROR_COPY[code ?? ""] || "Failed to create order. Please try again.");
     }
   };
 
@@ -155,6 +165,13 @@ export const CartCheckoutView = () => {
   }
 
   if (items.length === 0) {
+    if (checkoutSucceeded.current) {
+      return (
+        <div className="flex items-center justify-center gap-2 py-16 text-sm text-brand-500">
+          <Loader2 className="h-4 w-4 animate-spin" /> Redirecting to payment…
+        </div>
+      );
+    }
     return (
       <div className="flex flex-col items-center gap-2 px-4 py-16 text-center font-serif text-brand-500">
         <ShoppingBag className="h-12 w-12 text-brand-300" />
@@ -267,12 +284,12 @@ export const CartCheckoutView = () => {
         )}
 
         <div className="flex flex-col gap-2">
-          <p className="text-base font-bold">Discount code</p>
+          <p className="text-base font-bold">Kode diskon</p>
           <div className="flex items-center gap-2">
             <div className="relative flex-1">
               <Input
                 className="min-h-11 rounded-xl border-brand-100 bg-white pl-9 pr-3"
-                placeholder="Enter code"
+                placeholder="Masukkan kode"
                 value={voucherInput}
                 onChange={(event) => {
                   setVoucherInput(event.target.value);
@@ -304,9 +321,13 @@ export const CartCheckoutView = () => {
             )}
           </div>
           {appliedVoucher ? (
-            <p className="text-xs font-medium text-emerald-700">
-              {appliedVoucher.voucher_code} applied — {formatCurrency(discount)} off
-            </p>
+            <div className="flex flex-col gap-1">
+              <p className="text-xs font-medium text-emerald-700">
+                {appliedVoucher.voucher_code} applied — {formatCurrency(discount)} off
+              </p>
+              {ENABLE_MEMBER_VOUCHER_LIFECYCLE && <p className="text-[11px] text-brand-400">{VOUCHER_PREVIEW_NOTE}</p>}
+              {ENABLE_MEMBER_VOUCHER_LIFECYCLE && <p className="text-[11px] text-brand-400">{VOUCHER_HELD_NOTE}</p>}
+            </div>
           ) : voucherError ? (
             <p role="alert" className="text-xs font-medium text-red-600">
               {voucherError}
@@ -338,7 +359,7 @@ export const CartCheckoutView = () => {
           )}
           <div className="flex items-center justify-between border-t border-white/20 pt-2">
             <p>Total</p>
-            <p className="text-lg font-bold">{formatCurrency(total)}</p>
+            <p className="text-lg font-bold">{total === 0 && discount > 0 ? "Gratis" : formatCurrency(total)}</p>
           </div>
         </div>
         {deliveryMethod === "third_party" && selectedAddress && (
@@ -359,7 +380,7 @@ export const CartCheckoutView = () => {
               disabled={
                 isPending ||
                 hasMixedLocations ||
-                (ENABLE_NATIVE_PAYMENT && channelsLoading) ||
+                (ENABLE_NATIVE_PAYMENT && channelsLoading && total > 0) ||
                 (deliveryMethod === "third_party" && !addressId) ||
                 (requiresChannel && !selectedChannel)
               }
