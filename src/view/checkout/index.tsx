@@ -21,6 +21,7 @@ import { useGetPaymentChannels } from "@/hooks/api/queries/customer/payments";
 import { useGetEligibleCredits, useGetMyCredits } from "@/hooks/api/queries/customer/profile";
 import { useGetPublicSession } from "@/hooks/api/queries/customer/public";
 import { ENABLE_MEMBER_VOUCHER_LIFECYCLE, ENABLE_NATIVE_PAYMENT } from "@/lib/config";
+import { formatEligibleTime, formatInstructorNames } from "@/lib/credit-package";
 import { formatDateHelper } from "@/lib/helper";
 import {
   getSessionTypeRestrictionCopy,
@@ -31,7 +32,7 @@ import {
 } from "@/lib/voucher";
 import { cn } from "@/lib/utils";
 import { getSessionLevelBadge, getSessionTypeBadge } from "@/utils/session-badge";
-import type { IValidateVoucherResponse } from "@/types/customer-app/booking.interface";
+import type { IEligibleCreditPackage, IValidateVoucherResponse } from "@/types/customer-app/booking.interface";
 
 type PaymentMethod = "credit" | "cash";
 
@@ -45,6 +46,26 @@ const getDuration = (start: string, end: string): string => {
   const [eh, em] = end.split(":").map(Number);
   const total = eh * 60 + em - (sh * 60 + sm);
   return total > 0 ? `${total} min` : "";
+};
+
+const formatRestrictionValue = (value?: string | string[] | null) => {
+  if (!value) return "";
+  const text = Array.isArray(value) ? value.join(", ") : value;
+  return text.charAt(0).toUpperCase() + text.slice(1);
+};
+
+const getPackageRestrictionSummary = (item: IEligibleCreditPackage) => {
+  const classCount = item.class_ids_restriction?.length ?? 0;
+  const instructors = formatInstructorNames(item.instructor_ids_restriction);
+  return [
+    formatRestrictionValue(item.session_type_restriction),
+    formatRestrictionValue(item.place_restriction),
+    classCount ? `${classCount} class${classCount > 1 ? "es" : ""}` : "",
+    instructors ? `Instructor: ${instructors}` : "",
+    formatEligibleTime(item.eligible_start_time, item.eligible_end_time) ?? "",
+  ]
+    .filter(Boolean)
+    .join(" · ");
 };
 
 export const CheckoutSessionView = () => {
@@ -125,6 +146,7 @@ export const CheckoutSessionView = () => {
   const availableCredits = eligibleParams ? eligibleCreditsData?.data ?? [] : creditsData?.data?.filter((item) => !item.is_expired) ?? [];
   const creditsListLoading = eligibleParams ? eligibleLoading : creditsLoading;
   const selectedPackage = availableCredits.find((item) => item.package_purchase_id === selectedCredit);
+  const selectedPackageRestriction = selectedPackage ? getPackageRestrictionSummary(selectedPackage) : "";
   const selectedChannelLabel = channels.find((channel) => channel.code === selectedChannel)?.label ?? "Pilih metode pembayaran";
   const isOnline = session.place === "online";
   const levelBadge = getSessionLevelBadge(session.level);
@@ -404,6 +426,10 @@ export const CheckoutSessionView = () => {
                             isActive={selectedCredit === item.package_purchase_id}
                             title={item.package_name}
                             value={item.credits_remaining}
+                            totalCredits={item.total_credits}
+                            description={item.package_description}
+                            restriction={getPackageRestrictionSummary(item)}
+                            isShared={item.is_shared}
                             expiryDate={item.expires_at ?? undefined}
                             disabled={insufficient}
                             onClick={() => !insufficient && onSelectWalletCredit(item.package_purchase_id)}
@@ -423,6 +449,14 @@ export const CheckoutSessionView = () => {
                       </div>
                       <p className="text-xs text-brand-500/70">
                         Using credits from {selectedPackage.package_name} ({selectedPackage.credits_remaining} remaining).
+                      </p>
+                      {selectedPackageRestriction && (
+                        <p className="text-xs text-brand-500/70">{selectedPackageRestriction}</p>
+                      )}
+                      <p className="text-xs text-brand-500/70">
+                        {selectedPackage.expires_at
+                          ? `Expires ${formatDateHelper(selectedPackage.expires_at, "dd MMM yyyy")}`
+                          : "No expiry"}
                       </p>
                     </div>
                   )}

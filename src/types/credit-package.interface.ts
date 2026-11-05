@@ -93,7 +93,9 @@ export interface IPackageFormValues {
   session_type_restriction: string;
   place_restriction: string;
   class_ids_restriction: string[];
+  has_instructor_restriction: boolean;
   instructor_ids_restriction: string[];
+  has_time_restriction: boolean;
   eligible_start_time: string;
   eligible_end_time: string;
   package_type: string;
