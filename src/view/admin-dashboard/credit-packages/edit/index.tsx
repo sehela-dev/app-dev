@@ -48,7 +48,9 @@ const defaultValues: IPackageFormValues = {
   session_type_restriction: "all", //regular, private, special, or null
   place_restriction: "all", // offline, online, null
   class_ids_restriction: [], //specific class UUID or null
+  has_instructor_restriction: false,
   instructor_ids_restriction: [], // specific instructor auth_user_id or empty
+  has_time_restriction: false,
   eligible_start_time: "",
   eligible_end_time: "",
   package_type: "purchase",
@@ -99,7 +101,9 @@ export const EditCreditPacakgesPage = () => {
       session_type_restriction: !data?.data?.session_type_restriction ? "all" : data?.data?.session_type_restriction,
       place_restriction: !data?.data?.place_restriction ? "all" : data?.data?.place_restriction,
       class_ids_restriction: data?.data?.class_ids_restriction?.map((item) => item.id) || [], // Make sure to provide fallback
+      has_instructor_restriction: (data?.data?.instructor_ids_restriction?.length ?? 0) > 0,
       instructor_ids_restriction: data?.data?.instructor_ids_restriction?.map((item) => item.id) || [],
+      has_time_restriction: !!(data?.data?.eligible_start_time && data?.data?.eligible_end_time),
       eligible_start_time: data?.data?.eligible_start_time?.slice(0, 5) || "",
       eligible_end_time: data?.data?.eligible_end_time?.slice(0, 5) || "",
       package_type: "purchase",
@@ -113,25 +117,38 @@ export const EditCreditPacakgesPage = () => {
 
   const methods = useForm({ defaultValues, values });
   const { control, handleSubmit } = methods;
+  const hasInstructorRestriction = methods.watch("has_instructor_restriction");
+  const hasTimeRestriction = methods.watch("has_time_restriction");
+  const hadInstructorRestriction = (data?.data?.instructor_ids_restriction?.length ?? 0) > 0;
+  const hadTimeRestriction = !!(data?.data?.eligible_start_time && data?.data?.eligible_end_time);
 
   const onSubmit = handleSubmit(async (data) => {
     methods.clearErrors(["eligible_start_time", "eligible_end_time", "instructor_ids_restriction"]);
     try {
-      const start = data?.eligible_start_time?.trim() || "";
-      const end = data?.eligible_end_time?.trim() || "";
-      if (!!start !== !!end) {
-        methods.setError("eligible_start_time", {
+      if (data?.has_instructor_restriction && !data?.instructor_ids_restriction?.length) {
+        methods.setError("instructor_ids_restriction", {
           type: "manual",
-          message: "Start and end time must be set together.",
+          message: "Select at least one instructor or turn off the instructor restriction.",
         });
         return;
       }
-      if (start && end && start === end) {
-        methods.setError("eligible_end_time", {
-          type: "manual",
-          message: "Start and end time must differ.",
-        });
-        return;
+      const start = data?.eligible_start_time?.trim() || "";
+      const end = data?.eligible_end_time?.trim() || "";
+      if (data?.has_time_restriction) {
+        if (!start || !end) {
+          methods.setError("eligible_start_time", {
+            type: "manual",
+            message: "Start and end time must be set together.",
+          });
+          return;
+        }
+        if (start === end) {
+          methods.setError("eligible_end_time", {
+            type: "manual",
+            message: "Start and end time must differ.",
+          });
+          return;
+        }
       }
       const payload: ICreatePackagePayload = {
         credits: parseInt(data?.credits as string),
@@ -143,9 +160,16 @@ export const EditCreditPacakgesPage = () => {
         price_idr: parseInt(data?.price_idr as string),
         validity_days: parseInt(data?.validity_days as string),
         class_ids_restriction: data?.class_ids_restriction,
-        instructor_ids_restriction: data?.instructor_ids_restriction?.length ? data.instructor_ids_restriction : null,
-        eligible_start_time: start || null,
-        eligible_end_time: end || null,
+        ...(data?.has_instructor_restriction
+          ? { instructor_ids_restriction: data.instructor_ids_restriction }
+          : hadInstructorRestriction
+            ? { instructor_ids_restriction: null }
+            : {}),
+        ...(data?.has_time_restriction
+          ? { eligible_start_time: start, eligible_end_time: end }
+          : hadTimeRestriction
+            ? { eligible_start_time: null, eligible_end_time: null }
+            : {}),
         place_restriction: data?.place_restriction,
         session_type_restriction: data?.session_type_restriction,
         is_shareable: data?.is_shareable,
@@ -439,70 +463,106 @@ export const EditCreditPacakgesPage = () => {
                   />
                   <FormField
                     control={control}
-                    name="instructor_ids_restriction"
+                    name="has_instructor_restriction"
                     render={({ field }) => (
-                      <FormItem className="col-span-2">
-                        <FormLabel className=" text-brand-999 font-medium text-sm">Instructors</FormLabel>
+                      <FormItem className="col-span-2 flex flex-row w-full justify-between items-center pt-2">
+                        <div className="flex flex-col gap-2">
+                          <FormLabel className=" text-brand-999 font-medium text-sm">Limit by instructor</FormLabel>
+                          <FormDescription>Off = semua instructor.</FormDescription>
+                        </div>
                         <FormControl>
-                          <InstructorSelect
-                            isMulti
-                            isClearable
-                            isLoading={loadingInstructors}
-                            options={instructorOptions}
-                            value={instructorOptions.filter((option) => (field.value || []).includes(option.value))}
-                            onChange={(selected: MultiValue<{ value: string; label: string }>) =>
-                              field.onChange(selected.map((option) => option.value))
-                            }
-                            placeholder="Semua instructor"
-                            classNamePrefix="instructor-select"
-                            classNames={{
-                              control: () =>
-                                "!min-h-[42px] !border-2 !border-gray-200 !rounded-lg text-sm focus:outline-none focus:border-brand-500 transition-colors !bg-transparent",
-                              placeholder: () => "text-gray-400 text-sm",
-                              multiValue: () => "bg-brand-100",
-                              multiValueLabel: () => "text-brand-999",
-                              input: () => "text-brand-999 text-sm",
-                            }}
-                          />
+                          <Switch checked={field.value} onCheckedChange={field.onChange} />
                         </FormControl>
-                        <FormDescription className="text-brand-500 font-medium">
-                          Empty = semua instructor.
-                        </FormDescription>
-                        <FormMessage />
                       </FormItem>
                     )}
                   />
-                  <div className="col-span-2 grid grid-cols-2 gap-4">
+                  {hasInstructorRestriction && (
                     <FormField
                       control={control}
-                      name="eligible_start_time"
+                      name="instructor_ids_restriction"
                       render={({ field }) => (
-                        <FormItem className="flex flex-col">
-                          <FormLabel className=" text-brand-999 font-medium text-sm">Eligible start time (WIB)</FormLabel>
+                        <FormItem className="col-span-2">
+                          <FormLabel className=" text-brand-999 font-medium text-sm">Instructors</FormLabel>
                           <FormControl>
-                            <Input type="time" className="w-full border-2 border-gray-200 rounded-lg h-[42px]" {...field} />
+                            <InstructorSelect
+                              isMulti
+                              isClearable
+                              isLoading={loadingInstructors}
+                              options={instructorOptions}
+                              value={instructorOptions.filter((option) => (field.value || []).includes(option.value))}
+                              onChange={(selected: MultiValue<{ value: string; label: string }>) =>
+                                field.onChange(selected.map((option) => option.value))
+                              }
+                              placeholder="Select instructors"
+                              classNamePrefix="instructor-select"
+                              classNames={{
+                                control: () =>
+                                  "!min-h-[42px] !border-2 !border-gray-200 !rounded-lg text-sm focus:outline-none focus:border-brand-500 transition-colors !bg-transparent",
+                                placeholder: () => "text-gray-400 text-sm",
+                                multiValue: () => "bg-brand-100",
+                                multiValueLabel: () => "text-brand-999",
+                                input: () => "text-brand-999 text-sm",
+                              }}
+                            />
                           </FormControl>
+                          <FormDescription className="text-brand-500 font-medium">
+                            Select one or more instructors.
+                          </FormDescription>
                           <FormMessage />
                         </FormItem>
                       )}
                     />
-                    <FormField
-                      control={control}
-                      name="eligible_end_time"
-                      render={({ field }) => (
-                        <FormItem className="flex flex-col">
-                          <FormLabel className=" text-brand-999 font-medium text-sm">Eligible end time (WIB)</FormLabel>
-                          <FormControl>
-                            <Input type="time" className="w-full border-2 border-gray-200 rounded-lg h-[42px]" {...field} />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                  </div>
-                  <p className="col-span-2 text-xs text-gray-500">
-                    Leave both empty for Tanpa batas jam. End time is exclusive; overnight windows (e.g. 22:00–02:00) are allowed.
-                  </p>
+                  )}
+                  <FormField
+                    control={control}
+                    name="has_time_restriction"
+                    render={({ field }) => (
+                      <FormItem className="col-span-2 flex flex-row w-full justify-between items-center pt-2">
+                        <div className="flex flex-col gap-2">
+                          <FormLabel className=" text-brand-999 font-medium text-sm">Limit by time window</FormLabel>
+                          <FormDescription>Off = tanpa batas jam.</FormDescription>
+                        </div>
+                        <FormControl>
+                          <Switch checked={field.value} onCheckedChange={field.onChange} />
+                        </FormControl>
+                      </FormItem>
+                    )}
+                  />
+                  {hasTimeRestriction && (
+                    <>
+                      <div className="col-span-2 grid grid-cols-2 gap-4">
+                        <FormField
+                          control={control}
+                          name="eligible_start_time"
+                          render={({ field }) => (
+                            <FormItem className="flex flex-col">
+                              <FormLabel className=" text-brand-999 font-medium text-sm">Eligible start time (WIB)</FormLabel>
+                              <FormControl>
+                                <Input type="time" className="w-full border-2 border-gray-200 rounded-lg h-[42px]" {...field} />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                        <FormField
+                          control={control}
+                          name="eligible_end_time"
+                          render={({ field }) => (
+                            <FormItem className="flex flex-col">
+                              <FormLabel className=" text-brand-999 font-medium text-sm">Eligible end time (WIB)</FormLabel>
+                              <FormControl>
+                                <Input type="time" className="w-full border-2 border-gray-200 rounded-lg h-[42px]" {...field} />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                      </div>
+                      <p className="col-span-2 text-xs text-gray-500">
+                        End time is exclusive; overnight windows (e.g. 22:00–02:00) are allowed.
+                      </p>
+                    </>
+                  )}
                   <FormField
                     control={control}
                     name="max_purchases_per_user"
