@@ -71,9 +71,11 @@ export interface IMySessionDetail {
   room_id: string;
   payment_method: string;
   price_idr: number;
+  original_amount_idr?: number | null;
   voucher_code: string;
   voucher_discount_idr: number;
   total_paid_idr: number;
+  amount_paid_idr?: number | null;
   credits_used: number;
   cancel_reason: string;
   canceled_at: string;

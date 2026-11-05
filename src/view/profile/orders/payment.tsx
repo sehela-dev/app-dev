@@ -5,13 +5,17 @@ import { Button } from "@/components/ui/button";
 import { useGetPaymentStatus } from "@/hooks/api/queries/customer/payments";
 import { useGetMemberOrder } from "@/hooks/api/queries/customer/orders";
 import { useRemainingTime } from "@/hooks/use-remaining-time";
+import { ENABLE_MEMBER_VOUCHER_LIFECYCLE } from "@/lib/config";
 import { formatCurrency } from "@/lib/helper";
+import { VOUCHER_HELD_NOTE, VOUCHER_RELEASED_NOTE } from "@/lib/voucher";
 import { isPaymentFailure, isPaymentSuccess, isPaymentTerminal } from "@/lib/payment-status";
 import { humanizePaymentStatus } from "@/lib/pending-package-payment";
+import { loadSnap } from "@/lib/snap";
 import { NativeInstructionsComponent } from "@/view/payment/native-instructions";
 import { AlertCircle, CheckCircle, Clock, ExternalLink, Loader2, ShoppingBag } from "lucide-react";
 import { useParams, useRouter } from "next/navigation";
-import { useEffect, useRef } from "react";
+import { useCallback, useEffect, useRef } from "react";
+import { toast } from "sonner";
 
 const PAYMENT_TIMEOUT_MS = 15 * 60 * 1000;
 
@@ -21,11 +25,13 @@ export const OrderPaymentView = () => {
   const orderId = params?.id as string;
   const { data: order, isLoading, isError, refetch: refetchOrder } = useGetMemberOrder(orderId);
   const orderCode = order?.order_code ?? null;
+  const amountPaid = order ? Math.max(0, order.total_price_idr - (order.voucher_discount_idr ?? 0)) : 0;
 
   const { data: statusData, refetch: refetchStatus } = useGetPaymentStatus(orderCode);
   const statusRow = statusData?.data;
   const pi = statusRow?.payment_instructions ?? order?.payment_instructions ?? null;
   const snapUrl = statusRow?.snap_redirect_url ?? (pi?.type === "redirect" ? pi.redirect_url : null);
+  const snapToken = statusRow?.snap_token ?? null;
   const isRedirect = pi?.type === "redirect" || (!pi && Boolean(snapUrl));
   const nativeInstructions = pi && pi.type !== "redirect" ? pi : null;
 
@@ -40,13 +46,64 @@ export const OrderPaymentView = () => {
   const isExpired = windowExpired || serverStatus === "expire" || serverStatus === "expired";
   const isPending = !!orderCode && !isSettled && !isFailed && !isExpired;
 
+  const snapBusyRef = useRef(false);
+  const openSnap = useCallback(async () => {
+    if (!snapToken || snapBusyRef.current || !isPending) return;
+    snapBusyRef.current = true;
+    const release = () => {
+      snapBusyRef.current = false;
+    };
+    try {
+      await loadSnap();
+      if (!window.snap) throw new Error("Snap is not available");
+      window.snap.pay(snapToken, {
+        onSuccess: () => {
+          release();
+          void refetchStatus();
+          void refetchOrder();
+        },
+        onPending: () => {
+          release();
+          void refetchStatus();
+        },
+        onError: () => {
+          release();
+          toast.error("Payment failed", { description: "Please try again.", position: "top-center" });
+          void refetchStatus();
+        },
+        // Closing is not a failure: the token stays valid and the user can reopen.
+        onClose: () => {
+          release();
+          void refetchStatus();
+        },
+      });
+    } catch {
+      release();
+      // No client key / script blocked: fall back to the redirect page.
+      if (snapUrl) {
+        toast.error("Secure payment unavailable", { description: "Opening the payment page instead.", position: "top-center" });
+        window.open(snapUrl, "_blank", "noopener,noreferrer");
+      } else {
+        toast.error("Payment page unavailable", { description: "Please refresh and try again.", position: "top-center" });
+      }
+    }
+  }, [snapToken, snapUrl, isPending, refetchStatus, refetchOrder]);
+
   const openedRef = useRef(false);
   useEffect(() => {
-    if (!isRedirect || !snapUrl || openedRef.current || isSettled || isExpired) return;
-    openedRef.current = true;
-    const tab = window.open(snapUrl, "_blank", "noopener,noreferrer");
-    if (!tab) openedRef.current = false;
-  }, [isRedirect, snapUrl, isSettled, isExpired]);
+    // Stored native instructions win; never push the member to an external page.
+    if (nativeInstructions || openedRef.current || isSettled || isExpired || !isPending) return;
+    if (snapToken) {
+      openedRef.current = true;
+      void openSnap();
+      return;
+    }
+    if (isRedirect && snapUrl) {
+      openedRef.current = true;
+      const tab = window.open(snapUrl, "_blank", "noopener,noreferrer");
+      if (!tab) openedRef.current = false;
+    }
+  }, [nativeInstructions, snapToken, isRedirect, snapUrl, isSettled, isExpired, isPending, openSnap]);
 
   useEffect(() => {
     if (isPaymentTerminal(serverStatus)) {
@@ -97,7 +154,7 @@ export const OrderPaymentView = () => {
             </div>
             <div className="flex justify-between">
               <span className="text-brand-500/60">Amount</span>
-              <span className="font-bold">{formatCurrency(order.total_price_idr)}</span>
+              <span className="font-bold">{formatCurrency(amountPaid)}</span>
             </div>
           </div>
           <Button className="min-h-12 w-full text-sm font-extrabold" onClick={() => router.push(`/profile/orders/${order.id}`)}>
@@ -127,7 +184,9 @@ export const OrderPaymentView = () => {
               </span>
               <div>
                 <p className="font-semibold">Midtrans Payment</p>
-                <p className="text-xs text-brand-500/60">{nativeInstructions ? "Secure payment in this page" : "Opened in new tab"}</p>
+                <p className="text-xs text-brand-500/60">
+                  {nativeInstructions || snapToken ? "Secure payment in this page" : "Opened in new tab"}
+                </p>
               </div>
             </div>
             {!isExpired && !isFailed && remainingMs !== null && (
@@ -144,18 +203,33 @@ export const OrderPaymentView = () => {
           {nativeInstructions && isPending && (
             <NativeInstructionsComponent
               instructions={nativeInstructions}
-              amountIdr={statusRow?.amount_idr ?? statusRow?.gross_amount_idr ?? order.total_price_idr}
+              amountIdr={statusRow?.amount_idr ?? statusRow?.gross_amount_idr ?? amountPaid}
               channelLabel={statusRow?.channel_label}
               remainingMs={remainingMs}
             />
           )}
 
-          {isRedirect && snapUrl && isPending && (
+          {!nativeInstructions && (snapToken || (isRedirect && snapUrl)) && isPending && (
             <div className="mb-4 rounded-xl border border-brand-200 bg-brand-25 p-4">
-              <p className="text-sm font-medium text-brand-700">Payment page opened in new tab</p>
-              <p className="mt-1 text-xs text-brand-500/70">If it didn&apos;t open, click below. Keep this page open — we&apos;ll auto-detect success.</p>
-              <Button className="mt-3 w-full" onClick={() => window.open(snapUrl, "_blank", "noopener,noreferrer")}>
-                <ExternalLink className="h-4 w-4" /> Open Midtrans Payment Page
+              <p className="text-sm font-medium text-brand-700">
+                {snapToken ? "Secure payment window" : "Payment page opened in new tab"}
+              </p>
+              <p className="mt-1 text-xs text-brand-500/70">
+                {snapToken
+                  ? "Complete your payment in the secure window. Keep this page open — we'll auto-detect success."
+                  : "If it didn't open, click below. Keep this page open — we'll auto-detect success."}
+              </p>
+              <Button
+                className="mt-3 w-full"
+                onClick={() => {
+                  if (snapToken) {
+                    void openSnap();
+                    return;
+                  }
+                  if (snapUrl) window.open(snapUrl, "_blank", "noopener,noreferrer");
+                }}
+              >
+                <ExternalLink className="h-4 w-4" /> {snapToken ? "Open Payment Window" : "Open Midtrans Payment Page"}
               </Button>
             </div>
           )}
@@ -174,7 +248,7 @@ export const OrderPaymentView = () => {
               <div className="flex justify-between gap-3">
                 <span className="text-brand-500/60">Amount</span>
                 <span className="text-lg font-bold">
-                  {formatCurrency(statusRow?.amount_idr ?? statusRow?.gross_amount_idr ?? order.total_price_idr)}
+                  {formatCurrency(statusRow?.amount_idr ?? statusRow?.gross_amount_idr ?? amountPaid)}
                 </span>
               </div>
             </div>
@@ -183,20 +257,30 @@ export const OrderPaymentView = () => {
           {isPending && (
             <div className="mt-4 flex items-center gap-2 rounded-xl border border-blue-100 bg-blue-50 p-4">
               <Loader2 className="h-5 w-5 animate-spin text-blue-500" />
-              <p className="text-sm font-medium text-blue-700">
-                Waiting for payment confirmation{serverStatus ? ` (${humanizePaymentStatus(serverStatus)})` : ""}…
-              </p>
+              <div>
+                <p className="text-sm font-medium text-blue-700">
+                  Waiting for payment confirmation{serverStatus ? ` (${humanizePaymentStatus(serverStatus)})` : ""}…
+                </p>
+                {ENABLE_MEMBER_VOUCHER_LIFECYCLE && order.voucher_code && (
+                  <p className="text-xs text-blue-700/80">{VOUCHER_HELD_NOTE}</p>
+                )}
+              </div>
             </div>
           )}
 
           {(isExpired || isFailed) && (
             <div className="mt-4 flex items-center gap-2 rounded-xl border border-zinc-200 bg-zinc-50 p-4">
               <AlertCircle className="h-5 w-5 shrink-0 text-zinc-600" />
-              <p className="text-sm font-medium text-zinc-700">
-                {isExpired && !isFailed
-                  ? "Payment expired — 15m window exceeded. Please start a new order."
-                  : `Payment ${humanizePaymentStatus(serverStatus)} — please start a new order.`}
-              </p>
+              <div>
+                <p className="text-sm font-medium text-zinc-700">
+                  {isExpired && !isFailed
+                    ? "Payment expired — 15m window exceeded. Please start a new order."
+                    : `Payment ${humanizePaymentStatus(serverStatus)} — please start a new order.`}
+                </p>
+                {ENABLE_MEMBER_VOUCHER_LIFECYCLE && order.voucher_code && (
+                  <p className="text-xs text-zinc-600">{VOUCHER_RELEASED_NOTE}</p>
+                )}
+              </div>
             </div>
           )}
 

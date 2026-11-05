@@ -472,7 +472,7 @@ export const MySessionDetail = () => {
                           <>
                             <div className="flex flex-row items-center justify-between">
                               <p className="font-normal text-xs text-brand-500/60">Original Price</p>
-                              <p className="font-normal text-xs line-through text-brand-500/60">{formatCurrency(bookingData?.price_idr)}</p>
+                              <p className="font-normal text-xs line-through text-brand-500/60">{formatCurrency(bookingData?.original_amount_idr ?? bookingData?.price_idr)}</p>
                             </div>
                             <div className="flex flex-row items-center justify-between">
                               <p className="font-normal text-xs text-brand-500/60">Voucher {bookingData.voucher_code}</p>
@@ -482,7 +482,7 @@ export const MySessionDetail = () => {
                         ) : null}
                         <div className="flex flex-row items-center justify-between">
                           <p className="font-semibold text-sm">Purchase Amount</p>
-                          <p className="font-semibold text-sm">{formatCurrency(bookingData?.total_paid_idr)}</p>
+                          <p className="font-semibold text-sm">{formatCurrency(bookingData?.amount_paid_idr ?? bookingData?.total_paid_idr)}</p>
                         </div>
                       </div>
 
@@ -499,7 +499,7 @@ export const MySessionDetail = () => {
                   {nativeInstructions && canContinue && (
                     <NativeInstructionsComponent
                       instructions={nativeInstructions}
-                      amountIdr={bookingData?.total_paid_idr ?? bookingData?.price_idr ?? 0}
+                      amountIdr={bookingData?.amount_paid_idr ?? bookingData?.total_paid_idr ?? bookingData?.original_amount_idr ?? bookingData?.price_idr ?? 0}
                       channelLabel={payment?.channel_label}
                       remainingMs={remainingMs}
                     />

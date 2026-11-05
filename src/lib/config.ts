@@ -20,6 +20,20 @@ export const ENABLE_PAYMENT_CHANGE = PAYMENT_CHANGE_FLAG ? PAYMENT_CHANGE_FLAG =
 const NATIVE_PAYMENT_FLAG = process.env.ENABLE_NATIVE_PAYMENT;
 export const ENABLE_NATIVE_PAYMENT = NATIVE_PAYMENT_FLAG ? NATIVE_PAYMENT_FLAG === "true" : ENV === "dev";
 
+// Member voucher package top-up: dev defaults on now that BE-07 is live;
+// prod stays off until the explicit env flag is set.
+const MEMBER_VOUCHER_PACKAGE_FLAG = process.env.ENABLE_MEMBER_VOUCHER_PACKAGE;
+export const ENABLE_MEMBER_VOUCHER_PACKAGE = MEMBER_VOUCHER_PACKAGE_FLAG
+  ? MEMBER_VOUCHER_PACKAGE_FLAG === "true"
+  : ENV === "dev";
+
+// Held/released copy: dev defaults on now that the BE reservation lifecycle is live;
+// prod stays off until the explicit env flag is set.
+const MEMBER_VOUCHER_LIFECYCLE_FLAG = process.env.ENABLE_MEMBER_VOUCHER_LIFECYCLE;
+export const ENABLE_MEMBER_VOUCHER_LIFECYCLE = MEMBER_VOUCHER_LIFECYCLE_FLAG
+  ? MEMBER_VOUCHER_LIFECYCLE_FLAG === "true"
+  : ENV === "dev";
+
 if (!MAIN_API_URL) {
   throw new Error("MAIN_API_URL  is not defined in environment variables");
 }

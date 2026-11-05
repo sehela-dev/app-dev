@@ -10,6 +10,8 @@ import { useGetPaymentStatus } from "@/hooks/api/queries/customer/payments";
 import { useGetMySessionDetail } from "@/hooks/api/queries/customer/profile";
 import { useRemainingTime } from "@/hooks/use-remaining-time";
 import { formatDateHelper, normalizeOrderId } from "@/lib/helper";
+import { ENABLE_MEMBER_VOUCHER_LIFECYCLE } from "@/lib/config";
+import { VOUCHER_HELD_NOTE, VOUCHER_RELEASED_NOTE } from "@/lib/voucher";
 import { isPaymentFailure, isPaymentSuccess, isPaymentTerminal } from "@/lib/payment-status";
 import { loadSnap } from "@/lib/snap";
 import { NativeInstructionsComponent } from "@/view/payment/native-instructions";
@@ -170,7 +172,7 @@ export default function CashPaymentPage() {
 
   const className = detail?.session_name || detail?.class_name || "Class";
   const startDatetime = detail?.start_datetime || "";
-  const amountIdr = detail?.total_paid_idr ?? detail?.price_idr ?? 0;
+  const amountIdr = detail?.amount_paid_idr ?? detail?.total_paid_idr ?? detail?.original_amount_idr ?? detail?.price_idr ?? 0;
 
   const formatTime = (ms: number) => {
     const mins = Math.floor(ms / 60000);
@@ -352,14 +354,24 @@ export default function CashPaymentPage() {
           {isPending && !isExpired && (
             <div className="flex items-center gap-2 rounded-xl bg-blue-50 border border-blue-100 p-4 mb-4">
               <Loader2 className="h-5 w-5 animate-spin text-blue-500" />
-              <p className="text-sm font-medium text-blue-700">Waiting for payment confirmation...</p>
+              <div>
+                <p className="text-sm font-medium text-blue-700">Waiting for payment confirmation...</p>
+                {ENABLE_MEMBER_VOUCHER_LIFECYCLE && detail?.voucher_code && (
+                  <p className="text-xs text-blue-700/80">{VOUCHER_HELD_NOTE}</p>
+                )}
+              </div>
             </div>
           )}
 
           {isExpired && !paymentConfirmed && (
             <div className="flex items-center gap-2 rounded-xl bg-zinc-50 border border-zinc-200 p-4 mb-4">
               <AlertCircle className="h-5 w-5 text-zinc-600" />
-              <p className="text-sm font-medium text-zinc-700">Booking expired — 15m payment window exceeded (payment_expired). Please make a new booking.</p>
+              <div>
+                <p className="text-sm font-medium text-zinc-700">Booking expired — 15m payment window exceeded (payment_expired). Please make a new booking.</p>
+                {ENABLE_MEMBER_VOUCHER_LIFECYCLE && detail?.voucher_code && (
+                  <p className="text-xs text-zinc-600">{VOUCHER_RELEASED_NOTE}</p>
+                )}
+              </div>
             </div>
           )}
 
@@ -369,6 +381,9 @@ export default function CashPaymentPage() {
               <div>
                 <p className="text-sm font-semibold text-red-700">Payment {paymentStatus}</p>
                 <p className="text-xs text-red-600">Go to My Class to retry this booking.</p>
+                {ENABLE_MEMBER_VOUCHER_LIFECYCLE && detail?.voucher_code && (
+                  <p className="text-xs text-red-600">{VOUCHER_RELEASED_NOTE}</p>
+                )}
               </div>
             </div>
           )}

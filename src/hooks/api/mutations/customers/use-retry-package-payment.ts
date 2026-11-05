@@ -5,6 +5,7 @@ import { toast } from "sonner";
 import { useMutation } from "@tanstack/react-query";
 
 import { retryPackagePayment } from "@/api-req/customer-app/payments";
+import { getVoucherErrorMessage } from "@/lib/voucher";
 
 const ERROR_COPY: Record<string, string> = {
   PAYMENT_ALREADY_SETTLED: "This package is already paid.",
@@ -24,7 +25,7 @@ export const useRetryPackagePayment = () =>
       const code = responseError?.code as string | undefined;
       toast.error(code ?? "ERROR", {
         id: "package-retry-error",
-        description: (code && ERROR_COPY[code]) || responseError?.message || "Unable to start a new payment. Please try again.",
+        description: getVoucherErrorMessage(code) || (code && ERROR_COPY[code]) || responseError?.message || "Unable to start a new payment. Please try again.",
         position: "top-center",
       });
     },

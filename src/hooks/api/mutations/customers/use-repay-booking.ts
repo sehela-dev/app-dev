@@ -6,6 +6,7 @@ import { useCallback } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 
 import { createBookingPaymentSession } from "@/api-req/customer-app";
+import { getVoucherErrorMessage } from "@/lib/voucher";
 
 const ERROR_COPY: Record<string, string> = {
   PAYMENT_STILL_ACTIVE: "Your payment is still active. Reopen the existing payment window.",
@@ -45,7 +46,7 @@ const useConfig = (queryClient: ReturnType<typeof useQueryClient>) => {
 
       return toast.error(code ?? "ERROR", {
         id: "error",
-        description: (code && ERROR_COPY[code]) || responseError?.message || "Unable to start a payment. Please try again.",
+        description: getVoucherErrorMessage(code) || (code && ERROR_COPY[code]) || responseError?.message || "Unable to start a payment. Please try again.",
         position: "top-center",
       });
     },

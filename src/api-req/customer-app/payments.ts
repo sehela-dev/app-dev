@@ -49,6 +49,7 @@ export interface IInitiatePackagePurchaseRequest {
   share_with_user_id?: string | null;
   share_with_email?: string | null;
   payment_channel?: string;
+  voucher_code?: string;
 }
 
 export interface IInitiatePackagePurchaseResponse {
@@ -56,10 +57,13 @@ export interface IInitiatePackagePurchaseResponse {
   package_purchase_id: string;
   order_id: string;
   amount_idr: number;
+  original_amount_idr?: number;
+  voucher_code?: string | null;
+  voucher_discount_idr?: number;
+  payment_status?: string;
   snap_token: string | null;
   snap_redirect_url: string | null;
   payment_instructions?: PaymentInstructions | null;
-  payment_status?: string;
   test_mode?: boolean;
 }
 
