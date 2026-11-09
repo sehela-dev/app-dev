@@ -14,11 +14,11 @@ export const MIDTRANS_CLIENT_KEY = process.env.MIDTRANS_CLIENT_KEY as string | u
 const PAYMENT_CHANGE_FLAG = process.env.ENABLE_PAYMENT_CHANGE;
 export const ENABLE_PAYMENT_CHANGE = PAYMENT_CHANGE_FLAG ? PAYMENT_CHANGE_FLAG === "true" : ENV === "dev";
 
-// FE-19 native payment page + channel selection. Off means no `payment_channel`
-// is sent, so BE keeps minting Snap tokens for every channel. Dev defaults on;
-// prod stays off until the explicit env flag is set after D-16/D-18.
-const NATIVE_PAYMENT_FLAG = process.env.ENABLE_NATIVE_PAYMENT;
-export const ENABLE_NATIVE_PAYMENT = NATIVE_PAYMENT_FLAG ? NATIVE_PAYMENT_FLAG === "true" : ENV === "dev";
+// FE-19 native VA/QRIS page. Hard-off: prod is Snap-only (2026-11-09 decision)
+// and the merchant is not provisioned for legacy Core API. Re-enable here only
+// after Midtrans activates native channels. Channel selection still uses
+// /public/payment-channels either way.
+export const ENABLE_NATIVE_PAYMENT = false;
 
 // Member voucher package top-up: dev defaults on now that BE-07 is live;
 // prod stays off until the explicit env flag is set.
