@@ -104,6 +104,24 @@ export function upcomingWithin(
   });
 }
 
+/** Sessions whose start falls on the current WIB calendar day. */
+export function sessionsToday(
+  sessions: TeachingSession[],
+  nowIso: string,
+): TeachingSession[] {
+  const wibDay = (iso: string) =>
+    new Intl.DateTimeFormat("en-CA", {
+      timeZone: "Asia/Jakarta",
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+    }).format(new Date(iso));
+  const today = wibDay(nowIso);
+  return sessions.filter(
+    (s) => s.status !== "canceled" && wibDay(s.start_datetime) === today,
+  );
+}
+
 export function distinctClasses(sessions: TeachingSession[]): number {
   return new Set(sessions.map(classKey)).size;
 }

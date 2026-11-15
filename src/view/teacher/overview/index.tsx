@@ -21,6 +21,7 @@ import {
   noShowRate,
   percentChange,
   periodsEndingAt,
+  sessionsToday,
   sumHours,
   taughtSessions,
   trendPoints,
@@ -84,8 +85,14 @@ export default function TeacherOverviewView() {
   const previousReady = Boolean(previous && previous.period === previousPeriod(period));
 
   const isLoading =
-    !period || !earningsReady || !previousReady || earningsQuery.isLoading || previousQuery.isLoading || invoicesQuery.isLoading ||
-    pastQuery.isLoading || upcomingQuery.isLoading;
+    !period ||
+    !earningsReady ||
+    !previousReady ||
+    earningsQuery.isLoading ||
+    previousQuery.isLoading ||
+    invoicesQuery.isLoading ||
+    pastQuery.isLoading ||
+    upcomingQuery.isLoading;
   const isError = earningsQuery.isError || previousQuery.isError || invoicesQuery.isError || pastQuery.isError || upcomingQuery.isError;
 
   const retry = () => {
@@ -127,6 +134,8 @@ export default function TeacherOverviewView() {
   const isCurrentPeriod = period === currentPeriod();
   const taught = taughtSessions(pastSessions as TeachingSession[], nowIso, bounds.start, bounds.end);
   const nextSevenDays = isCurrentPeriod ? upcomingWithin(upcomingSessions as TeachingSession[], nowIso, 7) : [];
+  const todaySessions = sessionsToday([...pastSessions, ...upcomingSessions] as TeachingSession[], nowIso);
+  const todayLoad = attendanceTotals(todaySessions);
   const attendance = attendanceTotals(taught);
   const fill = fillRate(attendance.booked, attendance.capacity);
   const noShow = noShowRate(attendance.attended, attendance.no_show);
@@ -169,9 +178,7 @@ export default function TeacherOverviewView() {
 
   const maxTrend = Math.max(...trend.map((point) => point.total ?? 0), 1);
 
-  let periodStatus = isCurrentPeriod
-    ? "The studio has not issued an invoice for this period yet."
-    : "No invoice was issued for this period.";
+  let periodStatus = isCurrentPeriod ? "The studio has not issued an invoice for this period yet." : "No invoice was issued for this period.";
   if (currentInvoice?.status === "paid") {
     periodStatus = `Paid ${formatDateHelper(currentInvoice.paid_at ?? "", "dd MMM yyyy")}${
       currentInvoice.paid_reference ? ` · Ref: ${currentInvoice.paid_reference}` : ""
@@ -182,23 +189,44 @@ export default function TeacherOverviewView() {
 
   return (
     <div>
-      <div className="flex flex-row w-full justify-between">
+      <div className="flex flex-col w-full justify-between">
         <div className="flex flex-wrap items-end justify-between gap-4">
           <div>
             <h1 className="text-2xl font-bold text-brand-900">Overview</h1>
             <p className="mt-1 text-sm text-brand-700">The selected pay period and the 12 periods ending there. Read-only.</p>
           </div>
           <div className="flex w-full flex-col gap-2 sm:w-auto sm:items-end">
-            <p className="text-sm font-semibold text-brand-600">
-              {periodMonthLabel(period)} · {formatDateHelper(bounds.start, "dd MMM")} to {formatDateHelper(bounds.end, "dd MMM yyyy")}
-            </p>
+            <PeriodFilter id="overview-period" value={period} options={periodChoices} onChange={changePeriod} />
           </div>
         </div>
-        <div>
-          <PeriodFilter id="overview-period" value={period} options={periodChoices} onChange={changePeriod} />
+        <div className="justify-end flex mt-4">
+          <p className="text-sm font-semibold text-brand-600">
+            {periodMonthLabel(period)} · {formatDateHelper(bounds.start, "dd MMM")} to {formatDateHelper(bounds.end, "dd MMM yyyy")}
+          </p>
         </div>
       </div>
-      <div className="mt-6 grid gap-4 lg:grid-cols-2">
+      <section className="mt-6 rounded-xl border border-brand-200 bg-brand-50 p-5" aria-label="Today's schedule">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-wide text-brand-600">Today</p>
+            {todaySessions.length === 0 ? (
+              <p className="mt-1 text-lg font-bold text-brand-900">No sessions scheduled today.</p>
+            ) : (
+              <p className="mt-1 text-lg font-bold text-brand-900">
+                {todaySessions.length} session{todaySessions.length === 1 ? "" : "s"} · {todayLoad.booked} of {todayLoad.capacity} places
+                booked
+              </p>
+            )}
+          </div>
+          <Link
+            href="/teacher/sessions?scope=upcoming"
+            className="inline-flex min-h-11 items-center text-sm font-semibold text-brand-600 underline underline-offset-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500"
+          >
+            Open schedule
+          </Link>
+        </div>
+      </section>
+      <div className="mt-4 grid gap-4 lg:grid-cols-2">
         <section className="rounded-xl border border-brand-100 bg-white p-5" aria-label={isCurrentPeriod ? "This period" : "Selected period"}>
           <SectionHeader
             title={isCurrentPeriod ? "This period" : "Selected period"}
@@ -210,9 +238,7 @@ export default function TeacherOverviewView() {
             {earnings.source === "invoice" ? (
               <p className="text-3xl font-bold tabular-nums tracking-tight text-brand-900 sm:text-4xl">{formatCurrency(earnings.total_payment)}</p>
             ) : (
-              <p className="text-2xl font-bold text-brand-900">
-                {isCurrentPeriod ? "Not invoiced yet" : "Not invoiced"}
-              </p>
+              <p className="text-2xl font-bold text-brand-900">{isCurrentPeriod ? "Not invoiced yet" : "Not invoiced"}</p>
             )}
             <div className="mt-3 flex flex-wrap items-center gap-3">
               <Badge
@@ -362,17 +388,28 @@ export default function TeacherOverviewView() {
         {classes.length === 0 ? (
           <p className="mt-4 text-sm text-brand-700">No taught sessions to score yet.</p>
         ) : (
-          <ul className="mt-5 divide-y divide-brand-100 border-t border-brand-100">
-            {classes.map((row) => (
-              <li key={row.class_name} className="flex flex-wrap items-center justify-between gap-x-4 gap-y-1 py-3 text-sm">
-                <span className="font-semibold text-brand-900">{row.class_name}</span>
-                <span className="text-brand-700">
-                  {row.sessions} session{row.sessions === 1 ? "" : "s"} · {formatHours(row.hours)}
-                </span>
-                <span className="tabular-nums font-semibold text-brand-900">{formatCurrency(row.earnings)}</span>
-              </li>
-            ))}
-          </ul>
+          <div className="mt-5 overflow-x-auto rounded-lg border border-brand-100">
+            <table className="w-full text-left text-sm">
+              <thead className="bg-brand-50 text-xs uppercase tracking-wide text-brand-700">
+                <tr>
+                  <th scope="col" className="px-4 py-3 font-semibold">Class</th>
+                  <th scope="col" className="px-4 py-3 text-right font-semibold">Sessions</th>
+                  <th scope="col" className="px-4 py-3 text-right font-semibold">Hours</th>
+                  <th scope="col" className="px-4 py-3 text-right font-semibold">Earnings</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-brand-100">
+                {classes.map((row) => (
+                  <tr key={row.class_name}>
+                    <td className="px-4 py-3 font-semibold text-brand-900">{row.class_name}</td>
+                    <td className="px-4 py-3 text-right tabular-nums text-brand-700">{row.sessions}</td>
+                    <td className="px-4 py-3 text-right tabular-nums text-brand-700">{formatHours(row.hours)}</td>
+                    <td className="px-4 py-3 text-right tabular-nums font-semibold text-brand-900">{formatCurrency(row.earnings)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         )}
       </section>
     </div>

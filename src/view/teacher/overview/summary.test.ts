@@ -10,6 +10,7 @@ import {
   percentChange,
   periodsEndingAt,
   sessionsInPeriod,
+  sessionsToday,
   sumHours,
   taughtSessions,
   trendPoints,
@@ -74,6 +75,20 @@ test("taught sessions: in period, started, not canceled; upcoming is next 7 days
   assert.deepEqual(
     upcomingWithin(rows, now, 7).map((s) => s.session_id),
     ["future"],
+  );
+});
+
+test("sessionsToday uses the WIB calendar day and skips canceled", () => {
+  const now = "2026-11-16T01:00:00Z"; // 08:00 WIB, Nov 16
+  const rows = [
+    session({ session_id: "early", start_datetime: "2026-11-15T17:30:00Z", end_datetime: "2026-11-15T18:30:00Z" }), // Nov 16 00:30 WIB
+    session({ session_id: "evening", start_datetime: "2026-11-16T12:00:00Z", end_datetime: "2026-11-16T13:00:00Z" }), // Nov 16 19:00 WIB
+    session({ session_id: "yesterday", start_datetime: "2026-11-15T16:00:00Z", end_datetime: "2026-11-15T17:00:00Z" }), // Nov 15 23:00 WIB
+    session({ session_id: "canceled", start_datetime: "2026-11-16T02:00:00Z", end_datetime: "2026-11-16T03:00:00Z", status: "canceled" }),
+  ];
+  assert.deepEqual(
+    sessionsToday(rows, now).map((s) => s.session_id),
+    ["early", "evening"],
   );
 });
 
