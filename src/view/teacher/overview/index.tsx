@@ -169,7 +169,9 @@ export default function TeacherOverviewView() {
 
   const maxTrend = Math.max(...trend.map((point) => point.total ?? 0), 1);
 
-  let periodStatus = "The studio has not issued an invoice for this period yet.";
+  let periodStatus = isCurrentPeriod
+    ? "The studio has not issued an invoice for this period yet."
+    : "No invoice was issued for this period.";
   if (currentInvoice?.status === "paid") {
     periodStatus = `Paid ${formatDateHelper(currentInvoice.paid_at ?? "", "dd MMM yyyy")}${
       currentInvoice.paid_reference ? ` · Ref: ${currentInvoice.paid_reference}` : ""
@@ -208,7 +210,9 @@ export default function TeacherOverviewView() {
             {earnings.source === "invoice" ? (
               <p className="text-3xl font-bold tabular-nums tracking-tight text-brand-900 sm:text-4xl">{formatCurrency(earnings.total_payment)}</p>
             ) : (
-              <p className="text-2xl font-bold text-brand-900">Not invoiced yet</p>
+              <p className="text-2xl font-bold text-brand-900">
+                {isCurrentPeriod ? "Not invoiced yet" : "Not invoiced"}
+              </p>
             )}
             <div className="mt-3 flex flex-wrap items-center gap-3">
               <Badge
