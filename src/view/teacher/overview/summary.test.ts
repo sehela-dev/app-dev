@@ -8,6 +8,7 @@ import {
   hoursBetween,
   noShowRate,
   percentChange,
+  periodsEndingAt,
   sessionsInPeriod,
   sumHours,
   taughtSessions,
@@ -76,7 +77,12 @@ test("taught sessions: in period, started, not canceled; upcoming is next 7 days
   );
 });
 
-test("trend: oldest first, invoice status, current period provisional", () => {
+test("periodsEndingAt returns the selected period and the 11 before it, oldest first", () => {
+  assert.deepEqual(periodsEndingAt("2026-02", 3), ["2025-12", "2026-01", "2026-02"]);
+  assert.deepEqual(periodsEndingAt("2026-01", 2), ["2025-12", "2026-01"]);
+});
+
+test("trend: oldest first, invoice status, selected period provisional", () => {
   const points = trendPoints(
     ["2026-09", "2026-10", "2026-11"],
     [

@@ -44,6 +44,3 @@ export const periodOptions = (count = 12): string[] => {
     return p;
   });
 };
-
-/** Oldest first, for the Overview trend. */
-export const lastPeriods = (count = 12): string[] => periodOptions(count).reverse();

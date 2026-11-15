@@ -4,11 +4,11 @@ import { useEffect, useState } from "react";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useTeacherEarnings } from "@/hooks/api/queries/teacher/use-teacher";
 import { formatCurrency, formatDateHelper } from "@/lib/helper";
-import { currentPeriod, periodLabel, periodOptions } from "@/view/teacher/period";
+import { currentPeriod, periodOptions } from "@/view/teacher/period";
+import { PeriodFilter } from "@/view/teacher/period-filter";
 import type { ITeacherEarningsSession } from "@/types/teacher.interface";
 
 function SessionFeeTable({ rows }: { rows: ITeacherEarningsSession[] }) {
@@ -79,21 +79,12 @@ export default function TeacherEarningsView() {
             Pay period runs from the 24th of the previous month to the 23rd of this month.
           </p>
         </div>
-        <div className="w-full sm:w-48">
-          <label htmlFor="earnings-period" className="mb-1 block text-xs font-semibold text-brand-600">
-            Period
-          </label>
-          <Select value={period} onValueChange={setPeriod}>
-            <SelectTrigger id="earnings-period" className="min-h-11 w-full bg-white">
-              <SelectValue placeholder="Select a period" />
-            </SelectTrigger>
-            <SelectContent>
-              {options.map((option) => (
-                <SelectItem key={option} value={option}>{periodLabel(option)}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
+        <PeriodFilter
+          id="earnings-period"
+          value={period}
+          options={options}
+          onChange={setPeriod}
+        />
       </div>
 
       {!period || isLoading ? (

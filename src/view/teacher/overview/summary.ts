@@ -108,6 +108,15 @@ export function distinctClasses(sessions: TeachingSession[]): number {
   return new Set(sessions.map(classKey)).size;
 }
 
+/** The selected period plus the previous `count - 1`, oldest first. */
+export function periodsEndingAt(endPeriod: string, count = 12): string[] {
+  const [year, month] = endPeriod.split("-").map(Number);
+  return Array.from({ length: count }, (_, i) => {
+    const d = new Date(Date.UTC(year, month - 1 - (count - 1 - i), 1));
+    return `${d.getUTCFullYear()}-${pad(d.getUTCMonth() + 1)}`;
+  });
+}
+
 export function hasNoActivity(
   pastSessionCount: number,
   upcomingSessionCount: number,
@@ -145,9 +154,9 @@ export function percentChange(current: number, previous: number): number | null 
 export function trendPoints(
   periods: string[],
   invoices: InvoiceTotal[],
-  currentPeriod: string,
-  currentTotal: number,
-  currentProvisional: boolean,
+  selectedPeriod: string,
+  selectedTotal: number,
+  selectedProvisional: boolean,
 ): TrendPoint[] {
   const byPeriod = new Map(
     invoices.map((invoice) => [
@@ -158,12 +167,12 @@ export function trendPoints(
 
   return periods.map((period) => {
     const invoice = byPeriod.get(period);
-    if (period === currentPeriod) {
+    if (period === selectedPeriod) {
       return {
         period,
-        total: round2(currentTotal),
+        total: round2(selectedTotal),
         status: invoice?.status ?? "none",
-        provisional: currentProvisional,
+        provisional: selectedProvisional,
       };
     }
     if (!invoice) {
