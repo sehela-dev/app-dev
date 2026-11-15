@@ -4,6 +4,7 @@ import type React from "react";
 
 import { useState } from "react";
 import { Loader2 } from "lucide-react";
+import { toast } from "sonner";
 
 import { LogoComponent } from "@/components/asset/logo";
 import { Input } from "@/components/ui/input";
@@ -16,6 +17,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useCustomerAuthLogin } from "@/hooks/api/mutations/customers";
 import { useRouter } from "next/navigation";
 import { useAuthMember } from "@/context/member.ctx";
+import { cn } from "@/lib/utils";
 import { userSigInWithGoogle } from "@/api-req/customer-app";
 
 const defaultValues = {
@@ -25,6 +27,9 @@ const defaultValues = {
 
 const resolver = zodResolver(authLoginSchema);
 
+/** Which area the person expects to land in. Intent only: the role comes from the account. */
+type LoginIntent = "student" | "teacher";
+
 export default function LoginPageView() {
   const { login } = useAuthMember();
   const router = useRouter();
@@ -33,6 +38,7 @@ export default function LoginPageView() {
 
   const { mutateAsync, isPending } = useCustomerAuthLogin();
   const [googleLoading, setGoogleLoading] = useState(false);
+  const [intent, setIntent] = useState<LoginIntent>("student");
 
   const getSafeRedirect = () => {
     if (typeof window === "undefined") return "/";
@@ -58,7 +64,7 @@ export default function LoginPageView() {
         const raw = res as unknown as {
           data?: {
             session?: { access_token: string; refresh_token: string; expires_at?: number; expires_in?: number };
-            profile?: { is_profile_complete?: boolean };
+            profile?: { is_profile_complete?: boolean; role?: string };
             requires_profile_completion?: boolean;
             next_redirect?: string | null;
           };
@@ -79,6 +85,15 @@ export default function LoginPageView() {
         try {
           sessionStorage.removeItem("auth.redirect");
         } catch {}
+        // Teachers skip the student profile-completion flow even when tnc is unset.
+        if (d?.profile?.role === "teacher") {
+          router.replace(dest.startsWith("/teacher") ? dest : "/teacher");
+          return;
+        }
+        // The tab is intent, not access. A non-teacher who picked it stays signed in.
+        if (intent === "teacher") {
+          toast.error("This isn't a teacher account. You're signed in to the student app.");
+        }
         if (requires) {
           router.replace(`/complete-profile?next=${encodeURIComponent(d?.next_redirect && d.next_redirect !== "/complete-profile" ? d.next_redirect : bookingDest)}`);
           return;
@@ -107,6 +122,24 @@ export default function LoginPageView() {
 
       <div className="w-full   mx-auto max-w-[361px]">
         <div className="bg-white mx-auto w-full px-6 rounded-md pt-10">
+          {/* Sign-in intent — the account's role decides the destination */}
+          <div role="group" aria-label="Sign in as" className="mb-6 grid grid-cols-2 gap-1 rounded-lg bg-brand-50 p-1">
+            {(["student", "teacher"] as LoginIntent[]).map((value) => (
+              <button
+                key={value}
+                type="button"
+                aria-pressed={intent === value}
+                onClick={() => setIntent(value)}
+                className={cn(
+                  "min-h-11 rounded-md text-sm font-semibold capitalize transition-colors",
+                  "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500",
+                  intent === value ? "bg-white text-brand-900 shadow-sm" : "text-brand-600 hover:text-brand-900",
+                )}
+              >
+                {value}
+              </button>
+            ))}
+          </div>
           {/* Heading */}
           <div className="">
             <h2 className="text-2xl font-bold text-brand-500 leading-tight mb-2">Welcome Back!</h2>
@@ -224,20 +257,26 @@ export default function LoginPageView() {
 
           {/* Sign Up Link */}
           <div className="text-center space-y-4 pb-12">
-            <p className="text-sm text-brand-500">
-              Don’t have an account?
-              <a
-                  href={(() => {
-                  if (typeof window === "undefined") return "/auth/sign-up";
-                  const params = new URLSearchParams(window.location.search);
-                  const r = params.get("next") ?? params.get("redirect");
-                  return r && r.startsWith("/") && !r.startsWith("//") ? `/auth/sign-up?next=${encodeURIComponent(r)}` : "/auth/sign-up";
-                })()}
-                className="ml-1 font-semibold text-brand-500 hover:text-brand-600 underline transition-colors"
-              >
-                Sign up here
-              </a>
-            </p>
+            {intent === "teacher" ? (
+              <p className="text-sm text-brand-500">
+                Teacher accounts are created by the studio. Ask your admin for access.
+              </p>
+            ) : (
+              <p className="text-sm text-brand-500">
+                Don’t have an account?
+                <a
+                    href={(() => {
+                    if (typeof window === "undefined") return "/auth/sign-up";
+                    const params = new URLSearchParams(window.location.search);
+                    const r = params.get("next") ?? params.get("redirect");
+                    return r && r.startsWith("/") && !r.startsWith("//") ? `/auth/sign-up?next=${encodeURIComponent(r)}` : "/auth/sign-up";
+                  })()}
+                  className="ml-1 font-semibold text-brand-500 hover:text-brand-600 underline transition-colors"
+                >
+                  Sign up here
+                </a>
+              </p>
+            )}
           </div>
         </div>
       </div>
