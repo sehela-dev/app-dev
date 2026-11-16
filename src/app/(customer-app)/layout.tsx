@@ -2,6 +2,7 @@
 // import AuthMemberGuard from "@/layout/authguard-member-layout";
 import { CartProvider } from "@/context/cart.ctx";
 import { AuthProvider } from "@/context/member.ctx";
+import TeacherRedirectGuard from "@/layout/teacher-redirect-guard";
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
@@ -17,7 +18,9 @@ export default function RootLayout({
 }>) {
   return (
     <AuthProvider>
-      <CartProvider>{children}</CartProvider>
+      <TeacherRedirectGuard>
+        <CartProvider>{children}</CartProvider>
+      </TeacherRedirectGuard>
     </AuthProvider>
   );
 }

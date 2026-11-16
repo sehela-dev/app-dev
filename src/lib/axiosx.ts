@@ -127,6 +127,15 @@ export const clearToken = () => {
     position: "top-center",
   });
 
+  // The refresh token is dead, so a stale screen would never recover.
+  if (
+    typeof window !== "undefined" &&
+    !window.location.pathname.startsWith("/auth") &&
+    !window.location.pathname.startsWith("/admin-login")
+  ) {
+    window.location.href = role === "admin" || role === "instructor" ? "/admin-login" : "/auth/login";
+  }
+
   // window.location.href = role === "admin" || role === "instructor" ? "/admin-login" : "/auth/login";
 
   /*  // window.localStorage.removeItem("user");

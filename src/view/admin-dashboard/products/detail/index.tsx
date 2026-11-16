@@ -715,7 +715,7 @@ interface IProps {
 
 export const InventoryCardComponent = ({ variant, onOpenVariant, onEditVariant, onDeleteVariant, canDelete = true, coverFallback }: IProps) => {
   const [open, setOpen] = useState(false);
-  const { isManager } = useAdminPermission()
+  const { can } = useAdminPermission()
   const getStockStatus = (available: number, total: number) => {
     if (available === 0) return "bg-red-500/10 text-red-400";
     if (available < total * 0.25) return "bg-yellow-500/10 text-yellow-400";
@@ -799,7 +799,7 @@ export const InventoryCardComponent = ({ variant, onOpenVariant, onEditVariant, 
               </h4>
               <div className="flex flex-row items-center gap-2">
 
-                {isManager &&
+                {can("inventory:update") &&
                   <div><Button variant="secondary" size={"sm"} onClick={() => onOpenVariant(variant)}><Warehouse />Manage Stock</Button></div>
                 }
                 <div><Button variant="default" size={"sm"} onClick={() => onEditVariant(variant)}><PenIcon />Edit Variant</Button></div>
