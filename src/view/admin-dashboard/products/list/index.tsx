@@ -1,4 +1,3 @@
-/* eslint-disable @next/next/no-img-element */
 "use client";
 
 import { BaseDialogComponent } from "@/components/general/base-dialog-component";
@@ -20,6 +19,7 @@ import { downloadCsvBlob, exportProductMasterCsv } from "@/api-req/products";
 import { formatDateHelper } from "@/lib/helper";
 import { IProductItemList, IProductVariantItem } from "@/types/product.interface";
 import { CirclePlus, Download, Ellipsis, Loader2, Package } from "lucide-react";
+import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
 import Select, { SingleValue } from "react-select";
@@ -111,7 +111,13 @@ export const ProductListPage = () => {
   // dashed placeholder for rows without a photo — used by both views
   const Thumb = ({ src, alt }: { src?: string; alt: string }) =>
     src ? (
-      <img src={src} alt={alt} className="h-10 w-10 rounded-md border border-gray-200 object-cover" />
+      <Image
+        src={src}
+        alt={alt}
+        width={40}
+        height={40}
+        className="h-10 w-10 rounded-md border border-gray-200 object-cover"
+      />
     ) : (
       <span className="flex h-10 w-10 items-center justify-center rounded-md border border-dashed border-gray-300 bg-gray-50 text-gray-400">
         <Package size={16} />
