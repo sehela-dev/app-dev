@@ -32,13 +32,5 @@ const useConfig = () => {
     });
   }, []);
 
-  const onSuccess = useCallback((data: any) => {
-    toast.success("Login Success", {
-      id: "sucess",
-      description: data.message,
-      position: "top-center",
-    });
-  }, []);
-
-  return { onError, onSuccess };
+  return { onError };
 };

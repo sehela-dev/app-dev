@@ -10,6 +10,7 @@ import { FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/comp
 import { FormProvider, useForm } from "react-hook-form";
 import { Button } from "@/components/ui/button";
 import { Loader2 } from "lucide-react";
+import { toast } from "sonner";
 import { useLoginAdmin } from "@/hooks/api/mutations";
 import { useAuthAdmin } from "@/context/admin/admin-context";
 import { IUser } from "@/types/auth/user.interface";
@@ -47,6 +48,11 @@ export default function AdminLoginPage() {
             role: res?.data?.profile?.role as string,
             id: res?.data?.profile?.id as string,
           },
+        });
+        toast.success("Login Success", {
+          id: "sucess",
+          description: res.message,
+          position: "top-center",
         });
       }
     } catch (error) {

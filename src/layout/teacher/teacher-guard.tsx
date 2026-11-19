@@ -18,7 +18,7 @@ export default function TeacherGuard({ children }: { children: React.ReactNode }
     if (!isAuthReady) return;
     if (!isAuthenticated) {
       const next = `${window.location.pathname}${window.location.search}`;
-      router.replace(`/auth/login?next=${encodeURIComponent(next)}`);
+      router.replace(`/auth/teacher-login?next=${encodeURIComponent(next)}`);
       return;
     }
     if (role && role !== "teacher") {
@@ -48,7 +48,7 @@ export default function TeacherGuard({ children }: { children: React.ReactNode }
           </p>
           <div className="mt-4 flex justify-center gap-2">
             <Button variant="outline" onClick={() => refetch?.()}>Try again</Button>
-            <Button onClick={() => router.replace("/auth/login")}>Sign in</Button>
+            <Button onClick={() => router.replace("/auth/teacher-login")}>Sign in</Button>
           </div>
         </div>
       </div>

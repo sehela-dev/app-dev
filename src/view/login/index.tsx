@@ -3,7 +3,7 @@
 import type React from "react";
 
 import { useState } from "react";
-import { Loader2 } from "lucide-react";
+import { GraduationCap, Loader2, UserRound } from "lucide-react";
 import { toast } from "sonner";
 
 import { LogoComponent } from "@/components/asset/logo";
@@ -17,7 +17,6 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useCustomerAuthLogin } from "@/hooks/api/mutations/customers";
 import { useRouter } from "next/navigation";
 import { useAuthMember } from "@/context/member.ctx";
-import { cn } from "@/lib/utils";
 import { userSigInWithGoogle } from "@/api-req/customer-app";
 
 const defaultValues = {
@@ -27,10 +26,10 @@ const defaultValues = {
 
 const resolver = zodResolver(authLoginSchema);
 
-/** Which area the person expects to land in. Intent only: the role comes from the account. */
+/** Which area the person is signing in to. The account's role must match it. */
 type LoginIntent = "student" | "teacher";
 
-export default function LoginPageView() {
+export default function LoginPageView({ mode = "student" }: { mode?: LoginIntent }) {
   const { login } = useAuthMember();
   const router = useRouter();
   const methods = useForm<AuthLoginFormValues>({ defaultValues, resolver, mode: "all" });
@@ -38,7 +37,7 @@ export default function LoginPageView() {
 
   const { mutateAsync, isPending } = useCustomerAuthLogin();
   const [googleLoading, setGoogleLoading] = useState(false);
-  const [intent, setIntent] = useState<LoginIntent>("student");
+  const intent = mode;
 
   const getSafeRedirect = () => {
     if (typeof window === "undefined") return "/";
@@ -70,6 +69,12 @@ export default function LoginPageView() {
           };
         };
         const d = raw?.data;
+        const isTeacher = d?.profile?.role === "teacher";
+        if ((intent === "student" && isTeacher) || (intent === "teacher" && !isTeacher)) {
+          methods.setError("email", { message: "Invalid email or password" });
+          methods.setError("password", { message: "Invalid email or password" });
+          return;
+        }
         const requires =
           d?.requires_profile_completion === true ||
           d?.profile?.is_profile_complete === false ||
@@ -80,6 +85,11 @@ export default function LoginPageView() {
           expires_at: d?.session?.expires_at,
           expires_in: d?.session?.expires_in,
         });
+        toast.success("Login Success", {
+          id: "sucess",
+          description: res.message,
+          position: "top-center",
+        });
         const dest = getSafeRedirect();
         const bookingDest = dest !== "/" ? dest : "/book";
         try {
@@ -89,10 +99,6 @@ export default function LoginPageView() {
         if (d?.profile?.role === "teacher") {
           router.replace(dest.startsWith("/teacher") ? dest : "/teacher");
           return;
-        }
-        // The tab is intent, not access. A non-teacher who picked it stays signed in.
-        if (intent === "teacher") {
-          toast.error("This isn't a teacher account. You're signed in to the student app.");
         }
         if (requires) {
           router.replace(`/complete-profile?next=${encodeURIComponent(d?.next_redirect && d.next_redirect !== "/complete-profile" ? d.next_redirect : bookingDest)}`);
@@ -122,28 +128,10 @@ export default function LoginPageView() {
 
       <div className="w-full   mx-auto max-w-[361px]">
         <div className="bg-white mx-auto w-full px-6 rounded-md pt-10">
-          {/* Sign-in intent — the account's role decides the destination */}
-          <div role="group" aria-label="Sign in as" className="mb-6 grid grid-cols-2 gap-1 rounded-lg bg-brand-50 p-1">
-            {(["student", "teacher"] as LoginIntent[]).map((value) => (
-              <button
-                key={value}
-                type="button"
-                aria-pressed={intent === value}
-                onClick={() => setIntent(value)}
-                className={cn(
-                  "min-h-11 rounded-md text-sm font-semibold capitalize transition-colors",
-                  "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500",
-                  intent === value ? "bg-white text-brand-900 shadow-sm" : "text-brand-600 hover:text-brand-900",
-                )}
-              >
-                {value}
-              </button>
-            ))}
-          </div>
           {/* Heading */}
           <div className="">
             <h2 className="text-2xl font-bold text-brand-500 leading-tight mb-2">Welcome Back!</h2>
-            <h3 className="text-2xl font-bold text-brand-500 leading-tight">Login</h3>
+            <h3 className="text-2xl font-bold text-brand-500 leading-tight">{intent === "teacher" ? "Teacher Login" : "Login"}</h3>
           </div>
           <FormProvider {...methods}>
             {/* Form */}
@@ -250,6 +238,16 @@ export default function LoginPageView() {
               </div>
             </form>
           </FormProvider>
+
+          <Button
+            type="button"
+            variant="outline"
+            className="mb-6 min-h-[42px] w-full border-brand-500 text-brand-500 hover:bg-brand-100"
+            onClick={() => router.push(intent === "teacher" ? "/auth/login" : "/auth/teacher-login")}
+          >
+            {intent === "teacher" ? <UserRound /> : <GraduationCap />}
+            {intent === "teacher" ? "Login as Student" : "Login as Teacher"}
+          </Button>
 
           {/* Divider */}
 

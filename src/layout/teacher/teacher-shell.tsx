@@ -39,7 +39,7 @@ export default function TeacherShell({ children }: { children: React.ReactNode }
               className="min-h-11"
               onClick={() => {
                 logout();
-                router.replace("/auth/login");
+                router.replace("/auth/teacher-login");
               }}
             >
               <LogOut aria-hidden="true" />
