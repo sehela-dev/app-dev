@@ -1,13 +1,14 @@
 "use client";
 
 import { BaseDialogConfirmation } from "@/components/general/dialog-confirnation";
+import { Dialog, DialogContent, DialogDescription, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { StickyContainerComponent } from "@/components/layout";
 import { Button } from "@/components/ui/button";
 import { useCart } from "@/context/cart.ctx";
 import { useGetPublicProductDetail } from "@/hooks/api/queries/customer/public";
 import { formatCurrency } from "@/lib/helper";
 import { cn } from "@/lib/utils";
-import { AlertCircle, ChevronLeft, Loader2, Minus, Plus, ShoppingCart } from "lucide-react";
+import { AlertCircle, ChevronLeft, ChevronRight, Loader2, Minus, Plus, ShoppingCart } from "lucide-react";
 import Image from "next/image";
 import { useParams, useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
@@ -25,6 +26,7 @@ export const ShopDetailView = () => {
   const [selectedLocationId, setSelectedLocationId] = useState<string | null>(null);
   const [qty, setQty] = useState(1);
   const [pendingReplace, setPendingReplace] = useState<"cart" | "checkout" | null>(null);
+  const [swipeStartX, setSwipeStartX] = useState<number | null>(null);
 
   const selectedVariant = useMemo(
     () => product?.variants.find((v) => v.id === selectedVariantId) ?? null,
@@ -35,6 +37,28 @@ export const ShopDetailView = () => {
     () => selectedVariant?.availability.find((a) => a.location_id === selectedLocationId) ?? null,
     [selectedVariant?.availability, selectedLocationId],
   );
+
+  // Gallery = product photos plus every variant photo, so each variant's picture is visible.
+  const photos = useMemo(() => {
+    const base = product?.photos?.length ? product.photos : ["/assets/shop/example-matt.png"];
+    const variantPhotos = product?.variants.flatMap((v) => v.photos ?? []) ?? [];
+    return Array.from(new Set([...base, ...variantPhotos]));
+  }, [product]);
+
+  const variantIdByPhoto = useMemo(() => {
+    const map = new Map<string, string>();
+    product?.variants.forEach((v) => v.photos?.forEach((photo) => map.set(photo, v.id)));
+    return map;
+  }, [product]);
+
+  // Shared by the strip and the fullscreen viewer: viewing a variant photo selects that variant.
+  const selectPhoto = (index: number) => {
+    setSelectedPhoto(index);
+    const variantId = variantIdByPhoto.get(photos[index]);
+    if (variantId) setSelectedVariantId(variantId);
+  };
+
+  const stepPhoto = (delta: number) => selectPhoto((selectedPhoto + delta + photos.length) % photos.length);
 
   useEffect(() => {
     if (!product?.variants.length) return;
@@ -47,17 +71,11 @@ export const ShopDetailView = () => {
     const firstAvailable = selectedVariant.availability.find((a) => a.stock_available > 0) ?? selectedVariant.availability[0];
     setSelectedLocationId(firstAvailable?.location_id ?? null);
     setQty(1);
-    setSelectedPhoto(0);
-  }, [selectedVariant]);
+    const photoIndex = photos.indexOf(selectedVariant.photos?.[0] ?? "");
+    setSelectedPhoto(photoIndex >= 0 ? photoIndex : 0);
+  }, [selectedVariant, photos]);
 
   const maxQty = selectedAvailability?.stock_available ?? 0;
-
-  // ponytail: BE covers the fallback — variant.photos is never empty when a cover exists;
-  // swap detail image to variant.photo by leading the strip with it (skip when it IS the cover)
-  const basePhotos = product?.photos?.length ? product.photos : ["/assets/shop/example-matt.png"];
-  const variantPhoto = selectedVariant?.photos?.[0];
-  const photos =
-    variantPhoto && variantPhoto !== basePhotos[0] ? [variantPhoto, ...basePhotos] : basePhotos;
 
   const buildCartItem = () => {
     if (!product || !selectedVariant || !selectedAvailability) return null;
@@ -70,7 +88,7 @@ export const ShopDetailView = () => {
       quantity: qty,
       location_id: selectedAvailability.location_id,
       location_name: selectedAvailability.location_name,
-      photo: product.photos?.[0] ?? null,
+      photo: selectedVariant.photos?.[0] ?? product.photos?.[0] ?? null,
     };
   };
 
@@ -120,22 +138,95 @@ export const ShopDetailView = () => {
   return (
     <div className="flex min-h-full w-full flex-col justify-between gap-6 font-serif text-brand-500">
       <div className="mx-auto w-full p-4">
-        <Button variant="ghost" className="mb-2 !px-0" onClick={() => router.back()}>
+        <Button
+          variant="ghost"
+          className="mb-2 !px-0"
+          onClick={() => (window.history.length > 1 ? router.back() : router.push("/shop"))}
+        >
           <ChevronLeft /> Back
         </Button>
 
         <div className="flex flex-col gap-3">
-          <div className="relative h-[318px] w-full overflow-hidden rounded-md bg-brand-100">
-            <Image src={photos[selectedPhoto]} alt={product.name} fill sizes="550px" className="object-cover" />
-          </div>
+          <Dialog>
+            <DialogTrigger asChild>
+              <button
+                type="button"
+                aria-label="View full product image"
+                className="relative aspect-[4/5] w-full cursor-zoom-in overflow-hidden rounded-md bg-brand-100"
+              >
+                <Image src={photos[selectedPhoto]} alt={product.name} fill sizes="550px" className="object-cover" />
+              </button>
+            </DialogTrigger>
+            <DialogContent className="inset-0 top-0 left-0 h-dvh w-screen max-w-none translate-x-0 translate-y-0 gap-0 rounded-none border-0 bg-black p-0 sm:max-w-none [&_[data-slot=dialog-close]]:top-3 [&_[data-slot=dialog-close]]:right-3 [&_[data-slot=dialog-close]]:rounded-full [&_[data-slot=dialog-close]]:bg-black/50 [&_[data-slot=dialog-close]]:p-2 [&_[data-slot=dialog-close]]:text-white [&_[data-slot=dialog-close]]:opacity-100">
+              <DialogTitle className="sr-only">{product.name}</DialogTitle>
+              <DialogDescription className="sr-only">Full product image</DialogDescription>
+              <div className="flex h-full min-h-0 flex-col">
+                <div
+                  className="relative min-h-0 flex-1"
+                  onTouchStart={(e) => setSwipeStartX(e.touches[0]?.clientX ?? null)}
+                  onTouchCancel={() => setSwipeStartX(null)}
+                  onTouchEnd={(e) => {
+                    if (swipeStartX === null) return;
+                    const delta = (e.changedTouches[0]?.clientX ?? 0) - swipeStartX;
+                    if (Math.abs(delta) > 60) stepPhoto(delta < 0 ? 1 : -1);
+                    setSwipeStartX(null);
+                  }}
+                >
+                  <Image src={photos[selectedPhoto]} alt={product.name} fill sizes="100vw" className="object-contain" />
+                  {selectedVariant && (
+                    <p className="pointer-events-none absolute left-3 top-3 max-w-[calc(100%-4rem)] truncate rounded-full bg-black/60 px-3 py-1 text-sm font-semibold text-white">
+                      {selectedVariant.variant_name}
+                    </p>
+                  )}
+                  {photos.length > 1 && (
+                    <>
+                      <button
+                        type="button"
+                        aria-label="Previous photo"
+                        onClick={() => stepPhoto(-1)}
+                        className="absolute left-3 top-1/2 -translate-y-1/2 rounded-full bg-black/60 p-3 text-white hover:bg-black/80"
+                      >
+                        <ChevronLeft />
+                      </button>
+                      <button
+                        type="button"
+                        aria-label="Next photo"
+                        onClick={() => stepPhoto(1)}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 rounded-full bg-black/60 p-3 text-white hover:bg-black/80"
+                      >
+                        <ChevronRight />
+                      </button>
+                    </>
+                  )}
+                </div>
+                {photos.length > 1 && (
+                  <div className="flex shrink-0 gap-2 overflow-x-auto p-3">
+                    {photos.map((photo, index) => (
+                      <button
+                        key={photo}
+                        type="button"
+                        aria-label={`View photo ${index + 1}`}
+                        onClick={() => selectPhoto(index)}
+                        className={cn("relative aspect-[2/3] w-12 shrink-0 overflow-hidden rounded bg-white/10", {
+                          "outline outline-2 outline-offset-1 outline-white": index === selectedPhoto,
+                        })}
+                      >
+                        <Image src={photo} alt="" fill sizes="48px" className="object-cover" />
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </DialogContent>
+          </Dialog>
           {photos.length > 1 && (
-            <div className="flex flex-row gap-1.5">
+            <div className="flex flex-row flex-wrap gap-1.5">
               {photos.map((photo, index) => (
                 <button
                   key={photo}
                   type="button"
-                  onClick={() => setSelectedPhoto(index)}
-                  className={cn("relative h-[76px] w-[86px] overflow-hidden rounded-md bg-brand-100", {
+                  onClick={() => selectPhoto(index)}
+                  className={cn("relative h-[76px] w-[86px] shrink-0 overflow-hidden rounded-md bg-brand-100", {
                     "outline outline-2 outline-offset-1 outline-brand-500": index === selectedPhoto,
                   })}
                 >
@@ -164,7 +255,11 @@ export const ShopDetailView = () => {
                   key={variant.id}
                   type="button"
                   disabled={disabled}
-                  onClick={() => setSelectedVariantId(variant.id)}
+                  onClick={() => {
+                    setSelectedVariantId(variant.id);
+                    const photoIndex = photos.indexOf(variant.photos?.[0] ?? "");
+                    if (photoIndex >= 0) setSelectedPhoto(photoIndex);
+                  }}
                   className={cn(
                     "rounded-md border border-brand-500 px-3 py-2 text-sm",
                     selectedVariantId === variant.id && "bg-brand-100 font-semibold",

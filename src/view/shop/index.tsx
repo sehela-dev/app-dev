@@ -8,15 +8,25 @@ import { SearchInput } from "@/components/ui/search-input";
 import { Loader2, ShoppingBag, ShoppingCart } from "lucide-react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 const PAGE_SIZE = 20;
+
+const getInitialQuery = () => {
+  if (typeof window === "undefined") return { page: 1, search: "" };
+  const params = new URLSearchParams(window.location.search);
+  return {
+    page: Math.max(1, Number(params.get("page")) || 1),
+    search: params.get("q") ?? "",
+  };
+};
 
 export const ShopPageView = () => {
   const router = useRouter();
   const { items, subtotal } = useCart();
-  const [page, setPage] = useState(1);
-  const [search, setSearch] = useState("");
+  const [initial] = useState(getInitialQuery);
+  const [page, setPage] = useState(initial.page);
+  const [search, setSearch] = useState(initial.search);
   const { data, isLoading } = useGetPublicProducts({
     page,
     page_size: PAGE_SIZE,
@@ -24,6 +34,15 @@ export const ShopPageView = () => {
   });
   const products = data?.data ?? [];
   const pagination = data?.pagination;
+
+  // Keep filters in the URL so Back from a product returns to the same list state.
+  useEffect(() => {
+    const params = new URLSearchParams();
+    if (search) params.set("q", search);
+    if (page > 1) params.set("page", String(page));
+    const qs = params.toString();
+    window.history.replaceState(null, "", `${window.location.pathname}${qs ? `?${qs}` : ""}`);
+  }, [search, page]);
 
   return (
     <div className="flex flex-col w-full gap-4 px-4 py-4 font-serif text-brand-500 pb-28">
@@ -66,7 +85,7 @@ export const ShopPageView = () => {
                 onClick={() => router.push(`/shop/${product.id}`)}
                 className="flex flex-col overflow-hidden rounded-xl border border-brand-100 bg-brand-25 text-left"
               >
-                <div className="relative h-[150px] w-full bg-brand-100">
+                <div className="relative aspect-[2/3] w-full bg-brand-100">
                   <Image
                     src={product.photos?.[0] || "/assets/shop/example-matt.png"}
                     alt={product.name}
