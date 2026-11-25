@@ -13,6 +13,8 @@ import {
   TProductOrderDetail,
   TRescheduleSessionCust,
   TSendEmailReceipt,
+  TSettleBalance,
+  TOutstandingBalances,
   TThirdPartyApp,
   TVoidPreview,
 } from "@/types/orders.interface";
@@ -51,6 +53,16 @@ export const getOrders: TOrderList = async ({
 
 export const getDetailOrder: TOrderDetail = async (id) => {
   const res = await axiosx(true).get(`${MAIN_API_URL}/admin/transactions/${id}`);
+  return res.data;
+};
+
+export const settleBalance: TSettleBalance = async (paymentId, payload) => {
+  const res = await axiosx(true).post(`${MAIN_API_URL}/admin/payments/${paymentId}/settle-balance`, payload);
+  return res.data;
+};
+
+export const getOutstandingBalances: TOutstandingBalances = async () => {
+  const res = await axiosx(true).get(`${MAIN_API_URL}/admin/outstanding-balances`);
   return res.data;
 };
 

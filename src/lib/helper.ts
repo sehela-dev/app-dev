@@ -9,6 +9,15 @@ export const TRANSACTION_TERMINAL_STATUSES = ["voided", "refunded", "cancelled",
 export const isTransactionVoidable = (status?: string | null): boolean =>
   !!status && !TRANSACTION_TERMINAL_STATUSES.includes(status.toLowerCase() as (typeof TRANSACTION_TERMINAL_STATUSES)[number]);
 
+/** Payment provider display label; DP reads as Down Payment. */
+export function paymentMethodLabel(method?: string | null): string {
+  if (!method) return "-";
+  const lower = method.toLowerCase();
+  if (lower === "dp") return "Down Payment";
+  if (lower === "paylater") return "Paylater";
+  return method.replace(/_/g, " ");
+}
+
 export function formatCurrency(amount?: string | number, currencyCode = "IDR", locale = "id-ID") {
   // Create a new Intl.NumberFormat object
   const data = parseInt(amount as string);

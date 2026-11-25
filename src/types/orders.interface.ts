@@ -13,6 +13,8 @@ export interface IOrderItem {
   status: string;
   id: string;
   branch?: string;
+  balance_due_idr?: number;
+  balance_due_date?: string | null;
   transfer_details?: {
     account_name_from?: string | null;
     account_bank_from?: string | null;
@@ -154,6 +156,9 @@ export interface IDetailOrder {
   items: IOrderedItem[];
   total_price: number;
   total_price_formatted: string;
+  amount_paid_idr?: number;
+  balance_due_idr?: number;
+  balance_due_date?: string | null;
 
   created_by?: { id: string; name: string | null } | null;
   payment_status?: string;
@@ -456,6 +461,35 @@ export type TOrderList = (param: ICommonParams) => Promise<IResponseData<IOrderI
 export type TOrderDetail = (id: string) => Promise<IResponseData<IDetailOrder>>;
 export type TProductOrderDetail = (id: string) => Promise<IResponseData<IProductOrderDetail>>;
 export type TCreateManualOrder = (payload: IAddTransactionPayload) => Promise<IResponseData<ICreatManualTrxResponse>>;
+
+export interface ISettleBalancePayload {
+  payment_method: "cash" | "edc" | "transfer";
+  amount_idr?: number;
+  transfer_details?: {
+    account_name_from?: string | null;
+    account_bank_from?: string | null;
+    account_bank_to?: string | null;
+  };
+}
+
+export interface ISettleBalanceResponse {
+  payment_id: string;
+  parent_payment_id: string;
+  amount_idr: number;
+  remaining_idr: number;
+  payment_method: string;
+}
+
+export interface IOutstandingBalances {
+  count: number;
+  total_balance_due_idr: number;
+  next_due_date: string | null;
+  overdue_count: number;
+}
+
+export type TOutstandingBalances = () => Promise<IResponseData<IOutstandingBalances>>;
+
+export type TSettleBalance = (paymentId: string, payload: ISettleBalancePayload) => Promise<IResponseData<ISettleBalanceResponse>>;
 
 export type TBookingsSession = (data: IBookingPayload) => Promise<IResponseData<IBookingResponseData>>;
 export type TThirdPartyApp = () => Promise<IResponseData<IThirdPartyApp[]>>;

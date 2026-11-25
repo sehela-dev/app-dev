@@ -1,5 +1,5 @@
 "use client";
-import { TransactionVoidDialog } from "@/components/page/orders";
+import { SettleBalanceDialog, TransactionVoidDialog } from "@/components/page/orders";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
@@ -8,8 +8,8 @@ import { useSendReceiptEmail } from "@/hooks/api/mutations/admin/use-send-receip
 
 import { useGetOrderDetail } from "@/hooks/api/queries/admin/orders";
 import { useAdminPermission } from "@/hooks/use-role-access";
-import { formatCurrency, formatDateHelper, isTransactionVoidable } from "@/lib/helper";
-import { Ban, ExternalLink, Loader2, Mail } from "lucide-react";
+import { formatCurrency, formatDateHelper, isTransactionVoidable, paymentMethodLabel } from "@/lib/helper";
+import { Ban, ExternalLink, Loader2, Mail, Wallet } from "lucide-react";
 import { useParams } from "next/navigation";
 
 import { Fragment, useState } from "react";
@@ -19,6 +19,7 @@ export const OrderReceiptPage = () => {
   const params = useParams();
   const { id } = params;
   const [openVoid, setOpenVoid] = useState(false);
+  const [openSettle, setOpenSettle] = useState(false);
   const { data, isLoading, refetch } = useGetOrderDetail(id as string);
 
   const { mutateAsync, isPending } = useSendReceiptEmail();
@@ -65,7 +66,7 @@ export const OrderReceiptPage = () => {
             </div>
             <div className="grid grid-cols-2">
               <p className="text-gray-500  text-sm">Payment Method</p>
-              <p className="text-brand-999 text-right text-sm capitalize">{data?.data.payment_method}</p>
+              <p className="text-brand-999 text-right text-sm capitalize">{paymentMethodLabel(data?.data.payment_method)}</p>
             </div>
             {data?.data?.type && (
               <div className="grid grid-cols-2">
@@ -105,6 +106,22 @@ export const OrderReceiptPage = () => {
                 {data?.data?.status}
               </p>
             </div>
+            {(Number(data?.data?.balance_due_idr) || 0) > 0 && (
+              <>
+                <div className="grid grid-cols-2">
+                  <p className="text-gray-500  text-sm">Paid Now</p>
+                  <p className="text-brand-999 text-right text-sm">{formatCurrency(data?.data?.amount_paid_idr ?? 0)}</p>
+                </div>
+                <div className="grid grid-cols-2">
+                  <p className="text-gray-500  text-sm">Balance Due</p>
+                  <p className="text-right text-sm font-semibold text-amber-600">{formatCurrency(data?.data?.balance_due_idr ?? 0)}</p>
+                </div>
+                <div className="grid grid-cols-2">
+                  <p className="text-gray-500  text-sm">Due Date</p>
+                  <p className="text-brand-999 text-right text-sm">{data?.data?.balance_due_date ?? "-"}</p>
+                </div>
+              </>
+            )}
             <div className="grid grid-cols-2">
               <p className="text-gray-500  text-sm">Date</p>
               <p className="text-brand-999 text-right text-sm">{formatDateHelper(data?.data?.date as string, "dd/MM/yyyy")}</p>
@@ -304,6 +321,13 @@ export const OrderReceiptPage = () => {
         </CardContent>
       </Card>
       <div className="flex flex-row gap-2 pt-4">
+        {(Number(data?.data?.balance_due_idr) || 0) > 0 && isTransactionVoidable(data?.data?.status) && (
+          <div className="flex w-full">
+            <Button className="w-full !rounded-[10px]" onClick={() => setOpenSettle(true)}>
+              <Wallet /> Settle Balance
+            </Button>
+          </div>
+        )}
         {isManager && isTransactionVoidable(data?.data?.status) ? (
           <div className="flex w-full">
             <Button
@@ -345,6 +369,15 @@ export const OrderReceiptPage = () => {
             setOpenVoid(false);
           }}
           refetchOrders={refetch}
+        />
+      )}
+      {openSettle && (
+        <SettleBalanceDialog
+          paymentId={data?.data?.id as string}
+          balanceDueIdr={Number(data?.data?.balance_due_idr) || 0}
+          balanceDueDate={data?.data?.balance_due_date ?? null}
+          onClose={() => setOpenSettle(false)}
+          onSettled={() => refetch()}
         />
       )}
     </div>

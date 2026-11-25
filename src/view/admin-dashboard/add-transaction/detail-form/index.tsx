@@ -49,7 +49,7 @@ export const PAYMENT_METHODS = [
     value: "paylater",
   },
   {
-    label: "DP",
+    label: "Down Payment",
     value: "dp",
   },
 ];
@@ -186,7 +186,7 @@ export const DetailFormAddTransaction = () => {
 
     if (termSelected) {
       if (hasNonSessionItems) {
-        setTermError("Paylater/DP hanya untuk booking sesi.");
+        setTermError("Paylater/Down Payment hanya untuk booking sesi.");
         return;
       }
       if (!balanceDueDate) {
@@ -196,7 +196,7 @@ export const DetailFormAddTransaction = () => {
       if (selectedPaymentMethod === "dp") {
         const pct = Number(dpPercent);
         if (!Number.isInteger(pct) || pct < 1 || pct > 99) {
-          setTermError("DP % harus 1-99.");
+          setTermError("Down Payment % harus 1-99.");
           return;
         }
       }
@@ -719,7 +719,7 @@ export const DetailFormAddTransaction = () => {
                     <div className="flex flex-col gap-1">
                       {selectedPaymentMethod === "dp" && (
                         <div className="flex flex-col gap-1 mt-2">
-                          <Label className="text-gray-500">DP (%)</Label>
+                          <Label className="text-gray-500">Down Payment (%)</Label>
                           <Input
                             type="number"
                             min={1}

@@ -50,3 +50,4 @@ export * from "./use-update-admin";
 export * from "./use-deactivate-admin";
 export * from "./use-approve-refund";
 export * from "./use-reject-refund";
+export * from "./use-settle-balance";

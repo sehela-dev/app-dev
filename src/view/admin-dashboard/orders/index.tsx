@@ -4,7 +4,7 @@ import { DateRangePicker } from "@/components/base/date-range-picker";
 import { buildNumber, CustomTable } from "@/components/general/custom-table";
 import { CustomPagination } from "@/components/general/pagination-component";
 import { GeneralTabComponent } from "@/components/general/tabs-component";
-import { TransactionVoidDialog } from "@/components/page/orders";
+import { SettleBalanceDialog, TransactionVoidDialog } from "@/components/page/orders";
 import { PendingPaymentsTab } from "./pending-payments";
 
 import { Button } from "@/components/ui/button";
@@ -13,18 +13,20 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 
 import { SearchInput } from "@/components/ui/search-input";
 
-import { useGetOrders } from "@/hooks/api/queries/admin/orders";
+import { useGetOrders, useGetOutstandingBalances } from "@/hooks/api/queries/admin/orders";
 import { useAdminPermission } from "@/hooks/use-role-access";
 
-import { defaultDate, formatCurrency, formatDateHelper, isTransactionVoidable } from "@/lib/helper";
+import { defaultDate, formatCurrency, formatDateHelper, isTransactionVoidable, paymentMethodLabel } from "@/lib/helper";
 import { IOrderItem } from "@/types/orders.interface";
 import { SEHELA_BRANCH } from "@/constants/sample-data";
-import { Ban, CirclePlus, ReceiptText } from "lucide-react";
+import { AlertTriangle, Ban, ChevronDown, CirclePlus, ReceiptText, Wallet } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 
 export const OrdersPageView = () => {
   const [selectTrx, setSelectTrx] = useState("");
+  const [selectSettle, setSelectSettle] = useState<IOrderItem | null>(null);
+  const [outstandingOpen, setOutstandingOpen] = useState(true);
   const { isManager } = useAdminPermission();
   const router = useRouter();
   const [statusTab, setStatusTab] = useState("all");
@@ -52,10 +54,17 @@ export const OrdersPageView = () => {
     status: statusTab === "all" ? undefined : statusTab,
     branch: branch !== "all" ? branch : undefined,
   }, statusTab !== "pending");
+  const { data: outstandingData, refetch: refetchOutstanding } = useGetOutstandingBalances();
+  const outstanding = outstandingData?.data;
+  const refreshOrders = () => {
+    refetch();
+    void refetchOutstanding();
+  };
 
   const statusTabOptions = [
     { value: "all", name: "All" },
     { value: "pending", name: "Pending" },
+    { value: "unpaid", name: "Unpaid / Partial" },
     { value: "voided", name: "Voided" },
     { value: "refunded", name: "Refunded" },
   ];
@@ -92,9 +101,11 @@ export const OrdersPageView = () => {
       text: "Payment Method",
       value: (row: IOrderItem) => (
         <p className="capitalize">
-          {row?.payment_method === "transfer" && row?.transfer_details?.account_bank_to
-            ? `transfer/${row.transfer_details.account_bank_to}`
-            : row?.payment_method}
+          {paymentMethodLabel(
+            row?.payment_method === "transfer" && row?.transfer_details?.account_bank_to
+              ? `transfer/${row.transfer_details.account_bank_to}`
+              : row?.payment_method,
+          )}
         </p>
       ),
     },
@@ -126,6 +137,19 @@ export const OrdersPageView = () => {
         </p>
       ),
     },
+    {
+      id: "balance_due",
+      text: "Balance Due",
+      value: (row: IOrderItem) =>
+        (row?.balance_due_idr ?? 0) > 0 ? (
+          <div className="flex flex-col leading-tight">
+            <span className="font-semibold text-amber-600">{formatCurrency(row.balance_due_idr)}</span>
+            <span className="text-xs text-gray-500">{row.balance_due_date ?? "-"}</span>
+          </div>
+        ) : (
+          <span className="text-gray-400">-</span>
+        ),
+    },
   ];
   const actionOptions = {
     text: "Action",
@@ -135,6 +159,11 @@ export const OrdersPageView = () => {
         <Button variant={"outline"} onClick={() => router.push(`orders/${row?.id}`)}>
           <ReceiptText />
         </Button>
+        {(row?.balance_due_idr ?? 0) > 0 && isTransactionVoidable(row.status) ? (
+          <Button onClick={() => setSelectSettle(row)} title="Settle Balance">
+            <Wallet />
+          </Button>
+        ) : null}
         {isManager && isTransactionVoidable(row.status) ? (
           <Button
             variant={"destructive"}
@@ -181,6 +210,56 @@ export const OrdersPageView = () => {
           </div>
         </div>
       </div>
+      {outstanding && outstanding.count > 0 && (
+        <div className="rounded-lg border border-amber-200/70 bg-amber-50 text-sm text-amber-800">
+          <div className="flex w-full items-center justify-between gap-3 px-4 py-3">
+            <span className="flex items-center gap-2">
+              <AlertTriangle className="size-4 shrink-0" />
+              <span>
+                <strong>{outstanding.count}</strong> {outstanding.count === 1 ? "transaction has" : "transactions have"} an unpaid or partial balance ·{" "}
+                <span className="font-semibold">{formatCurrency(outstanding.total_balance_due_idr)} due</span>
+              </span>
+            </span>
+            <button
+              type="button"
+              onClick={() => setOutstandingOpen((open) => !open)}
+              aria-label={outstandingOpen ? "Collapse balance details" : "Expand balance details"}
+              aria-expanded={outstandingOpen}
+              className="rounded-md p-1 transition-colors hover:bg-amber-100"
+            >
+              <ChevronDown className={`size-4 transition-transform duration-300 ${outstandingOpen ? "rotate-180" : ""}`} />
+            </button>
+          </div>
+          <div className={`grid transition-[grid-template-rows] duration-300 ease-out ${outstandingOpen ? "grid-rows-[1fr]" : "grid-rows-[0fr]"}`}>
+            <div className="overflow-hidden">
+              <div className="flex flex-wrap items-center justify-between gap-3 px-4 pb-3">
+                <div className="flex flex-wrap gap-x-6 gap-y-1">
+                  <span>
+                    Due balance: <strong>{formatCurrency(outstanding.total_balance_due_idr)}</strong>
+                  </span>
+                  <span>
+                    Next due: <strong>{outstanding.next_due_date ? formatDateHelper(outstanding.next_due_date, "dd MMM yyyy") : "-"}</strong>
+                  </span>
+                  <span>
+                    Overdue: <strong>{outstanding.overdue_count}</strong>
+                  </span>
+                </div>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="border-amber-300 bg-white text-amber-800 hover:bg-amber-100 hover:text-amber-900"
+                  onClick={() => {
+                    setStatusTab("unpaid");
+                    setPage(1);
+                  }}
+                >
+                  View transactions
+                </Button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
       {statusTab === "pending" ? (
         <PendingPaymentsTab />
       ) : (
@@ -253,7 +332,16 @@ export const OrdersPageView = () => {
           onClose={() => {
             setOpenPreview(false);
           }}
-          refetchOrders={refetch}
+          refetchOrders={refreshOrders}
+        />
+      )}
+      {selectSettle && (
+        <SettleBalanceDialog
+          paymentId={selectSettle.id}
+          balanceDueIdr={selectSettle.balance_due_idr ?? 0}
+          balanceDueDate={selectSettle.balance_due_date ?? null}
+          onClose={() => setSelectSettle(null)}
+          onSettled={refreshOrders}
         />
       )}
     </div>

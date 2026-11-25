@@ -12,7 +12,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { SEHELA_BRANCH } from "@/constants/sample-data";
 import { useGetOrdersReport } from "@/hooks/api/queries/admin/report/outstanding-credit";
 import { useAdminPermission } from "@/hooks/use-role-access";
-import { defaultDate, formatCurrency } from "@/lib/helper";
+import { defaultDate, formatCurrency, paymentMethodLabel } from "@/lib/helper";
 import { cn } from "@/lib/utils";
 import { IOrdersReportRow } from "@/types/report.interface";
 import { format } from "date-fns";
@@ -28,7 +28,7 @@ const PAYMENT_TYPES = [
   { value: "midtrans", label: "Midtrans" },
   { value: "third_party", label: "Third Party" },
   { value: "paylater", label: "Paylater" },
-  { value: "dp", label: "DP" },
+  { value: "dp", label: "Down Payment" },
 ];
 
 const TRANSACTION_TYPES = [
@@ -196,7 +196,7 @@ export const OrdersReportView = () => {
           <div className="flex flex-col gap-1">
             <Badge variant="outline" className={cn("capitalize", style?.className)}>
               {Icon && <Icon />}
-              {row.paymentType?.replace(/_/g, " ") || "-"}
+              {paymentMethodLabel(row.paymentType) || "-"}
             </Badge>
             {isThirdParty && (row.sourcePlatform || typeof pct === "number") ? (
               <span className="text-muted-foreground text-xs whitespace-nowrap">
