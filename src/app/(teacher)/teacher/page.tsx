@@ -1,5 +1,5 @@
-import TeacherOverviewView from "@/view/teacher/overview";
+import { redirect } from "next/navigation";
 
 export default function TeacherHome() {
-  return <TeacherOverviewView />;
+  redirect("/teacher/sessions");
 }

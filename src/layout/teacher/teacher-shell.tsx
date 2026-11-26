@@ -10,9 +10,7 @@ import { useAuthMember } from "@/context/member.ctx";
 import { cn } from "@/lib/utils";
 
 const NAV = [
-  { href: "/teacher", label: "Overview" },
   { href: "/teacher/sessions", label: "Sessions" },
-  { href: "/teacher/earnings", label: "Earnings" },
   { href: "/teacher/invoices", label: "Invoices" },
 ];
 
@@ -50,9 +48,7 @@ export default function TeacherShell({ children }: { children: React.ReactNode }
         <nav aria-label="Teacher" className="mx-auto max-w-6xl overflow-x-auto px-4 sm:px-6">
           <ul className="flex gap-1">
             {NAV.map((item) => {
-              const active = item.href === "/teacher"
-                ? pathname === "/teacher"
-                : pathname.startsWith(item.href);
+              const active = pathname.startsWith(item.href);
               return (
                 <li key={item.href}>
                   <Link
